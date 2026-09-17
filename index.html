@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>公會會員資料綁定與修改</title>
+    <title>公會會員資料登記與修改</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800;900&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
@@ -30,14 +30,14 @@
                 會員資料填寫綁定
             </h1>
             <p id="pageSubTitle" class="text-xs text-amber-900/60 mt-1.5 leading-relaxed">
-                完成資料驗證後，即可解鎖公會官方功能、加入群組
+                完成登記後，即可使用公會各項專屬功能
             </p>
         </div>
 
         <!-- 主要表單卡片 -->
         <div class="bg-white rounded-[32px] p-6 sm:p-7 border-2 border-amber-200/80 soft-card-shadow relative">
             
-            <!-- 上方身分卡片 (只保留頭像、暱稱/新會員、UID) -->
+            <!-- 上方身分卡片 -->
             <div id="lineProfileCard" class="bg-[#FFF9EE] rounded-2xl p-3.5 border border-amber-200/80 mb-6 flex items-center gap-3">
                 <div class="relative">
                     <img id="avatarImg" src="https://api.dicebear.com/7.x/bottts/svg?seed=member" alt="LINE Avatar" class="w-12 h-12 rounded-full border-2 border-white shadow-sm object-cover bg-amber-100">
@@ -48,7 +48,6 @@
                         <span id="memberDisplayTitle" class="font-black text-base text-amber-950 truncate">新會員</span>
                         <span id="badgeVerified" class="hidden text-[10px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded-full">已綁定</span>
                     </div>
-                    <!-- 僅顯示 LINE UID -->
                     <div class="text-[11px] text-amber-800/60 font-mono truncate mt-0.5" id="lineUid">UID: 讀取中...</div>
                 </div>
             </div>
@@ -114,7 +113,7 @@
                     </div>
                 </div>
 
-                <!-- 欄位 3：LINE 顯示暱稱 (放在最下面，會自動預設帶入) -->
+                <!-- 欄位 3：LINE 顯示暱稱 -->
                 <div>
                     <label class="block text-xs font-bold text-amber-900 mb-1.5">
                         LINE 顯示暱稱 <span class="text-rose-500">*</span>
@@ -147,16 +146,16 @@
                             返回修改
                         </button>
                         <button onclick="executeFinalSubmit()" class="bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold py-2.5 rounded-xl transition shadow-md cursor-pointer">
-                            確認無誤送出
+                            確認送出
                         </button>
                     </div>
                 </div>
             </div>
 
-            <!-- 彈窗 2：送出成功提示視窗 -->
+            <!-- 彈窗 2：成功提示視窗 -->
             <div id="successModal" class="hidden absolute inset-0 bg-white/95 backdrop-blur-sm rounded-[32px] p-6 flex flex-col items-center justify-center text-center z-40">
-                <h3 id="successTitle" class="text-lg font-black text-amber-950 mb-1">綁定資料已送出</h3>
-                <p class="text-xs text-amber-900/70 max-w-[240px] leading-relaxed mb-4">
+                <h3 id="successTitle" class="text-lg font-black text-amber-950 mb-1">資料送出成功</h3>
+                <p id="successDesc" class="text-xs text-amber-900/70 max-w-[240px] leading-relaxed mb-4">
                     審核通過後，小幫手將會在 LINE 聊天室通知您
                 </p>
                 <div class="bg-[#FFFDF9] border border-amber-200 rounded-xl p-3 w-full text-left text-xs space-y-1 mb-5 text-amber-900">
@@ -196,7 +195,6 @@
             const queryUid = urlParams.get('uid') || urlParams.get('userId');
             const queryName = urlParams.get('name') || urlParams.get('displayName');
 
-            // 1. 初始化 LIFF
             if (MY_LIFF_ID && typeof liff !== 'undefined') {
                 try {
                     await liff.init({ liffId: MY_LIFF_ID });
@@ -217,7 +215,6 @@
                 if (queryName) currentUser.displayName = decodeURIComponent(queryName);
             }
 
-            // 2. 檢查本地暫存 (模擬資料庫回查)
             checkExistingMemberData(currentUser.userId);
         });
 
@@ -238,7 +235,6 @@
                 }
             }
 
-            // 新會員預設
             applyNewMemberUI();
         }
 
@@ -246,13 +242,12 @@
         function applyEditModeUI(data) {
             document.getElementById('topBadge').textContent = "資料修改";
             document.getElementById('pageMainTitle').textContent = "會員資料修改";
-            document.getElementById('pageSubTitle').textContent = "隨時更新您的遊戲角色資訊，確保幹部排班資料最新！";
+            // 替換為自然親切的副標題
+            document.getElementById('pageSubTitle').textContent = "記得隨時更新你的遊戲角色資訊喔！";
             
-            // 替換為遊戲暱稱
             document.getElementById('memberDisplayTitle').textContent = data.gameNickname;
             document.getElementById('badgeVerified').classList.remove('hidden');
 
-            // 自動回填各欄位 (包含 LINE 暱稱)
             document.getElementById('gameNickname').value = data.gameNickname || "";
             document.getElementById('gameClass').value = data.gameClass || "";
             if (data.lineDisplayName) {
@@ -260,30 +255,41 @@
             }
 
             document.getElementById('submitBtn').textContent = "儲存修改資料";
+            
+            // 彈窗說明直接提示完成，不提審核
             document.getElementById('successTitle').textContent = "資料修改成功！";
+            document.getElementById('successDesc').textContent = "最新資訊已為您更新完成～";
 
             updateProfileCard();
         }
 
-        // 新會員模式
+        // 新會員登記模式
         function applyNewMemberUI() {
+            document.getElementById('topBadge').textContent = "身分登記";
+            document.getElementById('pageMainTitle').textContent = "會員資料填寫綁定";
+            document.getElementById('pageSubTitle').textContent = "完成登記後，即可使用公會各項專屬功能";
+
             document.getElementById('memberDisplayTitle').textContent = "新會員";
+            document.getElementById('badgeVerified').classList.add('hidden');
             document.getElementById('submitBtn').textContent = "確認送出";
+
             if (currentUser.displayName) {
                 document.getElementById('manualLineName').value = currentUser.displayName;
             }
+
+            document.getElementById('successTitle').textContent = "綁定資料已送出";
+            document.getElementById('successDesc').textContent = "審核通過後，小幫手將會在 LINE 聊天室通知您";
+
             updateProfileCard();
         }
 
         function updateProfileCard() {
-            // 只顯示 UID
             document.getElementById('lineUid').textContent = 'UID: ' + currentUser.userId.substring(0, 16) + '...';
             if (currentUser.pictureUrl) {
                 document.getElementById('avatarImg').src = currentUser.pictureUrl;
             }
         }
 
-        // 表單送出 -> 打開確認視窗
         document.getElementById('bindForm').addEventListener('submit', function(e) {
             e.preventDefault();
             
@@ -313,28 +319,30 @@
             document.getElementById('confirmModal').classList.add('hidden');
         }
 
-        // 正式確認送出
         function executeFinalSubmit() {
             if (!pendingPayload) return;
 
             document.getElementById('confirmModal').classList.add('hidden');
 
-            // 儲存到本地（未來串接 API 即在此處發送 POST）
             localStorage.setItem("member_" + pendingPayload.lineUserId, JSON.stringify(pendingPayload));
 
-            // 更新介面狀態
             currentUser.gameNickname = pendingPayload.gameNickname;
             currentUser.gameClass = pendingPayload.gameClass;
             currentUser.displayName = pendingPayload.lineDisplayName;
+            currentUser.isRegistered = true;
             
             document.getElementById('memberDisplayTitle').textContent = pendingPayload.gameNickname;
             document.getElementById('badgeVerified').classList.remove('hidden');
 
-            console.log("資料已成功儲存/送出:", pendingPayload);
-
             document.getElementById('resGameNick').textContent = pendingPayload.gameNickname;
             document.getElementById('resGameClass').textContent = pendingPayload.gameClass;
             document.getElementById('resLineName').textContent = pendingPayload.lineDisplayName;
+            
+            if (currentUser.isRegistered) {
+                document.getElementById('successTitle').textContent = "資料修改成功！";
+                document.getElementById('successDesc').textContent = "最新資訊已為您更新完成～";
+            }
+            
             document.getElementById('successModal').classList.remove('hidden');
         }
 
@@ -342,7 +350,7 @@
             if (typeof liff !== 'undefined' && liff.closeWindow) {
                 liff.closeWindow();
             } else {
-                alert("已完成設定，請回到 LINE 聊天室！");
+                alert("設定完成，請回到 LINE 聊天室！");
                 document.getElementById('successModal').classList.add('hidden');
             }
         }
