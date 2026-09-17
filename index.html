@@ -21,7 +21,7 @@
 <body class="bg-[#FFFDF9] text-amber-950 antialiased selection:bg-amber-200 selection:text-amber-900 min-h-screen flex flex-col justify-between py-8 px-4">
 
     <main class="max-w-md w-full mx-auto">
-        <!-- 頂部標題區 (動態切換：身分登記 / 資料更新) -->
+        <!-- 頂部標題區 -->
         <div class="text-center mb-6">
             <div id="topBadge" class="inline-block bg-amber-100/80 text-amber-800 border border-amber-200 text-xs font-bold px-3.5 py-1 rounded-full mb-3">
                 身分登記
@@ -37,7 +37,7 @@
         <!-- 主要表單卡片 -->
         <div class="bg-white rounded-[32px] p-6 sm:p-7 border-2 border-amber-200/80 soft-card-shadow relative">
             
-            <!-- LINE 帳號資訊卡片 (動態更新：新會員 -> 遊戲暱稱) -->
+            <!-- 上方身分卡片 (只保留頭像、暱稱/新會員、UID) -->
             <div id="lineProfileCard" class="bg-[#FFF9EE] rounded-2xl p-3.5 border border-amber-200/80 mb-6 flex items-center gap-3">
                 <div class="relative">
                     <img id="avatarImg" src="https://api.dicebear.com/7.x/bottts/svg?seed=member" alt="LINE Avatar" class="w-12 h-12 rounded-full border-2 border-white shadow-sm object-cover bg-amber-100">
@@ -45,19 +45,17 @@
                 </div>
                 <div class="flex-1 min-w-0 text-left">
                     <div class="flex items-center gap-1.5">
-                        <!-- 這裏預設是「新會員」，如果已綁定過會動態替換為他的「遊戲暱稱」 -->
-                        <span id="memberDisplayTitle" class="font-black text-sm text-amber-950 truncate">新會員</span>
-                        <span id="badgeVerified" class="hidden text-[10px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded-full">已驗證</span>
+                        <span id="memberDisplayTitle" class="font-black text-base text-amber-950 truncate">新會員</span>
+                        <span id="badgeVerified" class="hidden text-[10px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded-full">已綁定</span>
                     </div>
-                    <!-- LINE 本身的使用者名稱與 UID -->
-                    <div class="text-[11px] text-amber-800/70 truncate mt-0.5" id="lineNameText">LINE: 讀取中...</div>
-                    <div class="text-[10px] text-amber-800/40 font-mono truncate" id="lineUid">UID: 讀取中...</div>
+                    <!-- 僅顯示 LINE UID -->
+                    <div class="text-[11px] text-amber-800/60 font-mono truncate mt-0.5" id="lineUid">UID: 讀取中...</div>
                 </div>
             </div>
 
             <!-- 表單內容 -->
             <form id="bindForm" class="space-y-5 text-left">
-
+                
                 <!-- 欄位 1：遊戲角色暱稱 -->
                 <div>
                     <label class="block text-xs font-bold text-amber-900 mb-1.5">
@@ -67,7 +65,7 @@
                            class="w-full bg-[#FFFDF9] border border-amber-200 rounded-2xl px-4 py-3 text-sm font-bold text-amber-950 placeholder:text-amber-800/30 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition">
                 </div>
 
-                <!-- 欄位 2：遊戲職業（RO 進階二轉體系） -->
+                <!-- 欄位 2：遊戲職業 -->
                 <div>
                     <label class="block text-xs font-bold text-amber-900 mb-1.5">
                         遊戲職業 <span class="text-rose-500">*</span>
@@ -115,28 +113,28 @@
                         </div>
                     </div>
                 </div>
-                
-                <!-- LINE 顯示暱稱（備用手動輸入欄位） -->
-                <div id="manualNameBlock" class="hidden">
+
+                <!-- 欄位 3：LINE 顯示暱稱 (放在最下面，會自動預設帶入) -->
+                <div>
                     <label class="block text-xs font-bold text-amber-900 mb-1.5">
                         LINE 顯示暱稱 <span class="text-rose-500">*</span>
                     </label>
-                    <input type="text" id="manualLineName" placeholder="例如：Wendy" 
+                    <input type="text" id="manualLineName" required placeholder="例如：Wendy / Chloe" 
                            class="w-full bg-[#FFFDF9] border border-amber-200 rounded-2xl px-4 py-3 text-sm font-bold text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition">
                 </div>
 
-                <!-- 提交按鈕（點擊後先彈出確認窗） -->
+                <!-- 提交按鈕 -->
                 <button type="submit" id="submitBtn"
                         class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-amber-300/50 hover:shadow-xl transition-all duration-200 flex items-center justify-center cursor-pointer mt-3">
                     確認送出
                 </button>
             </form>
 
-            <!-- 彈窗 1：送出前核對確認視窗 (Confirmation Modal) -->
+            <!-- 彈窗 1：送出前核對確認視窗 -->
             <div id="confirmModal" class="hidden absolute inset-0 bg-stone-900/40 backdrop-blur-sm rounded-[32px] p-6 flex flex-col items-center justify-center text-center z-30">
                 <div class="bg-white rounded-3xl p-5 w-full max-w-[300px] border-2 border-amber-200 shadow-2xl">
                     <h3 class="text-base font-black text-amber-950 mb-1">確認資料無誤？</h3>
-                    <p class="text-[11px] text-amber-800/70 mb-4">請確認以下資訊是否與遊戲內一致：</p>
+                    <p class="text-[11px] text-amber-800/70 mb-4">請確認以下資訊是否正確：</p>
                     
                     <div class="bg-[#FFF9EE] rounded-xl p-3 text-left text-xs space-y-1.5 mb-4 border border-amber-100 text-amber-950">
                         <div><span class="text-amber-700 font-bold">遊戲暱稱：</span><span id="previewNick" class="font-bold">-</span></div>
@@ -155,11 +153,11 @@
                 </div>
             </div>
 
-            <!-- 彈窗 2：送出成功提示視窗 (Success Modal) -->
+            <!-- 彈窗 2：送出成功提示視窗 -->
             <div id="successModal" class="hidden absolute inset-0 bg-white/95 backdrop-blur-sm rounded-[32px] p-6 flex flex-col items-center justify-center text-center z-40">
                 <h3 id="successTitle" class="text-lg font-black text-amber-950 mb-1">綁定資料已送出</h3>
                 <p class="text-xs text-amber-900/70 max-w-[240px] leading-relaxed mb-4">
-                    審核通過後，將會在公會官方通知您
+                    審核通過後，小幫手將會在 LINE 聊天室通知您
                 </p>
                 <div class="bg-[#FFFDF9] border border-amber-200 rounded-xl p-3 w-full text-left text-xs space-y-1 mb-5 text-amber-900">
                     <div><span class="text-amber-700 font-bold">遊戲暱稱：</span><span id="resGameNick">-</span></div>
@@ -184,14 +182,13 @@
 
         let currentUser = {
             userId: "U_demo_member_001",
-            displayName: "新會員",
+            displayName: "",
             pictureUrl: "https://api.dicebear.com/7.x/bottts/svg?seed=member",
             gameNickname: "",
             gameClass: "",
             isRegistered: false
         };
 
-        // 待送出的暫存資料
         let pendingPayload = null;
 
         window.addEventListener("DOMContentLoaded", async () => {
@@ -218,26 +215,22 @@
             } else if (queryUid || queryName) {
                 if (queryUid) currentUser.userId = queryUid;
                 if (queryName) currentUser.displayName = decodeURIComponent(queryName);
-            } else {
-                document.getElementById('manualNameBlock').classList.remove('hidden');
             }
 
-            // 2. 核心功能：依 UID 檢查是否曾經綁定過（此處使用 localStorage 模擬資料庫查詢）
+            // 2. 檢查本地暫存 (模擬資料庫回查)
             checkExistingMemberData(currentUser.userId);
         });
 
-        // 查詢現有會員資料
         function checkExistingMemberData(uid) {
-            // 從本地儲存模擬抓取後端資料庫記錄
             const stored = localStorage.getItem("member_" + uid);
             if (stored) {
                 try {
                     const data = JSON.parse(stored);
-                    currentUser.gameNickname = data.gameNickname;
-                    currentUser.gameClass = data.gameClass;
+                    currentUser.gameNickname = data.gameNickname || "";
+                    currentUser.gameClass = data.gameClass || "";
+                    currentUser.displayName = data.lineDisplayName || currentUser.displayName;
                     currentUser.isRegistered = true;
 
-                    // 切換為「已綁定修改模式」
                     applyEditModeUI(data);
                     return;
                 } catch (e) {
@@ -245,99 +238,100 @@
                 }
             }
 
-            // 若為首次登記的新會員
+            // 新會員預設
             applyNewMemberUI();
         }
 
-        // 切換為老會員修改介面
+        // 修改模式
         function applyEditModeUI(data) {
             document.getElementById('topBadge').textContent = "資料修改";
             document.getElementById('pageMainTitle').textContent = "會員資料修改";
             document.getElementById('pageSubTitle').textContent = "隨時更新您的遊戲角色資訊，確保幹部排班資料最新！";
             
-            // 把「新會員」字樣替換為他的「遊戲暱稱」
+            // 替換為遊戲暱稱
             document.getElementById('memberDisplayTitle').textContent = data.gameNickname;
             document.getElementById('badgeVerified').classList.remove('hidden');
-            document.getElementById('badgeVerified').textContent = "已綁定";
 
-            // 自動帶入原本填過的資料
-            document.getElementById('gameNickname').value = data.gameNickname;
-            document.getElementById('gameClass').value = data.gameClass;
+            // 自動回填各欄位 (包含 LINE 暱稱)
+            document.getElementById('gameNickname').value = data.gameNickname || "";
+            document.getElementById('gameClass').value = data.gameClass || "";
+            if (data.lineDisplayName) {
+                document.getElementById('manualLineName').value = data.lineDisplayName;
+            }
+
             document.getElementById('submitBtn').textContent = "儲存修改資料";
             document.getElementById('successTitle').textContent = "資料修改成功！";
 
             updateProfileCard();
         }
 
-        // 新會員介面
+        // 新會員模式
         function applyNewMemberUI() {
             document.getElementById('memberDisplayTitle').textContent = "新會員";
             document.getElementById('submitBtn').textContent = "確認送出";
+            if (currentUser.displayName) {
+                document.getElementById('manualLineName').value = currentUser.displayName;
+            }
             updateProfileCard();
         }
 
         function updateProfileCard() {
-            document.getElementById('lineNameText').textContent = 'LINE: ' + currentUser.displayName;
-            document.getElementById('lineUid').textContent = 'UID: ' + currentUser.userId.substring(0, 14) + '...';
+            // 只顯示 UID
+            document.getElementById('lineUid').textContent = 'UID: ' + currentUser.userId.substring(0, 16) + '...';
             if (currentUser.pictureUrl) {
                 document.getElementById('avatarImg').src = currentUser.pictureUrl;
             }
         }
 
-        // 步驟 1：點擊提交，先開啟確認對話框
+        // 表單送出 -> 打開確認視窗
         document.getElementById('bindForm').addEventListener('submit', function(e) {
             e.preventDefault();
             
             const gameNick = document.getElementById('gameNickname').value.trim();
             const gameClass = document.getElementById('gameClass').value;
-            const manualName = document.getElementById('manualLineName').value.trim();
-            if (manualName) {
-                currentUser.displayName = manualName;
-            }
+            const lineName = document.getElementById('manualLineName').value.trim();
 
-            // 準備暫存資料
+            currentUser.displayName = lineName;
+
             pendingPayload = {
                 lineUserId: currentUser.userId,
-                lineDisplayName: currentUser.displayName,
+                lineDisplayName: lineName,
                 linePictureUrl: currentUser.pictureUrl,
                 gameNickname: gameNick,
                 gameClass: gameClass,
                 updateTime: new Date().toISOString()
             };
 
-            // 填充預覽核對資訊
             document.getElementById('previewNick').textContent = gameNick;
             document.getElementById('previewClass').textContent = gameClass;
-            document.getElementById('previewLine').textContent = currentUser.displayName;
+            document.getElementById('previewLine').textContent = lineName;
 
-            // 打開確認彈窗
             document.getElementById('confirmModal').classList.remove('hidden');
         });
 
-        // 關閉確認彈窗（返回修改）
         function closeConfirmModal() {
             document.getElementById('confirmModal').classList.add('hidden');
         }
 
-        // 步驟 2：確認無誤，正式送出
+        // 正式確認送出
         function executeFinalSubmit() {
             if (!pendingPayload) return;
 
-            // 關閉確認彈窗
             document.getElementById('confirmModal').classList.add('hidden');
 
-            // 1. 存入儲存庫（模擬資料庫，讓會員再次打開時能自動識別遊戲暱稱並回填）
+            // 儲存到本地（未來串接 API 即在此處發送 POST）
             localStorage.setItem("member_" + pendingPayload.lineUserId, JSON.stringify(pendingPayload));
 
-            // 2. 即時更新頂部標籤為剛填寫的遊戲暱稱
+            // 更新介面狀態
+            currentUser.gameNickname = pendingPayload.gameNickname;
+            currentUser.gameClass = pendingPayload.gameClass;
+            currentUser.displayName = pendingPayload.lineDisplayName;
+            
             document.getElementById('memberDisplayTitle').textContent = pendingPayload.gameNickname;
             document.getElementById('badgeVerified').classList.remove('hidden');
-            document.getElementById('badgeVerified').textContent = "已綁定";
 
-            // 3. （選配）此處可將 pendingPayload POST 給 Google Apps Script / n8n / 資料庫
             console.log("資料已成功儲存/送出:", pendingPayload);
 
-            // 4. 顯示成功結果彈窗
             document.getElementById('resGameNick').textContent = pendingPayload.gameNickname;
             document.getElementById('resGameClass').textContent = pendingPayload.gameClass;
             document.getElementById('resLineName').textContent = pendingPayload.lineDisplayName;
