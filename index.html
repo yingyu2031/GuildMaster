@@ -57,15 +57,6 @@
 
             <!-- 表單內容 -->
             <form id="bindForm" class="space-y-5 text-left">
-                
-                <!-- LINE 顯示暱稱（備用手動輸入欄位） -->
-                <div id="manualNameBlock" class="hidden">
-                    <label class="block text-xs font-bold text-amber-900 mb-1.5">
-                        LINE 顯示暱稱 <span class="text-rose-500">*</span>
-                    </label>
-                    <input type="text" id="manualLineName" placeholder="例如：Wendy" 
-                           class="w-full bg-[#FFFDF9] border border-amber-200 rounded-2xl px-4 py-3 text-sm font-bold text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition">
-                </div>
 
                 <!-- 欄位 1：遊戲角色暱稱 -->
                 <div>
@@ -124,6 +115,15 @@
                         </div>
                     </div>
                 </div>
+                
+                <!-- LINE 顯示暱稱（備用手動輸入欄位） -->
+                <div id="manualNameBlock" class="hidden">
+                    <label class="block text-xs font-bold text-amber-900 mb-1.5">
+                        LINE 顯示暱稱 <span class="text-rose-500">*</span>
+                    </label>
+                    <input type="text" id="manualLineName" placeholder="例如：Wendy" 
+                           class="w-full bg-[#FFFDF9] border border-amber-200 rounded-2xl px-4 py-3 text-sm font-bold text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition">
+                </div>
 
                 <!-- 提交按鈕（點擊後先彈出確認窗） -->
                 <button type="submit" id="submitBtn"
@@ -159,7 +159,7 @@
             <div id="successModal" class="hidden absolute inset-0 bg-white/95 backdrop-blur-sm rounded-[32px] p-6 flex flex-col items-center justify-center text-center z-40">
                 <h3 id="successTitle" class="text-lg font-black text-amber-950 mb-1">綁定資料已送出</h3>
                 <p class="text-xs text-amber-900/70 max-w-[240px] leading-relaxed mb-4">
-                    審核通過後，小幫手將會在 LINE 聊天室通知您
+                    審核通過後，將會在公會官方通知您
                 </p>
                 <div class="bg-[#FFFDF9] border border-amber-200 rounded-xl p-3 w-full text-left text-xs space-y-1 mb-5 text-amber-900">
                     <div><span class="text-amber-700 font-bold">遊戲暱稱：</span><span id="resGameNick">-</span></div>
