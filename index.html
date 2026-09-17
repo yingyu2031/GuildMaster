@@ -1,1 +1,268 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GuildMaster - 公會會員資料綁定 🐾</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800;900&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <!-- LIFF SDK (LINE 官方前端框架，負責自動取得 LINE ID 與名稱) -->
+    <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <style>
+        body { 
+            font-family: 'M PLUS Rounded 1c', 'Noto Sans TC', sans-serif; 
+        }
+        .soft-card-shadow {
+            box-shadow: 0 20px 40px -12px rgba(217, 119, 6, 0.12), 0 4px 12px -2px rgba(0, 0, 0, 0.04);
+        }
+    </style>
+</head>
+<body class="bg-[#FFFDF9] text-amber-950 antialiased selection:bg-amber-200 selection:text-amber-900 min-h-screen flex flex-col justify-between py-6 px-4">
 
+    <!-- 背景裝飾彩球 (溫馨馬卡龍氛圍) -->
+    <div class="fixed -top-16 -left-16 w-64 h-64 bg-amber-100/60 rounded-full blur-3xl -z-10 pointer-events-none"></div>
+    <div class="fixed top-1/3 -right-20 w-72 h-72 bg-orange-100/50 rounded-full blur-3xl -z-10 pointer-events-none"></div>
+    <div class="fixed -bottom-16 left-1/4 w-80 h-80 bg-pink-100/40 rounded-full blur-3xl -z-10 pointer-events-none"></div>
+
+    <main class="max-w-md w-full mx-auto">
+        <!-- 頂部品牌與迎賓標語 -->
+        <div class="text-center mb-5">
+            <div class="inline-flex items-center gap-1.5 bg-amber-100/80 text-amber-800 border border-amber-200 text-xs font-bold px-3.5 py-1 rounded-full shadow-sm mb-3">
+                <span>🏰</span> 公會智慧管家・身分登記
+            </div>
+            <h1 class="text-2xl font-black text-amber-950 flex items-center justify-center gap-2">
+                <span>🐾</span> 會員資料填寫綁定
+            </h1>
+            <p class="text-xs text-amber-900/60 mt-1">完成資料驗證後，即可解鎖公會自動化請假與活動報名！</p>
+        </div>
+
+        <!-- 主要表單卡片 -->
+        <div class="bg-white rounded-[32px] p-6 sm:p-7 border-2 border-amber-200/80 soft-card-shadow relative">
+            
+            <!-- LINE 帳號自動帶入狀態卡片 -->
+            <div id="lineProfileCard" class="bg-[#FFF9EE] rounded-2xl p-3.5 border border-amber-200/80 mb-6 flex items-center gap-3">
+                <!-- 頭像 -->
+                <div class="relative">
+                    <img id="avatarImg" src="https://api.dicebear.com/7.x/bottts/svg?seed=fox" alt="LINE Avatar" class="w-12 h-12 rounded-full border-2 border-white shadow-sm object-cover bg-amber-100">
+                    <span class="absolute -bottom-1 -right-1 bg-[#06C755] text-white text-[9px] font-black px-1.5 py-0.2 rounded-full border border-white">LINE</span>
+                </div>
+                <!-- 帳號資訊 -->
+                <div class="flex-1 min-w-0 text-left">
+                    <div class="flex items-center gap-1.5">
+                        <span id="lineName" class="font-black text-sm text-amber-950 truncate">讀取 LINE 帳號中...</span>
+                        <span id="badgeVerified" class="hidden text-[10px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded-full">已同步</span>
+                    </div>
+                    <div class="text-[11px] text-amber-800/60 font-mono truncate mt-0.5" id="lineUid">UID: 正在獲取...</div>
+                </div>
+            </div>
+
+            <!-- 表單內容 -->
+            <form id="bindForm" class="space-y-4 text-left">
+                
+                <!-- 若沒開 LIFF 或無法取得 LINE 名稱時的備用輸入欄位 (自動判斷顯示) -->
+                <div id="manualNameBlock" class="hidden">
+                    <label class="block text-xs font-bold text-amber-900 mb-1.5 flex items-center gap-1">
+                        <span>💬</span> LINE 顯示暱稱 <span class="text-rose-500">*</span>
+                    </label>
+                    <input type="text" id="manualLineName" placeholder="例如：Wendy / 冠宇" 
+                           class="w-full bg-[#FFFDF9] border border-amber-200 rounded-2xl px-4 py-3 text-sm font-bold text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition">
+                </div>
+
+                <!-- 欄位 1：遊戲暱稱 (必填) -->
+                <div>
+                    <label class="block text-xs font-bold text-amber-900 mb-1.5 flex items-center justify-between">
+                        <span class="flex items-center gap-1"><span>🦊</span> 遊戲角色暱稱 <span class="text-rose-500">*</span></span>
+                        <span class="text-[10px] text-amber-600/70 font-normal">請務必與遊戲內完全相符</span>
+                    </label>
+                    <input type="text" id="gameNickname" required placeholder="例如：甜心小補師" 
+                           class="w-full bg-[#FFFDF9] border border-amber-200 rounded-2xl px-4 py-3 text-sm font-bold text-amber-950 placeholder:text-amber-800/30 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition">
+                </div>
+
+                <!-- 欄位 2：遊戲職業 (必填下拉選單) -->
+                <div>
+                    <label class="block text-xs font-bold text-amber-900 mb-1.5 flex items-center justify-between">
+                        <span class="flex items-center gap-1"><span>🪄</span> 遊戲主修職業 <span class="text-rose-500">*</span></span>
+                        <span class="text-[10px] text-amber-600/70 font-normal">供聯賽排班參考</span>
+                    </label>
+                    <div class="relative">
+                        <select id="gameClass" required 
+                                class="w-full bg-[#FFFDF9] border border-amber-200 rounded-2xl px-4 py-3 text-sm font-bold text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition appearance-none">
+                            <option value="" disabled selected>請選擇您的職業類別</option>
+                            <optgroup label="🛡️ 坦職防禦系">
+                                <option value="聖騎士">聖騎士 (Paladin)</option>
+                                <option value="守護者 / 狂戰士">狂戰士 / 盾戰</option>
+                            </optgroup>
+                            <optgroup label="✨ 治癒輔助系">
+                                <option value="神聖大主教">神聖大主教 (Priest)</option>
+                                <option value="吟遊詩人 / 舞孃">詩人 / 舞孃</option>
+                                <option value="鍊金術師 / 藥劑師">鍊金 / 藥劑</option>
+                            </optgroup>
+                            <optgroup label="⚔️ 近戰輸出系">
+                                <option value="十字刺客 / 影殺">刺客 / 盜賊系</option>
+                                <option value="武器大師 / 劍士系">符文騎士 / 劍士</option>
+                            </optgroup>
+                            <optgroup label="🔥 遠程 / 魔法輸出系">
+                                <option value="超魔導士">超魔導士 (Wizard)</option>
+                                <option value="神射手 / 狙擊手">神射手 (Hunter)</option>
+                                <option value="機甲神工 / 鐵匠系">機甲工匠</option>
+                            </optgroup>
+                            <option value="其他職業">其他（手動填寫）</option>
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-amber-700">
+                            ▼
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 欄位 3：遊戲伺服器 或 UID (選填) -->
+                <div>
+                    <label class="block text-xs font-bold text-amber-900 mb-1.5 flex items-center justify-between">
+                        <span class="flex items-center gap-1"><span>🆔</span> 遊戲 UID 或 伺服器 <span class="text-amber-500/70 font-normal">(選填)</span></span>
+                        <span class="text-[10px] text-amber-600/70 font-normal">方便幹部查驗</span>
+                    </label>
+                    <input type="text" id="gameUid" placeholder="例如：彩虹森林 / #882103" 
+                           class="w-full bg-[#FFFDF9] border border-amber-200 rounded-2xl px-4 py-3 text-sm font-bold text-amber-950 placeholder:text-amber-800/30 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition">
+                </div>
+
+                <!-- 貼心提示 -->
+                <div class="bg-amber-50/60 rounded-xl p-3 border border-amber-100 text-[11px] text-amber-900/70 leading-relaxed">
+                    💡 <b>貼心提醒：</b>送出後資料將同步至公會幹部審核後台，若後續遊戲內改名或轉職，隨時可於 LINE 選單中更新里程紀錄！
+                </div>
+
+                <!-- 送出按鈕 -->
+                <button type="submit" id="submitBtn"
+                        class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-black py-4 rounded-2xl shadow-lg shadow-amber-300/50 hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer mt-2">
+                    <span>🤎</span> 確認並提交綁定申請
+                </button>
+            </form>
+
+            <!-- 成功提示彈窗 (送出後呈現) -->
+            <div id="successModal" class="hidden absolute inset-0 bg-white/95 backdrop-blur-sm rounded-[32px] p-6 flex flex-col items-center justify-center text-center z-20">
+                <div class="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-3xl mb-3 shadow-inner">
+                    🎉
+                </div>
+                <h3 class="text-xl font-black text-amber-950 mb-1">綁定資料已送出！</h3>
+                <p class="text-xs text-amber-900/70 max-w-[240px] leading-relaxed mb-5">
+                    幹部審核通過後，管家小幫手將會在 LINE 聊天室自動通知您～
+                </p>
+                <div class="bg-[#FFFDF9] border border-amber-200 rounded-xl p-3 w-full text-left text-xs space-y-1 mb-5 text-amber-900">
+                    <div><span class="text-amber-600 font-bold">遊戲暱稱：</span><span id="resGameNick">-</span></div>
+                    <div><span class="text-amber-600 font-bold">遊戲職業：</span><span id="resGameClass">-</span></div>
+                    <div><span class="text-amber-600 font-bold">LINE 暱稱：</span><span id="resLineName">-</span></div>
+                </div>
+                <button onclick="closeLiffWindow()" class="bg-amber-500 hover:bg-amber-600 text-white text-xs font-black px-6 py-2.5 rounded-full shadow-md transition cursor-pointer">
+                    關閉回到 LINE 聊天室 🐾
+                </button>
+            </div>
+
+        </div>
+
+        <p class="text-[11px] text-amber-800/40 text-center mt-6">
+            &copy; 2026 GuildMaster 智慧公會管理系統
+        </p>
+    </main>
+
+    <!-- LIFF 與表單連線邏輯 Script -->
+    <script>
+        // LIFF ID：若您在 LINE Developers 申請了 LIFF ID，填入下方雙引號即可自動啟用 LINE 授權
+        const MY_LIFF_ID = ""; 
+
+        let currentUser = {
+            userId: "U" + Math.random().toString(36).substr(2, 9),
+            displayName: "冒險者",
+            pictureUrl: "https://api.dicebear.com/7.x/bottts/svg?seed=fox"
+        };
+
+        window.addEventListener("DOMContentLoaded", async () => {
+            // 優先檢查網址是否有參數傳入 (?uid=xxx&name=xxx)
+            const urlParams = new URLSearchParams(window.location.search);
+            const queryUid = urlParams.get('uid') || urlParams.get('userId');
+            const queryName = urlParams.get('name') || urlParams.get('displayName');
+
+            // 1. 如果有填寫 LIFF ID 並且有載入 LIFF SDK
+            if (MY_LIFF_ID && typeof liff !== 'undefined') {
+                try {
+                    await liff.init({ liffId: MY_LIFF_ID });
+                    if (liff.isLoggedIn()) {
+                        const profile = await liff.getProfile();
+                        currentUser.userId = profile.userId;
+                        currentUser.displayName = profile.displayName;
+                        currentUser.pictureUrl = profile.pictureUrl || currentUser.pictureUrl;
+                        updateProfileUI(true);
+                        return;
+                    } else {
+                        liff.login();
+                        return;
+                    }
+                } catch (err) {
+                    console.warn("LIFF 初始化或登入異常:", err);
+                }
+            }
+
+            // 2. 如果網址帶有參數 (URL Query)
+            if (queryUid || queryName) {
+                if (queryUid) currentUser.userId = queryUid;
+                if (queryName) currentUser.displayName = decodeURIComponent(queryName);
+                updateProfileUI(true);
+            } else {
+                // 3. 無 LIFF 或直接開啟：自動顯示手動填寫 LINE 暱稱欄位作為防呆
+                document.getElementById('manualNameBlock').classList.remove('hidden');
+                updateProfileUI(false);
+            }
+        });
+
+        function updateProfileUI(isAutoSynced) {
+            document.getElementById('lineName').textContent = currentUser.displayName;
+            document.getElementById('lineUid').textContent = 'UID: ' + currentUser.userId.substring(0, 14) + '...';
+            if (currentUser.pictureUrl) {
+                document.getElementById('avatarImg').src = currentUser.pictureUrl;
+            }
+            if (isAutoSynced) {
+                document.getElementById('badgeVerified').classList.remove('hidden');
+            }
+        }
+
+        // 提交表單處理
+        document.getElementById('bindForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const gameNick = document.getElementById('gameNickname').value.trim();
+            const gameClass = document.getElementById('gameClass').value;
+            const gameUid = document.getElementById('gameUid').value.trim();
+            
+            const manualName = document.getElementById('manualLineName').value.trim();
+            if (manualName) {
+                currentUser.displayName = manualName;
+            }
+
+            // 資料物件：未來可直接傳給 Google Sheets、n8n 或後端資料庫
+            const payload = {
+                lineUserId: currentUser.userId,
+                lineDisplayName: currentUser.displayName,
+                linePictureUrl: currentUser.pictureUrl,
+                gameNickname: gameNick,
+                gameClass: gameClass,
+                gameUid: gameUid,
+                submitTime: new Date().toISOString()
+            };
+
+            console.log("已收集到綁定資料:", payload);
+
+            // 顯示成功核對彈窗
+            document.getElementById('resGameNick').textContent = gameNick;
+            document.getElementById('resGameClass').textContent = gameClass;
+            document.getElementById('resLineName').textContent = currentUser.displayName;
+            document.getElementById('successModal').classList.remove('hidden');
+        });
+
+        function closeLiffWindow() {
+            if (typeof liff !== 'undefined' && liff.closeWindow) {
+                liff.closeWindow();
+            } else {
+                alert("綁定資料已送出！請回到 LINE 聊天室。");
+            }
+        }
+    </script>
+</body>
+</html>
