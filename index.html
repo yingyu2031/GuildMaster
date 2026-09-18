@@ -48,7 +48,7 @@
                         <span id="memberDisplayTitle" class="font-black text-base text-amber-950 truncate">載入中...</span>
                         <span id="badgeVerified" class="hidden text-[10px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded-full">已綁定</span>
                     </div>
-                    <div class="text-[11px] text-amber-800/60 font-mono truncate mt-0.5" id="lineUid">UID: 讀取中...</div>
+                    <div class="text-[11px] text-amber-800/60 font-mono truncate mt-0.5" id="lineUid">UID: 載入中...</div>
                 </div>
             </div>
 
@@ -219,7 +219,7 @@
 
             let isLiffReady = false;
 
-            // LIFF 載入設定：最多等 2 秒，防任何網路或環境卡死
+            // LIFF 載入防護：設定最多等 2 秒，防超時卡死
             if (MY_LIFF_ID && typeof liff !== 'undefined') {
                 const liffInitPromise = (async () => {
                     await liff.init({ liffId: MY_LIFF_ID });
@@ -238,7 +238,7 @@
                 try {
                     await Promise.race([liffInitPromise, timeoutPromise]);
                 } catch (err) {
-                    console.warn("LIFF 初始化跳過:", err);
+                    console.warn("LIFF 初始化跳過或超時:", err);
                 }
             }
 
@@ -248,14 +248,15 @@
                 if (queryName) currentUser.displayName = decodeURIComponent(queryName);
             }
 
-            // 立刻更新 UI，完全不卡住
+            // 更新身分卡片資訊
             updateProfileCard();
+            // 讀取快取與向 GAS 同步資料
             checkExistingMemberData(currentUser.userId);
         });
 
-        // 本地快取秒開 + 背景 GAS 靜默同步
+        // 本地快取秒開 + 背景向 GAS 非同步校驗
         async function checkExistingMemberData(uid) {
-            // 1. 本地快取秒開 (0.01 秒無感呈現)
+            // 1. 本地快取秒開 (0.01 秒呈現，不卡畫面)
             const stored = localStorage.getItem("member_" + uid);
             if (stored) {
                 try {
@@ -273,7 +274,7 @@
                 applyNewMemberUI();
             }
 
-            // 2. 背景非同步向 GAS 查詢最新資訊，完成後默默更新
+            // 2. 背景發送 GET 向 GAS 試算表校對最新資訊
             if (GAS_API_URL) {
                 fetch(`${GAS_API_URL}?uid=${encodeURIComponent(uid)}`)
                     .then(res => res.json())
@@ -384,24 +385,19 @@
             modalConfirmBtn.textContent = "傳送中...";
             modalConfirmBtn.disabled = true;
 
-            // 1. 立即存入本地快取
+            // 1. 本地快取同步儲存
             localStorage.setItem("member_" + pendingPayload.lineUserId, JSON.stringify(pendingPayload));
 
-            // 2. 以標準表單格式發送至 GAS，確保 100% 寫入
+            // 2. 透過 text/plain 跨域傳送 JSON 字串至 GAS，避免 CORS 預檢失敗，保證觸發 doPost
             if (GAS_API_URL) {
                 try {
-                    const formData = new URLSearchParams();
-                    for (const key in pendingPayload) {
-                        formData.append(key, pendingPayload[key]);
-                    }
-
                     await fetch(GAS_API_URL, {
                         method: "POST",
                         mode: "no-cors",
                         headers: {
-                            "Content-Type": "application/x-www-form-urlencoded"
+                            "Content-Type": "text/plain;charset=utf-8"
                         },
-                        body: formData.toString()
+                        body: JSON.stringify(pendingPayload)
                     });
                 } catch (err) {
                     console.error("同步至 Google Sheet 失敗:", err);
