@@ -61,7 +61,7 @@
             </div>
         </div>
 
-        <!-- 狀態 2：審核中專屬卡片 (樣式位置與彈窗完全統一) -->
+        <!-- 狀態 2：審核中專屬卡片 (鎖定不可修改) -->
         <div id="pendingReviewCard" class="hidden bg-white rounded-[32px] p-6 sm:p-7 border-2 border-amber-200/80 soft-card-shadow text-center relative">
             <div class="w-14 h-14 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-3 border-2 border-amber-200 text-2xl">
                 ⏳
@@ -105,7 +105,7 @@
             </div>
         </div>
 
-        <!-- 狀態 3：主要表單卡片 -->
+        <!-- 狀態 3：主要表單卡片 (新會員登記 / 已審核修改) -->
         <div id="mainFormCard" class="hidden bg-white rounded-[32px] p-6 sm:p-7 border-2 border-amber-200/80 soft-card-shadow relative">
             
             <div id="lineProfileCard" class="bg-[#FFF9EE] rounded-2xl p-3.5 border border-amber-200/80 mb-6 flex items-center gap-3">
@@ -229,7 +229,7 @@
                 </div>
             </div>
 
-            <!-- 彈窗 2：成功結果視窗 (格式位置完全一致) -->
+            <!-- 彈窗 2：成功結果視窗 -->
             <div id="successModal" class="hidden absolute inset-0 bg-white/95 backdrop-blur-sm rounded-[32px] p-6 flex flex-col items-center justify-center text-center z-40">
                 <h3 id="successTitle" class="text-lg font-black text-amber-950 mb-1">資料送出成功</h3>
                 <p id="successDesc" class="text-xs text-amber-900/70 max-w-[240px] leading-relaxed mb-5">審核通過後，將會在 LINE 聊天室通知您</p>
@@ -278,6 +278,38 @@
         };
 
         let pendingPayload = null;
+
+        // 核心解法：利用 JSONP 查詢 GAS，100% 避開 CORS 阻擋
+        function querySheetByJsonp(uid) {
+            return new Promise((resolve) => {
+                const callbackName = "gas_cb_" + Date.now();
+                const script = document.createElement("script");
+
+                const timer = setTimeout(() => {
+                    cleanup();
+                    resolve({ status: "timeout" });
+                }, 5000);
+
+                function cleanup() {
+                    clearTimeout(timer);
+                    if (script.parentNode) script.parentNode.removeChild(script);
+                    delete window[callbackName];
+                }
+
+                window[callbackName] = function(data) {
+                    cleanup();
+                    resolve(data);
+                };
+
+                script.src = `${GAS_API_URL}?uid=${encodeURIComponent(uid)}&callback=${callbackName}&_=${Date.now()}`;
+                script.onerror = function() {
+                    cleanup();
+                    resolve({ status: "error" });
+                };
+
+                document.body.appendChild(script);
+            });
+        }
 
         window.addEventListener("DOMContentLoaded", async () => {
             localStorage.clear();
@@ -329,26 +361,24 @@
                 return;
             }
 
+            // 使用 JSONP 向 GAS 查詢最新狀態（100% 成功跨域取得狀態）
             if (GAS_API_URL) {
-                try {
-                    const res = await fetch(`${GAS_API_URL}?uid=${encodeURIComponent(currentUser.userId)}&t=${Date.now()}`);
-                    const result = await res.json();
-                    
-                    if (result && result.status === "found") {
-                        currentUser.gameNickname = result.gameNickname || "";
-                        currentUser.gameClass = result.gameClass || "";
-                        currentUser.displayName = result.lineDisplayName || currentUser.displayName;
-                        currentUser.allowSearch = (result.allowSearch === true || result.allowSearch === "Y");
-                        currentUser.accountStatus = String(result.accountStatus || "").trim();
-                        currentUser.isRegistered = true;
-                    }
-                } catch (err) {
-                    console.warn("GAS 連線異常:", err);
+                const result = await querySheetByJsonp(currentUser.userId);
+                
+                if (result && result.status === "found") {
+                    currentUser.gameNickname = result.gameNickname || "";
+                    currentUser.gameClass = result.gameClass || "";
+                    currentUser.displayName = result.lineDisplayName || currentUser.displayName;
+                    currentUser.allowSearch = (result.allowSearch === true || result.allowSearch === "Y");
+                    currentUser.accountStatus = String(result.accountStatus || "").trim();
+                    currentUser.isRegistered = true;
                 }
             }
 
             document.getElementById('loadingCard').classList.add('hidden');
 
+            // 嚴格卡控判斷：
+            // 只要在試算表有找到資料，且 F 欄是「待審核」，一律強制鎖在待審核卡片！
             if (currentUser.isRegistered && currentUser.accountStatus === "待審核") {
                 applyPendingReviewUI();
             } else if (currentUser.isRegistered && currentUser.accountStatus === "已審核") {
@@ -385,7 +415,7 @@
             document.getElementById('pageMainTitle').textContent = "會員資料修改";
             document.getElementById('pageSubTitle').textContent = "記得隨時更新您的遊戲角色資訊喔！";
             
-            document.getElementById('memberDisplayTitle').textContent = currentUser.gameNickname || "已綁定成員";
+            document.getElementById('memberDisplayTitle').textContent = currentUser.gameNickname || "已審核成員";
             document.getElementById('badgeVerified').classList.remove('hidden');
 
             document.getElementById('gameNickname').value = currentUser.gameNickname || "";
