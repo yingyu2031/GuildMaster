@@ -26,7 +26,7 @@
             from { opacity: 0; transform: translateY(6px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        /* 校正 iOS Date Picker 預設跑版與高度 */
+        /* 校正 iOS Date Picker 高度一致 */
         input[type="date"] {
             -webkit-appearance: none;
             appearance: none;
@@ -40,10 +40,10 @@
         <!-- 頂部標題區 -->
         <div class="text-center mb-6">
             <div class="inline-block bg-amber-100/80 text-amber-800 border border-amber-200 text-xs font-bold px-3.5 py-1 rounded-full mb-3">
-                公會活動管理
+                請假表單
             </div>
             <h1 class="text-2xl font-black text-amber-950">
-                請假表單
+                活動請假登記
             </h1>
             <p class="text-xs text-amber-900/70 mt-1.5 leading-relaxed px-4">
                 公會活動需要大家齊心協力，請盡量出席一同並肩作戰喔！
@@ -155,9 +155,8 @@
                                class="w-full bg-[#FFFDF9] border border-amber-200 rounded-xl px-3 py-2 text-xs font-bold text-amber-950 placeholder:text-amber-800/30 focus:outline-none focus:ring-2 focus:ring-amber-400">
                     </div>
 
-                    <div id="memberListContainer" class="flex-1 overflow-y-auto space-y-2 pr-1 text-left text-xs">
-                        <div class="text-center text-amber-800/50 py-4">載入名冊中...</div>
-                    </div>
+                    <!-- 成員名單列表與載入緩衝區 -->
+                    <div id="memberListContainer" class="flex-1 overflow-y-auto space-y-2 pr-1 text-left text-xs"></div>
 
                     <button onclick="resetToSelf()" class="mt-3 w-full bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold py-2 rounded-xl text-xs transition">
                         重設為本人請假
@@ -201,6 +200,7 @@
         };
 
         let availableMembers = [];
+        let isMembersLoading = true; // 狀態標記：是否仍在抓取名冊
 
         function jsonpCall(params) {
             return new Promise((resolve) => {
@@ -263,18 +263,16 @@
                 currentSelf.userId = urlParams.get('uid') || "U2b228d4c591535f6cdbb37a3e3f69952";
             }
 
-            // 讀取本人身分
+            // 同步讀取本人身分與背景名冊
+            loadAvailableMembers();
+
             const myData = await jsonpCall({ uid: currentSelf.userId });
             if (myData && myData.status === "found") {
                 currentSelf.gameNickname = myData.gameNickname || "";
                 currentSelf.gameClass = myData.gameClass || "";
             }
 
-            // 預設帶入本人
             resetToSelf();
-
-            // 預載開放查詢成員
-            loadAvailableMembers();
 
             document.getElementById('loadingCard').classList.add('hidden');
             document.getElementById('leaveFormCard').classList.remove('hidden');
@@ -293,15 +291,36 @@
         }
 
         async function loadAvailableMembers() {
+            isMembersLoading = true;
             const res = await jsonpCall({ action: "search", q: "" });
             if (res && res.data) {
                 availableMembers = res.data;
+            }
+            isMembersLoading = false;
+
+            // 若使用者已開啟彈窗，資料抵達後立刻刷新清單
+            const modal = document.getElementById('memberSelectModal');
+            if (!modal.classList.contains('hidden')) {
+                renderMemberList(availableMembers);
             }
         }
 
         function openMemberModal() {
             document.getElementById('memberSelectModal').classList.remove('hidden');
-            renderMemberList(availableMembers);
+            document.getElementById('memberSearchInput').value = "";
+
+            // 若後台資料尚未回傳，先顯示優雅的轉圈動畫緩衝
+            if (isMembersLoading) {
+                const container = document.getElementById('memberListContainer');
+                container.innerHTML = `
+                    <div class="py-10 text-center">
+                        <div class="w-8 h-8 border-3 border-amber-200 border-t-amber-500 rounded-full animate-spin mx-auto mb-2"></div>
+                        <p class="text-xs font-bold text-amber-800/70">正在連線名冊資料庫...</p>
+                    </div>
+                `;
+            } else {
+                renderMemberList(availableMembers);
+            }
         }
 
         function closeMemberModal() {
@@ -312,7 +331,7 @@
             const container = document.getElementById('memberListContainer');
             container.innerHTML = "";
 
-            // 排除本人，只列出其他開放查詢的公會成員
+            // 嚴格排除本人，只列出其他開放查詢之夥伴
             const otherMembers = (list || []).filter(m => {
                 const isSameUid = m.lineUserId && currentSelf.userId && (m.lineUserId === currentSelf.userId);
                 const isSameNick = m.gameNickname && currentSelf.gameNickname && (m.gameNickname === currentSelf.gameNickname);
@@ -320,7 +339,12 @@
             });
 
             if (otherMembers.length === 0) {
-                container.innerHTML = `<div class="text-center text-amber-800/50 py-4">無其他可代申請之成員</div>`;
+                container.innerHTML = `
+                    <div class="py-8 text-center">
+                        <div class="text-2xl mb-1">🍃</div>
+                        <div class="text-xs font-bold text-amber-900/60">無其他可代申請之成員</div>
+                    </div>
+                `;
                 return;
             }
 
@@ -353,7 +377,6 @@
             targetMember.gameNickname = m.gameNickname;
             targetMember.gameClass = m.gameClass;
 
-            // 智慧防呆：比對是否選到本人
             const isSelf = (targetMember.userId && targetMember.userId === currentSelf.userId) || 
                           (targetMember.gameNickname && targetMember.gameNickname === currentSelf.gameNickname);
 
