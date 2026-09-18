@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>公會活動請假申請</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800;900&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <!-- LIFF SDK -->
+    <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <style>
+        body { 
+            font-family: 'M PLUS Rounded 1c', 'Noto Sans TC', sans-serif; 
+        }
+        .soft-card-shadow {
+            box-shadow: 0 20px 40px -12px rgba(217, 119, 6, 0.12), 0 4px 12px -2px rgba(0, 0, 0, 0.04);
+        }
+        .fade-in {
+            animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-[#FFFDF9] text-amber-950 antialiased selection:bg-amber-200 selection:text-amber-900 min-h-screen flex flex-col justify-between py-8 px-4">
+
+    <main class="max-w-md w-full mx-auto">
+        <!-- 頂部標題區 -->
+        <div class="text-center mb-6">
+            <div class="inline-block bg-amber-100/80 text-amber-800 border border-amber-200 text-xs font-bold px-3.5 py-1 rounded-full mb-3">
+                公會活動管理
+            </div>
+            <h1 class="text-2xl font-black text-amber-950">
+                活動請假登記
+            </h1>
+            <p class="text-xs text-amber-900/60 mt-1.5 leading-relaxed">
+                預設帶入本人資訊，亦可協助其他夥伴代理登記
+            </p>
+        </div>
+
+        <!-- 讀取狀態卡片 -->
+        <div id="loadingCard" class="bg-white rounded-[32px] p-8 border-2 border-amber-200/80 soft-card-shadow text-center">
+            <div class="relative w-14 h-14 mx-auto mb-4">
+                <div class="absolute inset-0 rounded-full border-4 border-amber-200 border-t-amber-500 animate-spin"></div>
+                <div class="w-full h-full rounded-full flex items-center justify-center text-xl">
+                    📋
+                </div>
+            </div>
+            <h3 class="text-sm font-black text-amber-950 mb-1">正在連線會員資料...</h3>
+            <p class="text-xs text-amber-800/60">正在確認身分與活動名冊，請稍候</p>
+        </div>
+
+        <!-- 請假表單卡片 -->
+        <div id="leaveFormCard" class="hidden bg-white rounded-[32px] p-6 sm:p-7 border-2 border-amber-200/80 soft-card-shadow relative fade-in">
+            
+            <!-- 請假人員資訊列 -->
+            <div class="bg-[#FFF9EE] rounded-2xl p-4 border border-amber-200/80 mb-5">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-bold text-amber-800/80">請假對象資訊</span>
+                    <button type="button" onclick="openMemberModal()" class="text-[11px] font-bold bg-amber-500 hover:bg-amber-600 text-white px-2.5 py-1 rounded-xl shadow-sm transition">
+                        👥 幫他人請假
+                    </button>
+                </div>
+                <div class="space-y-1 text-sm font-bold text-amber-950">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs text-amber-900/60 font-medium">角色暱稱：</span>
+                        <span id="targetNickText">-</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs text-amber-900/60 font-medium">角色職業：</span>
+                        <span id="targetClassText">-</span>
+                    </div>
+                    <div class="flex justify-between items-center text-xs text-amber-800/60 pt-1 border-t border-amber-200/40">
+                        <span class="font-medium">代理申請者：</span>
+                        <span id="operatorText" class="font-mono">本人申請</span>
+                    </div>
+                </div>
+            </div>
+
+            <form id="leaveForm" class="space-y-4 text-left">
+                <!-- 請假日期 -->
+                <div>
+                    <label class="block text-xs font-bold text-amber-900 mb-1.5">
+                        請假日期 <span class="text-rose-500">*</span>
+                    </label>
+                    <input type="date" id="leaveDate" required
+                           class="w-full bg-[#FFFDF9] border border-amber-200 rounded-2xl px-4 py-3 text-sm font-bold text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition">
+                </div>
+
+                <!-- 請假活動 -->
+                <div>
+                    <label class="block text-xs font-bold text-amber-900 mb-1.5">
+                        請假活動 <span class="text-rose-500">*</span>
+                    </label>
+                    <div class="relative">
+                        <select id="leaveEvent" required
+                                class="w-full bg-[#FFFDF9] border border-amber-200 rounded-2xl px-4 py-3 text-sm font-bold text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition appearance-none">
+                            <option value="" disabled selected>請選擇活動</option>
+                            <option value="公會GVG聯賽">公會GVG聯賽</option>
+                            <option value="週常公會副本">週常公會副本</option>
+                            <option value="公會團隊戰">公會團隊戰</option>
+                            <option value="全體公會聚會">全體公會聚會</option>
+                            <option value="其他活動">其他活動</option>
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-xs text-amber-700">▼</div>
+                    </div>
+                </div>
+
+                <!-- 請假原因 -->
+                <div>
+                    <label class="block text-xs font-bold text-amber-900 mb-1.5">
+                        請假原因 <span class="text-rose-500">*</span>
+                    </label>
+                    <textarea id="leaveReason" rows="2.5" required placeholder="例如：加班、家庭聚會、身體不適..."
+                              class="w-full bg-[#FFFDF9] border border-amber-200 rounded-2xl p-4 text-sm font-bold text-amber-950 placeholder:text-amber-800/30 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition resize-none"></textarea>
+                </div>
+
+                <!-- 備註 -->
+                <div>
+                    <label class="block text-xs font-bold text-amber-900 mb-1.5">
+                        備註說明 <span class="text-amber-800/50 font-normal">(選填)</span>
+                    </label>
+                    <input type="text" id="leaveNote" placeholder="其他需要向幹部說明的補充事項"
+                           class="w-full bg-[#FFFDF9] border border-amber-200 rounded-2xl px-4 py-2.5 text-xs font-bold text-amber-950 placeholder:text-amber-800/30 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition">
+                </div>
+
+                <button type="submit" id="submitBtn"
+                        class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-amber-300/50 hover:shadow-xl transition-all duration-200 flex items-center justify-center cursor-pointer mt-4">
+                    確認送出請假單
+                </button>
+            </form>
+
+            <!-- 彈窗：選擇代請假會員 -->
+            <div id="memberSelectModal" class="hidden absolute inset-0 bg-stone-900/40 backdrop-blur-sm rounded-[32px] p-5 flex flex-col z-30 fade-in">
+                <div class="bg-white rounded-3xl p-5 w-full flex-1 flex flex-col border-2 border-amber-200 shadow-2xl overflow-hidden">
+                    <div class="flex items-center justify-between pb-3 border-b border-amber-100">
+                        <h3 class="text-sm font-black text-amber-950">選擇代請假成員</h3>
+                        <button onclick="closeMemberModal()" class="text-stone-400 hover:text-stone-600 text-sm font-bold">✕</button>
+                    </div>
+
+                    <!-- 搜尋列 -->
+                    <div class="my-3">
+                        <input type="text" id="memberSearchInput" oninput="handleMemberFilter()" placeholder="輸入角色或 LINE 暱稱搜尋..."
+                               class="w-full bg-[#FFFDF9] border border-amber-200 rounded-xl px-3 py-2 text-xs font-bold text-amber-950 placeholder:text-amber-800/30 focus:outline-none focus:ring-2 focus:ring-amber-400">
+                    </div>
+
+                    <!-- 成員名單列表 -->
+                    <div id="memberListContainer" class="flex-1 overflow-y-auto space-y-2 pr-1 text-left text-xs">
+                        <div class="text-center text-amber-800/50 py-4">載入名冊中...</div>
+                    </div>
+
+                    <button onclick="resetToSelf()" class="mt-3 w-full bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold py-2 rounded-xl text-xs transition">
+                        重設為本人請假
+                    </button>
+                </div>
+            </div>
+
+            <!-- 彈窗：送出成功視窗 -->
+            <div id="successModal" class="hidden absolute inset-0 bg-white/95 backdrop-blur-sm rounded-[32px] p-6 flex flex-col items-center justify-center text-center z-40 fade-in">
+                <div class="w-14 h-14 bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-full flex items-center justify-center text-2xl mb-3">
+                    ✓
+                </div>
+                <h3 class="text-lg font-black text-amber-950 mb-1">請假申請已登記</h3>
+                <p class="text-xs text-amber-900/70 max-w-[240px] leading-relaxed mb-5">請假資料已成功寫入名冊，幹部將進行核對。</p>
+                
+                <button onclick="closeLiffWindow()" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-sm font-bold py-3.5 rounded-2xl shadow-md transition cursor-pointer">
+                    關閉回到 LINE
+                </button>
+            </div>
+        </div>
+
+        <p class="text-[11px] text-amber-800/40 text-center mt-6">&copy; 2026 GuildMaster</p>
+    </main>
+
+    <script>
+        const MY_LIFF_ID = "2011659633-OPPcInzb";
+        const GAS_API_URL = "https://script.google.com/macros/s/AKfycbxIRwxVfiCxwKwBi4MTz3C4mzBLg-76SCnp301IGb1_Pdlbi2bdOtOZK3bdXY0TeInTyg/exec";
+
+        let currentSelf = {
+            userId: "",
+            displayName: "",
+            gameNickname: "",
+            gameClass: ""
+        };
+
+        let targetMember = {
+            userId: "",
+            gameNickname: "",
+            gameClass: "",
+            isProxy: false
+        };
+
+        let availableMembers = [];
+
+        function jsonpCall(params) {
+            return new Promise((resolve) => {
+                const callbackName = "gas_cb_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
+                const script = document.createElement("script");
+                params.callback = callbackName;
+                params._t = Date.now();
+
+                const queryString = Object.keys(params)
+                    .map(k => `${encodeURIComponent(k)}=${encodeURIComponent(params[k])}`)
+                    .join("&");
+
+                const timer = setTimeout(() => {
+                    cleanup();
+                    resolve({ status: "timeout" });
+                }, 15000);
+
+                function cleanup() {
+                    clearTimeout(timer);
+                    if (script.parentNode) script.parentNode.removeChild(script);
+                    delete window[callbackName];
+                }
+
+                window[callbackName] = function(data) {
+                    cleanup();
+                    resolve(data);
+                };
+
+                script.src = `${GAS_API_URL}?${queryString}`;
+                script.onerror = function() {
+                    cleanup();
+                    resolve({ status: "error" });
+                };
+
+                document.body.appendChild(script);
+            });
+        }
+
+        window.addEventListener("DOMContentLoaded", async () => {
+            // 預設日期為今日 (YYYY-MM-DD)
+            document.getElementById('leaveDate').value = new Date().toISOString().split('T')[0];
+
+            if (MY_LIFF_ID && typeof liff !== 'undefined') {
+                try {
+                    await liff.init({ liffId: MY_LIFF_ID });
+                    if (liff.isLoggedIn()) {
+                        const profile = await liff.getProfile();
+                        currentSelf.userId = profile.userId;
+                        currentSelf.displayName = profile.displayName;
+                    } else {
+                        liff.login();
+                        return;
+                    }
+                } catch (err) {
+                    console.error("LIFF 異常:", err);
+                }
+            }
+
+            // 本地測試備援 UID
+            if (!currentSelf.userId) {
+                const urlParams = new URLSearchParams(window.location.search);
+                currentSelf.userId = urlParams.get('uid') || "U2b228d4c591535f6cdbb37a3e3f69952";
+            }
+
+            // 讀取本人身分
+            const myData = await jsonpCall({ uid: currentSelf.userId });
+            if (myData && myData.status === "found") {
+                currentSelf.gameNickname = myData.gameNickname || "";
+                currentSelf.gameClass = myData.gameClass || "";
+            }
+
+            // 預設帶入本人
+            resetToSelf();
+
+            // 預載開放查詢之成員名單
+            loadAvailableMembers();
+
+            document.getElementById('loadingCard').classList.add('hidden');
+            document.getElementById('leaveFormCard').classList.remove('hidden');
+        });
+
+        function resetToSelf() {
+            targetMember.userId = currentSelf.userId;
+            targetMember.gameNickname = currentSelf.gameNickname || "本人";
+            targetMember.gameClass = currentSelf.gameClass || "未登記職業";
+            targetMember.isProxy = false;
+
+            document.getElementById('targetNickText').textContent = targetMember.gameNickname;
+            document.getElementById('targetClassText').textContent = targetMember.gameClass;
+            document.getElementById('operatorText').textContent = "本人申請";
+            closeMemberModal();
+        }
+
+        async function loadAvailableMembers() {
+            const res = await jsonpCall({ action: "search", q: "" });
+            if (res && res.data) {
+                availableMembers = res.data;
+            }
+        }
+
+        function openMemberModal() {
+            document.getElementById('memberSelectModal').classList.remove('hidden');
+            renderMemberList(availableMembers);
+        }
+
+        function closeMemberModal() {
+            document.getElementById('memberSelectModal').classList.add('hidden');
+        }
+
+        function renderMemberList(list) {
+            const container = document.getElementById('memberListContainer');
+            container.innerHTML = "";
+
+            if (!list || list.length === 0) {
+                container.innerHTML = `<div class="text-center text-amber-800/50 py-4">無可代申請之開放成員</div>`;
+                return;
+            }
+
+            list.forEach(m => {
+                const item = document.createElement('div');
+                item.className = "flex items-center justify-between p-3 rounded-2xl bg-[#FFFDF9] border border-amber-200/70 hover:bg-amber-100/50 cursor-pointer transition";
+                item.innerHTML = `
+                    <div>
+                        <div class="font-extrabold text-amber-950">${m.gameNickname}</div>
+                        <div class="text-[11px] text-amber-800/60">${m.gameClass} · ${m.lineDisplayName}</div>
+                    </div>
+                    <span class="text-xs font-bold text-amber-600 bg-white border border-amber-200 px-2 py-1 rounded-xl">選擇</span>
+                `;
+                item.onclick = () => selectMember(m);
+                container.appendChild(item);
+            });
+        }
+
+        function handleMemberFilter() {
+            const val = document.getElementById('memberSearchInput').value.trim().toLowerCase();
+            const filtered = availableMembers.filter(m => 
+                (m.gameNickname && m.gameNickname.toLowerCase().indexOf(val) !== -1) ||
+                (m.lineDisplayName && m.lineDisplayName.toLowerCase().indexOf(val) !== -1)
+            );
+            renderMemberList(filtered);
+        }
+
+        function selectMember(m) {
+            targetMember.userId = m.lineUserId || "";
+            targetMember.gameNickname = m.gameNickname;
+            targetMember.gameClass = m.gameClass;
+            targetMember.isProxy = true;
+
+            document.getElementById('targetNickText').textContent = targetMember.gameNickname;
+            document.getElementById('targetClassText').textContent = targetMember.gameClass;
+            document.getElementById('operatorText').textContent = `由 ${currentSelf.gameNickname || currentSelf.displayName} 代理申請`;
+            closeMemberModal();
+        }
+
+        document.getElementById('leaveForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.textContent = "傳送中...";
+            submitBtn.disabled = true;
+
+            const payload = {
+                action: "submitLeave",
+                leaveDate: document.getElementById('leaveDate').value,
+                targetUid: targetMember.userId,
+                gameNickname: targetMember.gameNickname,
+                gameClass: targetMember.gameClass,
+                leaveEvent: document.getElementById('leaveEvent').value,
+                leaveReason: document.getElementById('leaveReason').value.trim(),
+                note: document.getElementById('leaveNote').value.trim(),
+                operatorUid: currentSelf.userId,
+                operatorName: currentSelf.gameNickname || currentSelf.displayName
+            };
+
+            try {
+                await fetch(GAS_API_URL, {
+                    method: "POST",
+                    mode: "no-cors",
+                    headers: { "Content-Type": "text/plain;charset=utf-8" },
+                    body: JSON.stringify(payload)
+                });
+            } catch (err) {
+                console.error("提交失敗:", err);
+            }
+
+            submitBtn.textContent = "確認送出請假單";
+            submitBtn.disabled = false;
+            document.getElementById('successModal').classList.remove('hidden');
+        });
+
+        function closeLiffWindow() {
+            if (typeof liff !== 'undefined' && liff.closeWindow) {
+                liff.closeWindow();
+            } else {
+                location.reload();
+            }
+        }
+    </script>
+</body>
+</html>
