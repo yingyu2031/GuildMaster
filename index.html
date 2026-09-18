@@ -9,7 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800;900&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
     <!-- LIFF SDK -->
     <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-    <!-- Supabase JS Client -->
+    <!-- Supabase JS Client (極速 PostgreSQL) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { 
@@ -199,11 +199,12 @@
 
     <!-- LIFF 與 Supabase 核心邏輯 -->
     <script>
-        const MY_LIFF_ID = "2007746182-1x5yY5Y7"; // 若有 LIFF ID 請填於此處
+        const MY_LIFF_ID = "2007746182-1x5yY5Y7";
 
-        // Supabase 設定
+        // Supabase 連線設定
         const SUPABASE_URL = "https://fmqrjohkbvkqyfdgquuc.supabase.co";
-        const SUPABASE_ANON_KEY = "sb_publishable_acw78V5z6_k90nuPyUU21g_hc3deWsP";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZtcXJqb2hrYnZrcXlmZGdxdXVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk3MTQ3MTAsImV4cCI6MjEwNTI5MDcxMH0.5Wsx9zqEeABEe9-DsiQ4q3rPFGk4slmfbwCIHyUfyeU";
+        
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         let currentUser = {
@@ -248,7 +249,7 @@
 
         // 毫秒級讀取會員資料
         async function checkExistingMemberData(uid) {
-            // 1. 本地快取優先，消除白畫面與轉圈等待
+            // 1. 本地快取優先，消除白畫面與轉圈等待 (0.01 秒)
             const stored = localStorage.getItem("member_" + uid);
             if (stored) {
                 try {
@@ -275,7 +276,9 @@
                         .eq('line_user_id', uid)
                         .maybeSingle();
 
-                    if (data) {
+                    if (error) {
+                        console.error("Supabase 查詢異常:", error);
+                    } else if (data) {
                         currentUser.gameNickname = data.game_nickname;
                         currentUser.gameClass = data.game_class;
                         currentUser.displayName = data.line_display_name || currentUser.displayName;
@@ -382,10 +385,11 @@
             modalConfirmBtn.textContent = "儲存中...";
             modalConfirmBtn.disabled = true;
 
-            // 1. 寫入本機快取
+            // 1. 寫入本地快取
             localStorage.setItem("member_" + pendingPayload.lineUserId, JSON.stringify(pendingPayload));
 
             // 2. 毫秒級寫入 Supabase (Upsert：存在則更新，不存在則新增)
+            let isDbSuccess = false;
             if (supabase) {
                 try {
                     const { error } = await supabase
@@ -399,9 +403,15 @@
                             updated_at: new Date().toISOString()
                         });
                     
-                    if (error) console.error("Supabase 寫入錯誤:", error);
+                    if (error) {
+                        console.error("Supabase 寫入錯誤:", error);
+                        alert("資料庫儲存提示：" + error.message);
+                    } else {
+                        isDbSuccess = true;
+                    }
                 } catch (err) {
                     console.error("同步至 Supabase 異常:", err);
+                    alert("連線資料庫異常：" + err.message);
                 }
             }
 
