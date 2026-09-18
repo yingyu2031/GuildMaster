@@ -45,7 +45,7 @@
                 </div>
                 <div class="flex-1 min-w-0 text-left">
                     <div class="flex items-center gap-1.5">
-                        <span id="memberDisplayTitle" class="font-black text-base text-amber-950 truncate">新會員</span>
+                        <span id="memberDisplayTitle" class="font-black text-base text-amber-950 truncate">讀取中...</span>
                         <span id="badgeVerified" class="hidden text-[10px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded-full">已綁定</span>
                     </div>
                     <div class="text-[11px] text-amber-800/60 font-mono truncate mt-0.5" id="lineUid">UID: 讀取中...</div>
@@ -162,7 +162,7 @@
                         <button onclick="closeConfirmModal()" class="bg-stone-100 hover:bg-stone-200 text-stone-600 text-xs font-bold py-2.5 rounded-xl transition cursor-pointer">
                             返回修改
                         </button>
-                        <button onclick="executeFinalSubmit()" class="bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold py-2.5 rounded-xl transition shadow-md cursor-pointer">
+                        <button onclick="executeFinalSubmit()" id="modalConfirmBtn" class="bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold py-2.5 rounded-xl transition shadow-md cursor-pointer">
                             確認送出
                         </button>
                     </div>
@@ -197,8 +197,8 @@
 
     <!-- LIFF 與表單處理邏輯 -->
     <script>
-        const MY_LIFF_ID = ""; // 填入您的 LIFF ID
-        const GAS_API_URL = ""; // 填入部署取得的 Web App URL
+        const MY_LIFF_ID = ""; // 若有 LIFF ID 請填入此處
+        const GAS_API_URL = "https://script.google.com/macros/s/AKfycbxIRwxVfiCxwKwBi4MTz3C4mzBLg-76SCnp301IGb1_Pdlbi2bdOtOZK3bdXY0TeInTyg/exec";
 
         let currentUser = {
             userId: "U_demo_member_001",
@@ -241,6 +241,9 @@
         });
 
         async function checkExistingMemberData(uid) {
+            document.getElementById('memberDisplayTitle').textContent = "讀取資料中...";
+
+            // 向 Google Sheet (GAS) 查詢是否為老會員
             if (GAS_API_URL) {
                 try {
                     const response = await fetch(`${GAS_API_URL}?uid=${encodeURIComponent(uid)}`);
@@ -249,16 +252,17 @@
                         currentUser.gameNickname = result.gameNickname || "";
                         currentUser.gameClass = result.gameClass || "";
                         currentUser.displayName = result.lineDisplayName || currentUser.displayName;
-                        currentUser.allowSearch = result.allowSearch !== false;
+                        currentUser.allowSearch = result.allowSearch !== false && result.allowSearch !== "關閉";
                         currentUser.isRegistered = true;
                         applyEditModeUI(currentUser);
                         return;
                     }
                 } catch (err) {
-                    console.warn("向 GAS 查詢失敗，改用本地快取備援", err);
+                    console.warn("向 Google Sheet 查詢失敗，改用本地快取備援", err);
                 }
             }
 
+            // 本地快取備援
             const stored = localStorage.getItem("member_" + uid);
             if (stored) {
                 try {
@@ -266,7 +270,7 @@
                     currentUser.gameNickname = data.gameNickname || "";
                     currentUser.gameClass = data.gameClass || "";
                     currentUser.displayName = data.lineDisplayName || currentUser.displayName;
-                    currentUser.allowSearch = data.allowSearch !== false;
+                    currentUser.allowSearch = data.allowSearch !== false && data.allowSearch !== "關閉";
                     currentUser.isRegistered = true;
 
                     applyEditModeUI(currentUser);
@@ -346,7 +350,7 @@
                 linePictureUrl: currentUser.pictureUrl,
                 gameNickname: gameNick,
                 gameClass: gameClass,
-                allowSearch: allowSearch,
+                allowSearch: allowSearch ? "開啟" : "關閉",
                 updateTime: new Date().toISOString()
             };
 
@@ -365,16 +369,20 @@
         async function executeFinalSubmit() {
             if (!pendingPayload) return;
 
-            document.getElementById('confirmModal').classList.add('hidden');
+            const modalConfirmBtn = document.getElementById('modalConfirmBtn');
+            modalConfirmBtn.textContent = "傳送中...";
+            modalConfirmBtn.disabled = true;
 
+            // 儲存至本地快取
             localStorage.setItem("member_" + pendingPayload.lineUserId, JSON.stringify(pendingPayload));
 
+            // 同步發送至 Google Sheet (GAS Web App)
             if (GAS_API_URL) {
                 try {
                     await fetch(GAS_API_URL, {
                         method: "POST",
-                        mode: "no-cors",
-                        headers: { "Content-Type": "application/json" },
+                        mode: "no-cors", // 支援跨域傳送
+                        headers: { "Content-Type": "text/plain;charset=utf-8" },
                         body: JSON.stringify(pendingPayload)
                     });
                 } catch (err) {
@@ -382,20 +390,23 @@
                 }
             }
 
+            modalConfirmBtn.textContent = "確認送出";
+            modalConfirmBtn.disabled = false;
+            document.getElementById('confirmModal').classList.add('hidden');
+
             currentUser.gameNickname = pendingPayload.gameNickname;
             currentUser.gameClass = pendingPayload.gameClass;
             currentUser.displayName = pendingPayload.lineDisplayName;
-            currentUser.allowSearch = pendingPayload.allowSearch;
+            currentUser.allowSearch = pendingPayload.allowSearch === "開啟";
             currentUser.isRegistered = true;
             
             document.getElementById('memberDisplayTitle').textContent = pendingPayload.gameNickname;
             document.getElementById('badgeVerified').classList.remove('hidden');
 
-            // 成功結果彈窗資料回填（包含開放查詢狀態）
             document.getElementById('resGameNick').textContent = pendingPayload.gameNickname;
             document.getElementById('resGameClass').textContent = pendingPayload.gameClass;
             document.getElementById('resLineName').textContent = pendingPayload.lineDisplayName;
-            document.getElementById('resAllowSearch').textContent = pendingPayload.allowSearch ? "開啟" : "關閉";
+            document.getElementById('resAllowSearch').textContent = pendingPayload.allowSearch;
             
             if (currentUser.isRegistered) {
                 document.getElementById('successTitle').textContent = "資料修改成功！";
