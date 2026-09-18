@@ -15,10 +15,10 @@
             box-shadow: 0 20px 40px -12px rgba(217, 119, 6, 0.12), 0 4px 12px -2px rgba(0, 0, 0, 0.04);
         }
         .fade-in {
-            animation: fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(8px); }
+            from { opacity: 0; transform: translateY(6px); }
             to { opacity: 1; transform: translateY(0); }
         }
     </style>
@@ -35,7 +35,7 @@
                 會員公開資料查詢
             </h1>
             <p class="text-xs text-amber-900/60 mt-1.5 leading-relaxed">
-                輸入成員的「遊戲角色暱稱」或「LINE 暱稱」進行檢索
+                輸入「遊戲角色暱稱」或「LINE 暱稱」進行模糊搜尋
             </p>
         </div>
 
@@ -55,7 +55,7 @@
             </form>
         </div>
 
-        <!-- 狀態 1：查詢中 (讀取 Spinner) -->
+        <!-- 狀態 1：查詢中 (Spinner) -->
         <div id="loadingStatus" class="hidden bg-white rounded-[32px] p-8 border-2 border-amber-200/80 soft-card-shadow text-center fade-in mb-6">
             <div class="relative w-12 h-12 mx-auto mb-3">
                 <div class="absolute inset-0 rounded-full border-4 border-amber-200 border-t-amber-500 animate-spin"></div>
@@ -64,7 +64,7 @@
             <p class="text-xs font-bold text-amber-900/80">名冊資料檢索中...</p>
         </div>
 
-        <!-- 狀態 2：查無資料 / 未公開 -->
+        <!-- 狀態 2：查無資料 -->
         <div id="emptyStatus" class="hidden bg-white rounded-[32px] p-8 border-2 border-amber-200/80 soft-card-shadow text-center fade-in mb-6">
             <div class="w-14 h-14 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-3 border border-amber-200 text-2xl">
                 🍃
@@ -82,9 +82,10 @@
     </main>
 
     <script>
+        // 請務必確認為最新部署的 Web App URL
         const GAS_API_URL = "https://script.google.com/macros/s/AKfycbxIRwxVfiCxwKwBi4MTz3C4mzBLg-76SCnp301IGb1_Pdlbi2bdOtOZK3bdXY0TeInTyg/exec";
 
-        // JSONP 呼叫 GAS 避免 CORS 限制
+        // JSONP 跨域查詢
         function searchSheetByJsonp(keyword) {
             return new Promise((resolve) => {
                 const callbackName = "gas_search_cb_" + Date.now();
@@ -132,63 +133,37 @@
             const res = await searchSheetByJsonp(keyword);
             loadingBox.classList.add('hidden');
 
-            let members = (res && res.data) ? res.data : [];
+            const members = (res && res.data) ? res.data : [];
 
-            // 前端安全雙重卡控：必須是「提供查詢 === 'Y'」且「帳號狀態 === '已審核'」
-            const filteredMembers = members.filter(m => {
-                const allow = String(m.allowSearch || "").trim().toUpperCase();
-                const status = String(m.accountStatus || "").trim();
-                return (allow === "Y" || allow === "開啟") && status === "已審核";
-            });
-
-            if (filteredMembers.length === 0) {
+            if (members.length === 0) {
                 emptyBox.classList.remove('hidden');
                 return;
             }
 
-// 渲染會員資訊卡片（不顯示公會職位）
-filteredMembers.forEach(m => {
-    const card = document.createElement('div');
-    card.className = "bg-white rounded-[32px] p-6 border-2 border-amber-200/80 soft-card-shadow fade-in";
-    
-    // 只保留小團體標籤（若有），已移除公會職位
-    const subGroupBadge = m.subGroup ? `<span class="bg-orange-50 text-orange-700 border border-orange-200 text-[11px] font-bold px-2 py-0.5 rounded-full">${m.subGroup}</span>` : '';
+            // 只渲染：遊戲暱稱、遊戲職業、LINE 暱稱
+            members.forEach(m => {
+                const card = document.createElement('div');
+                card.className = "bg-white rounded-[32px] p-6 border-2 border-amber-200/80 soft-card-shadow fade-in";
 
-    card.innerHTML = `
-        <div class="flex items-center justify-between pb-3 border-b border-amber-100 mb-4">
-            <div class="flex items-center gap-2">
-                <span class="text-xl">🛡️</span>
-                <span class="text-base font-black text-amber-950">${m.gameNickname || "冒險者"}</span>
-            </div>
-            <div class="flex items-center gap-1.5">
-                ${subGroupBadge}
-            </div>
-        </div>
+                card.innerHTML = `
+                    <div class="flex items-center gap-2 pb-3 border-b border-amber-100 mb-4">
+                        <span class="text-xl">🛡️</span>
+                        <span class="text-base font-black text-amber-950">${m.gameNickname || "冒險者"}</span>
+                    </div>
 
-        <div class="bg-[#FFFDF9] rounded-2xl p-4 border border-amber-200/70 text-sm space-y-2.5 text-amber-950">
-            <div class="flex items-center justify-between">
-                <span class="text-amber-800/80 font-bold text-xs">遊戲職業</span>
-                <span class="font-extrabold text-amber-950">${m.gameClass || "未登記"}</span>
-            </div>
-            <div class="flex items-center justify-between">
-                <span class="text-amber-800/80 font-bold text-xs">LINE 暱稱</span>
-                <span class="font-bold text-amber-950">${m.lineDisplayName || "-"}</span>
-            </div>
-            <div class="flex items-center justify-between pt-2 border-t border-amber-100/60 text-xs">
-                <span class="text-amber-800/70 font-medium">群組狀態</span>
-                <div class="flex items-center gap-2 text-[11px] font-bold">
-                    <span class="px-2 py-0.5 rounded-md ${m.inLineGroup === 'Y' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-stone-100 text-stone-500'}">
-                        LINE: ${m.inLineGroup === 'Y' ? '已入群' : '未入群'}
-                    </span>
-                    <span class="px-2 py-0.5 rounded-md ${m.inDcGroup === 'Y' ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : 'bg-stone-100 text-stone-500'}">
-                        DC: ${m.inDcGroup === 'Y' ? '已入群' : '未入群'}
-                    </span>
-                </div>
-            </div>
-        </div>
-    `;
-    resultBox.appendChild(card);
-});
+                    <div class="bg-[#FFFDF9] rounded-2xl p-4 border border-amber-200/70 text-sm space-y-2.5 text-amber-950">
+                        <div class="flex items-center justify-between">
+                            <span class="text-amber-800/80 font-bold text-xs">遊戲職業</span>
+                            <span class="font-extrabold text-amber-950">${m.gameClass || "未登記"}</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-amber-800/80 font-bold text-xs">LINE 暱稱</span>
+                            <span class="font-bold text-amber-950">${m.lineDisplayName || "-"}</span>
+                        </div>
+                    </div>
+                `;
+                resultBox.appendChild(card);
+            });
         });
     </script>
 </body>
