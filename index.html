@@ -1,485 +1,125 @@
-<!DOCTYPE html>
-<html lang="zh-Hant">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>公會會員資料登記與修改</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800;900&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
-    <!-- LIFF SDK -->
-    <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-    <style>
-        body { 
-            font-family: 'M PLUS Rounded 1c', 'Noto Sans TC', sans-serif; 
+function doPost(e) {
+  var lock = LockService.getScriptLock();
+  lock.tryLock(10000);
+
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("成員名單") || ss.getSheets()[0];
+    var historySheet = ss.getSheetByName("異動歷程");
+    
+    var data = {};
+    if (e && e.postData && e.postData.contents) {
+      try {
+        data = JSON.parse(e.postData.contents);
+      } catch(err) {
+        data = e.parameter;
+      }
+    } else if (e && e.parameter) {
+      data = e.parameter;
+    }
+
+    var lineUid = data.lineUserId || "";
+    var gameNick = data.gameNickname || "";
+    var gameClass = data.gameClass || "";
+    var lineName = data.lineDisplayName || "";
+    var allowSearch = (data.allowSearch === "開啟" || data.allowSearch === true || data.allowSearch === "Y") ? "Y" : "N";
+    var nowTime = Utilities.formatDate(new Date(), "Asia/Taipei", "yyyy-MM-dd HH:mm:ss");
+
+    if (!lineUid) {
+      return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "缺少 LINE UID" }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    var rows = sheet.getDataRange().getValues();
+    var rowIndex = -1;
+
+    // A 欄為 LINE UID
+    for (var i = 1; i < rows.length; i++) {
+      if (String(rows[i][0]).trim() === String(lineUid).trim()) {
+        rowIndex = i + 1;
+        break;
+      }
+    }
+
+    if (rowIndex > 0) {
+      // 取出既有舊值
+      var oldNick = rows[rowIndex - 1][1];
+      var oldClass = rows[rowIndex - 1][2];
+      var oldLineName = rows[rowIndex - 1][3];
+      var oldSearch = rows[rowIndex - 1][4];
+
+      // 若有異動歷程分頁，逐欄比對並寫入歷程 (A: 時間, B: UID, C: 欄位, D: 原值, E: 新值)
+      if (historySheet) {
+        if (String(oldNick) !== String(gameNick)) {
+          historySheet.appendRow([nowTime, lineUid, "遊戲暱稱", oldNick, gameNick]);
         }
-        .soft-card-shadow {
-            box-shadow: 0 20px 40px -12px rgba(217, 119, 6, 0.12), 0 4px 12px -2px rgba(0, 0, 0, 0.04);
+        if (String(oldClass) !== String(gameClass)) {
+          historySheet.appendRow([nowTime, lineUid, "遊戲職業", oldClass, gameClass]);
         }
-        /* 淡入動畫效果 */
-        .fade-in {
-            animation: fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        if (String(oldLineName) !== String(lineName)) {
+          historySheet.appendRow([nowTime, lineUid, "LINE 暱稱", oldLineName, lineName]);
         }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(8px); }
-            to { opacity: 1; transform: translateY(0); }
+        if (String(oldSearch) !== String(allowSearch)) {
+          historySheet.appendRow([nowTime, lineUid, "提供查詢", oldSearch, allowSearch]);
         }
-    </style>
-</head>
-<body class="bg-[#FFFDF9] text-amber-950 antialiased selection:bg-amber-200 selection:text-amber-900 min-h-screen flex flex-col justify-between py-8 px-4">
+      }
 
-    <main class="max-w-md w-full mx-auto">
-        <!-- 頂部標題區 -->
-        <div class="text-center mb-6">
-            <div id="topBadge" class="inline-block bg-amber-100/80 text-amber-800 border border-amber-200 text-xs font-bold px-3.5 py-1 rounded-full mb-3">
-                身分驗證中
-            </div>
-            <h1 id="pageMainTitle" class="text-2xl font-black text-amber-950">
-                公會會員系統
-            </h1>
-            <p id="pageSubTitle" class="text-xs text-amber-900/60 mt-1.5 leading-relaxed">
-                正在確認您的公會成員資料...
-            </p>
-        </div>
+      // 更新成員名單
+      sheet.getRange(rowIndex, 2).setValue(gameNick);
+      sheet.getRange(rowIndex, 3).setValue(gameClass);
+      sheet.getRange(rowIndex, 4).setValue(lineName);
+      sheet.getRange(rowIndex, 5).setValue(allowSearch);
+      sheet.getRange(rowIndex, 7).setValue(nowTime);
 
-        <!-- 狀態 1：預覽讀取畫面 (確定身分前顯示) -->
-        <div id="loadingCard" class="bg-white rounded-[32px] p-8 border-2 border-amber-200/80 soft-card-shadow text-center">
-            <div class="relative w-16 h-16 mx-auto mb-4">
-                <div class="absolute inset-0 rounded-full border-4 border-amber-200 border-t-amber-500 animate-spin"></div>
-                <div class="w-full h-full rounded-full flex items-center justify-center text-xl">
-                    🛡️
-                </div>
-            </div>
-            <h3 class="text-sm font-black text-amber-950 mb-1">正在連線公會名冊...</h3>
-            <p class="text-xs text-amber-800/60">正在核對 LINE 身分與綁定狀態</p>
-        </div>
+    } else {
+      // 新會員註冊
+      sheet.appendRow([lineUid, gameNick, gameClass, lineName, allowSearch, "待審核", nowTime]);
+      
+      // 新增註冊歷程紀錄
+      if (historySheet) {
+        historySheet.appendRow([nowTime, lineUid, "新會員註冊", "-", gameNick + " (" + gameClass + ")"]);
+      }
+    }
 
-        <!-- 狀態 2：主要表單卡片 (確定身分後淡入呈現) -->
-        <div id="mainFormCard" class="hidden bg-white rounded-[32px] p-6 sm:p-7 border-2 border-amber-200/80 soft-card-shadow relative">
-            
-            <!-- 上方身分卡片 -->
-            <div id="lineProfileCard" class="bg-[#FFF9EE] rounded-2xl p-3.5 border border-amber-200/80 mb-6 flex items-center gap-3">
-                <div class="relative">
-                    <img id="avatarImg" src="https://api.dicebear.com/7.x/bottts/svg?seed=member" alt="LINE Avatar" class="w-12 h-12 rounded-full border-2 border-white shadow-sm object-cover bg-amber-100">
-                    <span class="absolute -bottom-1 -right-1 bg-[#06C755] text-white text-[9px] font-black px-1.5 py-0.2 rounded-full border border-white">LINE</span>
-                </div>
-                <div class="flex-1 min-w-0 text-left">
-                    <div class="flex items-center gap-1.5">
-                        <span id="memberDisplayTitle" class="font-black text-base text-amber-950 truncate">新會員</span>
-                        <span id="badgeVerified" class="hidden text-[10px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded-full">已綁定</span>
-                    </div>
-                    <div class="text-[11px] text-amber-800/60 font-mono truncate mt-0.5" id="lineUid">UID: 載入中...</div>
-                </div>
-            </div>
+    return ContentService.createTextOutput(JSON.stringify({ status: "success" }))
+      .setMimeType(ContentService.MimeType.JSON);
 
-            <!-- 表單內容 -->
-            <form id="bindForm" class="space-y-4 text-left">
-                
-                <!-- 欄位 1：遊戲角色暱稱 -->
-                <div>
-                    <label class="block text-xs font-bold text-amber-900 mb-1.5">
-                        遊戲角色暱稱 <span class="text-rose-500">*</span>
-                    </label>
-                    <input type="text" id="gameNickname" required placeholder="例如：甜心小補師" 
-                           class="w-full bg-[#FFFDF9] border border-amber-200 rounded-2xl px-4 py-3 text-sm font-bold text-amber-950 placeholder:text-amber-800/30 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition">
-                </div>
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ status: "error", message: err.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } finally {
+    lock.releaseLock();
+  }
+}
 
-                <!-- 欄位 2：遊戲職業 -->
-                <div>
-                    <label class="block text-xs font-bold text-amber-900 mb-1.5">
-                        遊戲職業 <span class="text-rose-500">*</span>
-                    </label>
-                    <div class="relative">
-                        <select id="gameClass" required 
-                                class="w-full bg-[#FFFDF9] border border-amber-200 rounded-2xl px-4 py-3 text-sm font-bold text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition appearance-none">
-                            <option value="" disabled selected>請選擇職業</option>
-                            
-                            <optgroup label="劍士系">
-                                <option value="騎士領主">騎士領主</option>
-                                <option value="聖殿十字軍">聖殿十字軍</option>
-                            </optgroup>
+function doGet(e) {
+  try {
+    var lineUid = e.parameter.uid;
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("成員名單") || ss.getSheets()[0];
+    var rows = sheet.getDataRange().getValues();
 
-                            <optgroup label="魔法師系">
-                                <option value="超魔導士">超魔導士</option>
-                                <option value="學者（智者）">學者（智者）</option>
-                            </optgroup>
-
-                            <optgroup label="弓箭手系">
-                                <option value="神射手">神射手</option>
-                                <option value="搞笑藝人（詩人）">搞笑藝人（詩人）</option>
-                                <option value="冷豔舞姬（舞孃）">冷豔舞姬（舞孃）</option>
-                            </optgroup>
-
-                            <optgroup label="盜賊系">
-                                <option value="十字刺客">十字刺客</option>
-                                <option value="神行（神偷）">神行（神偷）</option>
-                            </optgroup>
-
-                            <optgroup label="服事系">
-                                <option value="神官（大主教）">神官（大主教）</option>
-                                <option value="武術宗師">武術宗師</option>
-                            </optgroup>
-
-                            <optgroup label="商人系">
-                                <option value="神工匠">神工匠</option>
-                                <option value="創造者（鍊金術士）">創造者（鍊金術士）</option>
-                            </optgroup>
-
-                            <option value="其他">其他</option>
-                        </select>
-                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-xs text-amber-700">
-                            ▼
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 欄位 3：LINE 顯示暱稱 -->
-                <div>
-                    <label class="block text-xs font-bold text-amber-900 mb-1.5">
-                        LINE 顯示暱稱 <span class="text-rose-500">*</span>
-                    </label>
-                    <input type="text" id="manualLineName" required placeholder="例如：Wendy / Chloe" 
-                           class="w-full bg-[#FFFDF9] border border-amber-200 rounded-2xl px-4 py-3 text-sm font-bold text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition">
-                </div>
-
-                <!-- 單一隱私開關：開放查詢 -->
-                <div class="pt-2 border-t border-amber-100/80">
-                    <label class="flex items-center justify-between p-3 rounded-2xl bg-[#FFFDF9] border border-amber-200/80 cursor-pointer hover:bg-amber-50/50 transition">
-                        <div class="pr-2">
-                            <div class="text-xs font-bold text-amber-950">開放查詢</div>
-                            <div class="text-[10px] text-amber-800/60 mt-0.5">開啟後，公會成員可於成員名冊查詢您的資料</div>
-                        </div>
-                        <div class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" id="toggleAllowSearch" class="sr-only peer" checked>
-                            <div class="w-11 h-6 bg-stone-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
-                        </div>
-                    </label>
-                </div>
-
-                <!-- 提交按鈕 -->
-                <button type="submit" id="submitBtn"
-                        class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-amber-300/50 hover:shadow-xl transition-all duration-200 flex items-center justify-center cursor-pointer mt-4">
-                    確認送出
-                </button>
-            </form>
-
-            <!-- 彈窗 1：送出前核對確認視窗 -->
-            <div id="confirmModal" class="hidden absolute inset-0 bg-stone-900/40 backdrop-blur-sm rounded-[32px] p-6 flex flex-col items-center justify-center text-center z-30">
-                <div class="bg-white rounded-3xl p-5 w-full max-w-[300px] border-2 border-amber-200 shadow-2xl">
-                    <h3 class="text-base font-black text-amber-950 mb-1">確認資料無誤？</h3>
-                    <p class="text-[11px] text-amber-800/70 mb-4">請確認以下資訊是否正確：</p>
-                    
-                    <div class="bg-[#FFF9EE] rounded-xl p-3 text-left text-xs space-y-1.5 mb-4 border border-amber-100 text-amber-950">
-                        <div><span class="text-amber-700 font-bold">遊戲暱稱：</span><span id="previewNick" class="font-bold">-</span></div>
-                        <div><span class="text-amber-700 font-bold">遊戲職業：</span><span id="previewClass" class="font-bold">-</span></div>
-                        <div><span class="text-amber-700 font-bold">LINE 暱稱：</span><span id="previewLine">-</span></div>
-                        <div class="pt-1 border-t border-amber-200/60 text-[11px]">
-                            <div><span class="text-amber-700 font-bold">開放查詢：</span><span id="previewAllowSearch" class="font-medium">-</span></div>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-2">
-                        <button onclick="closeConfirmModal()" class="bg-stone-100 hover:bg-stone-200 text-stone-600 text-xs font-bold py-2.5 rounded-xl transition cursor-pointer">
-                            返回修改
-                        </button>
-                        <button onclick="executeFinalSubmit()" id="modalConfirmBtn" class="bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold py-2.5 rounded-xl transition shadow-md cursor-pointer">
-                            確認送出
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 彈窗 2：成功提示視窗 -->
-            <div id="successModal" class="hidden absolute inset-0 bg-white/95 backdrop-blur-sm rounded-[32px] p-6 flex flex-col items-center justify-center text-center z-40">
-                <h3 id="successTitle" class="text-lg font-black text-amber-950 mb-1">資料送出成功</h3>
-                <p id="successDesc" class="text-xs text-amber-900/70 max-w-[240px] leading-relaxed mb-4">
-                    審核通過後，小幫手將會在 LINE 聊天室通知您
-                </p>
-                <div class="bg-[#FFFDF9] border border-amber-200 rounded-xl p-3 w-full text-left text-xs space-y-1.5 mb-5 text-amber-950">
-                    <div><span class="text-amber-700 font-bold">遊戲暱稱：</span><span id="resGameNick">-</span></div>
-                    <div><span class="text-amber-700 font-bold">遊戲職業：</span><span id="resGameClass">-</span></div>
-                    <div><span class="text-amber-700 font-bold">LINE 暱稱：</span><span id="resLineName">-</span></div>
-                    <div class="pt-1 border-t border-amber-200/60 text-[11px]">
-                        <div><span class="text-amber-700 font-bold">開放查詢：</span><span id="resAllowSearch" class="font-medium">-</span></div>
-                    </div>
-                </div>
-                <button onclick="closeLiffWindow()" class="bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold px-6 py-2.5 rounded-full shadow-md transition cursor-pointer">
-                    關閉回到聊天室
-                </button>
-            </div>
-
-        </div>
-
-        <p class="text-[11px] text-amber-800/40 text-center mt-6">
-            &copy; 2026 GuildMaster
-        </p>
-    </main>
-
-    <!-- 核心流程控制邏輯 -->
-    <script>
-        const MY_LIFF_ID = "2007746182-1x5yY5Y7";
-        const GAS_API_URL = "https://script.google.com/macros/s/AKfycbxIRwxVfiCxwKwBi4MTz3C4mzBLg-76SCnp301IGb1_Pdlbi2bdOtOZK3bdXY0TeInTyg/exec";
-
-        let currentUser = {
-            userId: "U_demo_member",
-            displayName: "",
-            pictureUrl: "https://api.dicebear.com/7.x/bottts/svg?seed=member",
-            gameNickname: "",
-            gameClass: "",
-            allowSearch: true,
-            isRegistered: false
+    for (var i = 1; i < rows.length; i++) {
+      if (String(rows[i][0]).trim() === String(lineUid).trim()) {
+        var result = {
+          status: "found",
+          lineUserId: rows[i][0],
+          gameNickname: rows[i][1],
+          gameClass: rows[i][2],
+          lineDisplayName: rows[i][3],
+          allowSearch: (rows[i][4] === "Y" || rows[i][4] === "開啟" || rows[i][4] === true),
+          accountStatus: rows[i][5]
         };
+        return ContentService.createTextOutput(JSON.stringify(result))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+    }
 
-        let pendingPayload = null;
+    return ContentService.createTextOutput(JSON.stringify({ status: "not_found" }))
+      .setMimeType(ContentService.MimeType.JSON);
 
-        window.addEventListener("DOMContentLoaded", async () => {
-            const urlParams = new URLSearchParams(window.location.search);
-            const queryUid = urlParams.get('uid') || urlParams.get('userId');
-            const queryName = urlParams.get('name') || urlParams.get('displayName');
-
-            let isLiffReady = false;
-
-            // 1. 初始化 LIFF (設定 2 秒逾時保護)
-            if (MY_LIFF_ID && typeof liff !== 'undefined') {
-                const liffInitPromise = (async () => {
-                    await liff.init({ liffId: MY_LIFF_ID });
-                    if (liff.isLoggedIn()) {
-                        const profile = await liff.getProfile();
-                        currentUser.userId = profile.userId;
-                        currentUser.displayName = profile.displayName;
-                        currentUser.pictureUrl = profile.pictureUrl || currentUser.pictureUrl;
-                        isLiffReady = true;
-                    } else {
-                        liff.login();
-                    }
-                })();
-
-                const timeoutPromise = new Promise(resolve => setTimeout(resolve, 2000));
-                try {
-                    await Promise.race([liffInitPromise, timeoutPromise]);
-                } catch (err) {
-                    console.warn("LIFF 載入逾時或跳過:", err);
-                }
-            }
-
-            // 備援：若非 LIFF 環境或逾時，抓取 URL 參數
-            if (!isLiffReady) {
-                if (queryUid) currentUser.userId = queryUid;
-                if (queryName) currentUser.displayName = decodeURIComponent(queryName);
-            }
-
-            // 2. 進行身分檢查，確認後才切換視圖
-            await determineMemberStatusAndRender(currentUser.userId);
-        });
-
-        // 核心：判定身分後切換畫面
-        async function determineMemberStatusAndRender(uid) {
-            let isFoundInSheet = false;
-
-            // 步驟 A：向 GAS 試算表即時查詢（最多等候 2.5 秒，避免卡死）
-            if (GAS_API_URL) {
-                try {
-                    const controller = new AbortController();
-                    const fetchTimeout = setTimeout(() => controller.abort(), 2500);
-
-                    const res = await fetch(`${GAS_API_URL}?uid=${encodeURIComponent(uid)}`, {
-                        signal: controller.signal
-                    });
-                    clearTimeout(fetchTimeout);
-
-                    const result = await res.json();
-                    if (result && result.status === "found") {
-                        currentUser.gameNickname = result.gameNickname || "";
-                        currentUser.gameClass = result.gameClass || "";
-                        currentUser.displayName = result.lineDisplayName || currentUser.displayName;
-                        currentUser.allowSearch = (result.allowSearch === true || result.allowSearch === "Y" || result.allowSearch === "開啟");
-                        currentUser.isRegistered = true;
-                        isFoundInSheet = true;
-                    }
-                } catch (err) {
-                    console.warn("試算表在線查詢逾時或離線，改用本地記錄比對:", err);
-                }
-            }
-
-            // 步驟 B：若試算表沒連上，使用本地快取檢查
-            if (!isFoundInSheet) {
-                const stored = localStorage.getItem("member_" + uid);
-                if (stored) {
-                    try {
-                        const data = JSON.parse(stored);
-                        currentUser.gameNickname = data.gameNickname || "";
-                        currentUser.gameClass = data.gameClass || "";
-                        currentUser.displayName = data.lineDisplayName || currentUser.displayName;
-                        currentUser.allowSearch = (data.allowSearch === true || data.allowSearch === "Y" || data.allowSearch === "開啟");
-                        currentUser.isRegistered = true;
-                    } catch (e) {
-                        currentUser.isRegistered = false;
-                    }
-                }
-            }
-
-            // 步驟 C：隱藏讀取卡片，平滑展開對應表單
-            document.getElementById('loadingCard').classList.add('hidden');
-            const mainCard = document.getElementById('mainFormCard');
-            mainCard.classList.remove('hidden');
-            mainCard.classList.add('fade-in');
-
-            // 步驟 D：套用對應的「編輯」或「登記」介面
-            if (currentUser.isRegistered) {
-                applyEditModeUI(currentUser);
-            } else {
-                applyNewMemberUI();
-            }
-        }
-
-        // 老會員：套用編輯模式
-        function applyEditModeUI(data) {
-            document.getElementById('topBadge').textContent = "資料修改";
-            document.getElementById('pageMainTitle').textContent = "會員資料修改";
-            document.getElementById('pageSubTitle').textContent = "記得隨時更新您的遊戲角色資訊喔！";
-            
-            document.getElementById('memberDisplayTitle').textContent = data.gameNickname || "公會成員";
-            document.getElementById('badgeVerified').classList.remove('hidden');
-
-            document.getElementById('gameNickname').value = data.gameNickname || "";
-            document.getElementById('gameClass').value = data.gameClass || "";
-            if (data.displayName || data.lineDisplayName) {
-                document.getElementById('manualLineName').value = data.displayName || data.lineDisplayName;
-            }
-
-            document.getElementById('toggleAllowSearch').checked = data.allowSearch !== false;
-
-            document.getElementById('submitBtn').textContent = "儲存修改資料";
-            document.getElementById('successTitle').textContent = "資料修改成功！";
-            document.getElementById('successDesc').textContent = "最新資訊已為您更新完成～";
-
-            updateProfileCard();
-        }
-
-        // 新會員：套用登記模式
-        function applyNewMemberUI() {
-            document.getElementById('topBadge').textContent = "身分登記";
-            document.getElementById('pageMainTitle').textContent = "會員資料填寫綁定";
-            document.getElementById('pageSubTitle').textContent = "完成登記後，即可使用公會各項專屬功能";
-
-            document.getElementById('memberDisplayTitle').textContent = "新會員";
-            document.getElementById('badgeVerified').classList.add('hidden');
-            document.getElementById('submitBtn').textContent = "確認送出";
-
-            if (currentUser.displayName) {
-                document.getElementById('manualLineName').value = currentUser.displayName;
-            }
-
-            document.getElementById('toggleAllowSearch').checked = true;
-
-            document.getElementById('successTitle').textContent = "綁定資料已送出";
-            document.getElementById('successDesc').textContent = "審核通過後，小幫手將會在 LINE 聊天室通知您";
-
-            updateProfileCard();
-        }
-
-        function updateProfileCard() {
-            const displayUid = currentUser.userId.length > 16 ? currentUser.userId.substring(0, 16) + '...' : currentUser.userId;
-            document.getElementById('lineUid').textContent = 'UID: ' + displayUid;
-            if (currentUser.pictureUrl) {
-                document.getElementById('avatarImg').src = currentUser.pictureUrl;
-            }
-        }
-
-        // 表單提交前彈出核對彈窗
-        document.getElementById('bindForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const gameNick = document.getElementById('gameNickname').value.trim();
-            const gameClass = document.getElementById('gameClass').value;
-            const lineName = document.getElementById('manualLineName').value.trim();
-            const allowSearch = document.getElementById('toggleAllowSearch').checked;
-
-            currentUser.displayName = lineName;
-
-            pendingPayload = {
-                lineUserId: currentUser.userId,
-                lineDisplayName: lineName,
-                linePictureUrl: currentUser.pictureUrl,
-                gameNickname: gameNick,
-                gameClass: gameClass,
-                allowSearch: allowSearch ? "開啟" : "關閉",
-                updateTime: new Date().toISOString()
-            };
-
-            document.getElementById('previewNick').textContent = gameNick;
-            document.getElementById('previewClass').textContent = gameClass;
-            document.getElementById('previewLine').textContent = lineName;
-            document.getElementById('previewAllowSearch').textContent = allowSearch ? "開啟" : "關閉";
-
-            document.getElementById('confirmModal').classList.remove('hidden');
-        });
-
-        function closeConfirmModal() {
-            document.getElementById('confirmModal').classList.add('hidden');
-        }
-
-        // 確認送出至試算表
-        async function executeFinalSubmit() {
-            if (!pendingPayload) return;
-
-            const modalConfirmBtn = document.getElementById('modalConfirmBtn');
-            modalConfirmBtn.textContent = "傳送中...";
-            modalConfirmBtn.disabled = true;
-
-            // 1. 同步儲存至本地快取
-            localStorage.setItem("member_" + pendingPayload.lineUserId, JSON.stringify(pendingPayload));
-
-            // 2. 透過 text/plain 跨域傳送至 GAS，確保 100% 寫入試算表與異動歷程
-            if (GAS_API_URL) {
-                try {
-                    await fetch(GAS_API_URL, {
-                        method: "POST",
-                        mode: "no-cors",
-                        headers: {
-                            "Content-Type": "text/plain;charset=utf-8"
-                        },
-                        body: JSON.stringify(pendingPayload)
-                    });
-                } catch (err) {
-                    console.error("同步至 Google Sheet 失敗:", err);
-                }
-            }
-
-            modalConfirmBtn.textContent = "確認送出";
-            modalConfirmBtn.disabled = false;
-            document.getElementById('confirmModal').classList.add('hidden');
-
-            currentUser.gameNickname = pendingPayload.gameNickname;
-            currentUser.gameClass = pendingPayload.gameClass;
-            currentUser.displayName = pendingPayload.lineDisplayName;
-            currentUser.allowSearch = (pendingPayload.allowSearch === "開啟");
-            currentUser.isRegistered = true;
-            
-            document.getElementById('memberDisplayTitle').textContent = pendingPayload.gameNickname;
-            document.getElementById('badgeVerified').classList.remove('hidden');
-
-            document.getElementById('resGameNick').textContent = pendingPayload.gameNickname;
-            document.getElementById('resGameClass').textContent = pendingPayload.gameClass;
-            document.getElementById('resLineName').textContent = pendingPayload.lineDisplayName;
-            document.getElementById('resAllowSearch').textContent = pendingPayload.allowSearch;
-            
-            if (currentUser.isRegistered) {
-                document.getElementById('successTitle').textContent = "資料修改成功！";
-                document.getElementById('successDesc').textContent = "最新資訊已為您更新完成～";
-            }
-            
-            document.getElementById('successModal').classList.remove('hidden');
-        }
-
-        function closeLiffWindow() {
-            if (typeof liff !== 'undefined' && liff.closeWindow) {
-                liff.closeWindow();
-            } else {
-                alert("設定完成，請回到 LINE 聊天室！");
-                document.getElementById('successModal').classList.add('hidden');
-            }
-        }
-    </script>
-</body>
-</html>
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ status: "error", message: err.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
