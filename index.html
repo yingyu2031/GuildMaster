@@ -41,19 +41,28 @@
             </p>
         </div>
 
-        <!-- 狀態 1：預覽讀取畫面 (核對身分時顯示) -->
+        <!-- 狀態 1：預覽讀取畫面與錯誤診斷區 -->
         <div id="loadingCard" class="bg-white rounded-[32px] p-8 border-2 border-amber-200/80 soft-card-shadow text-center">
-            <div class="relative w-16 h-16 mx-auto mb-4">
+            <div id="loadingSpinner" class="relative w-16 h-16 mx-auto mb-4">
                 <div class="absolute inset-0 rounded-full border-4 border-amber-200 border-t-amber-500 animate-spin"></div>
                 <div class="w-full h-full rounded-full flex items-center justify-center text-xl">
                     🛡️
                 </div>
             </div>
-            <h3 class="text-sm font-black text-amber-950 mb-1">正在核對會員身分...</h3>
-            <p class="text-xs text-amber-800/60">正在連線 Google 試算表名冊，請稍候</p>
+            <h3 id="loadingTitle" class="text-sm font-black text-amber-950 mb-1">正在核對會員身分...</h3>
+            <p id="loadingDesc" class="text-xs text-amber-800/60">正在連線名冊資料庫，請稍候</p>
+            
+            <!-- 錯誤資訊顯示區（預設隱藏） -->
+            <div id="errorBox" class="hidden mt-4 text-left">
+                <div class="text-xs font-bold text-rose-700 mb-1">偵測到連線異常：</div>
+                <div id="errorDetail" class="text-[11px] text-rose-600 bg-rose-50 border border-rose-200 p-3 rounded-xl font-mono break-all leading-relaxed"></div>
+                <button onclick="location.reload()" class="w-full mt-3 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold py-2.5 rounded-xl shadow-md transition">
+                    重新載入
+                </button>
+            </div>
         </div>
 
-        <!-- 狀態 2：主要表單卡片 (資料確認後才顯示) -->
+        <!-- 狀態 2：主要表單卡片 (資料確認後才展開) -->
         <div id="mainFormCard" class="hidden bg-white rounded-[32px] p-6 sm:p-7 border-2 border-amber-200/80 soft-card-shadow relative">
             
             <!-- 身分卡片 -->
@@ -64,7 +73,7 @@
                 </div>
                 <div class="flex-1 min-w-0 text-left">
                     <div class="flex items-center gap-1.5">
-                        <span id="memberDisplayTitle" class="font-black text-base text-amber-950 truncate">載入中</span>
+                        <span id="memberDisplayTitle" class="font-black text-base text-amber-950 truncate">新會員</span>
                         <span id="badgeVerified" class="hidden text-[10px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded-full">已綁定</span>
                     </div>
                     <div class="text-[11px] text-amber-800/60 font-mono truncate mt-0.5" id="lineUid">UID: 讀取中...</div>
@@ -214,9 +223,9 @@
         </p>
     </main>
 
-    <!-- 流程控制邏輯 -->
+    <!-- 流程與除錯控制邏輯 -->
     <script>
-        const MY_LIFF_ID = "2007746182-1x5yY5Y7";
+        const MY_LIFF_ID = "2011659633-OPPcInzb";
         const GAS_API_URL = "https://script.google.com/macros/s/AKfycbxIRwxVfiCxwKwBi4MTz3C4mzBLg-76SCnp301IGb1_Pdlbi2bdOtOZK3bdXY0TeInTyg/exec";
 
         let currentUser = {
@@ -232,7 +241,7 @@
         let pendingPayload = null;
 
         window.addEventListener("DOMContentLoaded", async () => {
-            // 清除過往測試可能殘留的 localStorage，避免假資料回顯
+            // 清除過往測試暫存
             localStorage.clear();
 
             const urlParams = new URLSearchParams(window.location.search);
@@ -240,10 +249,11 @@
             const queryName = urlParams.get('name') || urlParams.get('displayName');
 
             let isLiffReady = false;
+            let liffErrorDetail = "";
 
             // 1. 初始化 LIFF
             if (MY_LIFF_ID && typeof liff !== 'undefined') {
-                const liffInitPromise = (async () => {
+                try {
                     await liff.init({ liffId: MY_LIFF_ID });
                     if (liff.isLoggedIn()) {
                         const profile = await liff.getProfile();
@@ -253,43 +263,41 @@
                         isLiffReady = true;
                     } else {
                         liff.login();
+                        return;
                     }
-                })();
-
-                // 最多等候 3 秒，若 LIFF 逾時則往下走
-                const timeoutPromise = new Promise(resolve => setTimeout(resolve, 3000));
-                try {
-                    await Promise.race([liffInitPromise, timeoutPromise]);
                 } catch (err) {
-                    console.warn("LIFF 載入失敗或逾時:", err);
+                    console.error("LIFF 初始化異常:", err);
+                    liffErrorDetail = (err.code ? `[代碼 ${err.code}] ` : "") + (err.message || JSON.stringify(err));
                 }
+            } else {
+                liffErrorDetail = "找不到 LIFF SDK 或 LIFF ID 未填寫";
             }
 
-            // 支援使用 ?uid=... 測試參數
-            if (!isLiffReady) {
-                if (queryUid) {
-                    currentUser.userId = queryUid;
-                    if (queryName) currentUser.displayName = decodeURIComponent(queryName);
-                }
+            // 支援使用 ?uid= 進行瀏覽器本地測試
+            if (!isLiffReady && queryUid) {
+                currentUser.userId = queryUid;
+                if (queryName) currentUser.displayName = decodeURIComponent(queryName);
             }
 
-            // 2. 身分確認完成後，向 GAS 查驗並切換介面
-            await verifyAndDisplayView();
+            // 2. 身分確認與渲染畫面
+            await verifyAndDisplayView(liffErrorDetail);
         });
 
-        async function verifyAndDisplayView() {
-            // 如果連線失敗且無 UID，提示引導
+        async function verifyAndDisplayView(errorMsg) {
+            // 若完全拿不到 UID，顯示精確診斷訊息
             if (!currentUser.userId) {
-                document.getElementById('loadingCard').innerHTML = `
-                    <div class="text-3xl mb-3">⚠️</div>
-                    <h3 class="text-sm font-black text-amber-950 mb-1">無法辨識 LINE 身分</h3>
-                    <p class="text-xs text-amber-800/70 mb-4">請由 LINE 官方帳號內的按鈕重新開啟本系統</p>
-                    <button onclick="location.reload()" class="text-xs bg-amber-500 text-white font-bold px-4 py-2 rounded-xl">重新整理</button>
-                `;
+                document.getElementById('loadingSpinner').classList.add('hidden');
+                document.getElementById('loadingTitle').textContent = "無法辨識 LINE 身分";
+                document.getElementById('loadingDesc').textContent = "請確認您是點擊 LINE 官方專用連結開啟";
+                
+                const errBox = document.getElementById('errorBox');
+                const errDetail = document.getElementById('errorDetail');
+                errDetail.textContent = errorMsg || "LIFF 未能成功取得 Profile 資料，請檢查 LINE Developers 後台 Endpoint URL。";
+                errBox.classList.remove('hidden');
                 return;
             }
 
-            // 向 Google Apps Script 查詢真實資料
+            // 向 Google Apps Script 查詢會員資料
             if (GAS_API_URL) {
                 try {
                     const controller = new AbortController();
@@ -309,17 +317,17 @@
                         currentUser.isRegistered = true;
                     }
                 } catch (err) {
-                    console.warn("GAS 試算表連線逾時，視為新會員登記流程:", err);
+                    console.warn("GAS 試算表連線逾時，視為新會員流程:", err);
                 }
             }
 
-            // 隱藏轉圈讀取框，淡入展開表單卡片
+            // 隱藏讀取卡片，顯示主要表單
             document.getElementById('loadingCard').classList.add('hidden');
             const formCard = document.getElementById('mainFormCard');
             formCard.classList.remove('hidden');
             formCard.classList.add('fade-in');
 
-            // 依身分切換模式
+            // 根據是否已在試算表註冊過套用模式
             if (currentUser.isRegistered) {
                 applyEditModeUI();
             } else {
@@ -330,7 +338,7 @@
         function applyEditModeUI() {
             document.getElementById('topBadge').textContent = "資料修改";
             document.getElementById('pageMainTitle').textContent = "會員資料修改";
-            document.getElementById('pageSubTitle').textContent = "記得隨時更新你的遊戲角色資訊喔！";
+            document.getElementById('pageSubTitle').textContent = "記得隨時更新您的遊戲角色資訊喔！";
             
             document.getElementById('memberDisplayTitle').textContent = currentUser.gameNickname || "已綁定成員";
             document.getElementById('badgeVerified').classList.remove('hidden');
@@ -356,7 +364,6 @@
             document.getElementById('badgeVerified').classList.add('hidden');
             document.getElementById('submitBtn').textContent = "確認送出";
 
-            // 清空輸入欄位，僅代入 LINE 原生暱稱
             document.getElementById('gameNickname').value = "";
             document.getElementById('gameClass').value = "";
             document.getElementById('manualLineName').value = currentUser.displayName || "";
@@ -415,7 +422,7 @@
             modalConfirmBtn.textContent = "傳送中...";
             modalConfirmBtn.disabled = true;
 
-            // 送至 Google Apps Script (跨域純文字 JSON，避免預檢阻擋)
+            // 跨域純文字 JSON 傳輸至 Google Apps Script
             if (GAS_API_URL) {
                 try {
                     await fetch(GAS_API_URL, {
@@ -427,7 +434,7 @@
                         body: JSON.stringify(pendingPayload)
                     });
                 } catch (err) {
-                    console.error("寫入 Google Sheet 異常:", err);
+                    console.error("寫入 Google Sheet 失敗:", err);
                 }
             }
 
