@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>公會會員名冊查詢</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800;900&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { 
+            font-family: 'M PLUS Rounded 1c', 'Noto Sans TC', sans-serif; 
+        }
+        .soft-card-shadow {
+            box-shadow: 0 20px 40px -12px rgba(217, 119, 6, 0.12), 0 4px 12px -2px rgba(0, 0, 0, 0.04);
+        }
+        .fade-in {
+            animation: fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-[#FFFDF9] text-amber-950 antialiased selection:bg-amber-200 selection:text-amber-900 min-h-screen flex flex-col justify-between py-8 px-4">
+
+    <main class="max-w-md w-full mx-auto">
+        <!-- 頂部標題區 -->
+        <div class="text-center mb-6">
+            <div class="inline-block bg-amber-100/80 text-amber-800 border border-amber-200 text-xs font-bold px-3.5 py-1 rounded-full mb-3">
+                公會名冊
+            </div>
+            <h1 class="text-2xl font-black text-amber-950">
+                會員公開資料查詢
+            </h1>
+            <p class="text-xs text-amber-900/60 mt-1.5 leading-relaxed">
+                輸入成員的「遊戲角色暱稱」或「LINE 暱稱」進行檢索
+            </p>
+        </div>
+
+        <!-- 搜尋列卡片 -->
+        <div class="bg-white rounded-[28px] p-2.5 border-2 border-amber-200/80 soft-card-shadow mb-6">
+            <form id="searchForm" class="flex items-center gap-2">
+                <div class="relative flex-1">
+                    <input type="text" id="searchInput" required placeholder="輸入欲查詢的暱稱關鍵字..." 
+                           class="w-full bg-[#FFFDF9] border border-amber-200/80 rounded-2xl pl-4 pr-3 py-3 text-sm font-bold text-amber-950 placeholder:text-amber-800/35 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition">
+                </div>
+                <button type="submit" id="searchBtn" title="開始搜尋"
+                        class="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold p-3 rounded-2xl shadow-md shadow-amber-300/40 transition active:scale-95 flex items-center justify-center cursor-pointer">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                </button>
+            </form>
+        </div>
+
+        <!-- 狀態 1：查詢中 (讀取 Spinner) -->
+        <div id="loadingStatus" class="hidden bg-white rounded-[32px] p-8 border-2 border-amber-200/80 soft-card-shadow text-center fade-in mb-6">
+            <div class="relative w-12 h-12 mx-auto mb-3">
+                <div class="absolute inset-0 rounded-full border-4 border-amber-200 border-t-amber-500 animate-spin"></div>
+                <div class="w-full h-full rounded-full flex items-center justify-center text-base">🔍</div>
+            </div>
+            <p class="text-xs font-bold text-amber-900/80">名冊資料檢索中...</p>
+        </div>
+
+        <!-- 狀態 2：查無資料 / 未公開 -->
+        <div id="emptyStatus" class="hidden bg-white rounded-[32px] p-8 border-2 border-amber-200/80 soft-card-shadow text-center fade-in mb-6">
+            <div class="w-14 h-14 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-3 border border-amber-200 text-2xl">
+                🍃
+            </div>
+            <h3 class="text-sm font-black text-amber-950 mb-1">查無會員資料</h3>
+            <p class="text-xs text-amber-800/60 leading-relaxed">
+                未找到相符會員，或該會員設定為「未開放查詢」與「審核中」。
+            </p>
+        </div>
+
+        <!-- 狀態 3：搜尋結果列表 -->
+        <div id="resultContainer" class="space-y-4"></div>
+
+        <p class="text-[11px] text-amber-800/40 text-center mt-6">&copy; 2026 GuildMaster</p>
+    </main>
+
+    <script>
+        const GAS_API_URL = "https://script.google.com/macros/s/AKfycbxIRwxVfiCxwKwBi4MTz3C4mzBLg-76SCnp301IGb1_Pdlbi2bdOtOZK3bdXY0TeInTyg/exec";
+
+        // JSONP 呼叫 GAS 避免 CORS 限制
+        function searchSheetByJsonp(keyword) {
+            return new Promise((resolve) => {
+                const callbackName = "gas_search_cb_" + Date.now();
+                const script = document.createElement("script");
+
+                const timer = setTimeout(() => {
+                    cleanup();
+                    resolve({ status: "timeout", data: [] });
+                }, 7000);
+
+                function cleanup() {
+                    clearTimeout(timer);
+                    if (script.parentNode) script.parentNode.removeChild(script);
+                    delete window[callbackName];
+                }
+
+                window[callbackName] = function(response) {
+                    cleanup();
+                    resolve(response);
+                };
+
+                script.src = `${GAS_API_URL}?action=search&q=${encodeURIComponent(keyword)}&callback=${callbackName}&_=${Date.now()}`;
+                script.onerror = function() {
+                    cleanup();
+                    resolve({ status: "error", data: [] });
+                };
+
+                document.body.appendChild(script);
+            });
+        }
+
+        document.getElementById('searchForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const keyword = document.getElementById('searchInput').value.trim();
+            if (!keyword) return;
+
+            const loadingBox = document.getElementById('loadingStatus');
+            const emptyBox = document.getElementById('emptyStatus');
+            const resultBox = document.getElementById('resultContainer');
+
+            loadingBox.classList.remove('hidden');
+            emptyBox.classList.add('hidden');
+            resultBox.innerHTML = "";
+
+            const res = await searchSheetByJsonp(keyword);
+            loadingBox.classList.add('hidden');
+
+            let members = (res && res.data) ? res.data : [];
+
+            // 前端安全雙重卡控：必須是「提供查詢 === 'Y'」且「帳號狀態 === '已審核'」
+            const filteredMembers = members.filter(m => {
+                const allow = String(m.allowSearch || "").trim().toUpperCase();
+                const status = String(m.accountStatus || "").trim();
+                return (allow === "Y" || allow === "開啟") && status === "已審核";
+            });
+
+            if (filteredMembers.length === 0) {
+                emptyBox.classList.remove('hidden');
+                return;
+            }
+
+            // 渲染會員資訊卡片
+            filteredMembers.forEach(m => {
+                const card = document.createElement('div');
+                card.className = "bg-white rounded-[32px] p-6 border-2 border-amber-200/80 soft-card-shadow fade-in";
+                
+                const roleBadge = m.guildRole ? `<span class="bg-amber-100 text-amber-800 border border-amber-200 text-[11px] font-black px-2.5 py-0.5 rounded-full">${m.guildRole}</span>` : '';
+                const subGroupBadge = m.subGroup ? `<span class="bg-orange-50 text-orange-700 border border-orange-200 text-[11px] font-bold px-2 py-0.5 rounded-full">${m.subGroup}</span>` : '';
+
+                card.innerHTML = `
+                    <div class="flex items-center justify-between pb-3 border-b border-amber-100 mb-4">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xl">🛡️</span>
+                            <span class="text-base font-black text-amber-950">${m.gameNickname || "冒險者"}</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            ${roleBadge}
+                            ${subGroupBadge}
+                        </div>
+                    </div>
+
+                    <div class="bg-[#FFFDF9] rounded-2xl p-4 border border-amber-200/70 text-sm space-y-2.5 text-amber-950">
+                        <div class="flex items-center justify-between">
+                            <span class="text-amber-800/80 font-bold text-xs">遊戲職業</span>
+                            <span class="font-extrabold text-amber-950">${m.gameClass || "未登記"}</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-amber-800/80 font-bold text-xs">LINE 暱稱</span>
+                            <span class="font-bold text-amber-950">${m.lineDisplayName || "-"}</span>
+                        </div>
+                        <div class="flex items-center justify-between pt-2 border-t border-amber-100/60 text-xs">
+                            <span class="text-amber-800/70 font-medium">群組狀態</span>
+                            <div class="flex items-center gap-2 text-[11px] font-bold">
+                                <span class="px-2 py-0.5 rounded-md ${m.inLineGroup === 'Y' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-stone-100 text-stone-500'}">
+                                    LINE: ${m.inLineGroup === 'Y' ? '已入群' : '未入群'}
+                                </span>
+                                <span class="px-2 py-0.5 rounded-md ${m.inDcGroup === 'Y' ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : 'bg-stone-100 text-stone-500'}">
+                                    DC: ${m.inDcGroup === 'Y' ? '已入群' : '未入群'}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                resultBox.appendChild(card);
+            });
+        });
+    </script>
+</body>
+</html>
