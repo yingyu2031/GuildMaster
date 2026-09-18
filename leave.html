@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <title>公會活動請假申請</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -23,6 +26,12 @@
             from { opacity: 0; transform: translateY(6px); }
             to { opacity: 1; transform: translateY(0); }
         }
+        /* 徹底校正 iOS Date Picker 預設跑版高度 */
+        input[type="date"] {
+            -webkit-appearance: none;
+            appearance: none;
+            min-height: 46px;
+        }
     </style>
 </head>
 <body class="bg-[#FFFDF9] text-amber-950 antialiased selection:bg-amber-200 selection:text-amber-900 min-h-screen flex flex-col justify-between py-8 px-4">
@@ -36,8 +45,8 @@
             <h1 class="text-2xl font-black text-amber-950">
                 活動請假登記
             </h1>
-            <p class="text-xs text-amber-900/60 mt-1.5 leading-relaxed">
-                預設帶入本人資訊，亦可協助其他夥伴代理登記
+            <p class="text-xs text-amber-900/70 mt-1.5 leading-relaxed px-4">
+                公會活動需要大家齊心協力，若非必要請盡量出席一同並肩作戰喔！
             </p>
         </div>
 
@@ -60,11 +69,11 @@
             <div class="bg-[#FFF9EE] rounded-2xl p-4 border border-amber-200/80 mb-5">
                 <div class="flex items-center justify-between mb-2">
                     <span class="text-xs font-bold text-amber-800/80">請假對象資訊</span>
-                    <button type="button" onclick="openMemberModal()" class="text-[11px] font-bold bg-amber-500 hover:bg-amber-600 text-white px-2.5 py-1 rounded-xl shadow-sm transition">
-                        👥 幫他人請假
+                    <button type="button" onclick="openMemberModal()" class="text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white px-3 py-1 rounded-xl shadow-sm transition">
+                        幫他人請假
                     </button>
                 </div>
-                <div class="space-y-1 text-sm font-bold text-amber-950">
+                <div class="space-y-1.5 text-sm font-bold text-amber-950">
                     <div class="flex justify-between items-center">
                         <span class="text-xs text-amber-900/60 font-medium">角色暱稱：</span>
                         <span id="targetNickText">-</span>
@@ -73,8 +82,8 @@
                         <span class="text-xs text-amber-900/60 font-medium">角色職業：</span>
                         <span id="targetClassText">-</span>
                     </div>
-                    <div class="flex justify-between items-center text-xs text-amber-800/60 pt-1 border-t border-amber-200/40">
-                        <span class="font-medium">代理申請者：</span>
+                    <div class="flex justify-between items-center text-xs text-amber-800/60 pt-1.5 border-t border-amber-200/40">
+                        <span class="font-medium">登記狀態：</span>
                         <span id="operatorText" class="font-mono">本人申請</span>
                     </div>
                 </div>
@@ -87,7 +96,7 @@
                         請假日期 <span class="text-rose-500">*</span>
                     </label>
                     <input type="date" id="leaveDate" required
-                           class="w-full bg-[#FFFDF9] border border-amber-200 rounded-2xl px-4 py-3 text-sm font-bold text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition">
+                           class="w-full h-[46px] box-border bg-[#FFFDF9] border border-amber-200 rounded-2xl px-4 text-sm font-bold text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition">
                 </div>
 
                 <!-- 請假活動 -->
@@ -96,8 +105,8 @@
                         請假活動 <span class="text-rose-500">*</span>
                     </label>
                     <div class="relative">
-                        <select id="leaveEvent" required
-                                class="w-full bg-[#FFFDF9] border border-amber-200 rounded-2xl px-4 py-3 text-sm font-bold text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition appearance-none">
+                        <select id="leaveEvent" required 
+                                class="w-full h-[46px] box-border bg-[#FFFDF9] border border-amber-200 rounded-2xl px-4 text-sm font-bold text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition appearance-none">
                             <option value="" disabled selected>請選擇活動</option>
                             <option value="公會GVG聯賽">公會GVG聯賽</option>
                             <option value="週常公會副本">週常公會副本</option>
@@ -124,7 +133,7 @@
                         備註說明 <span class="text-amber-800/50 font-normal">(選填)</span>
                     </label>
                     <input type="text" id="leaveNote" placeholder="其他需要向幹部說明的補充事項"
-                           class="w-full bg-[#FFFDF9] border border-amber-200 rounded-2xl px-4 py-2.5 text-xs font-bold text-amber-950 placeholder:text-amber-800/30 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition">
+                           class="w-full h-[46px] box-border bg-[#FFFDF9] border border-amber-200 rounded-2xl px-4 text-xs font-bold text-amber-950 placeholder:text-amber-800/30 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition">
                 </div>
 
                 <button type="submit" id="submitBtn"
@@ -141,13 +150,11 @@
                         <button onclick="closeMemberModal()" class="text-stone-400 hover:text-stone-600 text-sm font-bold">✕</button>
                     </div>
 
-                    <!-- 搜尋列 -->
                     <div class="my-3">
                         <input type="text" id="memberSearchInput" oninput="handleMemberFilter()" placeholder="輸入角色或 LINE 暱稱搜尋..."
                                class="w-full bg-[#FFFDF9] border border-amber-200 rounded-xl px-3 py-2 text-xs font-bold text-amber-950 placeholder:text-amber-800/30 focus:outline-none focus:ring-2 focus:ring-amber-400">
                     </div>
 
-                    <!-- 成員名單列表 -->
                     <div id="memberListContainer" class="flex-1 overflow-y-auto space-y-2 pr-1 text-left text-xs">
                         <div class="text-center text-amber-800/50 py-4">載入名冊中...</div>
                     </div>
@@ -252,7 +259,6 @@
                 }
             }
 
-            // 本地測試備援 UID
             if (!currentSelf.userId) {
                 const urlParams = new URLSearchParams(window.location.search);
                 currentSelf.userId = urlParams.get('uid') || "U2b228d4c591535f6cdbb37a3e3f69952";
@@ -268,7 +274,7 @@
             // 預設帶入本人
             resetToSelf();
 
-            // 預載開放查詢之成員名單
+            // 預載開放查詢成員
             loadAvailableMembers();
 
             document.getElementById('loadingCard').classList.add('hidden');
@@ -320,7 +326,7 @@
                         <div class="font-extrabold text-amber-950">${m.gameNickname}</div>
                         <div class="text-[11px] text-amber-800/60">${m.gameClass} · ${m.lineDisplayName}</div>
                     </div>
-                    <span class="text-xs font-bold text-amber-600 bg-white border border-amber-200 px-2 py-1 rounded-xl">選擇</span>
+                    <span class="text-xs font-bold text-amber-600 bg-white border border-amber-200 px-2.5 py-1 rounded-xl shadow-xs">選擇</span>
                 `;
                 item.onclick = () => selectMember(m);
                 container.appendChild(item);
