@@ -61,9 +61,7 @@
 
         <!-- 狀態 2：待審核專屬等待畫面 (不可編輯) -->
         <div id="pendingReviewCard" class="hidden bg-white rounded-[32px] p-6 sm:p-7 border-2 border-amber-200/80 soft-card-shadow text-center relative">
-            <div class="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-amber-200 text-2xl">
-                ⏳
-            </div>
+
             <p class="text-xs text-amber-900/70 leading-relaxed max-w-[260px] mx-auto mb-6">
                 您的入會資料已登記，目前正在等候審核。<br>審核通過前暫時無法修改資料喔！
             </p>
@@ -363,7 +361,7 @@
 
             document.getElementById('submitBtn').textContent = "儲存修改資料";
             document.getElementById('successTitle').textContent = "資料修改成功！";
-            document.getElementById('successDesc').textContent = "最新資訊已為您更新完成～";
+
 
             updateProfileCard();
         }
@@ -371,7 +369,7 @@
         function applyNewMemberUI() {
             document.getElementById('topBadge').textContent = "身分登記";
             document.getElementById('pageMainTitle').textContent = "會員資料填寫綁定";
-            document.getElementById('pageSubTitle').textContent = "完成登記後，即可使用公會各項專屬功能";
+            document.getElementById('pageSubTitle').textContent = "完成登記後，即可使用各項專屬功能";
 
             document.getElementById('memberDisplayTitle').textContent = "新會員";
             document.getElementById('badgeVerified').classList.add('hidden');
@@ -383,7 +381,6 @@
             document.getElementById('toggleAllowSearch').checked = true;
 
             document.getElementById('successTitle').textContent = "綁定資料已送出";
-            document.getElementById('successDesc').textContent = "審核通過後，將會在 LINE 聊天室通知您";
 
             updateProfileCard();
         }
