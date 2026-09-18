@@ -26,7 +26,7 @@
             from { opacity: 0; transform: translateY(6px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        /* 徹底校正 iOS Date Picker 預設跑版高度 */
+        /* 校正 iOS Date Picker 預設跑版與高度 */
         input[type="date"] {
             -webkit-appearance: none;
             appearance: none;
@@ -40,10 +40,10 @@
         <!-- 頂部標題區 -->
         <div class="text-center mb-6">
             <div class="inline-block bg-amber-100/80 text-amber-800 border border-amber-200 text-xs font-bold px-3.5 py-1 rounded-full mb-3">
-                請假表單
+                公會活動管理
             </div>
             <h1 class="text-2xl font-black text-amber-950">
-                活動請假登記
+                請假表單
             </h1>
             <p class="text-xs text-amber-900/70 mt-1.5 leading-relaxed px-4">
                 公會活動需要大家齊心協力，請盡量出席一同並肩作戰喔！
@@ -240,7 +240,6 @@
         }
 
         window.addEventListener("DOMContentLoaded", async () => {
-            // 預設日期為今日 (YYYY-MM-DD)
             document.getElementById('leaveDate').value = new Date().toISOString().split('T')[0];
 
             if (MY_LIFF_ID && typeof liff !== 'undefined') {
@@ -313,12 +312,19 @@
             const container = document.getElementById('memberListContainer');
             container.innerHTML = "";
 
-            if (!list || list.length === 0) {
-                container.innerHTML = `<div class="text-center text-amber-800/50 py-4">無可代申請之開放成員</div>`;
+            // 排除本人，只列出其他開放查詢的公會成員
+            const otherMembers = (list || []).filter(m => {
+                const isSameUid = m.lineUserId && currentSelf.userId && (m.lineUserId === currentSelf.userId);
+                const isSameNick = m.gameNickname && currentSelf.gameNickname && (m.gameNickname === currentSelf.gameNickname);
+                return !isSameUid && !isSameNick;
+            });
+
+            if (otherMembers.length === 0) {
+                container.innerHTML = `<div class="text-center text-amber-800/50 py-4">無其他可代申請之成員</div>`;
                 return;
             }
 
-            list.forEach(m => {
+            otherMembers.forEach(m => {
                 const item = document.createElement('div');
                 item.className = "flex items-center justify-between p-3 rounded-2xl bg-[#FFFDF9] border border-amber-200/70 hover:bg-amber-100/50 cursor-pointer transition";
                 item.innerHTML = `
@@ -346,11 +352,21 @@
             targetMember.userId = m.lineUserId || "";
             targetMember.gameNickname = m.gameNickname;
             targetMember.gameClass = m.gameClass;
-            targetMember.isProxy = true;
+
+            // 智慧防呆：比對是否選到本人
+            const isSelf = (targetMember.userId && targetMember.userId === currentSelf.userId) || 
+                          (targetMember.gameNickname && targetMember.gameNickname === currentSelf.gameNickname);
+
+            if (isSelf) {
+                targetMember.isProxy = false;
+                document.getElementById('operatorText').textContent = "本人申請";
+            } else {
+                targetMember.isProxy = true;
+                document.getElementById('operatorText').textContent = `由 ${currentSelf.gameNickname || currentSelf.displayName} 代理申請`;
+            }
 
             document.getElementById('targetNickText').textContent = targetMember.gameNickname;
             document.getElementById('targetClassText').textContent = targetMember.gameClass;
-            document.getElementById('operatorText').textContent = `由 ${currentSelf.gameNickname || currentSelf.displayName} 代理申請`;
             closeMemberModal();
         }
 
