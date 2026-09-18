@@ -61,49 +61,44 @@
             </div>
         </div>
 
-        <!-- 狀態 2：審核中專屬卡片 (鎖定不可修改) -->
-        <div id="pendingReviewCard" class="hidden bg-white rounded-[32px] p-6 sm:p-7 border-2 border-amber-200/80 soft-card-shadow text-center relative">
-            <div class="w-14 h-14 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-3 border-2 border-amber-200 text-2xl">
-                ⏳
-            </div>
-            <h2 class="text-lg font-black text-amber-950 mb-1">資料審核中</h2>
-            <p class="text-xs text-amber-900/70 leading-relaxed mb-5">
-                您的入會資料已登記，審核通過前暫時無法修改資料喔！
-            </p>
+        <!-- 狀態 2：審核中專屬卡片 (乾淨精簡版) -->
+<div id="pendingReviewCard" class="hidden bg-white rounded-[32px] p-6 sm:p-7 border-2 border-amber-200/80 soft-card-shadow text-center relative">
+    <div class="w-14 h-14 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-3 border-2 border-amber-200 text-2xl">
+        ⏳
+    </div>
+    <p class="text-xs text-amber-900/70 leading-relaxed mb-5">
+        您的資料已送達幹部名冊，審核通過後即可自由修改。
+    </p>
 
-            <!-- 統一規格的展示框 -->
-            <div class="bg-[#FFFDF9] rounded-2xl p-4 border border-amber-200/80 text-left text-sm space-y-2 mb-6 text-amber-950 shadow-inner">
-                <div class="flex items-center justify-between pb-2 border-b border-amber-100">
-                    <span class="text-amber-800/80 font-bold">目前狀態：</span>
-                    <span class="bg-amber-100 text-amber-900 text-xs font-black px-2.5 py-0.5 rounded-full border border-amber-200">審核中</span>
-                </div>
-                <div class="flex items-center justify-between">
-                    <span class="text-amber-800/80 font-bold">遊戲暱稱：</span>
-                    <span id="pendingNickname" class="font-bold text-amber-950">-</span>
-                </div>
-                <div class="flex items-center justify-between">
-                    <span class="text-amber-800/80 font-bold">遊戲職業：</span>
-                    <span id="pendingClass" class="font-bold text-amber-950">-</span>
-                </div>
-                <div class="flex items-center justify-between">
-                    <span class="text-amber-800/80 font-bold">LINE 暱稱：</span>
-                    <span id="pendingLineName" class="font-bold text-amber-950">-</span>
-                </div>
-                <div class="flex items-center justify-between pt-1 border-t border-amber-100/60 text-xs">
-                    <span class="text-amber-800/70 font-medium">開放查詢：</span>
-                    <span id="pendingAllowSearch" class="font-medium text-amber-950">-</span>
-                </div>
-            </div>
-
-            <div class="space-y-2.5">
-                <button onclick="location.reload()" class="w-full bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold py-3 rounded-2xl text-xs transition">
-                    🔄 重新整理審核狀態
-                </button>
-                <button onclick="closeLiffWindow()" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold py-3.5 rounded-2xl text-sm shadow-md shadow-amber-300/40 transition">
-                    返回 LINE 聊天室
-                </button>
-            </div>
+    <!-- 統一規格展示框 -->
+    <div class="bg-[#FFFDF9] rounded-2xl p-4 border border-amber-200/80 text-left text-sm space-y-2 mb-6 text-amber-950 shadow-inner">
+        <div class="flex items-center justify-between">
+            <span class="text-amber-800/80 font-bold">遊戲暱稱：</span>
+            <span id="pendingNickname" class="font-bold text-amber-950">-</span>
         </div>
+        <div class="flex items-center justify-between">
+            <span class="text-amber-800/80 font-bold">遊戲職業：</span>
+            <span id="pendingClass" class="font-bold text-amber-950">-</span>
+        </div>
+        <div class="flex items-center justify-between">
+            <span class="text-amber-800/80 font-bold">LINE 暱稱：</span>
+            <span id="pendingLineName" class="font-bold text-amber-950">-</span>
+        </div>
+        <div class="flex items-center justify-between pt-1 border-t border-amber-100/60 text-xs">
+            <span class="text-amber-800/70 font-medium">開放查詢：</span>
+            <span id="pendingAllowSearch" class="font-medium text-amber-950">-</span>
+        </div>
+    </div>
+
+    <div class="space-y-2.5">
+        <button onclick="location.reload()" class="w-full bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold py-3 rounded-2xl text-xs transition">
+            🔄 重新整理狀態
+        </button>
+        <button onclick="closeLiffWindow()" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold py-3.5 rounded-2xl text-sm shadow-md shadow-amber-300/40 transition">
+            返回 LINE 聊天室
+        </button>
+    </div>
+</div>
 
         <!-- 狀態 3：主要表單卡片 (新會員登記 / 已審核修改) -->
         <div id="mainFormCard" class="hidden bg-white rounded-[32px] p-6 sm:p-7 border-2 border-amber-200/80 soft-card-shadow relative">
@@ -395,20 +390,20 @@
         }
 
         function applyPendingReviewUI() {
-            document.getElementById('topBadge').textContent = "審核中";
-            document.getElementById('topBadge').className = "inline-block bg-amber-100/80 text-amber-800 border border-amber-200 text-xs font-bold px-3.5 py-1 rounded-full mb-3";
-            document.getElementById('pageMainTitle').textContent = "會員資料審核中";
-            document.getElementById('pageSubTitle').textContent = "幹部正在處理您的加入申請";
+    document.getElementById('topBadge').textContent = "資格審核";
+    document.getElementById('topBadge').className = "inline-block bg-amber-100/80 text-amber-800 border border-amber-200 text-xs font-bold px-3.5 py-1 rounded-full mb-3";
+    document.getElementById('pageMainTitle').textContent = "入會申請處理中";
+    document.getElementById('pageSubTitle').textContent = "幹部正在核對名冊，請稍候";
 
-            document.getElementById('pendingNickname').textContent = currentUser.gameNickname || "-";
-            document.getElementById('pendingClass').textContent = currentUser.gameClass || "-";
-            document.getElementById('pendingLineName').textContent = currentUser.displayName || "-";
-            document.getElementById('pendingAllowSearch').textContent = currentUser.allowSearch ? "開啟" : "關閉";
+    document.getElementById('pendingNickname').textContent = currentUser.gameNickname || "-";
+    document.getElementById('pendingClass').textContent = currentUser.gameClass || "-";
+    document.getElementById('pendingLineName').textContent = currentUser.displayName || "-";
+    document.getElementById('pendingAllowSearch').textContent = currentUser.allowSearch ? "開啟" : "關閉";
 
-            const pendingCard = document.getElementById('pendingReviewCard');
-            pendingCard.classList.remove('hidden');
-            pendingCard.classList.add('fade-in');
-        }
+    const pendingCard = document.getElementById('pendingReviewCard');
+    pendingCard.classList.remove('hidden');
+    pendingCard.classList.add('fade-in');
+}
 
         function applyEditModeUI() {
             document.getElementById('topBadge').textContent = "資料修改";
