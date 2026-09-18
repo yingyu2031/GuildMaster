@@ -200,8 +200,9 @@
         const MY_LIFF_ID = ""; // 若有 LIFF ID 請填入此處
         const GAS_API_URL = "https://script.google.com/macros/s/AKfycbxIRwxVfiCxwKwBi4MTz3C4mzBLg-76SCnp301IGb1_Pdlbi2bdOtOZK3bdXY0TeInTyg/exec";
 
+        // 預設測試 UID (與試算表中的 UID 完全一致)
         let currentUser = {
-            userId: "U_demo_member_001",
+            userId: "U_demo_member",
             displayName: "",
             pictureUrl: "https://api.dicebear.com/7.x/bottts/svg?seed=member",
             gameNickname: "",
@@ -252,7 +253,7 @@
                         currentUser.gameNickname = result.gameNickname || "";
                         currentUser.gameClass = result.gameClass || "";
                         currentUser.displayName = result.lineDisplayName || currentUser.displayName;
-                        currentUser.allowSearch = result.allowSearch !== false && result.allowSearch !== "關閉";
+                        currentUser.allowSearch = (result.allowSearch === true || result.allowSearch === "Y" || result.allowSearch === "開啟");
                         currentUser.isRegistered = true;
                         applyEditModeUI(currentUser);
                         return;
@@ -376,14 +377,21 @@
             // 儲存至本地快取
             localStorage.setItem("member_" + pendingPayload.lineUserId, JSON.stringify(pendingPayload));
 
-            // 同步發送至 Google Sheet (GAS Web App)
+            // 同步發送至 Google Sheet (採用標準 Form-Urlencoded 傳送，保證 GAS 100% 能由 e.parameter 解析)
             if (GAS_API_URL) {
                 try {
+                    const formData = new URLSearchParams();
+                    for (const key in pendingPayload) {
+                        formData.append(key, pendingPayload[key]);
+                    }
+
                     await fetch(GAS_API_URL, {
                         method: "POST",
-                        mode: "no-cors", // 支援跨域傳送
-                        headers: { "Content-Type": "text/plain;charset=utf-8" },
-                        body: JSON.stringify(pendingPayload)
+                        mode: "no-cors",
+                        headers: {
+                            "Content-Type": "application/x-www-form-urlencoded"
+                        },
+                        body: formData.toString()
                     });
                 } catch (err) {
                     console.error("同步至 Google Sheet 失敗:", err);
@@ -397,7 +405,7 @@
             currentUser.gameNickname = pendingPayload.gameNickname;
             currentUser.gameClass = pendingPayload.gameClass;
             currentUser.displayName = pendingPayload.lineDisplayName;
-            currentUser.allowSearch = pendingPayload.allowSearch === "開啟";
+            currentUser.allowSearch = (pendingPayload.allowSearch === "開啟");
             currentUser.isRegistered = true;
             
             document.getElementById('memberDisplayTitle').textContent = pendingPayload.gameNickname;
