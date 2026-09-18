@@ -16,6 +16,14 @@
         .soft-card-shadow {
             box-shadow: 0 20px 40px -12px rgba(217, 119, 6, 0.12), 0 4px 12px -2px rgba(0, 0, 0, 0.04);
         }
+        /* 淡入動畫效果 */
+        .fade-in {
+            animation: fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
 <body class="bg-[#FFFDF9] text-amber-950 antialiased selection:bg-amber-200 selection:text-amber-900 min-h-screen flex flex-col justify-between py-8 px-4">
@@ -24,18 +32,30 @@
         <!-- 頂部標題區 -->
         <div class="text-center mb-6">
             <div id="topBadge" class="inline-block bg-amber-100/80 text-amber-800 border border-amber-200 text-xs font-bold px-3.5 py-1 rounded-full mb-3">
-                身分登記
+                身分驗證中
             </div>
             <h1 id="pageMainTitle" class="text-2xl font-black text-amber-950">
-                會員資料填寫綁定
+                公會會員系統
             </h1>
             <p id="pageSubTitle" class="text-xs text-amber-900/60 mt-1.5 leading-relaxed">
-                完成登記後，即可使用公會各項專屬功能
+                正在確認您的公會成員資料...
             </p>
         </div>
 
-        <!-- 主要表單卡片 -->
-        <div class="bg-white rounded-[32px] p-6 sm:p-7 border-2 border-amber-200/80 soft-card-shadow relative">
+        <!-- 狀態 1：預覽讀取畫面 (確定身分前顯示) -->
+        <div id="loadingCard" class="bg-white rounded-[32px] p-8 border-2 border-amber-200/80 soft-card-shadow text-center">
+            <div class="relative w-16 h-16 mx-auto mb-4">
+                <div class="absolute inset-0 rounded-full border-4 border-amber-200 border-t-amber-500 animate-spin"></div>
+                <div class="w-full h-full rounded-full flex items-center justify-center text-xl">
+                    🛡️
+                </div>
+            </div>
+            <h3 class="text-sm font-black text-amber-950 mb-1">正在連線公會名冊...</h3>
+            <p class="text-xs text-amber-800/60">正在核對 LINE 身分與綁定狀態</p>
+        </div>
+
+        <!-- 狀態 2：主要表單卡片 (確定身分後淡入呈現) -->
+        <div id="mainFormCard" class="hidden bg-white rounded-[32px] p-6 sm:p-7 border-2 border-amber-200/80 soft-card-shadow relative">
             
             <!-- 上方身分卡片 -->
             <div id="lineProfileCard" class="bg-[#FFF9EE] rounded-2xl p-3.5 border border-amber-200/80 mb-6 flex items-center gap-3">
@@ -45,7 +65,7 @@
                 </div>
                 <div class="flex-1 min-w-0 text-left">
                     <div class="flex items-center gap-1.5">
-                        <span id="memberDisplayTitle" class="font-black text-base text-amber-950 truncate">載入中...</span>
+                        <span id="memberDisplayTitle" class="font-black text-base text-amber-950 truncate">新會員</span>
                         <span id="badgeVerified" class="hidden text-[10px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded-full">已綁定</span>
                     </div>
                     <div class="text-[11px] text-amber-800/60 font-mono truncate mt-0.5" id="lineUid">UID: 載入中...</div>
@@ -195,7 +215,7 @@
         </p>
     </main>
 
-    <!-- 核心邏輯 -->
+    <!-- 核心流程控制邏輯 -->
     <script>
         const MY_LIFF_ID = "2007746182-1x5yY5Y7";
         const GAS_API_URL = "https://script.google.com/macros/s/AKfycbxIRwxVfiCxwKwBi4MTz3C4mzBLg-76SCnp301IGb1_Pdlbi2bdOtOZK3bdXY0TeInTyg/exec";
@@ -219,7 +239,7 @@
 
             let isLiffReady = false;
 
-            // LIFF 載入防護：設定最多等 2 秒，防超時卡死
+            // 1. 初始化 LIFF (設定 2 秒逾時保護)
             if (MY_LIFF_ID && typeof liff !== 'undefined') {
                 const liffInitPromise = (async () => {
                     await liff.init({ liffId: MY_LIFF_ID });
@@ -238,7 +258,7 @@
                 try {
                     await Promise.race([liffInitPromise, timeoutPromise]);
                 } catch (err) {
-                    console.warn("LIFF 初始化跳過或超時:", err);
+                    console.warn("LIFF 載入逾時或跳過:", err);
                 }
             }
 
@@ -248,58 +268,77 @@
                 if (queryName) currentUser.displayName = decodeURIComponent(queryName);
             }
 
-            // 更新身分卡片資訊
-            updateProfileCard();
-            // 讀取快取與向 GAS 同步資料
-            checkExistingMemberData(currentUser.userId);
+            // 2. 進行身分檢查，確認後才切換視圖
+            await determineMemberStatusAndRender(currentUser.userId);
         });
 
-        // 本地快取秒開 + 背景向 GAS 非同步校驗
-        async function checkExistingMemberData(uid) {
-            // 1. 本地快取秒開 (0.01 秒呈現，不卡畫面)
-            const stored = localStorage.getItem("member_" + uid);
-            if (stored) {
+        // 核心：判定身分後切換畫面
+        async function determineMemberStatusAndRender(uid) {
+            let isFoundInSheet = false;
+
+            // 步驟 A：向 GAS 試算表即時查詢（最多等候 2.5 秒，避免卡死）
+            if (GAS_API_URL) {
                 try {
-                    const data = JSON.parse(stored);
-                    currentUser.gameNickname = data.gameNickname || "";
-                    currentUser.gameClass = data.gameClass || "";
-                    currentUser.displayName = data.lineDisplayName || currentUser.displayName;
-                    currentUser.allowSearch = (data.allowSearch === true || data.allowSearch === "Y" || data.allowSearch === "開啟");
-                    currentUser.isRegistered = true;
-                    applyEditModeUI(currentUser);
-                } catch (e) {
-                    applyNewMemberUI();
+                    const controller = new AbortController();
+                    const fetchTimeout = setTimeout(() => controller.abort(), 2500);
+
+                    const res = await fetch(`${GAS_API_URL}?uid=${encodeURIComponent(uid)}`, {
+                        signal: controller.signal
+                    });
+                    clearTimeout(fetchTimeout);
+
+                    const result = await res.json();
+                    if (result && result.status === "found") {
+                        currentUser.gameNickname = result.gameNickname || "";
+                        currentUser.gameClass = result.gameClass || "";
+                        currentUser.displayName = result.lineDisplayName || currentUser.displayName;
+                        currentUser.allowSearch = (result.allowSearch === true || result.allowSearch === "Y" || result.allowSearch === "開啟");
+                        currentUser.isRegistered = true;
+                        isFoundInSheet = true;
+                    }
+                } catch (err) {
+                    console.warn("試算表在線查詢逾時或離線，改用本地記錄比對:", err);
                 }
+            }
+
+            // 步驟 B：若試算表沒連上，使用本地快取檢查
+            if (!isFoundInSheet) {
+                const stored = localStorage.getItem("member_" + uid);
+                if (stored) {
+                    try {
+                        const data = JSON.parse(stored);
+                        currentUser.gameNickname = data.gameNickname || "";
+                        currentUser.gameClass = data.gameClass || "";
+                        currentUser.displayName = data.lineDisplayName || currentUser.displayName;
+                        currentUser.allowSearch = (data.allowSearch === true || data.allowSearch === "Y" || data.allowSearch === "開啟");
+                        currentUser.isRegistered = true;
+                    } catch (e) {
+                        currentUser.isRegistered = false;
+                    }
+                }
+            }
+
+            // 步驟 C：隱藏讀取卡片，平滑展開對應表單
+            document.getElementById('loadingCard').classList.add('hidden');
+            const mainCard = document.getElementById('mainFormCard');
+            mainCard.classList.remove('hidden');
+            mainCard.classList.add('fade-in');
+
+            // 步驟 D：套用對應的「編輯」或「登記」介面
+            if (currentUser.isRegistered) {
+                applyEditModeUI(currentUser);
             } else {
                 applyNewMemberUI();
             }
-
-            // 2. 背景發送 GET 向 GAS 試算表校對最新資訊
-            if (GAS_API_URL) {
-                fetch(`${GAS_API_URL}?uid=${encodeURIComponent(uid)}`)
-                    .then(res => res.json())
-                    .then(result => {
-                        if (result.status === "found") {
-                            currentUser.gameNickname = result.gameNickname || "";
-                            currentUser.gameClass = result.gameClass || "";
-                            currentUser.displayName = result.lineDisplayName || currentUser.displayName;
-                            currentUser.allowSearch = (result.allowSearch === true || result.allowSearch === "Y" || result.allowSearch === "開啟");
-                            currentUser.isRegistered = true;
-                            
-                            localStorage.setItem("member_" + uid, JSON.stringify(currentUser));
-                            applyEditModeUI(currentUser);
-                        }
-                    })
-                    .catch(err => console.warn("背景同步暫無回應:", err));
-            }
         }
 
+        // 老會員：套用編輯模式
         function applyEditModeUI(data) {
             document.getElementById('topBadge').textContent = "資料修改";
             document.getElementById('pageMainTitle').textContent = "會員資料修改";
-            document.getElementById('pageSubTitle').textContent = "記得隨時更新你的遊戲角色資訊喔！";
+            document.getElementById('pageSubTitle').textContent = "記得隨時更新您的遊戲角色資訊喔！";
             
-            document.getElementById('memberDisplayTitle').textContent = data.gameNickname || "已綁定成員";
+            document.getElementById('memberDisplayTitle').textContent = data.gameNickname || "公會成員";
             document.getElementById('badgeVerified').classList.remove('hidden');
 
             document.getElementById('gameNickname').value = data.gameNickname || "";
@@ -317,6 +356,7 @@
             updateProfileCard();
         }
 
+        // 新會員：套用登記模式
         function applyNewMemberUI() {
             document.getElementById('topBadge').textContent = "身分登記";
             document.getElementById('pageMainTitle').textContent = "會員資料填寫綁定";
@@ -346,6 +386,7 @@
             }
         }
 
+        // 表單提交前彈出核對彈窗
         document.getElementById('bindForm').addEventListener('submit', function(e) {
             e.preventDefault();
             
@@ -378,6 +419,7 @@
             document.getElementById('confirmModal').classList.add('hidden');
         }
 
+        // 確認送出至試算表
         async function executeFinalSubmit() {
             if (!pendingPayload) return;
 
@@ -385,10 +427,10 @@
             modalConfirmBtn.textContent = "傳送中...";
             modalConfirmBtn.disabled = true;
 
-            // 1. 本地快取同步儲存
+            // 1. 同步儲存至本地快取
             localStorage.setItem("member_" + pendingPayload.lineUserId, JSON.stringify(pendingPayload));
 
-            // 2. 透過 text/plain 跨域傳送 JSON 字串至 GAS，避免 CORS 預檢失敗，保證觸發 doPost
+            // 2. 透過 text/plain 跨域傳送至 GAS，確保 100% 寫入試算表與異動歷程
             if (GAS_API_URL) {
                 try {
                     await fetch(GAS_API_URL, {
