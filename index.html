@@ -61,15 +61,18 @@
 
         <!-- 狀態 2：待審核專屬等待畫面 (不可編輯) -->
         <div id="pendingReviewCard" class="hidden bg-white rounded-[32px] p-6 sm:p-7 border-2 border-amber-200/80 soft-card-shadow text-center relative">
-
+            <div class="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-amber-200 text-2xl">
+                ⏳
+            </div>
+            <h2 class="text-lg font-black text-amber-950 mb-1.5">資料審核中</h2>
             <p class="text-xs text-amber-900/70 leading-relaxed max-w-[260px] mx-auto mb-6">
-                您的入會資料已登記，目前正在等候審核。<br>審核通過前暫時無法修改資料喔！
+                您的入會資料已登記，目前正在等候審核身分。<br>審核通過前暫時無法修改資料喔！
             </p>
 
             <div class="bg-[#FFF9EE] rounded-2xl p-4 border border-amber-200/80 text-left text-xs space-y-2 mb-6 text-amber-950">
                 <div class="flex justify-between items-center pb-2 border-b border-amber-200/60">
                     <span class="text-amber-700 font-bold">目前狀態</span>
-                    <span class="bg-amber-200 text-amber-900 text-[10px] font-black px-2 py-0.5 rounded-full">審核中</span>
+                    <span class="bg-amber-200 text-amber-900 text-[10px] font-black px-2 py-0.5 rounded-full">等候幹部審核</span>
                 </div>
                 <div class="flex justify-between">
                     <span class="text-amber-700 font-bold">遊戲角色：</span>
@@ -87,7 +90,7 @@
 
             <div class="space-y-2">
                 <button onclick="location.reload()" class="w-full bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold py-3 rounded-2xl text-xs transition">
-                    重新整理審核狀態
+                    🔄 重新整理審核狀態
                 </button>
                 <button onclick="closeLiffWindow()" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 rounded-2xl text-xs shadow-md transition">
                     返回 LINE 聊天室
@@ -208,7 +211,7 @@
 
             <div id="successModal" class="hidden absolute inset-0 bg-white/95 backdrop-blur-sm rounded-[32px] p-6 flex flex-col items-center justify-center text-center z-40">
                 <h3 id="successTitle" class="text-lg font-black text-amber-950 mb-1">資料送出成功</h3>
-                <p class="text-xs text-amber-900/70 leading-relaxed max-w-[260px] mx-auto mb-6">系統已經為您更新資料，感謝您的配合！</p>
+                <p id="successDesc" class="text-xs text-amber-900/70 max-w-[240px] leading-relaxed mb-4">審核通過後，小幫手將會在 LINE 聊天室通知您</p>
                 <div class="bg-[#FFFDF9] border border-amber-200 rounded-xl p-3 w-full text-left text-xs space-y-1.5 mb-5 text-amber-950">
                     <div><span class="text-amber-700 font-bold">遊戲暱稱：</span><span id="resGameNick">-</span></div>
                     <div><span class="text-amber-700 font-bold">遊戲職業：</span><span id="resGameClass">-</span></div>
@@ -334,7 +337,7 @@
         function applyPendingReviewUI() {
             document.getElementById('topBadge').textContent = "等候審核";
             document.getElementById('topBadge').className = "inline-block bg-amber-200 text-amber-900 border border-amber-300 text-xs font-bold px-3.5 py-1 rounded-full mb-3";
-            document.getElementById('pageMainTitle').textContent = "會員資格審核中";
+            document.getElementById('pageMainTitle').textContent = "會員資料審核中";
             document.getElementById('pageSubTitle').textContent = "幹部正在處理您的加入申請";
 
             document.getElementById('pendingNickname').textContent = currentUser.gameNickname || "-";
@@ -349,7 +352,7 @@
         function applyEditModeUI() {
             document.getElementById('topBadge').textContent = "資料修改";
             document.getElementById('pageMainTitle').textContent = "會員資料修改";
-            document.getElementById('pageSubTitle').textContent = "記得隨時更新您的遊戲角色資訊";
+            document.getElementById('pageSubTitle').textContent = "記得隨時更新您的遊戲角色資訊喔！";
             
             document.getElementById('memberDisplayTitle').textContent = currentUser.gameNickname || "已綁定成員";
             document.getElementById('badgeVerified').classList.remove('hidden');
@@ -361,7 +364,7 @@
 
             document.getElementById('submitBtn').textContent = "儲存修改資料";
             document.getElementById('successTitle').textContent = "資料修改成功！";
-
+            document.getElementById('successDesc').textContent = "最新資訊已為您更新完成～";
 
             updateProfileCard();
         }
@@ -369,7 +372,7 @@
         function applyNewMemberUI() {
             document.getElementById('topBadge').textContent = "身分登記";
             document.getElementById('pageMainTitle').textContent = "會員資料填寫綁定";
-            document.getElementById('pageSubTitle').textContent = "完成登記後，即可使用各項專屬功能";
+            document.getElementById('pageSubTitle').textContent = "完成登記後，即可使用公會各項專屬功能";
 
             document.getElementById('memberDisplayTitle').textContent = "新會員";
             document.getElementById('badgeVerified').classList.add('hidden');
@@ -379,8 +382,10 @@
             document.getElementById('gameClass').value = "";
             document.getElementById('manualLineName').value = currentUser.displayName || "";
             document.getElementById('toggleAllowSearch').checked = true;
+
             document.getElementById('successTitle').textContent = "綁定資料已送出";
             document.getElementById('successDesc').textContent = "審核通過後，將會在 LINE 聊天室通知您";
+
             updateProfileCard();
         }
 
