@@ -41,7 +41,7 @@
             </p>
         </div>
 
-        <!-- 狀態 1：預覽讀取畫面與錯誤診斷區 -->
+        <!-- 狀態 1：預覽讀取畫面 (核對身分時顯示) -->
         <div id="loadingCard" class="bg-white rounded-[32px] p-8 border-2 border-amber-200/80 soft-card-shadow text-center">
             <div id="loadingSpinner" class="relative w-16 h-16 mx-auto mb-4">
                 <div class="absolute inset-0 rounded-full border-4 border-amber-200 border-t-amber-500 animate-spin"></div>
@@ -52,7 +52,6 @@
             <h3 id="loadingTitle" class="text-sm font-black text-amber-950 mb-1">正在核對會員身分...</h3>
             <p id="loadingDesc" class="text-xs text-amber-800/60">正在連線名冊資料庫，請稍候</p>
             
-            <!-- 錯誤資訊顯示區（預設隱藏） -->
             <div id="errorBox" class="hidden mt-4 text-left">
                 <div class="text-xs font-bold text-rose-700 mb-1">偵測到連線異常：</div>
                 <div id="errorDetail" class="text-[11px] text-rose-600 bg-rose-50 border border-rose-200 p-3 rounded-xl font-mono break-all leading-relaxed"></div>
@@ -62,7 +61,47 @@
             </div>
         </div>
 
-        <!-- 狀態 2：主要表單卡片 (資料確認後才展開) -->
+        <!-- 狀態 2：待審核專屬等待畫面 (尚未審核時顯示) -->
+        <div id="pendingReviewCard" class="hidden bg-white rounded-[32px] p-6 sm:p-7 border-2 border-amber-200/80 soft-card-shadow text-center relative">
+            <div class="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-amber-200 text-2xl">
+                ⏳
+            </div>
+            <h2 class="text-lg font-black text-amber-950 mb-1.5">資料審核中</h2>
+            <p class="text-xs text-amber-900/70 leading-relaxed max-w-[260px] mx-auto mb-6">
+                您的入會資料已成功送出，目前正在等候公會幹部進行身分核對，審核通過後即可使用完整功能！
+            </p>
+
+            <!-- 申請資料卡片 -->
+            <div class="bg-[#FFF9EE] rounded-2xl p-4 border border-amber-200/80 text-left text-xs space-y-2 mb-6 text-amber-950">
+                <div class="flex justify-between items-center pb-2 border-b border-amber-200/60">
+                    <span class="text-amber-700 font-bold">申請狀態</span>
+                    <span class="bg-amber-200 text-amber-900 text-[10px] font-black px-2 py-0.5 rounded-full">等候幹部審核中</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-amber-700 font-bold">遊戲角色：</span>
+                    <span id="pendingNickname" class="font-bold">-</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-amber-700 font-bold">角色職業：</span>
+                    <span id="pendingClass" class="font-bold">-</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-amber-700 font-bold">LINE 暱稱：</span>
+                    <span id="pendingLineName">-</span>
+                </div>
+            </div>
+
+            <div class="space-y-2">
+                <button onclick="location.reload()" class="w-full bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold py-3 rounded-2xl text-xs transition">
+                    重新整理審核狀態
+                </button>
+                <button onclick="closeLiffWindow()" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 rounded-2xl text-xs shadow-md transition">
+                    返回 LINE 聊天室
+                </button>
+            </div>
+        </div>
+
+        <!-- 狀態 3：主要表單卡片 (新會員註冊 / 已審核修改) -->
         <div id="mainFormCard" class="hidden bg-white rounded-[32px] p-6 sm:p-7 border-2 border-amber-200/80 soft-card-shadow relative">
             
             <!-- 身分卡片 -->
@@ -223,7 +262,7 @@
         </p>
     </main>
 
-    <!-- 流程與除錯控制邏輯 -->
+    <!-- 流程與狀態判定邏輯 -->
     <script>
         const MY_LIFF_ID = "2011659633-OPPcInzb";
         const GAS_API_URL = "https://script.google.com/macros/s/AKfycbxIRwxVfiCxwKwBi4MTz3C4mzBLg-76SCnp301IGb1_Pdlbi2bdOtOZK3bdXY0TeInTyg/exec";
@@ -235,13 +274,13 @@
             gameNickname: "",
             gameClass: "",
             allowSearch: true,
+            accountStatus: "", // 狀態：待審核 / 已審核 / 空值
             isRegistered: false
         };
 
         let pendingPayload = null;
 
         window.addEventListener("DOMContentLoaded", async () => {
-            // 清除過往測試暫存
             localStorage.clear();
 
             const urlParams = new URLSearchParams(window.location.search);
@@ -251,7 +290,7 @@
             let isLiffReady = false;
             let liffErrorDetail = "";
 
-            // 1. 初始化 LIFF
+            // 1. LIFF 初始化
             if (MY_LIFF_ID && typeof liff !== 'undefined') {
                 try {
                     await liff.init({ liffId: MY_LIFF_ID });
@@ -273,18 +312,16 @@
                 liffErrorDetail = "找不到 LIFF SDK 或 LIFF ID 未填寫";
             }
 
-            // 支援使用 ?uid= 進行瀏覽器本地測試
             if (!isLiffReady && queryUid) {
                 currentUser.userId = queryUid;
                 if (queryName) currentUser.displayName = decodeURIComponent(queryName);
             }
 
-            // 2. 身分確認與渲染畫面
+            // 2. 判斷會員狀態並切換畫面
             await verifyAndDisplayView(liffErrorDetail);
         });
 
         async function verifyAndDisplayView(errorMsg) {
-            // 若完全拿不到 UID，顯示精確診斷訊息
             if (!currentUser.userId) {
                 document.getElementById('loadingSpinner').classList.add('hidden');
                 document.getElementById('loadingTitle').textContent = "無法辨識 LINE 身分";
@@ -292,12 +329,12 @@
                 
                 const errBox = document.getElementById('errorBox');
                 const errDetail = document.getElementById('errorDetail');
-                errDetail.textContent = errorMsg || "LIFF 未能成功取得 Profile 資料，請檢查 LINE Developers 後台 Endpoint URL。";
+                errDetail.textContent = errorMsg || "LIFF 未能成功取得 Profile 資料，請檢查 LINE Developers 後台設定。";
                 errBox.classList.remove('hidden');
                 return;
             }
 
-            // 向 Google Apps Script 查詢會員資料
+            // 向 Google Apps Script 查詢會員真實資料與狀態
             if (GAS_API_URL) {
                 try {
                     const controller = new AbortController();
@@ -314,27 +351,53 @@
                         currentUser.gameClass = result.gameClass || "";
                         currentUser.displayName = result.lineDisplayName || currentUser.displayName;
                         currentUser.allowSearch = (result.allowSearch === true || result.allowSearch === "Y" || result.allowSearch === "開啟");
+                        currentUser.accountStatus = result.accountStatus || "待審核";
                         currentUser.isRegistered = true;
                     }
                 } catch (err) {
-                    console.warn("GAS 試算表連線逾時，視為新會員流程:", err);
+                    console.warn("GAS 試算表連線逾時，視為新會員登記流程:", err);
                 }
             }
 
-            // 隱藏讀取卡片，顯示主要表單
+            // 隱藏讀取卡片
             document.getElementById('loadingCard').classList.add('hidden');
-            const formCard = document.getElementById('mainFormCard');
-            formCard.classList.remove('hidden');
-            formCard.classList.add('fade-in');
 
-            // 根據是否已在試算表註冊過套用模式
-            if (currentUser.isRegistered) {
+            // 根據 F 欄的「帳號狀態」精準分流
+            if (currentUser.isRegistered && currentUser.accountStatus === "待審核") {
+                // 狀態 A：待審核 ➔ 顯示專屬等候審核卡片，鎖定不可修改
+                applyPendingReviewUI();
+            } else if (currentUser.isRegistered && currentUser.accountStatus === "已審核") {
+                // 狀態 B：已審核 ➔ 展開資料修改介面
+                const formCard = document.getElementById('mainFormCard');
+                formCard.classList.remove('hidden');
+                formCard.classList.add('fade-in');
                 applyEditModeUI();
             } else {
+                // 狀態 C：全新會員 ➔ 展開新會員資料登記表單
+                const formCard = document.getElementById('mainFormCard');
+                formCard.classList.remove('hidden');
+                formCard.classList.add('fade-in');
                 applyNewMemberUI();
             }
         }
 
+        // 待審核模式 UI
+        function applyPendingReviewUI() {
+            document.getElementById('topBadge').textContent = "等候審核";
+            document.getElementById('topBadge').className = "inline-block bg-amber-200 text-amber-900 border border-amber-300 text-xs font-bold px-3.5 py-1 rounded-full mb-3";
+            document.getElementById('pageMainTitle').textContent = "公會資格審核中";
+            document.getElementById('pageSubTitle').textContent = "幹部正在處理您的加入申請";
+
+            document.getElementById('pendingNickname').textContent = currentUser.gameNickname || "-";
+            document.getElementById('pendingClass').textContent = currentUser.gameClass || "-";
+            document.getElementById('pendingLineName').textContent = currentUser.displayName || "-";
+
+            const pendingCard = document.getElementById('pendingReviewCard');
+            pendingCard.classList.remove('hidden');
+            pendingCard.classList.add('fade-in');
+        }
+
+        // 資料修改模式 UI (已審核會員)
         function applyEditModeUI() {
             document.getElementById('topBadge').textContent = "資料修改";
             document.getElementById('pageMainTitle').textContent = "會員資料修改";
@@ -355,6 +418,7 @@
             updateProfileCard();
         }
 
+        // 新會員登記模式 UI
         function applyNewMemberUI() {
             document.getElementById('topBadge').textContent = "身分登記";
             document.getElementById('pageMainTitle').textContent = "會員資料填寫綁定";
@@ -422,7 +486,6 @@
             modalConfirmBtn.textContent = "傳送中...";
             modalConfirmBtn.disabled = true;
 
-            // 跨域純文字 JSON 傳輸至 Google Apps Script
             if (GAS_API_URL) {
                 try {
                     await fetch(GAS_API_URL, {
@@ -448,18 +511,10 @@
             currentUser.allowSearch = (pendingPayload.allowSearch === "開啟");
             currentUser.isRegistered = true;
             
-            document.getElementById('memberDisplayTitle').textContent = pendingPayload.gameNickname;
-            document.getElementById('badgeVerified').classList.remove('hidden');
-
             document.getElementById('resGameNick').textContent = pendingPayload.gameNickname;
             document.getElementById('resGameClass').textContent = pendingPayload.gameClass;
             document.getElementById('resLineName').textContent = pendingPayload.lineDisplayName;
             document.getElementById('resAllowSearch').textContent = pendingPayload.allowSearch;
-            
-            if (currentUser.isRegistered) {
-                document.getElementById('successTitle').textContent = "資料修改成功！";
-                document.getElementById('successDesc').textContent = "最新資訊已為您更新完成～";
-            }
             
             document.getElementById('successModal').classList.remove('hidden');
         }
