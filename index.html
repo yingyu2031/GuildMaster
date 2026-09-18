@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <title>公會會員資料登記與修改</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -61,44 +64,43 @@
             </div>
         </div>
 
-        <!-- 狀態 2：審核中專屬卡片 (乾淨精簡版) -->
-<div id="pendingReviewCard" class="hidden bg-white rounded-[32px] p-6 sm:p-7 border-2 border-amber-200/80 soft-card-shadow text-center relative">
-    <div class="w-14 h-14 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-3 border-2 border-amber-200 text-2xl">
-        ⏳
-    </div>
-    <p class="text-xs text-amber-900/70 leading-relaxed mb-5">
-        您的資料已經完成登記，審核中不可再修改資料。
-    </p>
+        <!-- 狀態 2：審核中專屬卡片 -->
+        <div id="pendingReviewCard" class="hidden bg-white rounded-[32px] p-6 sm:p-7 border-2 border-amber-200/80 soft-card-shadow text-center relative">
+            <div class="w-14 h-14 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-3 border-2 border-amber-200 text-2xl">
+                ⏳
+            </div>
+            <p class="text-xs text-amber-900/70 leading-relaxed mb-5">
+                您的資料已經完成登記，審核中不可再修改資料。
+            </p>
 
-    <!-- 統一規格展示框 -->
-    <div class="bg-[#FFFDF9] rounded-2xl p-4 border border-amber-200/80 text-left text-sm space-y-2 mb-6 text-amber-950 shadow-inner">
-        <div class="flex items-center justify-between">
-            <span class="text-amber-800/80 font-bold">遊戲暱稱：</span>
-            <span id="pendingNickname" class="font-bold text-amber-950">-</span>
-        </div>
-        <div class="flex items-center justify-between">
-            <span class="text-amber-800/80 font-bold">遊戲職業：</span>
-            <span id="pendingClass" class="font-bold text-amber-950">-</span>
-        </div>
-        <div class="flex items-center justify-between">
-            <span class="text-amber-800/80 font-bold">LINE 暱稱：</span>
-            <span id="pendingLineName" class="font-bold text-amber-950">-</span>
-        </div>
-        <div class="flex items-center justify-between pt-1 border-t border-amber-100/60 text-xs">
-            <span class="text-amber-800/70 font-medium">開放查詢：</span>
-            <span id="pendingAllowSearch" class="font-medium text-amber-950">-</span>
-        </div>
-    </div>
+            <div class="bg-[#FFFDF9] rounded-2xl p-4 border border-amber-200/80 text-left text-sm space-y-2 mb-6 text-amber-950 shadow-inner">
+                <div class="flex items-center justify-between">
+                    <span class="text-amber-800/80 font-bold">遊戲暱稱：</span>
+                    <span id="pendingNickname" class="font-bold text-amber-950">-</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-amber-800/80 font-bold">遊戲職業：</span>
+                    <span id="pendingClass" class="font-bold text-amber-950">-</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-amber-800/80 font-bold">LINE 暱稱：</span>
+                    <span id="pendingLineName" class="font-bold text-amber-950">-</span>
+                </div>
+                <div class="flex items-center justify-between pt-1 border-t border-amber-100/60 text-xs">
+                    <span class="text-amber-800/70 font-medium">開放查詢：</span>
+                    <span id="pendingAllowSearch" class="font-medium text-amber-950">-</span>
+                </div>
+            </div>
 
-    <div class="space-y-2.5">
-        <button onclick="location.reload()" class="w-full bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold py-3 rounded-2xl text-xs transition">
-            🔄 重新整理狀態
-        </button>
-        <button onclick="closeLiffWindow()" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold py-3.5 rounded-2xl text-sm shadow-md shadow-amber-300/40 transition">
-            返回 LINE 聊天室
-        </button>
-    </div>
-</div>
+            <div class="space-y-2.5">
+                <button onclick="location.reload()" class="w-full bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold py-3 rounded-2xl text-xs transition">
+                    🔄 重新整理狀態
+                </button>
+                <button onclick="closeLiffWindow()" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold py-3.5 rounded-2xl text-sm shadow-md shadow-amber-300/40 transition">
+                    返回 LINE 聊天室
+                </button>
+            </div>
+        </div>
 
         <!-- 狀態 3：主要表單卡片 (新會員登記 / 已審核修改) -->
         <div id="mainFormCard" class="hidden bg-white rounded-[32px] p-6 sm:p-7 border-2 border-amber-200/80 soft-card-shadow relative">
@@ -274,7 +276,7 @@
 
         let pendingPayload = null;
 
-        // 核心解法：利用 JSONP 查詢 GAS，100% 避開 CORS 阻擋
+        // 將連線逾時延長到 15 秒，避免 GAS 冷啟動被誤判斷為失敗
         function querySheetByJsonp(uid) {
             return new Promise((resolve) => {
                 const callbackName = "gas_cb_" + Date.now();
@@ -282,8 +284,8 @@
 
                 const timer = setTimeout(() => {
                     cleanup();
-                    resolve({ status: "timeout" });
-                }, 5000);
+                    resolve({ status: "timeout", message: "GAS 回應超過 15 秒逾時" });
+                }, 15000);
 
                 function cleanup() {
                     clearTimeout(timer);
@@ -296,10 +298,10 @@
                     resolve(data);
                 };
 
-                script.src = `${GAS_API_URL}?uid=${encodeURIComponent(uid)}&callback=${callbackName}&_=${Date.now()}`;
-                script.onerror = function() {
+                script.src = `${GAS_API_URL}?uid=${encodeURIComponent(uid)}&callback=${callbackName}&_t=${Date.now()}`;
+                script.onerror = function(e) {
                     cleanup();
-                    resolve({ status: "error" });
+                    resolve({ status: "error", message: "Script 載入失敗或網路阻擋" });
                 };
 
                 document.body.appendChild(script);
@@ -308,6 +310,7 @@
 
         window.addEventListener("DOMContentLoaded", async () => {
             localStorage.clear();
+            sessionStorage.clear();
 
             const urlParams = new URLSearchParams(window.location.search);
             const queryUid = urlParams.get('uid') || urlParams.get('userId');
@@ -330,7 +333,6 @@
                         return;
                     }
                 } catch (err) {
-                    console.error("LIFF 初始化異常:", err);
                     liffErrorDetail = (err.code ? `[代碼 ${err.code}] ` : "") + (err.message || JSON.stringify(err));
                 }
             }
@@ -356,24 +358,34 @@
                 return;
             }
 
-            // 使用 JSONP 向 GAS 查詢最新狀態（100% 成功跨域取得狀態）
-            if (GAS_API_URL) {
-                const result = await querySheetByJsonp(currentUser.userId);
+            // 查詢 GAS
+            const result = await querySheetByJsonp(currentUser.userId);
+            
+            // 異常防呆：如果逾時或連線失敗，直接跳出提示並讓使用者按重試，絕不直接切換為新會員誤導！
+            if (result && (result.status === "timeout" || result.status === "error")) {
+                document.getElementById('loadingSpinner').classList.add('hidden');
+                document.getElementById('loadingTitle').textContent = "連線名冊逾時";
+                document.getElementById('loadingDesc').textContent = "Google 試算表伺服器回應較慢，請點擊下方重試";
                 
-                if (result && result.status === "found") {
-                    currentUser.gameNickname = result.gameNickname || "";
-                    currentUser.gameClass = result.gameClass || "";
-                    currentUser.displayName = result.lineDisplayName || currentUser.displayName;
-                    currentUser.allowSearch = (result.allowSearch === true || result.allowSearch === "Y");
-                    currentUser.accountStatus = String(result.accountStatus || "").trim();
-                    currentUser.isRegistered = true;
-                }
+                const errBox = document.getElementById('errorBox');
+                const errDetail = document.getElementById('errorDetail');
+                errDetail.textContent = `[${result.status}] ${result.message || '請確認網路是否正常'}`;
+                errBox.classList.remove('hidden');
+                return;
+            }
+
+            if (result && result.status === "found") {
+                currentUser.gameNickname = result.gameNickname || "";
+                currentUser.gameClass = result.gameClass || "";
+                currentUser.displayName = result.lineDisplayName || currentUser.displayName;
+                currentUser.allowSearch = (result.allowSearch === true || result.allowSearch === "Y");
+                currentUser.accountStatus = String(result.accountStatus || "").trim();
+                currentUser.isRegistered = true;
             }
 
             document.getElementById('loadingCard').classList.add('hidden');
 
-            // 嚴格卡控判斷：
-            // 只要在試算表有找到資料，且 F 欄是「待審核」，一律強制鎖在待審核卡片！
+            // 狀態分流：
             if (currentUser.isRegistered && currentUser.accountStatus === "待審核") {
                 applyPendingReviewUI();
             } else if (currentUser.isRegistered && currentUser.accountStatus === "已審核") {
@@ -390,20 +402,20 @@
         }
 
         function applyPendingReviewUI() {
-    document.getElementById('topBadge').textContent = "資格審核";
-    document.getElementById('topBadge').className = "inline-block bg-amber-100/80 text-amber-800 border border-amber-200 text-xs font-bold px-3.5 py-1 rounded-full mb-3";
-    document.getElementById('pageMainTitle').textContent = "入會申請處理中";
-    document.getElementById('pageSubTitle').textContent = "幹部正在核對名冊，請稍候";
+            document.getElementById('topBadge').textContent = "資格審核";
+            document.getElementById('topBadge').className = "inline-block bg-amber-100/80 text-amber-800 border border-amber-200 text-xs font-bold px-3.5 py-1 rounded-full mb-3";
+            document.getElementById('pageMainTitle').textContent = "入會申請處理中";
+            document.getElementById('pageSubTitle').textContent = "幹部正在核對名冊，請稍候";
 
-    document.getElementById('pendingNickname').textContent = currentUser.gameNickname || "-";
-    document.getElementById('pendingClass').textContent = currentUser.gameClass || "-";
-    document.getElementById('pendingLineName').textContent = currentUser.displayName || "-";
-    document.getElementById('pendingAllowSearch').textContent = currentUser.allowSearch ? "開啟" : "關閉";
+            document.getElementById('pendingNickname').textContent = currentUser.gameNickname || "-";
+            document.getElementById('pendingClass').textContent = currentUser.gameClass || "-";
+            document.getElementById('pendingLineName').textContent = currentUser.displayName || "-";
+            document.getElementById('pendingAllowSearch').textContent = currentUser.allowSearch ? "開啟" : "關閉";
 
-    const pendingCard = document.getElementById('pendingReviewCard');
-    pendingCard.classList.remove('hidden');
-    pendingCard.classList.add('fade-in');
-}
+            const pendingCard = document.getElementById('pendingReviewCard');
+            pendingCard.classList.remove('hidden');
+            pendingCard.classList.add('fade-in');
+        }
 
         function applyEditModeUI() {
             document.getElementById('topBadge').textContent = "資料修改";
