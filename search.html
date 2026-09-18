@@ -146,50 +146,49 @@
                 return;
             }
 
-            // 渲染會員資訊卡片
-            filteredMembers.forEach(m => {
-                const card = document.createElement('div');
-                card.className = "bg-white rounded-[32px] p-6 border-2 border-amber-200/80 soft-card-shadow fade-in";
-                
-                const roleBadge = m.guildRole ? `<span class="bg-amber-100 text-amber-800 border border-amber-200 text-[11px] font-black px-2.5 py-0.5 rounded-full">${m.guildRole}</span>` : '';
-                const subGroupBadge = m.subGroup ? `<span class="bg-orange-50 text-orange-700 border border-orange-200 text-[11px] font-bold px-2 py-0.5 rounded-full">${m.subGroup}</span>` : '';
+// 渲染會員資訊卡片（不顯示公會職位）
+filteredMembers.forEach(m => {
+    const card = document.createElement('div');
+    card.className = "bg-white rounded-[32px] p-6 border-2 border-amber-200/80 soft-card-shadow fade-in";
+    
+    // 只保留小團體標籤（若有），已移除公會職位
+    const subGroupBadge = m.subGroup ? `<span class="bg-orange-50 text-orange-700 border border-orange-200 text-[11px] font-bold px-2 py-0.5 rounded-full">${m.subGroup}</span>` : '';
 
-                card.innerHTML = `
-                    <div class="flex items-center justify-between pb-3 border-b border-amber-100 mb-4">
-                        <div class="flex items-center gap-2">
-                            <span class="text-xl">🛡️</span>
-                            <span class="text-base font-black text-amber-950">${m.gameNickname || "冒險者"}</span>
-                        </div>
-                        <div class="flex items-center gap-1.5">
-                            ${roleBadge}
-                            ${subGroupBadge}
-                        </div>
-                    </div>
+    card.innerHTML = `
+        <div class="flex items-center justify-between pb-3 border-b border-amber-100 mb-4">
+            <div class="flex items-center gap-2">
+                <span class="text-xl">🛡️</span>
+                <span class="text-base font-black text-amber-950">${m.gameNickname || "冒險者"}</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+                ${subGroupBadge}
+            </div>
+        </div>
 
-                    <div class="bg-[#FFFDF9] rounded-2xl p-4 border border-amber-200/70 text-sm space-y-2.5 text-amber-950">
-                        <div class="flex items-center justify-between">
-                            <span class="text-amber-800/80 font-bold text-xs">遊戲職業</span>
-                            <span class="font-extrabold text-amber-950">${m.gameClass || "未登記"}</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span class="text-amber-800/80 font-bold text-xs">LINE 暱稱</span>
-                            <span class="font-bold text-amber-950">${m.lineDisplayName || "-"}</span>
-                        </div>
-                        <div class="flex items-center justify-between pt-2 border-t border-amber-100/60 text-xs">
-                            <span class="text-amber-800/70 font-medium">群組狀態</span>
-                            <div class="flex items-center gap-2 text-[11px] font-bold">
-                                <span class="px-2 py-0.5 rounded-md ${m.inLineGroup === 'Y' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-stone-100 text-stone-500'}">
-                                    LINE: ${m.inLineGroup === 'Y' ? '已入群' : '未入群'}
-                                </span>
-                                <span class="px-2 py-0.5 rounded-md ${m.inDcGroup === 'Y' ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : 'bg-stone-100 text-stone-500'}">
-                                    DC: ${m.inDcGroup === 'Y' ? '已入群' : '未入群'}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                resultBox.appendChild(card);
-            });
+        <div class="bg-[#FFFDF9] rounded-2xl p-4 border border-amber-200/70 text-sm space-y-2.5 text-amber-950">
+            <div class="flex items-center justify-between">
+                <span class="text-amber-800/80 font-bold text-xs">遊戲職業</span>
+                <span class="font-extrabold text-amber-950">${m.gameClass || "未登記"}</span>
+            </div>
+            <div class="flex items-center justify-between">
+                <span class="text-amber-800/80 font-bold text-xs">LINE 暱稱</span>
+                <span class="font-bold text-amber-950">${m.lineDisplayName || "-"}</span>
+            </div>
+            <div class="flex items-center justify-between pt-2 border-t border-amber-100/60 text-xs">
+                <span class="text-amber-800/70 font-medium">群組狀態</span>
+                <div class="flex items-center gap-2 text-[11px] font-bold">
+                    <span class="px-2 py-0.5 rounded-md ${m.inLineGroup === 'Y' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-stone-100 text-stone-500'}">
+                        LINE: ${m.inLineGroup === 'Y' ? '已入群' : '未入群'}
+                    </span>
+                    <span class="px-2 py-0.5 rounded-md ${m.inDcGroup === 'Y' ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : 'bg-stone-100 text-stone-500'}">
+                        DC: ${m.inDcGroup === 'Y' ? '已入群' : '未入群'}
+                    </span>
+                </div>
+            </div>
+        </div>
+    `;
+    resultBox.appendChild(card);
+});
         });
     </script>
 </body>
