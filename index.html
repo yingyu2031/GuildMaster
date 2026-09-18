@@ -16,6 +16,13 @@
         .soft-card-shadow {
             box-shadow: 0 20px 40px -12px rgba(217, 119, 6, 0.12), 0 4px 12px -2px rgba(0, 0, 0, 0.04);
         }
+        .fade-in {
+            animation: fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
 <body class="bg-[#FFFDF9] text-amber-950 antialiased selection:bg-amber-200 selection:text-amber-900 min-h-screen flex flex-col justify-between py-8 px-4">
@@ -24,20 +31,32 @@
         <!-- 頂部標題區 -->
         <div class="text-center mb-6">
             <div id="topBadge" class="inline-block bg-amber-100/80 text-amber-800 border border-amber-200 text-xs font-bold px-3.5 py-1 rounded-full mb-3">
-                身分登記
+                身分確認中
             </div>
             <h1 id="pageMainTitle" class="text-2xl font-black text-amber-950">
-                會員資料填寫綁定
+                公會會員系統
             </h1>
             <p id="pageSubTitle" class="text-xs text-amber-900/60 mt-1.5 leading-relaxed">
-                完成登記後，即可使用公會各項專屬功能
+                正在連線核對資料...
             </p>
         </div>
 
-        <!-- 主要表單卡片 -->
-        <div class="bg-white rounded-[32px] p-6 sm:p-7 border-2 border-amber-200/80 soft-card-shadow relative">
+        <!-- 狀態 1：預覽讀取畫面 (核對身分時顯示) -->
+        <div id="loadingCard" class="bg-white rounded-[32px] p-8 border-2 border-amber-200/80 soft-card-shadow text-center">
+            <div class="relative w-16 h-16 mx-auto mb-4">
+                <div class="absolute inset-0 rounded-full border-4 border-amber-200 border-t-amber-500 animate-spin"></div>
+                <div class="w-full h-full rounded-full flex items-center justify-center text-xl">
+                    🛡️
+                </div>
+            </div>
+            <h3 class="text-sm font-black text-amber-950 mb-1">正在核對會員身分...</h3>
+            <p class="text-xs text-amber-800/60">正在連線 Google 試算表名冊，請稍候</p>
+        </div>
+
+        <!-- 狀態 2：主要表單卡片 (資料確認後才顯示) -->
+        <div id="mainFormCard" class="hidden bg-white rounded-[32px] p-6 sm:p-7 border-2 border-amber-200/80 soft-card-shadow relative">
             
-            <!-- 上方身分卡片 -->
+            <!-- 身分卡片 -->
             <div id="lineProfileCard" class="bg-[#FFF9EE] rounded-2xl p-3.5 border border-amber-200/80 mb-6 flex items-center gap-3">
                 <div class="relative">
                     <img id="avatarImg" src="https://api.dicebear.com/7.x/bottts/svg?seed=member" alt="LINE Avatar" class="w-12 h-12 rounded-full border-2 border-white shadow-sm object-cover bg-amber-100">
@@ -45,7 +64,7 @@
                 </div>
                 <div class="flex-1 min-w-0 text-left">
                     <div class="flex items-center gap-1.5">
-                        <span id="memberDisplayTitle" class="font-black text-base text-amber-950 truncate">讀取中...</span>
+                        <span id="memberDisplayTitle" class="font-black text-base text-amber-950 truncate">載入中</span>
                         <span id="badgeVerified" class="hidden text-[10px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded-full">已綁定</span>
                     </div>
                     <div class="text-[11px] text-amber-800/60 font-mono truncate mt-0.5" id="lineUid">UID: 讀取中...</div>
@@ -143,7 +162,7 @@
                 </button>
             </form>
 
-            <!-- 彈窗 1：送出前核對確認視窗 -->
+            <!-- 彈窗 1：送出前確認視窗 -->
             <div id="confirmModal" class="hidden absolute inset-0 bg-stone-900/40 backdrop-blur-sm rounded-[32px] p-6 flex flex-col items-center justify-center text-center z-30">
                 <div class="bg-white rounded-3xl p-5 w-full max-w-[300px] border-2 border-amber-200 shadow-2xl">
                     <h3 class="text-base font-black text-amber-950 mb-1">確認資料無誤？</h3>
@@ -169,7 +188,7 @@
                 </div>
             </div>
 
-            <!-- 彈窗 2：成功提示視窗 -->
+            <!-- 彈窗 2：成功結果視窗 -->
             <div id="successModal" class="hidden absolute inset-0 bg-white/95 backdrop-blur-sm rounded-[32px] p-6 flex flex-col items-center justify-center text-center z-40">
                 <h3 id="successTitle" class="text-lg font-black text-amber-950 mb-1">資料送出成功</h3>
                 <p id="successDesc" class="text-xs text-amber-900/70 max-w-[240px] leading-relaxed mb-4">
@@ -195,14 +214,13 @@
         </p>
     </main>
 
-    <!-- LIFF 與表單處理邏輯 -->
+    <!-- 流程控制邏輯 -->
     <script>
-        const MY_LIFF_ID = "2011659633-OPPcInzb"; // 若有 LIFF ID 請填入此處
+        const MY_LIFF_ID = "2007746182-1x5yY5Y7";
         const GAS_API_URL = "https://script.google.com/macros/s/AKfycbxIRwxVfiCxwKwBi4MTz3C4mzBLg-76SCnp301IGb1_Pdlbi2bdOtOZK3bdXY0TeInTyg/exec";
 
-        // 預設測試 UID (與試算表中的 UID 完全一致)
         let currentUser = {
-            userId: "U_demo_member",
+            userId: "",
             displayName: "",
             pictureUrl: "https://api.dicebear.com/7.x/bottts/svg?seed=member",
             gameNickname: "",
@@ -214,91 +232,113 @@
         let pendingPayload = null;
 
         window.addEventListener("DOMContentLoaded", async () => {
+            // 清除過往測試可能殘留的 localStorage，避免假資料回顯
+            localStorage.clear();
+
             const urlParams = new URLSearchParams(window.location.search);
             const queryUid = urlParams.get('uid') || urlParams.get('userId');
             const queryName = urlParams.get('name') || urlParams.get('displayName');
 
+            let isLiffReady = false;
+
+            // 1. 初始化 LIFF
             if (MY_LIFF_ID && typeof liff !== 'undefined') {
-                try {
+                const liffInitPromise = (async () => {
                     await liff.init({ liffId: MY_LIFF_ID });
                     if (liff.isLoggedIn()) {
                         const profile = await liff.getProfile();
                         currentUser.userId = profile.userId;
                         currentUser.displayName = profile.displayName;
                         currentUser.pictureUrl = profile.pictureUrl || currentUser.pictureUrl;
+                        isLiffReady = true;
                     } else {
                         liff.login();
-                        return;
                     }
+                })();
+
+                // 最多等候 3 秒，若 LIFF 逾時則往下走
+                const timeoutPromise = new Promise(resolve => setTimeout(resolve, 3000));
+                try {
+                    await Promise.race([liffInitPromise, timeoutPromise]);
                 } catch (err) {
-                    console.warn("LIFF 初始化異常:", err);
+                    console.warn("LIFF 載入失敗或逾時:", err);
                 }
-            } else if (queryUid || queryName) {
-                if (queryUid) currentUser.userId = queryUid;
-                if (queryName) currentUser.displayName = decodeURIComponent(queryName);
             }
 
-            checkExistingMemberData(currentUser.userId);
+            // 支援使用 ?uid=... 測試參數
+            if (!isLiffReady) {
+                if (queryUid) {
+                    currentUser.userId = queryUid;
+                    if (queryName) currentUser.displayName = decodeURIComponent(queryName);
+                }
+            }
+
+            // 2. 身分確認完成後，向 GAS 查驗並切換介面
+            await verifyAndDisplayView();
         });
 
-        async function checkExistingMemberData(uid) {
-            document.getElementById('memberDisplayTitle').textContent = "讀取資料中...";
+        async function verifyAndDisplayView() {
+            // 如果連線失敗且無 UID，提示引導
+            if (!currentUser.userId) {
+                document.getElementById('loadingCard').innerHTML = `
+                    <div class="text-3xl mb-3">⚠️</div>
+                    <h3 class="text-sm font-black text-amber-950 mb-1">無法辨識 LINE 身分</h3>
+                    <p class="text-xs text-amber-800/70 mb-4">請由 LINE 官方帳號內的按鈕重新開啟本系統</p>
+                    <button onclick="location.reload()" class="text-xs bg-amber-500 text-white font-bold px-4 py-2 rounded-xl">重新整理</button>
+                `;
+                return;
+            }
 
-            // 向 Google Sheet (GAS) 查詢是否為老會員
+            // 向 Google Apps Script 查詢真實資料
             if (GAS_API_URL) {
                 try {
-                    const response = await fetch(`${GAS_API_URL}?uid=${encodeURIComponent(uid)}`);
-                    const result = await response.json();
-                    if (result.status === "found") {
+                    const controller = new AbortController();
+                    const fetchTimeout = setTimeout(() => controller.abort(), 4000);
+
+                    const res = await fetch(`${GAS_API_URL}?uid=${encodeURIComponent(currentUser.userId)}`, {
+                        signal: controller.signal
+                    });
+                    clearTimeout(fetchTimeout);
+
+                    const result = await res.json();
+                    if (result && result.status === "found") {
                         currentUser.gameNickname = result.gameNickname || "";
                         currentUser.gameClass = result.gameClass || "";
                         currentUser.displayName = result.lineDisplayName || currentUser.displayName;
                         currentUser.allowSearch = (result.allowSearch === true || result.allowSearch === "Y" || result.allowSearch === "開啟");
                         currentUser.isRegistered = true;
-                        applyEditModeUI(currentUser);
-                        return;
                     }
                 } catch (err) {
-                    console.warn("向 Google Sheet 查詢失敗，改用本地快取備援", err);
+                    console.warn("GAS 試算表連線逾時，視為新會員登記流程:", err);
                 }
             }
 
-            // 本地快取備援
-            const stored = localStorage.getItem("member_" + uid);
-            if (stored) {
-                try {
-                    const data = JSON.parse(stored);
-                    currentUser.gameNickname = data.gameNickname || "";
-                    currentUser.gameClass = data.gameClass || "";
-                    currentUser.displayName = data.lineDisplayName || currentUser.displayName;
-                    currentUser.allowSearch = data.allowSearch !== false && data.allowSearch !== "關閉";
-                    currentUser.isRegistered = true;
+            // 隱藏轉圈讀取框，淡入展開表單卡片
+            document.getElementById('loadingCard').classList.add('hidden');
+            const formCard = document.getElementById('mainFormCard');
+            formCard.classList.remove('hidden');
+            formCard.classList.add('fade-in');
 
-                    applyEditModeUI(currentUser);
-                    return;
-                } catch (e) {
-                    console.error("解析會員資料錯誤", e);
-                }
+            // 依身分切換模式
+            if (currentUser.isRegistered) {
+                applyEditModeUI();
+            } else {
+                applyNewMemberUI();
             }
-
-            applyNewMemberUI();
         }
 
-        function applyEditModeUI(data) {
+        function applyEditModeUI() {
             document.getElementById('topBadge').textContent = "資料修改";
             document.getElementById('pageMainTitle').textContent = "會員資料修改";
             document.getElementById('pageSubTitle').textContent = "記得隨時更新你的遊戲角色資訊喔！";
             
-            document.getElementById('memberDisplayTitle').textContent = data.gameNickname;
+            document.getElementById('memberDisplayTitle').textContent = currentUser.gameNickname || "已綁定成員";
             document.getElementById('badgeVerified').classList.remove('hidden');
 
-            document.getElementById('gameNickname').value = data.gameNickname || "";
-            document.getElementById('gameClass').value = data.gameClass || "";
-            if (data.displayName || data.lineDisplayName) {
-                document.getElementById('manualLineName').value = data.displayName || data.lineDisplayName;
-            }
-
-            document.getElementById('toggleAllowSearch').checked = data.allowSearch !== false;
+            document.getElementById('gameNickname').value = currentUser.gameNickname || "";
+            document.getElementById('gameClass').value = currentUser.gameClass || "";
+            document.getElementById('manualLineName').value = currentUser.displayName || "";
+            document.getElementById('toggleAllowSearch').checked = currentUser.allowSearch !== false;
 
             document.getElementById('submitBtn').textContent = "儲存修改資料";
             document.getElementById('successTitle').textContent = "資料修改成功！";
@@ -316,10 +356,10 @@
             document.getElementById('badgeVerified').classList.add('hidden');
             document.getElementById('submitBtn').textContent = "確認送出";
 
-            if (currentUser.displayName) {
-                document.getElementById('manualLineName').value = currentUser.displayName;
-            }
-
+            // 清空輸入欄位，僅代入 LINE 原生暱稱
+            document.getElementById('gameNickname').value = "";
+            document.getElementById('gameClass').value = "";
+            document.getElementById('manualLineName').value = currentUser.displayName || "";
             document.getElementById('toggleAllowSearch').checked = true;
 
             document.getElementById('successTitle').textContent = "綁定資料已送出";
@@ -329,7 +369,8 @@
         }
 
         function updateProfileCard() {
-            document.getElementById('lineUid').textContent = 'UID: ' + currentUser.userId.substring(0, 16) + '...';
+            const displayUid = currentUser.userId.length > 16 ? currentUser.userId.substring(0, 16) + '...' : currentUser.userId;
+            document.getElementById('lineUid').textContent = 'UID: ' + displayUid;
             if (currentUser.pictureUrl) {
                 document.getElementById('avatarImg').src = currentUser.pictureUrl;
             }
@@ -374,27 +415,19 @@
             modalConfirmBtn.textContent = "傳送中...";
             modalConfirmBtn.disabled = true;
 
-            // 儲存至本地快取
-            localStorage.setItem("member_" + pendingPayload.lineUserId, JSON.stringify(pendingPayload));
-
-            // 同步發送至 Google Sheet (採用標準 Form-Urlencoded 傳送，保證 GAS 100% 能由 e.parameter 解析)
+            // 送至 Google Apps Script (跨域純文字 JSON，避免預檢阻擋)
             if (GAS_API_URL) {
                 try {
-                    const formData = new URLSearchParams();
-                    for (const key in pendingPayload) {
-                        formData.append(key, pendingPayload[key]);
-                    }
-
                     await fetch(GAS_API_URL, {
                         method: "POST",
                         mode: "no-cors",
                         headers: {
-                            "Content-Type": "application/x-www-form-urlencoded"
+                            "Content-Type": "text/plain;charset=utf-8"
                         },
-                        body: formData.toString()
+                        body: JSON.stringify(pendingPayload)
                     });
                 } catch (err) {
-                    console.error("同步至 Google Sheet 失敗:", err);
+                    console.error("寫入 Google Sheet 異常:", err);
                 }
             }
 
