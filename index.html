@@ -53,7 +53,7 @@
             </div>
 
             <!-- 表單內容 -->
-            <form id="bindForm" class="space-y-5 text-left">
+            <form id="bindForm" class="space-y-4 text-left">
                 
                 <!-- 欄位 1：遊戲角色暱稱 -->
                 <div>
@@ -122,9 +122,23 @@
                            class="w-full bg-[#FFFDF9] border border-amber-200 rounded-2xl px-4 py-3 text-sm font-bold text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition">
                 </div>
 
+                <!-- 單一隱私開關：開放查詢 -->
+                <div class="pt-2 border-t border-amber-100/80">
+                    <label class="flex items-center justify-between p-3 rounded-2xl bg-[#FFFDF9] border border-amber-200/80 cursor-pointer hover:bg-amber-50/50 transition">
+                        <div class="pr-2">
+                            <div class="text-xs font-bold text-amber-950">開放查詢</div>
+                            <div class="text-[10px] text-amber-800/60 mt-0.5">開啟後，公會成員可於成員名冊查詢您的資料</div>
+                        </div>
+                        <div class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="toggleAllowSearch" class="sr-only peer" checked>
+                            <div class="w-11 h-6 bg-stone-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                        </div>
+                    </label>
+                </div>
+
                 <!-- 提交按鈕 -->
                 <button type="submit" id="submitBtn"
-                        class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-amber-300/50 hover:shadow-xl transition-all duration-200 flex items-center justify-center cursor-pointer mt-3">
+                        class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-amber-300/50 hover:shadow-xl transition-all duration-200 flex items-center justify-center cursor-pointer mt-4">
                     確認送出
                 </button>
             </form>
@@ -139,6 +153,9 @@
                         <div><span class="text-amber-700 font-bold">遊戲暱稱：</span><span id="previewNick" class="font-bold">-</span></div>
                         <div><span class="text-amber-700 font-bold">遊戲職業：</span><span id="previewClass" class="font-bold">-</span></div>
                         <div><span class="text-amber-700 font-bold">LINE 暱稱：</span><span id="previewLine">-</span></div>
+                        <div class="pt-1 border-t border-amber-200/60 text-[11px]">
+                            <div><span class="text-amber-700 font-bold">開放查詢：</span><span id="previewAllowSearch" class="font-medium">-</span></div>
+                        </div>
                     </div>
 
                     <div class="grid grid-cols-2 gap-2">
@@ -177,7 +194,8 @@
 
     <!-- LIFF 與表單處理邏輯 -->
     <script>
-        const MY_LIFF_ID = ""; // 填入 LIFF ID
+        const MY_LIFF_ID = ""; // 填入您的 LIFF ID
+        const GAS_API_URL = ""; // 填入部署取得的 Web App URL
 
         let currentUser = {
             userId: "U_demo_member_001",
@@ -185,6 +203,7 @@
             pictureUrl: "https://api.dicebear.com/7.x/bottts/svg?seed=member",
             gameNickname: "",
             gameClass: "",
+            allowSearch: true,
             isRegistered: false
         };
 
@@ -218,7 +237,25 @@
             checkExistingMemberData(currentUser.userId);
         });
 
-        function checkExistingMemberData(uid) {
+        async function checkExistingMemberData(uid) {
+            if (GAS_API_URL) {
+                try {
+                    const response = await fetch(`${GAS_API_URL}?uid=${encodeURIComponent(uid)}`);
+                    const result = await response.json();
+                    if (result.status === "found") {
+                        currentUser.gameNickname = result.gameNickname || "";
+                        currentUser.gameClass = result.gameClass || "";
+                        currentUser.displayName = result.lineDisplayName || currentUser.displayName;
+                        currentUser.allowSearch = result.allowSearch !== false;
+                        currentUser.isRegistered = true;
+                        applyEditModeUI(currentUser);
+                        return;
+                    }
+                } catch (err) {
+                    console.warn("向 GAS 查詢失敗，改用本地快取備援", err);
+                }
+            }
+
             const stored = localStorage.getItem("member_" + uid);
             if (stored) {
                 try {
@@ -226,23 +263,22 @@
                     currentUser.gameNickname = data.gameNickname || "";
                     currentUser.gameClass = data.gameClass || "";
                     currentUser.displayName = data.lineDisplayName || currentUser.displayName;
+                    currentUser.allowSearch = data.allowSearch !== false;
                     currentUser.isRegistered = true;
 
-                    applyEditModeUI(data);
+                    applyEditModeUI(currentUser);
                     return;
                 } catch (e) {
-                    console.error("解析會員舊資料錯誤", e);
+                    console.error("解析會員資料錯誤", e);
                 }
             }
 
             applyNewMemberUI();
         }
 
-        // 修改模式
         function applyEditModeUI(data) {
             document.getElementById('topBadge').textContent = "資料修改";
             document.getElementById('pageMainTitle').textContent = "會員資料修改";
-            // 替換為自然親切的副標題
             document.getElementById('pageSubTitle').textContent = "記得隨時更新你的遊戲角色資訊喔！";
             
             document.getElementById('memberDisplayTitle').textContent = data.gameNickname;
@@ -250,20 +286,19 @@
 
             document.getElementById('gameNickname').value = data.gameNickname || "";
             document.getElementById('gameClass').value = data.gameClass || "";
-            if (data.lineDisplayName) {
-                document.getElementById('manualLineName').value = data.lineDisplayName;
+            if (data.displayName || data.lineDisplayName) {
+                document.getElementById('manualLineName').value = data.displayName || data.lineDisplayName;
             }
 
+            document.getElementById('toggleAllowSearch').checked = data.allowSearch !== false;
+
             document.getElementById('submitBtn').textContent = "儲存修改資料";
-            
-            // 彈窗說明直接提示完成，不提審核
             document.getElementById('successTitle').textContent = "資料修改成功！";
             document.getElementById('successDesc').textContent = "最新資訊已為您更新完成～";
 
             updateProfileCard();
         }
 
-        // 新會員登記模式
         function applyNewMemberUI() {
             document.getElementById('topBadge').textContent = "身分登記";
             document.getElementById('pageMainTitle').textContent = "會員資料填寫綁定";
@@ -276,6 +311,8 @@
             if (currentUser.displayName) {
                 document.getElementById('manualLineName').value = currentUser.displayName;
             }
+
+            document.getElementById('toggleAllowSearch').checked = true;
 
             document.getElementById('successTitle').textContent = "綁定資料已送出";
             document.getElementById('successDesc').textContent = "審核通過後，小幫手將會在 LINE 聊天室通知您";
@@ -296,6 +333,7 @@
             const gameNick = document.getElementById('gameNickname').value.trim();
             const gameClass = document.getElementById('gameClass').value;
             const lineName = document.getElementById('manualLineName').value.trim();
+            const allowSearch = document.getElementById('toggleAllowSearch').checked;
 
             currentUser.displayName = lineName;
 
@@ -305,12 +343,14 @@
                 linePictureUrl: currentUser.pictureUrl,
                 gameNickname: gameNick,
                 gameClass: gameClass,
+                allowSearch: allowSearch,
                 updateTime: new Date().toISOString()
             };
 
             document.getElementById('previewNick').textContent = gameNick;
             document.getElementById('previewClass').textContent = gameClass;
             document.getElementById('previewLine').textContent = lineName;
+            document.getElementById('previewAllowSearch').textContent = allowSearch ? "開啟" : "關閉";
 
             document.getElementById('confirmModal').classList.remove('hidden');
         });
@@ -319,16 +359,30 @@
             document.getElementById('confirmModal').classList.add('hidden');
         }
 
-        function executeFinalSubmit() {
+        async function executeFinalSubmit() {
             if (!pendingPayload) return;
 
             document.getElementById('confirmModal').classList.add('hidden');
 
             localStorage.setItem("member_" + pendingPayload.lineUserId, JSON.stringify(pendingPayload));
 
+            if (GAS_API_URL) {
+                try {
+                    await fetch(GAS_API_URL, {
+                        method: "POST",
+                        mode: "no-cors",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(pendingPayload)
+                    });
+                } catch (err) {
+                    console.error("同步至 Google Sheet 失敗:", err);
+                }
+            }
+
             currentUser.gameNickname = pendingPayload.gameNickname;
             currentUser.gameClass = pendingPayload.gameClass;
             currentUser.displayName = pendingPayload.lineDisplayName;
+            currentUser.allowSearch = pendingPayload.allowSearch;
             currentUser.isRegistered = true;
             
             document.getElementById('memberDisplayTitle').textContent = pendingPayload.gameNickname;
