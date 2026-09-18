@@ -9,8 +9,6 @@
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800;900&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
     <!-- LIFF SDK -->
     <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-    <!-- Supabase JS Client (極速 PostgreSQL) -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { 
             font-family: 'M PLUS Rounded 1c', 'Noto Sans TC', sans-serif; 
@@ -47,7 +45,7 @@
                 </div>
                 <div class="flex-1 min-w-0 text-left">
                     <div class="flex items-center gap-1.5">
-                        <span id="memberDisplayTitle" class="font-black text-base text-amber-950 truncate">讀取中...</span>
+                        <span id="memberDisplayTitle" class="font-black text-base text-amber-950 truncate">載入中...</span>
                         <span id="badgeVerified" class="hidden text-[10px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded-full">已綁定</span>
                     </div>
                     <div class="text-[11px] text-amber-800/60 font-mono truncate mt-0.5" id="lineUid">UID: 讀取中...</div>
@@ -197,15 +195,10 @@
         </p>
     </main>
 
-    <!-- LIFF 與 Supabase 核心邏輯 -->
+    <!-- 核心邏輯 -->
     <script>
         const MY_LIFF_ID = "2007746182-1x5yY5Y7";
-
-        // Supabase 連線設定
-        const SUPABASE_URL = "https://fmqrjohkbvkqyfdgquuc.supabase.co";
-        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZtcXJqb2hrYnZrcXlmZGdxdXVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk3MTQ3MTAsImV4cCI6MjEwNTI5MDcxMH0.5Wsx9zqEeABEe9-DsiQ4q3rPFGk4slmfbwCIHyUfyeU";
-        
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const GAS_API_URL = "https://script.google.com/macros/s/AKfycbxIRwxVfiCxwKwBi4MTz3C4mzBLg-76SCnp301IGb1_Pdlbi2bdOtOZK3bdXY0TeInTyg/exec";
 
         let currentUser = {
             userId: "U_demo_member",
@@ -224,32 +217,45 @@
             const queryUid = urlParams.get('uid') || urlParams.get('userId');
             const queryName = urlParams.get('name') || urlParams.get('displayName');
 
+            let isLiffReady = false;
+
+            // LIFF 載入設定：最多等 2 秒，防任何網路或環境卡死
             if (MY_LIFF_ID && typeof liff !== 'undefined') {
-                try {
+                const liffInitPromise = (async () => {
                     await liff.init({ liffId: MY_LIFF_ID });
                     if (liff.isLoggedIn()) {
                         const profile = await liff.getProfile();
                         currentUser.userId = profile.userId;
                         currentUser.displayName = profile.displayName;
                         currentUser.pictureUrl = profile.pictureUrl || currentUser.pictureUrl;
+                        isLiffReady = true;
                     } else {
                         liff.login();
-                        return;
                     }
+                })();
+
+                const timeoutPromise = new Promise(resolve => setTimeout(resolve, 2000));
+                try {
+                    await Promise.race([liffInitPromise, timeoutPromise]);
                 } catch (err) {
-                    console.warn("LIFF 初始化異常:", err);
+                    console.warn("LIFF 初始化跳過:", err);
                 }
-            } else if (queryUid || queryName) {
+            }
+
+            // 備援：若非 LIFF 環境或逾時，抓取 URL 參數
+            if (!isLiffReady) {
                 if (queryUid) currentUser.userId = queryUid;
                 if (queryName) currentUser.displayName = decodeURIComponent(queryName);
             }
 
+            // 立刻更新 UI，完全不卡住
+            updateProfileCard();
             checkExistingMemberData(currentUser.userId);
         });
 
-        // 毫秒級讀取會員資料
+        // 本地快取秒開 + 背景 GAS 靜默同步
         async function checkExistingMemberData(uid) {
-            // 1. 本地快取優先，消除白畫面與轉圈等待 (0.01 秒)
+            // 1. 本地快取秒開 (0.01 秒無感呈現)
             const stored = localStorage.getItem("member_" + uid);
             if (stored) {
                 try {
@@ -267,30 +273,23 @@
                 applyNewMemberUI();
             }
 
-            // 2. 向 Supabase 查詢最新狀態 (約 100ms)
-            if (supabase) {
-                try {
-                    const { data, error } = await supabase
-                        .from('members')
-                        .select('*')
-                        .eq('line_user_id', uid)
-                        .maybeSingle();
-
-                    if (error) {
-                        console.error("Supabase 查詢異常:", error);
-                    } else if (data) {
-                        currentUser.gameNickname = data.game_nickname;
-                        currentUser.gameClass = data.game_class;
-                        currentUser.displayName = data.line_display_name || currentUser.displayName;
-                        currentUser.allowSearch = (data.allow_search === 'Y');
-                        currentUser.isRegistered = true;
-
-                        localStorage.setItem("member_" + uid, JSON.stringify(currentUser));
-                        applyEditModeUI(currentUser);
-                    }
-                } catch (err) {
-                    console.warn("Supabase 連線失敗:", err);
-                }
+            // 2. 背景非同步向 GAS 查詢最新資訊，完成後默默更新
+            if (GAS_API_URL) {
+                fetch(`${GAS_API_URL}?uid=${encodeURIComponent(uid)}`)
+                    .then(res => res.json())
+                    .then(result => {
+                        if (result.status === "found") {
+                            currentUser.gameNickname = result.gameNickname || "";
+                            currentUser.gameClass = result.gameClass || "";
+                            currentUser.displayName = result.lineDisplayName || currentUser.displayName;
+                            currentUser.allowSearch = (result.allowSearch === true || result.allowSearch === "Y" || result.allowSearch === "開啟");
+                            currentUser.isRegistered = true;
+                            
+                            localStorage.setItem("member_" + uid, JSON.stringify(currentUser));
+                            applyEditModeUI(currentUser);
+                        }
+                    })
+                    .catch(err => console.warn("背景同步暫無回應:", err));
             }
         }
 
@@ -299,7 +298,7 @@
             document.getElementById('pageMainTitle').textContent = "會員資料修改";
             document.getElementById('pageSubTitle').textContent = "記得隨時更新你的遊戲角色資訊喔！";
             
-            document.getElementById('memberDisplayTitle').textContent = data.gameNickname;
+            document.getElementById('memberDisplayTitle').textContent = data.gameNickname || "已綁定成員";
             document.getElementById('badgeVerified').classList.remove('hidden');
 
             document.getElementById('gameNickname').value = data.gameNickname || "";
@@ -339,7 +338,8 @@
         }
 
         function updateProfileCard() {
-            document.getElementById('lineUid').textContent = 'UID: ' + currentUser.userId.substring(0, 16) + '...';
+            const displayUid = currentUser.userId.length > 16 ? currentUser.userId.substring(0, 16) + '...' : currentUser.userId;
+            document.getElementById('lineUid').textContent = 'UID: ' + displayUid;
             if (currentUser.pictureUrl) {
                 document.getElementById('avatarImg').src = currentUser.pictureUrl;
             }
@@ -377,41 +377,34 @@
             document.getElementById('confirmModal').classList.add('hidden');
         }
 
-        // 正式送出至 Supabase
         async function executeFinalSubmit() {
             if (!pendingPayload) return;
 
             const modalConfirmBtn = document.getElementById('modalConfirmBtn');
-            modalConfirmBtn.textContent = "儲存中...";
+            modalConfirmBtn.textContent = "傳送中...";
             modalConfirmBtn.disabled = true;
 
-            // 1. 寫入本地快取
+            // 1. 立即存入本地快取
             localStorage.setItem("member_" + pendingPayload.lineUserId, JSON.stringify(pendingPayload));
 
-            // 2. 毫秒級寫入 Supabase (Upsert：存在則更新，不存在則新增)
-            let isDbSuccess = false;
-            if (supabase) {
+            // 2. 以標準表單格式發送至 GAS，確保 100% 寫入
+            if (GAS_API_URL) {
                 try {
-                    const { error } = await supabase
-                        .from('members')
-                        .upsert({
-                            line_user_id: pendingPayload.lineUserId,
-                            game_nickname: pendingPayload.gameNickname,
-                            game_class: pendingPayload.gameClass,
-                            line_display_name: pendingPayload.lineDisplayName,
-                            allow_search: (pendingPayload.allowSearch === "開啟" ? "Y" : "N"),
-                            updated_at: new Date().toISOString()
-                        });
-                    
-                    if (error) {
-                        console.error("Supabase 寫入錯誤:", error);
-                        alert("資料庫儲存提示：" + error.message);
-                    } else {
-                        isDbSuccess = true;
+                    const formData = new URLSearchParams();
+                    for (const key in pendingPayload) {
+                        formData.append(key, pendingPayload[key]);
                     }
+
+                    await fetch(GAS_API_URL, {
+                        method: "POST",
+                        mode: "no-cors",
+                        headers: {
+                            "Content-Type": "application/x-www-form-urlencoded"
+                        },
+                        body: formData.toString()
+                    });
                 } catch (err) {
-                    console.error("同步至 Supabase 異常:", err);
-                    alert("連線資料庫異常：" + err.message);
+                    console.error("同步至 Google Sheet 失敗:", err);
                 }
             }
 
