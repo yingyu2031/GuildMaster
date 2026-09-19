@@ -24,6 +24,15 @@
             from { opacity: 0; transform: translateY(4px); }
             to { opacity: 1; transform: translateY(0); }
         }
+        /* 校正 iOS 日期與時間選擇器高度一致、文字置中 */
+        input[type="date"], input[type="time"] {
+            -webkit-appearance: none;
+            appearance: none;
+            min-height: 42px;
+            height: 42px;
+            line-height: 42px;
+            box-sizing: border-box;
+        }
     </style>
 </head>
 <body class="bg-[#F0F9FF] text-slate-800 antialiased selection:bg-sky-200 selection:text-sky-900 min-h-screen flex flex-col justify-between py-6 px-3 sm:px-4">
@@ -73,7 +82,7 @@
                     <button id="subTabRetired" onclick="switchMemberSubTab('retired')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800">退會封存</button>
                 </div>
 
-                <!-- 搜尋列 (一般列表模式) -->
+                <!-- 搜尋列 -->
                 <div id="memberFilterBar" class="flex gap-2 items-center">
                     <div class="relative flex-1">
                         <input type="text" id="memberSearchInput" oninput="renderMembersList()" placeholder="搜尋角色或 LINE 暱稱..."
@@ -90,6 +99,14 @@
                     </select>
                 </div>
 
+                <!-- 團體操作工具列 -->
+                <div id="groupToolBar" class="hidden flex items-center justify-between px-1">
+                    <span class="text-xs font-bold text-slate-500">團體歸類一覽</span>
+                    <button onclick="openCreateGroupModal()" class="text-xs font-bold text-sky-600 hover:text-sky-700 bg-sky-50 px-2.5 py-1 rounded-lg border border-sky-200 transition">
+                        + 新增小團體
+                    </button>
+                </div>
+
                 <div id="memberListContainer" class="space-y-3 min-h-[260px]"></div>
             </section>
 
@@ -100,7 +117,6 @@
                     <button id="leaveSubTabList" onclick="switchLeaveSubView('list')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800">請假單紀錄列表</button>
                 </div>
 
-                <!-- 排名儀表板 -->
                 <div id="leaveRankView" class="space-y-3">
                     <div class="flex items-center justify-between bg-sky-50/60 rounded-xl p-2 border border-sky-100">
                         <span class="text-xs font-bold text-slate-600">統計維度：</span>
@@ -113,7 +129,6 @@
                     <div id="rankListContainer" class="space-y-2"></div>
                 </div>
 
-                <!-- 請假明細列表 -->
                 <div id="leaveListView" class="hidden space-y-3">
                     <input type="text" id="leaveSearchInput" oninput="renderLeaveList()" placeholder="搜尋角色或活動名稱..."
                            class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:bg-white transition">
@@ -140,18 +155,23 @@
                     </p>
                 </div>
 
-                <!-- (1) 超時請假即時推播規則 -->
+                <!-- (1) 請假項目與超時推播管理 -->
                 <div class="space-y-2 text-left">
                     <div class="flex items-center justify-between">
-                        <span class="text-xs font-black text-slate-900">超時請假即時推播規則</span>
-                        <span class="text-[10px] text-slate-400 font-bold">逾時送單即刻通知幹部群</span>
+                        <div>
+                            <span class="text-xs font-black text-slate-900">請假項目與超時推播規則</span>
+                            <div class="text-[10px] text-slate-400 font-bold">此處清單將同時作為前台請假單選項</div>
+                        </div>
+                        <button onclick="openUrgentRuleModal('create')" class="text-xs font-bold text-sky-600 hover:text-sky-700 bg-sky-50 px-2.5 py-1 rounded-lg border border-sky-200">
+                            + 新增請假項目
+                        </button>
                     </div>
                     <div id="urgentRuleContainer" class="space-y-2"></div>
                 </div>
 
                 <div class="border-t border-slate-100 pt-2"></div>
 
-                <!-- (2) 固定週期與事件推播設定 -->
+                <!-- (2) 固定排程與事件推播設定 -->
                 <div class="space-y-2 text-left">
                     <div class="flex items-center justify-between">
                         <span class="text-xs font-black text-slate-900">固定與事件推播排程</span>
@@ -199,7 +219,7 @@
                         <option value="創造者（鍊金術士）">創造者（鍊金術士）</option>
                     </select>
                 </div>
-                <div class="grid grid-cols-2 gap-2">
+                <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block mb-1 text-slate-800">LINE 暱稱</label>
                         <input type="text" id="formLineName" class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
@@ -215,7 +235,7 @@
                         </select>
                     </div>
                 </div>
-                <div class="grid grid-cols-2 gap-2">
+                <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block mb-1 text-slate-800">小隊/組別</label>
                         <input type="text" id="formTeamGroup" placeholder="例如：一隊、媽咪團" class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
@@ -228,15 +248,15 @@
                         </select>
                     </div>
                 </div>
-                <div class="flex gap-2 pt-3">
-                    <button type="button" onclick="closeModal('memberModal')" class="w-1/3 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 rounded-xl transition">取消</button>
-                    <button type="submit" class="flex-1 bg-sky-500 hover:bg-sky-600 text-white font-bold py-2.5 rounded-xl transition shadow-md shadow-sky-200">儲存變更</button>
+                <div class="grid grid-cols-2 gap-3 pt-3">
+                    <button type="button" onclick="closeModal('memberModal')" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 rounded-xl transition">取消</button>
+                    <button type="submit" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-2.5 rounded-xl transition shadow-md shadow-sky-200">儲存變更</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- 彈窗 2：活動 新增/編輯 Modal -->
+    <!-- 彈窗 2：活動 新增/編輯 Modal (等寬且等高校正) -->
     <div id="eventModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
         <div class="bg-white w-full max-w-md rounded-[28px] p-6 border-2 border-sky-200 soft-sky-shadow max-h-[90vh] overflow-y-auto">
             <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
@@ -249,17 +269,17 @@
                     <label class="block mb-1 text-slate-800">活動名稱 <span class="text-rose-500">*</span></label>
                     <input type="text" id="formEventTitle" required placeholder="例如：週六GVG要塞攻防戰" class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
                 </div>
-                <div class="grid grid-cols-2 gap-2">
-                    <div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="w-full">
                         <label class="block mb-1 text-slate-800">活動日期 <span class="text-rose-500">*</span></label>
-                        <input type="date" id="formEventDate" required class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
+                        <input type="date" id="formEventDate" required class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900">
                     </div>
-                    <div>
+                    <div class="w-full">
                         <label class="block mb-1 text-slate-800">集合時間 <span class="text-rose-500">*</span></label>
-                        <input type="time" id="formEventTime" required class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
+                        <input type="time" id="formEventTime" required class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900">
                     </div>
                 </div>
-                <div class="grid grid-cols-2 gap-2">
+                <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block mb-1 text-slate-800">人數上限</label>
                         <input type="number" id="formEventMaxLimit" placeholder="不填代表無限制" class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
@@ -277,15 +297,15 @@
                     <label class="block mb-1 text-slate-800">備註說明</label>
                     <textarea id="formEventDesc" rows="2" placeholder="語音集合頻道、攜帶物資說明等..." class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl p-3 text-xs font-bold text-slate-900 resize-none"></textarea>
                 </div>
-                <div class="flex gap-2 pt-3">
-                    <button type="button" onclick="closeModal('eventModal')" class="w-1/3 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 rounded-xl transition">取消</button>
-                    <button type="submit" class="flex-1 bg-sky-500 hover:bg-sky-600 text-white font-bold py-2.5 rounded-xl transition shadow-md shadow-sky-200">儲存活動</button>
+                <div class="grid grid-cols-2 gap-3 pt-3">
+                    <button type="button" onclick="closeModal('eventModal')" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 rounded-xl transition">取消</button>
+                    <button type="submit" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-2.5 rounded-xl transition shadow-md shadow-sky-200">儲存活動</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- 彈窗 3：活動報名名冊抽屜 Modal (含移除功能) -->
+    <!-- 彈窗 3：活動報名名冊抽屜 Modal -->
     <div id="eventAttendeesModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
         <div class="bg-white w-full max-w-md rounded-[28px] p-6 border-2 border-sky-200 soft-sky-shadow max-h-[90vh] flex flex-col">
             <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
@@ -300,7 +320,7 @@
         </div>
     </div>
 
-    <!-- 彈窗 4：推播排程編輯 Modal -->
+    <!-- 彈窗 4：推播排程編輯 Modal (等寬等高，動態頻率聯動) -->
     <div id="broadcastModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
         <div class="bg-white w-full max-w-md rounded-[28px] p-6 border-2 border-sky-200 soft-sky-shadow max-h-[90vh] overflow-y-auto">
             <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
@@ -313,38 +333,122 @@
                     <label class="block mb-1 text-slate-800">項目名稱 <span class="text-rose-500">*</span></label>
                     <input type="text" id="formBcTitle" required placeholder="例如：提醒請假、聯賽開始" class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
                 </div>
-                <div class="grid grid-cols-2 gap-2">
-                    <div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="w-full">
                         <label class="block mb-1 text-slate-800">推播頻率</label>
-                        <select id="formBcFreq" onchange="toggleCycleInput()" class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
+                        <select id="formBcFreq" onchange="handleFrequencyChange()" class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900">
                             <option value="Weekly">Weekly (每週固定)</option>
-                            <option value="Always">Always (觸發即發)</option>
+                            <option value="Always">Always (即時觸發)</option>
                             <option value="Daily">Daily (每日)</option>
                         </select>
                     </div>
-                    <div>
+                    <div class="w-full">
                         <label class="block mb-1 text-slate-800">推播時間</label>
-                        <input type="time" id="formBcTime" class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
+                        <input type="time" id="formBcTime" class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900">
                     </div>
                 </div>
+
+                <!-- 動態觸發/週期容器 -->
                 <div>
-                    <label class="block mb-1 text-slate-800">推播週期 / 觸發事件</label>
-                    <input type="text" id="formBcCycle" placeholder="例如：2;4 (代表週二、四) 或 Join (新人進群)" class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
+                    <label class="block mb-1 text-slate-800">觸發條件 / 重複週期</label>
+                    
+                    <!-- Always 模式專用 -->
+                    <div id="freqBoxAlways" class="hidden">
+                        <select id="formBcEventSelect" class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
+                            <option value="Join">Join (成員加入公會大群時)</option>
+                        </select>
+                    </div>
+
+                    <!-- Weekly 模式專用 (可複選星期) -->
+                    <div id="freqBoxWeekly" class="space-y-1.5">
+                        <div class="grid grid-cols-7 gap-1 text-center select-none">
+                            <label class="cursor-pointer"><input type="checkbox" name="weekCheck" value="1" class="sr-only peer"><div class="p-1.5 bg-[#F8FAFC] border border-sky-200 rounded-lg text-slate-600 peer-checked:bg-sky-500 peer-checked:text-white font-bold text-[11px]">一</div></label>
+                            <label class="cursor-pointer"><input type="checkbox" name="weekCheck" value="2" class="sr-only peer"><div class="p-1.5 bg-[#F8FAFC] border border-sky-200 rounded-lg text-slate-600 peer-checked:bg-sky-500 peer-checked:text-white font-bold text-[11px]">二</div></label>
+                            <label class="cursor-pointer"><input type="checkbox" name="weekCheck" value="3" class="sr-only peer"><div class="p-1.5 bg-[#F8FAFC] border border-sky-200 rounded-lg text-slate-600 peer-checked:bg-sky-500 peer-checked:text-white font-bold text-[11px]">三</div></label>
+                            <label class="cursor-pointer"><input type="checkbox" name="weekCheck" value="4" class="sr-only peer"><div class="p-1.5 bg-[#F8FAFC] border border-sky-200 rounded-lg text-slate-600 peer-checked:bg-sky-500 peer-checked:text-white font-bold text-[11px]">四</div></label>
+                            <label class="cursor-pointer"><input type="checkbox" name="weekCheck" value="5" class="sr-only peer"><div class="p-1.5 bg-[#F8FAFC] border border-sky-200 rounded-lg text-slate-600 peer-checked:bg-sky-500 peer-checked:text-white font-bold text-[11px]">五</div></label>
+                            <label class="cursor-pointer"><input type="checkbox" name="weekCheck" value="6" class="sr-only peer"><div class="p-1.5 bg-[#F8FAFC] border border-sky-200 rounded-lg text-slate-600 peer-checked:bg-sky-500 peer-checked:text-white font-bold text-[11px]">六</div></label>
+                            <label class="cursor-pointer"><input type="checkbox" name="weekCheck" value="0" class="sr-only peer"><div class="p-1.5 bg-[#F8FAFC] border border-sky-200 rounded-lg text-slate-600 peer-checked:bg-sky-500 peer-checked:text-white font-bold text-[11px]">日</div></label>
+                        </div>
+                    </div>
+
+                    <!-- Daily 模式專用 (反灰無事件) -->
+                    <div id="freqBoxDaily" class="hidden">
+                        <input type="text" disabled value="每日定時發送（無須額外事件）" class="w-full bg-slate-100 border border-slate-200 text-slate-400 rounded-xl px-3 py-2 text-xs font-bold cursor-not-allowed">
+                    </div>
                 </div>
+
                 <div>
                     <label class="block mb-1 text-slate-800">推播內容 <span class="text-rose-500">*</span></label>
                     <textarea id="formBcContent" rows="3" required placeholder="輸入要在 LINE 群組推播的文案..." class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl p-3 text-xs font-bold text-slate-900 resize-none"></textarea>
                 </div>
-                <div class="flex gap-2 pt-3">
-                    <button type="button" onclick="closeModal('broadcastModal')" class="w-1/3 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 rounded-xl transition">取消</button>
-                    <button type="submit" class="flex-1 bg-sky-500 hover:bg-sky-600 text-white font-bold py-2.5 rounded-xl transition shadow-md shadow-sky-200">儲存推播</button>
+                <div class="grid grid-cols-2 gap-3 pt-3">
+                    <button type="button" onclick="closeModal('broadcastModal')" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 rounded-xl transition">取消</button>
+                    <button type="submit" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-2.5 rounded-xl transition shadow-md shadow-sky-200">儲存推播</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 彈窗 5：快速新增小團體 Modal -->
+    <div id="createGroupModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
+        <div class="bg-white w-full max-w-md rounded-[28px] p-6 border-2 border-sky-200 soft-sky-shadow max-h-[90vh] flex flex-col">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
+                <h3 class="text-base font-black text-slate-900">快速建立小團體</h3>
+                <button onclick="closeModal('createGroupModal')" class="text-slate-400 hover:text-slate-600 text-sm font-bold">關閉</button>
+            </div>
+            <form id="createGroupForm" class="flex-1 flex flex-col space-y-3 text-left text-xs font-bold text-slate-700 overflow-hidden">
+                <div>
+                    <label class="block mb-1 text-slate-800">小團體名稱 <span class="text-rose-500">*</span></label>
+                    <input type="text" id="newGroupNameInput" required placeholder="例如：狂暴推王團、親友組" class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
+                </div>
+                <div class="flex-1 flex flex-col min-h-0">
+                    <label class="block mb-1 text-slate-800">選擇納入成員（可多選）</label>
+                    <div id="groupCandidateList" class="flex-1 overflow-y-auto space-y-1.5 pr-1 border border-sky-100 rounded-xl p-2 bg-[#F8FAFC]"></div>
+                </div>
+                <div class="grid grid-cols-2 gap-3 pt-2">
+                    <button type="button" onclick="closeModal('createGroupModal')" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 rounded-xl transition">取消</button>
+                    <button type="submit" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-2.5 rounded-xl transition shadow-md shadow-sky-200">確認加入</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 彈窗 6：新增/編輯 請假項目與最晚時間 Modal -->
+    <div id="urgentRuleModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
+        <div class="bg-white w-full max-w-md rounded-[28px] p-6 border-2 border-sky-200 soft-sky-shadow max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+                <h3 id="urgentRuleModalTitle" class="text-base font-black text-slate-900">設定請假項目</h3>
+                <button onclick="closeModal('urgentRuleModal')" class="text-slate-400 hover:text-slate-600 text-sm font-bold">關閉</button>
+            </div>
+            <form id="urgentRuleForm" class="space-y-3 text-left text-xs font-bold text-slate-700">
+                <input type="hidden" id="formUrgentRuleIndex">
+                <div>
+                    <label class="block mb-1 text-slate-800">請假活動項目名稱 <span class="text-rose-500">*</span></label>
+                    <input type="text" id="formUrgentEventName" required placeholder="例如：公會GVG聯賽、週常公會副本" class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="w-full">
+                        <label class="block mb-1 text-slate-800">最晚請假截止時間 <span class="text-rose-500">*</span></label>
+                        <input type="time" id="formUrgentLatestTime" required class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900">
+                    </div>
+                    <div class="w-full flex flex-col justify-end">
+                        <label class="flex items-center gap-2 p-2 bg-[#F8FAFC] border border-sky-200 rounded-xl cursor-pointer h-[42px]">
+                            <input type="checkbox" id="formUrgentEnabled" class="w-4 h-4 accent-sky-500" checked>
+                            <span class="text-xs text-slate-800 font-bold">啟用超時推播</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3 pt-3">
+                    <button type="button" onclick="closeModal('urgentRuleModal')" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 rounded-xl transition">取消</button>
+                    <button type="submit" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-2.5 rounded-xl transition shadow-md shadow-sky-200">確認儲存</button>
                 </div>
             </form>
         </div>
     </div>
 
     <script>
-        // 本地模擬資料庫 (完整對齊試算表各工作表)
+        // 本地模擬資料庫
         let membersData = [
             { rowIndex: 2, lineUserId: "U1001", gameNickname: "超級法神", gameClass: "超魔導士", lineDisplayName: "123", allowSearch: "Y", accountStatus: "已審核", updateTime: "2026-09-18", guildRole: "現任", teamGroup: "媽咪團" },
             { rowIndex: 3, lineUserId: "U1002", gameNickname: "暗夜殺手", gameClass: "十字刺客", lineDisplayName: "QQQ", allowSearch: "N", accountStatus: "已審核", updateTime: "2026-09-18", guildRole: "現任", teamGroup: "一線主力" },
@@ -390,13 +494,13 @@
             }
         ];
 
-        // 試算表工作表：請假設定 (超時即時推播規則)
+        // 請假項目設定 (同時供超時推播與請假單選單使用)
         let urgentLeaveRules = [
-            { event: "聯賽", latestTime: "20:00", enabled: true },
-            { event: "城戰", latestTime: "20:00", enabled: false }
+            { event: "公會GVG聯賽", latestTime: "20:00", enabled: true },
+            { event: "週常公會副本", latestTime: "20:00", enabled: false }
         ];
 
-        // 試算表工作表：推播設定 (固定排程與事件)
+        // 推播排程
         let broadcastSchedules = [
             { id: "BC01", item: "新人入會", freq: "Always", cycle: "Join", time: "", content: "熱烈歡迎新夥伴加入公會！請先詳閱記事本規範並綁定資料喔～", active: true },
             { id: "BC02", item: "聯賽開始", freq: "Weekly", cycle: "2;4", time: "20:00", content: "聯賽準備開始，請全體成員進 DC 語音就位！", active: true },
@@ -415,10 +519,8 @@
             renderMembersList();
         });
 
-        // 頂層 4 頁籤切換
         function switchMainSection(section) {
             currentMainSection = section;
-
             const tabs = {
                 members: document.getElementById('mainTabMembers'),
                 leaves: document.getElementById('mainTabLeaves'),
@@ -469,7 +571,6 @@
             }
         }
 
-        // 成員名冊模組 (含團體速查)
         function switchMemberSubTab(tab) {
             currentMemberSubTab = tab;
             const btns = {
@@ -484,13 +585,16 @@
                     : "py-1.5 rounded-lg text-slate-500 hover:text-slate-800";
             });
 
-            // 團體速查時隱藏一般搜尋欄
             const filterBar = document.getElementById('memberFilterBar');
+            const groupToolBar = document.getElementById('groupToolBar');
+
             if (tab === 'groups') {
                 filterBar.classList.add('hidden');
+                groupToolBar.classList.remove('hidden');
                 renderGroupOverview();
             } else {
                 filterBar.classList.remove('hidden');
+                groupToolBar.classList.add('hidden');
                 renderMembersList();
             }
         }
@@ -572,7 +676,7 @@
             });
         }
 
-        // 團體速查功能：分析成員團體連帶關係
+        // 團體速查 (移除警示文字)
         function renderGroupOverview() {
             const container = document.getElementById('memberListContainer');
             container.innerHTML = "";
@@ -593,18 +697,14 @@
             groupKeys.forEach(gName => {
                 const list = groups[gName];
                 const activeCount = list.filter(x => x.guildRole !== "退會" && x.accountStatus === "已審核").length;
-                const isSolo = gName === "未分組獨立成員";
 
                 const card = document.createElement('div');
                 card.className = "bg-white rounded-2xl p-4 border border-sky-100 soft-sky-shadow text-left space-y-2.5 fade-in";
                 card.innerHTML = `
                     <div class="flex items-center justify-between pb-2 border-b border-slate-100">
-                        <div>
-                            <div class="flex items-center gap-2">
-                                <h3 class="text-sm font-black text-slate-900">${gName}</h3>
-                                <span class="text-[10px] bg-sky-100 text-sky-800 px-2 py-0.5 rounded-full font-bold">在籍 ${activeCount} 人 / 總計 ${list.length} 人</span>
-                            </div>
-                            ${!isSolo ? `<p class="text-[10px] text-amber-700 mt-0.5">出走風險：若剔除核心成員，該團體其餘成員可能連帶出走</p>` : ''}
+                        <div class="flex items-center gap-2">
+                            <h3 class="text-sm font-black text-slate-900">${gName}</h3>
+                            <span class="text-[10px] bg-sky-100 text-sky-800 px-2 py-0.5 rounded-full font-bold">在籍 ${activeCount} 人 / 總計 ${list.length} 人</span>
                         </div>
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -627,6 +727,56 @@
                 container.appendChild(card);
             });
         }
+
+        // 開啟快速新增小團體彈窗
+        function openCreateGroupModal() {
+            const form = document.getElementById('createGroupForm');
+            form.reset();
+            const container = document.getElementById('groupCandidateList');
+            container.innerHTML = "";
+
+            // 列出所有現任與已審核成員供多選
+            const activeMembers = membersData.filter(m => m.accountStatus === "已審核" && m.guildRole !== "退會");
+            activeMembers.forEach(m => {
+                const label = document.createElement('label');
+                label.className = "flex items-center justify-between p-2 rounded-lg bg-white border border-slate-100 hover:bg-sky-50/50 cursor-pointer";
+                label.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <input type="checkbox" name="groupMemberPick" value="${m.rowIndex}" class="w-4 h-4 accent-sky-500">
+                        <span class="text-xs font-black text-slate-800">${m.gameNickname}</span>
+                        <span class="text-[10px] text-slate-400">(${m.gameClass})</span>
+                    </div>
+                    <span class="text-[10px] font-bold text-slate-400">${m.teamGroup ? m.teamGroup : '未分組'}</span>
+                `;
+                container.appendChild(label);
+            });
+
+            document.getElementById('createGroupModal').classList.remove('hidden');
+        }
+
+        document.getElementById('createGroupForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const groupName = document.getElementById('newGroupNameInput').value.trim();
+            const checkedBoxes = Array.from(document.querySelectorAll('input[name="groupMemberPick"]:checked'));
+
+            if (checkedBoxes.length === 0) {
+                alert("請至少勾選一位成員加入小團體！");
+                return;
+            }
+
+            const targetRowIndexes = checkedBoxes.map(cb => parseInt(cb.value));
+
+            // 自動回寫各成員資料
+            membersData.forEach(m => {
+                if (targetRowIndexes.includes(m.rowIndex)) {
+                    m.teamGroup = groupName;
+                    m.updateTime = new Date().toISOString().split('T')[0];
+                }
+            });
+
+            closeModal('createGroupModal');
+            renderGroupOverview();
+        });
 
         function approveMember(rowIndex) {
             const m = membersData.find(x => x.rowIndex === rowIndex);
@@ -845,7 +995,7 @@
             });
         }
 
-        // 活動管理模組 (含移除已報名成員)
+        // 活動管理模組
         function renderEventsList() {
             const container = document.getElementById('eventListContainer');
             container.innerHTML = "";
@@ -986,7 +1136,6 @@
             document.getElementById('eventAttendeesModal').classList.remove('hidden');
         }
 
-        // 移除報名成員
         function removeAttendee(nick) {
             if (!currentViewingEventId) return;
             const evt = eventsData.find(e => e.id === currentViewingEventId);
@@ -994,14 +1143,14 @@
 
             if (confirm(`確定要將【${nick}】從本活動報名名單中移除嗎？`)) {
                 evt.attendees = evt.attendees.filter(a => a.gameNickname !== nick);
-                viewAttendees(currentViewingEventId); // 刷新抽屜
-                renderEventsList(); // 同步刷新底層卡片進度
+                viewAttendees(currentViewingEventId);
+                renderEventsList();
             }
         }
 
         // 推播設定模組
         function renderBroadcastSection() {
-            // (1) 超時請假即時推播規則
+            // (1) 請假項目與超時推播管理
             const urgentContainer = document.getElementById('urgentRuleContainer');
             urgentContainer.innerHTML = "";
 
@@ -1011,10 +1160,11 @@
                 item.innerHTML = `
                     <div>
                         <div class="font-black text-slate-900">${rule.event}</div>
-                        <div class="text-[11px] text-slate-500 font-bold">最晚請假截止時間：<span class="font-mono text-sky-700">${rule.latestTime}</span></div>
+                        <div class="text-[11px] text-slate-500 font-bold">最晚送單截止：<span class="font-mono text-sky-700">${rule.latestTime}</span></div>
                     </div>
                     <div class="flex items-center gap-2">
-                        <span class="text-[10px] font-bold ${rule.enabled ? 'text-emerald-600' : 'text-slate-400'}">${rule.enabled ? '已啟用推播' : '關閉'}</span>
+                        <button onclick="openUrgentRuleModal('edit', ${idx})" class="text-xs text-sky-700 hover:text-sky-800 font-bold">編輯</button>
+                        <span class="text-slate-300">|</span>
                         <input type="checkbox" ${rule.enabled ? 'checked' : ''} onchange="toggleUrgentRule(${idx})" class="w-4 h-4 accent-sky-500 cursor-pointer">
                     </div>
                 `;
@@ -1044,10 +1194,16 @@
                     <div class="text-[11px] text-slate-600 bg-white p-2 rounded-lg border border-slate-100 font-medium">
                         ${bc.content}
                     </div>
-                    <div class="text-[10px] text-slate-400">觸發條件 / 週期：${bc.cycle}</div>
+                    <div class="text-[10px] text-slate-400">觸發條件 / 週期：${formatCycleText(bc)}</div>
                 `;
                 schedContainer.appendChild(item);
             });
+        }
+
+        function formatCycleText(bc) {
+            if (bc.freq === 'Daily') return '每日固定時間';
+            if (bc.freq === 'Always') return '成員加入大群 (Join)';
+            return `星期 ${bc.cycle.replace(/;/g, '、')}`;
         }
 
         function toggleUrgentRule(idx) {
@@ -1060,9 +1216,81 @@
             renderBroadcastSection();
         }
 
+        // 請假項目 Modal
+        function openUrgentRuleModal(mode, idx = null) {
+            const modal = document.getElementById('urgentRuleModal');
+            document.getElementById('urgentRuleForm').reset();
+
+            if (mode === 'create') {
+                document.getElementById('urgentRuleModalTitle').textContent = "新增請假活動項目";
+                document.getElementById('formUrgentRuleIndex').value = "";
+                document.getElementById('formUrgentLatestTime').value = "20:00";
+                document.getElementById('formUrgentEnabled').checked = true;
+            } else {
+                document.getElementById('urgentRuleModalTitle').textContent = "編輯請假項目與時間";
+                const rule = urgentLeaveRules[idx];
+                if (!rule) return;
+                document.getElementById('formUrgentRuleIndex').value = idx;
+                document.getElementById('formUrgentEventName').value = rule.event;
+                document.getElementById('formUrgentLatestTime').value = rule.latestTime;
+                document.getElementById('formUrgentEnabled').checked = rule.enabled;
+            }
+            modal.classList.remove('hidden');
+        }
+
+        document.getElementById('urgentRuleForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const idxVal = document.getElementById('formUrgentRuleIndex').value;
+            const data = {
+                event: document.getElementById('formUrgentEventName').value.trim(),
+                latestTime: document.getElementById('formUrgentLatestTime').value,
+                enabled: document.getElementById('formUrgentEnabled').checked
+            };
+
+            if (idxVal !== "") {
+                urgentLeaveRules[parseInt(idxVal)] = data;
+            } else {
+                urgentLeaveRules.push(data);
+            }
+
+            closeModal('urgentRuleModal');
+            renderBroadcastSection();
+        });
+
+        // 頻率切換聯動
+        function handleFrequencyChange() {
+            const freq = document.getElementById('formBcFreq').value;
+            const boxAlways = document.getElementById('freqBoxAlways');
+            const boxWeekly = document.getElementById('freqBoxWeekly');
+            const boxDaily = document.getElementById('freqBoxDaily');
+            const timeInput = document.getElementById('formBcTime');
+
+            boxAlways.classList.add('hidden');
+            boxWeekly.classList.add('hidden');
+            boxDaily.classList.add('hidden');
+
+            if (freq === 'Always') {
+                boxAlways.classList.remove('hidden');
+                timeInput.value = "";
+                timeInput.disabled = true;
+                timeInput.classList.add('bg-slate-100', 'cursor-not-allowed');
+            } else if (freq === 'Weekly') {
+                boxWeekly.classList.remove('hidden');
+                timeInput.disabled = false;
+                timeInput.classList.remove('bg-slate-100', 'cursor-not-allowed');
+            } else if (freq === 'Daily') {
+                boxDaily.classList.remove('hidden');
+                timeInput.disabled = false;
+                timeInput.classList.remove('bg-slate-100', 'cursor-not-allowed');
+            }
+        }
+
         function openBroadcastModal(mode, id = null) {
             const modal = document.getElementById('broadcastModal');
             document.getElementById('broadcastForm').reset();
+
+            // 清空所有勾選
+            document.querySelectorAll('input[name="weekCheck"]').forEach(cb => cb.checked = false);
 
             if (mode === 'create') {
                 document.getElementById('broadcastModalTitle').textContent = "新增推播排程";
@@ -1077,20 +1305,44 @@
                 document.getElementById('formBcTitle').value = bc.item;
                 document.getElementById('formBcFreq').value = bc.freq;
                 document.getElementById('formBcTime').value = bc.time || "";
-                document.getElementById('formBcCycle').value = bc.cycle || "";
                 document.getElementById('formBcContent').value = bc.content;
+
+                if (bc.freq === 'Weekly' && bc.cycle) {
+                    const days = bc.cycle.split(';');
+                    document.querySelectorAll('input[name="weekCheck"]').forEach(cb => {
+                        if (days.includes(cb.value)) cb.checked = true;
+                    });
+                }
             }
+
+            handleFrequencyChange();
             modal.classList.remove('hidden');
         }
 
         document.getElementById('broadcastForm').addEventListener('submit', (e) => {
             e.preventDefault();
             const id = document.getElementById('formBroadcastId').value;
+            const freq = document.getElementById('formBcFreq').value;
+            let cycleVal = "";
+
+            if (freq === 'Always') {
+                cycleVal = "Join";
+            } else if (freq === 'Weekly') {
+                const picked = Array.from(document.querySelectorAll('input[name="weekCheck"]:checked')).map(cb => cb.value);
+                if (picked.length === 0) {
+                    alert("每週固定推播請至少勾選一個星期！");
+                    return;
+                }
+                cycleVal = picked.join(';');
+            } else if (freq === 'Daily') {
+                cycleVal = "Everyday";
+            }
+
             const data = {
                 item: document.getElementById('formBcTitle').value.trim(),
-                freq: document.getElementById('formBcFreq').value,
+                freq: freq,
                 time: document.getElementById('formBcTime').value,
-                cycle: document.getElementById('formBcCycle').value.trim(),
+                cycle: cycleVal,
                 content: document.getElementById('formBcContent').value.trim(),
                 active: true
             };
@@ -1102,6 +1354,7 @@
                 data.id = "BC" + Date.now();
                 broadcastSchedules.push(data);
             }
+
             closeModal('broadcastModal');
             renderBroadcastSection();
         });
