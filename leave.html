@@ -419,7 +419,7 @@
             document.getElementById('topBadge').textContent = "無使用權限";
             document.getElementById('topBadge').className = "inline-block bg-rose-100 text-rose-800 border border-rose-200 text-xs font-bold px-3.5 py-1 rounded-full mb-3";
             document.getElementById('pageMainTitle').textContent = "會員資格無效";
-            document.getElementById('pageSubTitle').textContent = "您目前非公會有效會員，無法使用此功能";
+            document.getElementById('pageSubTitle').textContent = "您目前非公會現任會員，無法使用此功能";
 
             const rejectedCard = document.getElementById('rejectedCard');
             rejectedCard.classList.remove('hidden');
@@ -428,8 +428,8 @@
 
         function applyUnregisteredUI() {
             document.getElementById('topBadge').textContent = "未登記會員";
-            document.getElementById('pageMainTitle').textContent = "尚未加入公會名冊";
-            document.getElementById('pageSubTitle').textContent = "請先登記會員身分並待審核通過後再行請假";
+            document.getElementById('pageMainTitle').textContent = "尚未加入會員";
+            document.getElementById('pageSubTitle').textContent = "請先綁定會員身分並待審核通過後再行請假";
 
             const unregCard = document.getElementById('unregisteredCard');
             unregCard.classList.remove('hidden');
