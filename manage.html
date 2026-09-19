@@ -6,150 +6,173 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
-    <title>GuildMaster - 幹部管理後台</title>
+    <title>GuildMaster - 幹部管理中心</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800;900&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
-    <!-- LIFF SDK -->
-    <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
-        body { 
-            font-family: 'M PLUS Rounded 1c', 'Noto Sans TC', sans-serif; 
-        }
+        body { font-family: 'M PLUS Rounded 1c', 'Noto Sans TC', sans-serif; }
         .soft-card-shadow {
             box-shadow: 0 20px 40px -12px rgba(217, 119, 6, 0.12), 0 4px 12px -2px rgba(0, 0, 0, 0.04);
         }
-        .fade-in {
-            animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
+        .fade-in { animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(6px); }
             to { opacity: 1; transform: translateY(0); }
         }
+        /* 隱藏原生滾動條但保持滾動 */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body class="bg-[#FFFDF9] text-amber-950 antialiased selection:bg-amber-200 selection:text-amber-900 min-h-screen flex flex-col justify-between py-6 px-3 sm:px-4">
 
     <main class="max-w-lg w-full mx-auto">
-        <!-- 頂部標題與幹部身分列 -->
-        <div class="flex items-center justify-between mb-5 px-1">
+        <!-- 頂部身分與主導航 -->
+        <div class="flex items-center justify-between mb-4 px-1">
             <div>
-                <div class="inline-flex items-center gap-1.5 bg-amber-100 text-amber-900 border border-amber-200/80 text-[11px] font-bold px-3 py-0.5 rounded-full mb-1.5">
+                <div class="inline-flex items-center gap-1.5 bg-amber-100 text-amber-900 border border-amber-200/80 text-[11px] font-bold px-3 py-0.5 rounded-full mb-1">
                     <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                    幹部管理專用
-                </div>
-                <h1 class="text-2xl font-black text-amber-950 tracking-tight">
                     公會幹部後台
-                </h1>
+                </div>
+                <h1 class="text-2xl font-black text-amber-950 tracking-tight">後台管理中心</h1>
             </div>
-            <button onclick="openMemberModal('create')" class="bg-amber-500 hover:bg-amber-600 active:scale-95 text-white text-xs font-black px-3.5 py-2.5 rounded-2xl shadow-md shadow-amber-400/30 flex items-center gap-1.5 transition">
-                <span>＋</span>
-                <span>新增成員</span>
-            </button>
+            <div id="quickActionBtnContainer">
+                <!-- 動態切換新增按鈕 -->
+            </div>
         </div>
 
-        <!-- 頁籤切換 (Tab) -->
-        <div class="grid grid-cols-3 gap-1.5 p-1.5 bg-amber-100/60 rounded-2xl mb-4 border border-amber-200/50 text-xs font-black">
-            <button id="tabBtnPending" onclick="switchTab('pending')" class="py-2 rounded-xl transition flex items-center justify-center gap-1.5 bg-white text-amber-900 shadow-sm">
-                <span>待審核</span>
+        <!-- 一級主功能分頁籤 (會員管理 / 請假統計 / 活動管理) -->
+        <div class="flex gap-2 p-1.5 bg-amber-100/70 rounded-2xl mb-4 border border-amber-200/60 text-xs font-black">
+            <button id="mainTabMembers" onclick="switchMainSection('members')" class="flex-1 py-2.5 rounded-xl transition bg-white text-amber-900 shadow-sm flex items-center justify-center gap-1">
+                <span>👥</span><span>成員名冊</span>
                 <span id="badgePendingCount" class="bg-rose-500 text-white text-[10px] px-1.5 py-0.2 rounded-full hidden">0</span>
             </button>
-            <button id="tabBtnActive" onclick="switchTab('active')" class="py-2 rounded-xl transition flex items-center justify-center gap-1 text-amber-800/70 hover:text-amber-950">
-                <span>現任成員</span>
-                <span id="badgeActiveCount" class="text-[11px] opacity-70">(0)</span>
+            <button id="mainTabLeaves" onclick="switchMainSection('leaves')" class="flex-1 py-2.5 rounded-xl transition text-amber-800/70 hover:text-amber-950 flex items-center justify-center gap-1">
+                <span>📋</span><span>請假與排名</span>
             </button>
-            <button id="tabBtnRetired" onclick="switchTab('retired')" class="py-2 rounded-xl transition flex items-center justify-center gap-1 text-amber-800/70 hover:text-amber-950">
-                <span>退會封存</span>
-                <span id="badgeRetiredCount" class="text-[11px] opacity-70">(0)</span>
+            <button id="mainTabEvents" onclick="switchMainSection('events')" class="flex-1 py-2.5 rounded-xl transition text-amber-800/70 hover:text-amber-950 flex items-center justify-center gap-1">
+                <span>⚔️</span><span>活動報名</span>
             </button>
         </div>
 
-        <!-- 搜尋與快篩工具列 -->
-        <div class="bg-white rounded-2xl p-3 border-2 border-amber-200/80 soft-card-shadow mb-4 flex gap-2 items-center">
-            <div class="relative flex-1">
-                <input type="text" id="searchInput" oninput="renderCurrentList()" placeholder="搜尋角色或 LINE 暱稱..."
-                       class="w-full bg-[#FFFDF9] border border-amber-200 rounded-xl pl-8 pr-3 py-2 text-xs font-bold text-amber-950 placeholder:text-amber-800/30 focus:outline-none focus:ring-2 focus:ring-amber-400">
-                <span class="absolute left-2.5 top-2.5 text-xs text-amber-700/50">🔍</span>
+        <!-- ================= 區塊 1：成員名冊與審核 ================= -->
+        <section id="sectionMembers" class="space-y-4">
+            <!-- 子頁籤 -->
+            <div class="grid grid-cols-3 gap-1.5 p-1 bg-amber-50 rounded-xl border border-amber-200/50 text-xs font-black">
+                <button id="subTabPending" onclick="switchMemberSubTab('pending')" class="py-1.5 rounded-lg bg-white text-amber-900 shadow-xs">待審核</button>
+                <button id="subTabActive" onclick="switchMemberSubTab('active')" class="py-1.5 rounded-lg text-amber-800/70 hover:text-amber-950">現任成員</button>
+                <button id="subTabRetired" onclick="switchMemberSubTab('retired')" class="py-1.5 rounded-lg text-amber-800/70 hover:text-amber-950">退會封存</button>
             </div>
-            <select id="classFilter" onchange="renderCurrentList()" class="bg-[#FFFDF9] border border-amber-200 rounded-xl px-2.5 py-2 text-xs font-bold text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400">
-                <option value="">全部職業</option>
-                <option value="劍士系">劍士系</option>
-                <option value="魔法師系">魔法師系</option>
-                <option value="弓箭手系">弓箭手系</option>
-                <option value="盜賊系">盜賊系</option>
-                <option value="服事系">服事系</option>
-                <option value="商人系">商人系</option>
-            </select>
-        </div>
 
-        <!-- 主要資料卡片列表區 -->
-        <div id="listContainer" class="space-y-3 mb-6 min-h-[300px]">
-            <!-- 動態注入內容 -->
-        </div>
+            <!-- 搜尋過濾列 -->
+            <div class="bg-white rounded-2xl p-2.5 border-2 border-amber-200/80 soft-card-shadow flex gap-2 items-center">
+                <div class="relative flex-1">
+                    <input type="text" id="memberSearchInput" oninput="renderMembersList()" placeholder="搜尋角色或 LINE 暱稱..."
+                           class="w-full bg-[#FFFDF9] border border-amber-200 rounded-xl pl-8 pr-3 py-1.5 text-xs font-bold text-amber-950 placeholder:text-amber-800/30 focus:outline-none focus:ring-2 focus:ring-amber-400">
+                    <span class="absolute left-2.5 top-2 text-xs text-amber-700/50">🔍</span>
+                </div>
+                <select id="memberClassFilter" onchange="renderMembersList()" class="bg-[#FFFDF9] border border-amber-200 rounded-xl px-2 py-1.5 text-xs font-bold text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400">
+                    <option value="">全部職業</option>
+                    <option value="劍士系">劍士系</option>
+                    <option value="魔法師系">魔法師系</option>
+                    <option value="弓箭手系">弓箭手系</option>
+                    <option value="盜賊系">盜賊系</option>
+                    <option value="服事系">服事系</option>
+                    <option value="商人系">商人系</option>
+                </select>
+            </div>
+
+            <div id="memberListContainer" class="space-y-3 min-h-[250px]"></div>
+        </section>
+
+        <!-- ================= 區塊 2：請假紀錄與缺勤排名 ================= -->
+        <section id="sectionLeaves" class="hidden space-y-4">
+            <!-- 視圖切換：缺勤排行榜 vs 請假流水帳 -->
+            <div class="grid grid-cols-2 gap-1.5 p-1 bg-amber-50 rounded-xl border border-amber-200/50 text-xs font-black">
+                <button id="leaveSubTabRank" onclick="switchLeaveSubView('rank')" class="py-1.5 rounded-lg bg-white text-amber-900 shadow-xs">🏆 缺勤/臨時請假排名</button>
+                <button id="leaveSubTabList" onclick="switchLeaveSubView('list')" class="py-1.5 rounded-lg text-amber-800/70 hover:text-amber-950">📝 請假單紀錄列表</button>
+            </div>
+
+            <!-- 子視圖 A：排行榜儀表板 -->
+            <div id="leaveRankView" class="space-y-3">
+                <!-- 篩選統計週期 -->
+                <div class="flex items-center justify-between bg-white rounded-2xl p-2.5 border-2 border-amber-200/80 soft-card-shadow">
+                    <span class="text-xs font-bold text-amber-900/80">排行榜統計維度：</span>
+                    <div class="flex gap-1">
+                        <button id="rankFilterAll" onclick="setRankType('all')" class="px-2.5 py-1 text-xs font-black rounded-lg bg-amber-500 text-white shadow-xs">全部累積</button>
+                        <button id="rankFilterMonth" onclick="setRankType('month')" class="px-2.5 py-1 text-xs font-black rounded-lg bg-stone-100 text-stone-600">當月統計</button>
+                        <button id="rankFilterUrgent" onclick="setRankType('urgent')" class="px-2.5 py-1 text-xs font-black rounded-lg bg-stone-100 text-stone-600">🚨 臨時請假</button>
+                    </div>
+                </div>
+
+                <!-- 排名列表卡片 -->
+                <div id="rankListContainer" class="space-y-2"></div>
+            </div>
+
+            <!-- 子視圖 B：請假單明細列表 -->
+            <div id="leaveListView" class="hidden space-y-3">
+                <div class="bg-white rounded-2xl p-2.5 border-2 border-amber-200/80 soft-card-shadow">
+                    <input type="text" id="leaveSearchInput" oninput="renderLeaveList()" placeholder="搜尋角色或請假活動..."
+                           class="w-full bg-[#FFFDF9] border border-amber-200 rounded-xl px-3 py-1.5 text-xs font-bold text-amber-950 placeholder:text-amber-800/30 focus:outline-none focus:ring-2 focus:ring-amber-400">
+                </div>
+                <div id="leaveHistoryContainer" class="space-y-2.5"></div>
+            </div>
+        </section>
+
+        <!-- ================= 區塊 3：活動報名管理 ================= -->
+        <section id="sectionEvents" class="hidden space-y-4">
+            <div class="flex items-center justify-between px-1">
+                <span class="text-xs font-bold text-amber-800/70">點擊活動可查閱目前報名成員名冊</span>
+                <span id="eventCountText" class="text-xs font-bold text-amber-900">共 0 場活動</span>
+            </div>
+
+            <!-- 活動卡片列表 -->
+            <div id="eventListContainer" class="space-y-3"></div>
+        </section>
 
         <p class="text-[11px] text-amber-800/40 text-center mt-6">&copy; 2026 GuildMaster 幹部後台</p>
     </main>
 
-    <!-- 彈窗：新增 / 編輯成員 Modal -->
+    <!-- ================= 彈窗 1：成員 新增/編輯 Modal ================= -->
     <div id="memberModal" class="hidden fixed inset-0 bg-stone-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
         <div class="bg-white w-full max-w-md rounded-[32px] p-6 border-2 border-amber-200 soft-card-shadow max-h-[90vh] overflow-y-auto">
             <div class="flex items-center justify-between pb-3 border-b border-amber-100 mb-4">
-                <h3 id="modalTitle" class="text-base font-black text-amber-950">編輯會員資訊</h3>
-                <button onclick="closeMemberModal()" class="text-stone-400 hover:text-stone-600 text-lg font-bold">✕</button>
+                <h3 id="memberModalTitle" class="text-base font-black text-amber-950">編輯會員資訊</h3>
+                <button onclick="closeModal('memberModal')" class="text-stone-400 hover:text-stone-600 text-lg font-bold">✕</button>
             </div>
-
-            <form id="memberForm" class="space-y-3.5 text-left text-xs font-bold text-amber-900">
-                <input type="hidden" id="formRowIndex">
-                <input type="hidden" id="formLineUserId">
-
+            <form id="memberForm" class="space-y-3 text-left text-xs font-bold text-amber-900">
+                <input type="hidden" id="formMemberRowIndex">
                 <div>
                     <label class="block mb-1">遊戲角色暱稱 <span class="text-rose-500">*</span></label>
-                    <input type="text" id="formGameNick" required placeholder="例如：甜心小補師" 
-                           class="w-full bg-[#FFFDF9] border border-amber-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400">
+                    <input type="text" id="formGameNick" required class="w-full bg-[#FFFDF9] border border-amber-200 rounded-xl px-3 py-2 text-xs font-bold text-amber-950 focus:ring-2 focus:ring-amber-400">
                 </div>
-
                 <div>
                     <label class="block mb-1">遊戲職業 <span class="text-rose-500">*</span></label>
-                    <select id="formGameClass" required class="w-full bg-[#FFFDF9] border border-amber-200 rounded-xl px-3 py-2.5 text-xs font-bold text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400">
-                        <option value="" disabled selected>請選擇職業</option>
-                        <optgroup label="劍士系">
-                            <option value="騎士領主">騎士領主</option>
-                            <option value="聖殿十字軍">聖殿十字軍</option>
-                        </optgroup>
-                        <optgroup label="魔法師系">
-                            <option value="超魔導士">超魔導士</option>
-                            <option value="學者（智者）">學者（智者）</option>
-                        </optgroup>
-                        <optgroup label="弓箭手系">
-                            <option value="神射手">神射手</option>
-                            <option value="搞笑藝人（詩人）">搞笑藝人（詩人）</option>
-                            <option value="冷豔舞姬（舞孃）">冷豔舞姬（舞孃）</option>
-                        </optgroup>
-                        <optgroup label="盜賊系">
-                            <option value="十字刺客">十字刺客</option>
-                            <option value="神行（神偷）">神行（神偷）</option>
-                        </optgroup>
-                        <optgroup label="服事系">
-                            <option value="神官（大主教）">神官（大主教）</option>
-                            <option value="武術宗師">武術宗師</option>
-                        </optgroup>
-                        <optgroup label="商人系">
-                            <option value="神工匠">神工匠</option>
-                            <option value="創造者（鍊金術士）">創造者（鍊金術士）</option>
-                        </optgroup>
-                        <option value="其他">其他</option>
+                    <select id="formGameClass" required class="w-full bg-[#FFFDF9] border border-amber-200 rounded-xl px-3 py-2 text-xs font-bold text-amber-950 focus:ring-2 focus:ring-amber-400">
+                        <option value="超魔導士">超魔導士</option>
+                        <option value="學者（智者）">學者（智者）</option>
+                        <option value="神射手">神射手</option>
+                        <option value="搞笑藝人（詩人）">搞笑藝人（詩人）</option>
+                        <option value="冷豔舞姬（舞孃）">冷豔舞姬（舞孃）</option>
+                        <option value="騎士領主">騎士領主</option>
+                        <option value="聖殿十字軍">聖殿十字軍</option>
+                        <option value="十字刺客">十字刺客</option>
+                        <option value="神行（神偷）">神行（神偷）</option>
+                        <option value="神官（大主教）">神官（大主教）</option>
+                        <option value="武術宗師">武術宗師</option>
+                        <option value="神工匠">神工匠</option>
+                        <option value="創造者（鍊金術士）">創造者（鍊金術士）</option>
                     </select>
                 </div>
-
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-2 gap-2">
                     <div>
-                        <label class="block mb-1">LINE 顯示暱稱</label>
-                        <input type="text" id="formLineName" placeholder="例如：Chloe" 
-                               class="w-full bg-[#FFFDF9] border border-amber-200 rounded-xl px-3 py-2.5 text-xs font-bold text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400">
+                        <label class="block mb-1">LINE 暱稱</label>
+                        <input type="text" id="formLineName" class="w-full bg-[#FFFDF9] border border-amber-200 rounded-xl px-3 py-2 text-xs font-bold text-amber-950">
                     </div>
                     <div>
                         <label class="block mb-1">公會職位</label>
-                        <select id="formGuildRole" class="w-full bg-[#FFFDF9] border border-amber-200 rounded-xl px-3 py-2.5 text-xs font-bold text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400">
+                        <select id="formGuildRole" class="w-full bg-[#FFFDF9] border border-amber-200 rounded-xl px-3 py-2 text-xs font-bold text-amber-950">
                             <option value="現任">現任</option>
                             <option value="幹部">幹部</option>
                             <option value="副會長">副會長</option>
@@ -158,118 +181,242 @@
                         </select>
                     </div>
                 </div>
-
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-2 gap-2">
                     <div>
                         <label class="block mb-1">小隊/組別</label>
-                        <input type="text" id="formTeamGroup" placeholder="例如：媽咪團、一隊" 
-                               class="w-full bg-[#FFFDF9] border border-amber-200 rounded-xl px-3 py-2.5 text-xs font-bold text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400">
+                        <input type="text" id="formTeamGroup" placeholder="例如：一隊、媽咪團" class="w-full bg-[#FFFDF9] border border-amber-200 rounded-xl px-3 py-2 text-xs font-bold text-amber-950">
                     </div>
                     <div>
                         <label class="block mb-1">帳號狀態</label>
-                        <select id="formAccountStatus" class="w-full bg-[#FFFDF9] border border-amber-200 rounded-xl px-3 py-2.5 text-xs font-bold text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400">
+                        <select id="formAccountStatus" class="w-full bg-[#FFFDF9] border border-amber-200 rounded-xl px-3 py-2 text-xs font-bold text-amber-950">
                             <option value="已審核">已審核</option>
                             <option value="待審核">待審核</option>
                         </select>
                     </div>
                 </div>
-
-                <div class="pt-2">
-                    <label class="flex items-center justify-between p-2.5 rounded-xl bg-[#FFFDF9] border border-amber-200/80 cursor-pointer">
-                        <span class="text-xs font-bold text-amber-950">提供查詢</span>
-                        <input type="checkbox" id="formAllowSearch" class="accent-amber-500 w-4 h-4 cursor-pointer">
-                    </label>
-                </div>
-
                 <div class="flex gap-2 pt-3">
-                    <button type="button" onclick="closeMemberModal()" class="w-1/3 bg-stone-100 hover:bg-stone-200 text-stone-600 font-bold py-2.5 rounded-xl transition">
-                        取消
-                    </button>
-                    <button type="submit" class="flex-1 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold py-2.5 rounded-xl shadow-md transition">
-                        儲存變更
-                    </button>
+                    <button type="button" onclick="closeModal('memberModal')" class="w-1/3 bg-stone-100 hover:bg-stone-200 text-stone-600 font-bold py-2.5 rounded-xl transition">取消</button>
+                    <button type="submit" class="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 rounded-xl transition shadow-md">儲存變更</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <script>
-        const GAS_API_URL = "https://script.google.com/macros/s/AKfycbxIRwxVfiCxwKwBi4MTz3C4mzBLg-76SCnp301IGb1_Pdlbi2bdOtOZK3bdXY0TeInTyg/exec";
+    <!-- ================= 彈窗 2：活動 新增/編輯 Modal ================= -->
+    <div id="eventModal" class="hidden fixed inset-0 bg-stone-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
+        <div class="bg-white w-full max-w-md rounded-[32px] p-6 border-2 border-amber-200 soft-card-shadow max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between pb-3 border-b border-amber-100 mb-4">
+                <h3 id="eventModalTitle" class="text-base font-black text-amber-950">建立新活動</h3>
+                <button onclick="closeModal('eventModal')" class="text-stone-400 hover:text-stone-600 text-lg font-bold">✕</button>
+            </div>
+            <form id="eventForm" class="space-y-3 text-left text-xs font-bold text-amber-900">
+                <input type="hidden" id="formEventId">
+                <div>
+                    <label class="block mb-1">活動名稱 <span class="text-rose-500">*</span></label>
+                    <input type="text" id="formEventTitle" required placeholder="例如：週六GVG要塞攻防戰" class="w-full bg-[#FFFDF9] border border-amber-200 rounded-xl px-3 py-2 text-xs font-bold text-amber-950">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block mb-1">活動日期 <span class="text-rose-500">*</span></label>
+                        <input type="date" id="formEventDate" required class="w-full bg-[#FFFDF9] border border-amber-200 rounded-xl px-3 py-2 text-xs font-bold text-amber-950">
+                    </div>
+                    <div>
+                        <label class="block mb-1">集合時間 <span class="text-rose-500">*</span></label>
+                        <input type="time" id="formEventTime" required class="w-full bg-[#FFFDF9] border border-amber-200 rounded-xl px-3 py-2 text-xs font-bold text-amber-950">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block mb-1">人數上限</label>
+                        <input type="number" id="formEventMaxLimit" placeholder="不填代表無限制" class="w-full bg-[#FFFDF9] border border-amber-200 rounded-xl px-3 py-2 text-xs font-bold text-amber-950">
+                    </div>
+                    <div>
+                        <label class="block mb-1">活動狀態</label>
+                        <select id="formEventStatus" class="w-full bg-[#FFFDF9] border border-amber-200 rounded-xl px-3 py-2 text-xs font-bold text-amber-950">
+                            <option value="報名中">報名中</option>
+                            <option value="已截止">已截止</option>
+                            <option value="已結束">已結束</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block mb-1">備註說明</label>
+                    <textarea id="formEventDesc" rows="2" placeholder="語音集合頻道、攜帶物資說明等..." class="w-full bg-[#FFFDF9] border border-amber-200 rounded-xl p-3 text-xs font-bold text-amber-950 resize-none"></textarea>
+                </div>
+                <div class="flex gap-2 pt-3">
+                    <button type="button" onclick="closeModal('eventModal')" class="w-1/3 bg-stone-100 hover:bg-stone-200 text-stone-600 font-bold py-2.5 rounded-xl transition">取消</button>
+                    <button type="submit" class="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 rounded-xl transition shadow-md">確認儲存</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-        // 本地模擬資料 (格式與您的試算表欄位完全對齊)
+    <!-- ================= 彈窗 3：活動報名名單抽屜 Modal ================= -->
+    <div id="eventAttendeesModal" class="hidden fixed inset-0 bg-stone-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
+        <div class="bg-white w-full max-w-md rounded-[32px] p-6 border-2 border-amber-200 soft-card-shadow max-h-[90vh] flex flex-col">
+            <div class="flex items-center justify-between pb-3 border-b border-amber-100 mb-3">
+                <div>
+                    <h3 id="attendeesModalTitle" class="text-base font-black text-amber-950">報名名冊</h3>
+                    <p id="attendeesModalSub" class="text-[11px] text-amber-800/60 mt-0.5">目前報名情況</p>
+                </div>
+                <button onclick="closeModal('eventAttendeesModal')" class="text-stone-400 hover:text-stone-600 text-lg font-bold">✕</button>
+            </div>
+            <!-- 報名清單容器 -->
+            <div id="attendeesListContainer" class="flex-1 overflow-y-auto space-y-2 pr-1 text-xs"></div>
+            <button onclick="closeModal('eventAttendeesModal')" class="mt-4 w-full bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold py-2.5 rounded-xl text-xs transition">關閉名冊</button>
+        </div>
+    </div>
+
+    <script>
+        // ================= 模擬資料庫 =================
         let membersData = [
-            { rowIndex: 2, lineUserId: "U1001", gameNickname: "超級法神", gameClass: "超魔導士", lineDisplayName: "123", allowSearch: "Y", accountStatus: "已審核", updateTime: "2026-09-18 10:00", guildRole: "現任", teamGroup: "媽咪團" },
-            { rowIndex: 3, lineUserId: "U1002", gameNickname: "暗夜殺手", gameClass: "十字刺客", lineDisplayName: "QQQ", allowSearch: "N", accountStatus: "已審核", updateTime: "2026-09-18 11:30", guildRole: "現任", teamGroup: "一線主力" },
-            { rowIndex: 4, lineUserId: "U1003", gameNickname: "舞力全開", gameClass: "冷豔舞姬（舞孃）", lineDisplayName: "ABC", allowSearch: "Y", accountStatus: "已審核", updateTime: "2026-09-18 15:20", guildRole: "現任", teamGroup: "" },
-            { rowIndex: 5, lineUserId: "U1004", gameNickname: "克蘿伊", gameClass: "冷豔舞姬（舞孃）", lineDisplayName: "Chloe💕", allowSearch: "Y", accountStatus: "待審核", updateTime: "2026-09-19 08:30", guildRole: "退會", teamGroup: "" },
-            { rowIndex: 6, lineUserId: "U1005", gameNickname: "鐵拳無敵", gameClass: "武術宗師", lineDisplayName: "Tom", allowSearch: "Y", accountStatus: "待審核", updateTime: "2026-09-19 09:15", guildRole: "", teamGroup: "" }
+            { rowIndex: 2, lineUserId: "U1001", gameNickname: "超級法神", gameClass: "超魔導士", lineDisplayName: "123", allowSearch: "Y", accountStatus: "已審核", updateTime: "2026-09-18", guildRole: "現任", teamGroup: "媽咪團" },
+            { rowIndex: 3, lineUserId: "U1002", gameNickname: "暗夜殺手", gameClass: "十字刺客", lineDisplayName: "QQQ", allowSearch: "N", accountStatus: "已審核", updateTime: "2026-09-18", guildRole: "現任", teamGroup: "一線主力" },
+            { rowIndex: 4, lineUserId: "U1003", gameNickname: "舞力全開", gameClass: "冷豔舞姬（舞孃）", lineDisplayName: "ABC", allowSearch: "Y", accountStatus: "已審核", updateTime: "2026-09-18", guildRole: "現任", teamGroup: "" },
+            { rowIndex: 5, lineUserId: "U1004", gameNickname: "克蘿伊", gameClass: "冷豔舞姬（舞孃）", lineDisplayName: "Chloe💕", allowSearch: "Y", accountStatus: "待審核", updateTime: "2026-09-19", guildRole: "退會", teamGroup: "" },
+            { rowIndex: 6, lineUserId: "U1005", gameNickname: "鐵拳無敵", gameClass: "武術宗師", lineDisplayName: "Tom", allowSearch: "Y", accountStatus: "待審核", updateTime: "2026-09-19", guildRole: "", teamGroup: "" }
         ];
 
-        let currentTab = "pending"; // 'pending' | 'active' | 'retired'
+        let leavesData = [
+            { id: "L001", gameNickname: "暗夜殺手", gameClass: "十字刺客", event: "公會GVG聯賽", date: "2026-09-19", reason: "加班無奈", isUrgent: true, operator: "本人" },
+            { id: "L002", gameNickname: "暗夜殺手", gameClass: "十字刺客", event: "週常公會副本", date: "2026-09-12", reason: "朋友聚會", isUrgent: false, operator: "本人" },
+            { id: "L003", gameNickname: "暗夜殺手", gameClass: "十字刺客", event: "公會團隊戰", date: "2026-08-20", reason: "身體不適", isUrgent: true, operator: "本人" },
+            { id: "L004", gameNickname: "超級法神", gameClass: "超魔導士", event: "公會GVG聯賽", date: "2026-09-19", reason: "家庭旅遊出國", isUrgent: false, operator: "本人" },
+            { id: "L005", gameNickname: "舞力全開", gameClass: "冷豔舞姬（舞孃）", event: "公會團隊戰", date: "2026-09-05", reason: "臨時有事", isUrgent: true, operator: "由 超級法神 代理" },
+            { id: "L006", gameNickname: "鐵拳無敵", gameClass: "武術宗師", event: "公會GVG聯賽", date: "2026-09-02", reason: "網路壞掉", isUrgent: true, operator: "本人" }
+        ];
+
+        let eventsData = [
+            {
+                id: "EVT01",
+                title: "週日大型 GVG 決戰要塞",
+                date: "2026-09-20",
+                time: "20:00",
+                maxLimit: 24,
+                status: "報名中",
+                desc: "請於 19:50 前進入 DC 語音頻道集合，聽從指揮官號令分配攻防！",
+                attendees: [
+                    { gameNickname: "超級法神", gameClass: "超魔導士", time: "09-18 12:30" },
+                    { gameNickname: "舞力全開", gameClass: "冷豔舞姬（舞孃）", time: "09-18 14:10" }
+                ]
+            },
+            {
+                id: "EVT02",
+                title: "每週公會副本快速全通團",
+                date: "2026-09-22",
+                time: "21:00",
+                maxLimit: 12,
+                status: "報名中",
+                desc: "帶公會新人和戰力不足的夥伴一起過關，輕鬆打！",
+                attendees: [
+                    { gameNickname: "暗夜殺手", gameClass: "十字刺客", time: "09-19 10:00" }
+                ]
+            }
+        ];
+
+        // 狀態管理
+        let currentMainSection = "members"; // 'members' | 'leaves' | 'events'
+        let currentMemberSubTab = "pending"; // 'pending' | 'active' | 'retired'
+        let currentLeaveView = "rank"; // 'rank' | 'list'
+        let currentRankFilter = "all"; // 'all' | 'month' | 'urgent'
 
         window.addEventListener("DOMContentLoaded", () => {
-            updateCounts();
-            renderCurrentList();
+            updateHeaderActionBtn();
+            updateMemberCounts();
+            renderMembersList();
         });
 
-        function switchTab(tab) {
-            currentTab = tab;
-            
-            const btnPending = document.getElementById('tabBtnPending');
-            const btnActive = document.getElementById('tabBtnActive');
-            const btnRetired = document.getElementById('tabBtnRetired');
+        // ================= 頂層導航切換 =================
+        function switchMainSection(section) {
+            currentMainSection = section;
 
-            [btnPending, btnActive, btnRetired].forEach(b => {
-                b.className = "py-2 rounded-xl transition flex items-center justify-center gap-1 text-amber-800/70 hover:text-amber-950";
-            });
+            const tabs = {
+                members: document.getElementById('mainTabMembers'),
+                leaves: document.getElementById('mainTabLeaves'),
+                events: document.getElementById('mainTabEvents')
+            };
+            const sections = {
+                members: document.getElementById('sectionMembers'),
+                leaves: document.getElementById('sectionLeaves'),
+                events: document.getElementById('sectionEvents')
+            };
 
-            if (tab === 'pending') {
-                btnPending.className = "py-2 rounded-xl transition flex items-center justify-center gap-1.5 bg-white text-amber-900 shadow-sm font-black";
-            } else if (tab === 'active') {
-                btnActive.className = "py-2 rounded-xl transition flex items-center justify-center gap-1 bg-white text-amber-900 shadow-sm font-black";
-            } else {
-                btnRetired.className = "py-2 rounded-xl transition flex items-center justify-center gap-1 bg-white text-amber-900 shadow-sm font-black";
-            }
-
-            renderCurrentList();
-        }
-
-        function updateCounts() {
-            const pendingCount = membersData.filter(m => m.accountStatus === "待審核" && m.guildRole !== "退會").length;
-            const activeCount = membersData.filter(m => m.accountStatus === "已審核" && m.guildRole !== "退會").length;
-            const retiredCount = membersData.filter(m => m.guildRole === "退會").length;
-
-            const badgePending = document.getElementById('badgePendingCount');
-            if (pendingCount > 0) {
-                badgePending.textContent = pendingCount;
-                badgePending.classList.remove('hidden');
-            } else {
-                badgePending.classList.add('hidden');
-            }
-
-            document.getElementById('badgeActiveCount').textContent = `(${activeCount})`;
-            document.getElementById('badgeRetiredCount').textContent = `(${retiredCount})`;
-        }
-
-        function renderCurrentList() {
-            const container = document.getElementById('listContainer');
-            container.innerHTML = "";
-
-            const keyword = document.getElementById('searchInput').value.trim().toLowerCase();
-            const classFilter = document.getElementById('classFilter').value;
-
-            // 依目前頁籤過濾
-            let list = membersData.filter(m => {
-                if (currentTab === 'pending') {
-                    return m.accountStatus === "待審核" && m.guildRole !== "退會";
-                } else if (currentTab === 'active') {
-                    return m.accountStatus === "已審核" && m.guildRole !== "退會";
+            Object.keys(tabs).forEach(k => {
+                if (k === section) {
+                    tabs[k].className = "flex-1 py-2.5 rounded-xl transition bg-white text-amber-900 shadow-sm flex items-center justify-center gap-1 font-black";
+                    sections[k].classList.remove('hidden');
+                    sections[k].classList.add('fade-in');
                 } else {
-                    return m.guildRole === "退會";
+                    tabs[k].className = "flex-1 py-2.5 rounded-xl transition text-amber-800/70 hover:text-amber-950 flex items-center justify-center gap-1";
+                    sections[k].classList.add('hidden');
                 }
             });
 
-            // 搜尋與職業篩選
+            updateHeaderActionBtn();
+
+            if (section === 'leaves') renderLeaveSection();
+            if (section === 'events') renderEventsList();
+        }
+
+        function updateHeaderActionBtn() {
+            const container = document.getElementById('quickActionBtnContainer');
+            if (currentMainSection === 'members') {
+                container.innerHTML = `
+                    <button onclick="openMemberModal('create')" class="bg-amber-500 hover:bg-amber-600 text-white text-xs font-black px-3.5 py-2 rounded-2xl shadow-md transition">
+                        ＋ 新增成員
+                    </button>
+                `;
+            } else if (currentMainSection === 'events') {
+                container.innerHTML = `
+                    <button onclick="openEventModal('create')" class="bg-amber-500 hover:bg-amber-600 text-white text-xs font-black px-3.5 py-2 rounded-2xl shadow-md transition">
+                        ＋ 建立活動
+                    </button>
+                `;
+            } else {
+                container.innerHTML = "";
+            }
+        }
+
+        // ================= 模組 1：成員名冊 =================
+        function switchMemberSubTab(tab) {
+            currentMemberSubTab = tab;
+            const btns = {
+                pending: document.getElementById('subTabPending'),
+                active: document.getElementById('subTabActive'),
+                retired: document.getElementById('subTabRetired')
+            };
+            Object.keys(btns).forEach(k => {
+                btns[k].className = (k === tab) 
+                    ? "py-1.5 rounded-lg bg-white text-amber-900 shadow-xs font-black" 
+                    : "py-1.5 rounded-lg text-amber-800/70 hover:text-amber-950";
+            });
+            renderMembersList();
+        }
+
+        function updateMemberCounts() {
+            const pendingCount = membersData.filter(m => m.accountStatus === "待審核" && m.guildRole !== "退會").length;
+            const badge = document.getElementById('badgePendingCount');
+            if (pendingCount > 0) {
+                badge.textContent = pendingCount;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
+        function renderMembersList() {
+            const container = document.getElementById('memberListContainer');
+            container.innerHTML = "";
+
+            const keyword = document.getElementById('memberSearchInput').value.trim().toLowerCase();
+            const classFilter = document.getElementById('memberClassFilter').value;
+
+            let list = membersData.filter(m => {
+                if (currentMemberSubTab === 'pending') return m.accountStatus === "待審核" && m.guildRole !== "退會";
+                if (currentMemberSubTab === 'active') return m.accountStatus === "已審核" && m.guildRole !== "退會";
+                return m.guildRole === "退會";
+            });
+
             list = list.filter(m => {
                 const matchKey = (m.gameNickname && m.gameNickname.toLowerCase().includes(keyword)) ||
                                  (m.lineDisplayName && m.lineDisplayName.toLowerCase().includes(keyword));
@@ -278,185 +425,411 @@
             });
 
             if (list.length === 0) {
-                container.innerHTML = `
-                    <div class="bg-white rounded-[28px] p-8 border-2 border-amber-200/60 text-center soft-card-shadow">
-                        <div class="text-3xl mb-2">🍃</div>
-                        <p class="text-xs font-bold text-amber-900/60">目前查無符合的名單</p>
-                    </div>
-                `;
+                container.innerHTML = `<div class="bg-white rounded-2xl p-6 text-center text-xs text-amber-900/60 font-bold border border-amber-200/60">查無名單</div>`;
                 return;
             }
 
             list.forEach(m => {
                 const card = document.createElement('div');
-                card.className = "bg-white rounded-2xl p-4 border-2 border-amber-200/80 soft-card-shadow fade-in text-left";
-
-                if (currentTab === 'pending') {
-                    // 待審核卡片版面
+                card.className = "bg-white rounded-2xl p-3.5 border-2 border-amber-200/80 soft-card-shadow fade-in text-left";
+                if (currentMemberSubTab === 'pending') {
                     card.innerHTML = `
-                        <div class="flex items-start justify-between mb-2">
+                        <div class="flex items-start justify-between">
                             <div>
-                                <span class="bg-rose-100 text-rose-800 text-[10px] font-extrabold px-2 py-0.5 rounded-md">申請待審核</span>
-                                <h3 class="text-base font-black text-amber-950 mt-1">${m.gameNickname}</h3>
+                                <span class="bg-rose-100 text-rose-800 text-[10px] font-extrabold px-1.5 py-0.2 rounded">新申請</span>
+                                <h3 class="text-sm font-black text-amber-950 mt-1">${m.gameNickname}</h3>
                                 <p class="text-xs font-bold text-amber-800/70">${m.gameClass} · LINE: ${m.lineDisplayName}</p>
                             </div>
-                            <span class="text-[10px] text-amber-800/50 font-mono">${m.updateTime.split(' ')[0]}</span>
+                            <span class="text-[10px] text-amber-800/40">${m.updateTime}</span>
                         </div>
-                        <div class="flex items-center gap-2 pt-3 border-t border-amber-100/80 mt-3">
-                            <button onclick="approveMember(${m.rowIndex})" class="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs py-2 rounded-xl shadow-xs transition">
-                                ✓ 核准入會
-                            </button>
-                            <button onclick="openMemberModal('edit', ${m.rowIndex})" class="px-3 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 font-bold text-xs py-2 rounded-xl transition">
-                                檢視修改
-                            </button>
+                        <div class="flex items-center gap-2 pt-2.5 border-t border-amber-100 mt-2.5">
+                            <button onclick="approveMember(${m.rowIndex})" class="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs py-1.5 rounded-xl transition">✓ 核准入會</button>
+                            <button onclick="openMemberModal('edit', ${m.rowIndex})" class="px-3 bg-amber-50 text-amber-900 border border-amber-200 font-bold text-xs py-1.5 rounded-xl">編輯</button>
                         </div>
                     `;
                 } else {
-                    // 現任或退會名單卡片
                     const isRetired = m.guildRole === "退會";
                     card.innerHTML = `
-                        <div class="flex items-start justify-between">
-                            <div class="flex-1">
-                                <div class="flex items-center gap-1.5 flex-wrap">
-                                    <h3 class="text-base font-black text-amber-950">${m.gameNickname}</h3>
-                                    <span class="text-[10px] px-2 py-0.5 rounded-md font-extrabold ${isRetired ? 'bg-stone-100 text-stone-600' : 'bg-amber-100 text-amber-800'}">
-                                        ${m.guildRole || '成員'}
-                                    </span>
-                                    ${m.teamGroup ? `<span class="text-[10px] bg-sky-100 text-sky-800 px-1.5 py-0.5 rounded-md font-bold">${m.teamGroup}</span>` : ''}
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <div class="flex items-center gap-1.5">
+                                    <h3 class="text-sm font-black text-amber-950">${m.gameNickname}</h3>
+                                    <span class="text-[10px] px-1.5 py-0.2 rounded font-extrabold ${isRetired ? 'bg-stone-100 text-stone-600' : 'bg-amber-100 text-amber-800'}">${m.guildRole || '成員'}</span>
+                                    ${m.teamGroup ? `<span class="text-[10px] bg-sky-100 text-sky-800 px-1 py-0.2 rounded font-bold">${m.teamGroup}</span>` : ''}
                                 </div>
-                                <div class="text-xs text-amber-800/70 font-bold mt-1">
-                                    ${m.gameClass} · LINE: ${m.lineDisplayName}
-                                </div>
+                                <div class="text-xs text-amber-800/70 font-bold mt-0.5">${m.gameClass} · LINE: ${m.lineDisplayName}</div>
                             </div>
                             <div class="flex items-center gap-1">
-                                <button onclick="openMemberModal('edit', ${m.rowIndex})" class="bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 text-xs font-bold px-2.5 py-1.5 rounded-xl transition">
-                                    編輯
-                                </button>
-                                ${!isRetired ? `
-                                    <button onclick="markAsRetired(${m.rowIndex})" class="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold px-2.5 py-1.5 rounded-xl transition">
-                                        退會
-                                    </button>
-                                ` : `
-                                    <button onclick="restoreMember(${m.rowIndex})" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-bold px-2.5 py-1.5 rounded-xl transition">
-                                        復權
-                                    </button>
-                                `}
+                                <button onclick="openMemberModal('edit', ${m.rowIndex})" class="bg-amber-50 text-amber-900 border border-amber-200 text-xs font-bold px-2 py-1 rounded-lg">編輯</button>
+                                ${!isRetired ? `<button onclick="markAsRetired(${m.rowIndex})" class="bg-rose-50 text-rose-700 border border-rose-200 text-xs font-bold px-2 py-1 rounded-lg">退會</button>` : ''}
                             </div>
                         </div>
                     `;
                 }
-
                 container.appendChild(card);
             });
         }
 
-        // 快捷核准入會
         function approveMember(rowIndex) {
-            const member = membersData.find(m => m.rowIndex === rowIndex);
-            if (!member) return;
-
-            if (confirm(`確定核准【${member.gameNickname}】加入公會嗎？`)) {
-                member.accountStatus = "已審核";
-                member.guildRole = "現任";
-                updateCounts();
-                renderCurrentList();
-                // 串接 GAS: sendGasUpdate({ action: "adminUpdate", ...member });
+            const m = membersData.find(x => x.rowIndex === rowIndex);
+            if (m && confirm(`確定核准【${m.gameNickname}】入會？`)) {
+                m.accountStatus = "已審核";
+                m.guildRole = "現任";
+                updateMemberCounts();
+                renderMembersList();
             }
         }
 
-        // 標記退會
         function markAsRetired(rowIndex) {
-            const member = membersData.find(m => m.rowIndex === rowIndex);
-            if (!member) return;
-
-            if (confirm(`確定要將【${member.gameNickname}】標記為退會嗎？\n退會後將無法登入填寫請假。`)) {
-                member.guildRole = "退會";
-                updateCounts();
-                renderCurrentList();
-                // 串接 GAS: sendGasUpdate({ action: "adminUpdate", ...member });
+            const m = membersData.find(x => x.rowIndex === rowIndex);
+            if (m && confirm(`確定將【${m.gameNickname}】設為退會？`)) {
+                m.guildRole = "退會";
+                updateMemberCounts();
+                renderMembersList();
             }
         }
 
-        // 退會復權
-        function restoreMember(rowIndex) {
-            const member = membersData.find(m => m.rowIndex === rowIndex);
-            if (!member) return;
-
-            if (confirm(`確定恢復【${member.gameNickname}】的現任會員資格嗎？`)) {
-                member.guildRole = "現任";
-                member.accountStatus = "已審核";
-                updateCounts();
-                renderCurrentList();
-            }
-        }
-
-        // 開啟 Modal (新增/編輯共用)
         function openMemberModal(mode, rowIndex = null) {
             const modal = document.getElementById('memberModal');
-            const title = document.getElementById('modalTitle');
-            const form = document.getElementById('memberForm');
-            form.reset();
-
+            document.getElementById('memberForm').reset();
             if (mode === 'create') {
-                title.textContent = "手動新增會員";
-                document.getElementById('formRowIndex').value = "";
-                document.getElementById('formAccountStatus').value = "已審核";
+                document.getElementById('memberModalTitle').textContent = "手動新增成員";
+                document.getElementById('formMemberRowIndex').value = "";
                 document.getElementById('formGuildRole').value = "現任";
-                document.getElementById('formAllowSearch').checked = true;
+                document.getElementById('formAccountStatus').value = "已審核";
             } else {
-                title.textContent = "編輯成員資料";
-                const member = membersData.find(m => m.rowIndex === rowIndex);
-                if (!member) return;
-
-                document.getElementById('formRowIndex').value = member.rowIndex;
-                document.getElementById('formLineUserId').value = member.lineUserId || "";
-                document.getElementById('formGameNick').value = member.gameNickname || "";
-                document.getElementById('formGameClass').value = member.gameClass || "";
-                document.getElementById('formLineName').value = member.lineDisplayName || "";
-                document.getElementById('formGuildRole').value = member.guildRole || "現任";
-                document.getElementById('formTeamGroup').value = member.teamGroup || "";
-                document.getElementById('formAccountStatus').value = member.accountStatus || "已審核";
-                document.getElementById('formAllowSearch').checked = (member.allowSearch === "Y" || member.allowSearch === true);
+                document.getElementById('memberModalTitle').textContent = "編輯成員資料";
+                const m = membersData.find(x => x.rowIndex === rowIndex);
+                if (!m) return;
+                document.getElementById('formMemberRowIndex').value = m.rowIndex;
+                document.getElementById('formGameNick').value = m.gameNickname;
+                document.getElementById('formGameClass').value = m.gameClass;
+                document.getElementById('formLineName').value = m.lineDisplayName;
+                document.getElementById('formGuildRole').value = m.guildRole || "現任";
+                document.getElementById('formTeamGroup').value = m.teamGroup || "";
+                document.getElementById('formAccountStatus').value = m.accountStatus;
             }
-
             modal.classList.remove('hidden');
         }
 
-        function closeMemberModal() {
-            document.getElementById('memberModal').classList.add('hidden');
-        }
-
-        // 表單送出處理
         document.getElementById('memberForm').addEventListener('submit', (e) => {
             e.preventDefault();
-
-            const rowIndexVal = document.getElementById('formRowIndex').value;
-            const newPayload = {
+            const rIndex = document.getElementById('formMemberRowIndex').value;
+            const data = {
                 gameNickname: document.getElementById('formGameNick').value.trim(),
                 gameClass: document.getElementById('formGameClass').value,
                 lineDisplayName: document.getElementById('formLineName').value.trim(),
                 guildRole: document.getElementById('formGuildRole').value,
                 teamGroup: document.getElementById('formTeamGroup').value.trim(),
                 accountStatus: document.getElementById('formAccountStatus').value,
-                allowSearch: document.getElementById('formAllowSearch').checked ? "Y" : "N",
                 updateTime: new Date().toISOString().split('T')[0]
             };
-
-            if (rowIndexVal) {
-                // 編輯更新
-                const target = membersData.find(m => m.rowIndex === parseInt(rowIndexVal));
-                if (target) Object.assign(target, newPayload);
+            if (rIndex) {
+                const target = membersData.find(x => x.rowIndex === parseInt(rIndex));
+                if (target) Object.assign(target, data);
             } else {
-                // 手動新增
-                newPayload.rowIndex = Date.now();
-                newPayload.lineUserId = "MANUAL_" + Math.floor(Math.random()*1000);
-                membersData.unshift(newPayload);
+                data.rowIndex = Date.now();
+                membersData.unshift(data);
+            }
+            closeModal('memberModal');
+            updateMemberCounts();
+            renderMembersList();
+        });
+
+        // ================= 模組 2：請假紀錄與缺勤排名 =================
+        function switchLeaveSubView(view) {
+            currentLeaveView = view;
+            const tabRank = document.getElementById('leaveSubTabRank');
+            const tabList = document.getElementById('leaveSubTabList');
+            const rankView = document.getElementById('leaveRankView');
+            const listView = document.getElementById('leaveListView');
+
+            if (view === 'rank') {
+                tabRank.className = "py-1.5 rounded-lg bg-white text-amber-900 shadow-xs font-black";
+                tabList.className = "py-1.5 rounded-lg text-amber-800/70 hover:text-amber-950";
+                rankView.classList.remove('hidden');
+                listView.classList.add('hidden');
+                renderLeaveRank();
+            } else {
+                tabList.className = "py-1.5 rounded-lg bg-white text-amber-900 shadow-xs font-black";
+                tabRank.className = "py-1.5 rounded-lg text-amber-800/70 hover:text-amber-950";
+                listView.classList.remove('hidden');
+                rankView.classList.add('hidden');
+                renderLeaveList();
+            }
+        }
+
+        function setRankType(type) {
+            currentRankFilter = type;
+            const btns = {
+                all: document.getElementById('rankFilterAll'),
+                month: document.getElementById('rankFilterMonth'),
+                urgent: document.getElementById('rankFilterUrgent')
+            };
+            Object.keys(btns).forEach(k => {
+                btns[k].className = (k === type) 
+                    ? "px-2.5 py-1 text-xs font-black rounded-lg bg-amber-500 text-white shadow-xs" 
+                    : "px-2.5 py-1 text-xs font-black rounded-lg bg-stone-100 text-stone-600";
+            });
+            renderLeaveRank();
+        }
+
+        function renderLeaveSection() {
+            if (currentLeaveView === 'rank') renderLeaveRank();
+            else renderLeaveList();
+        }
+
+        function renderLeaveRank() {
+            const container = document.getElementById('rankListContainer');
+            container.innerHTML = "";
+
+            const currentYearMonth = "2026-09"; // 當前月份基準
+            const stats = {};
+
+            // 統計缺勤次數
+            leavesData.forEach(item => {
+                const nick = item.gameNickname;
+                if (!stats[nick]) {
+                    stats[nick] = {
+                        gameNickname: nick,
+                        gameClass: item.gameClass,
+                        totalLeaves: 0,
+                        monthLeaves: 0,
+                        urgentLeaves: 0
+                    };
+                }
+                stats[nick].totalLeaves += 1;
+                if (item.date.startsWith(currentYearMonth)) stats[nick].monthLeaves += 1;
+                if (item.isUrgent) stats[nick].urgentLeaves += 1;
+            });
+
+            let rankArray = Object.values(stats);
+
+            // 依據當前選擇排序
+            if (currentRankFilter === 'all') {
+                rankArray.sort((a, b) => b.totalLeaves - a.totalLeaves);
+            } else if (currentRankFilter === 'month') {
+                rankArray.sort((a, b) => b.monthLeaves - a.monthLeaves);
+            } else if (currentRankFilter === 'urgent') {
+                rankArray.sort((a, b) => b.urgentLeaves - a.urgentLeaves);
             }
 
-            closeMemberModal();
-            updateCounts();
-            renderCurrentList();
+            if (rankArray.length === 0) {
+                container.innerHTML = `<div class="bg-white rounded-2xl p-6 text-center text-xs text-amber-900/60 font-bold">目前無缺勤請假紀錄</div>`;
+                return;
+            }
+
+            rankArray.forEach((r, idx) => {
+                const card = document.createElement('div');
+                card.className = "bg-white rounded-2xl p-3 border border-amber-200/80 flex items-center justify-between soft-card-shadow fade-in";
+                
+                // 排名獎牌樣式
+                let rankBadge = `<span class="w-6 h-6 rounded-full bg-stone-100 text-stone-700 text-xs font-black flex items-center justify-center">${idx + 1}</span>`;
+                if (idx === 0) rankBadge = `<span class="w-6 h-6 rounded-full bg-amber-400 text-amber-950 text-xs font-black flex items-center justify-center shadow-xs">🥇</span>`;
+                if (idx === 1) rankBadge = `<span class="w-6 h-6 rounded-full bg-slate-200 text-slate-900 text-xs font-black flex items-center justify-center shadow-xs">🥈</span>`;
+                if (idx === 2) rankBadge = `<span class="w-6 h-6 rounded-full bg-amber-700/20 text-amber-900 text-xs font-black flex items-center justify-center shadow-xs">🥉</span>`;
+
+                card.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        ${rankBadge}
+                        <div class="text-left">
+                            <div class="text-sm font-black text-amber-950">${r.gameNickname}</div>
+                            <div class="text-[11px] text-amber-800/60 font-bold">${r.gameClass}</div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3 text-right">
+                        <div>
+                            <div class="text-[10px] text-amber-800/60 font-medium">臨時請假</div>
+                            <div class="text-xs font-black text-rose-600">${r.urgentLeaves} 次</div>
+                        </div>
+                        <div class="pl-2 border-l border-amber-100">
+                            <div class="text-[10px] text-amber-800/60 font-medium">${currentRankFilter === 'month' ? '當月缺席' : '總缺勤'}</div>
+                            <div class="text-sm font-black text-amber-950">${currentRankFilter === 'month' ? r.monthLeaves : r.totalLeaves} 次</div>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function renderLeaveList() {
+            const container = document.getElementById('leaveHistoryContainer');
+            container.innerHTML = "";
+            const kw = document.getElementById('leaveSearchInput').value.trim().toLowerCase();
+
+            const list = leavesData.filter(l => 
+                l.gameNickname.toLowerCase().includes(kw) || 
+                l.event.toLowerCase().includes(kw) || 
+                l.reason.toLowerCase().includes(kw)
+            );
+
+            if (list.length === 0) {
+                container.innerHTML = `<div class="bg-white rounded-2xl p-6 text-center text-xs text-amber-900/60 font-bold">查無請假紀錄</div>`;
+                return;
+            }
+
+            list.forEach(l => {
+                const card = document.createElement('div');
+                card.className = "bg-white rounded-2xl p-3 border border-amber-200/80 text-left soft-card-shadow fade-in";
+                card.innerHTML = `
+                    <div class="flex items-center justify-between mb-1">
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-xs font-black text-amber-950">${l.gameNickname}</span>
+                            ${l.isUrgent ? `<span class="bg-rose-100 text-rose-700 text-[9px] font-black px-1.5 py-0.2 rounded">🚨 臨時請假</span>` : ''}
+                        </div>
+                        <span class="text-[10px] font-mono text-amber-800/50">${l.date}</span>
+                    </div>
+                    <div class="text-xs text-amber-900 font-bold">活動：${l.event}</div>
+                    <div class="text-xs text-amber-800/70 mt-1 bg-amber-50/60 p-2 rounded-xl border border-amber-100">
+                        理由：${l.reason}
+                    </div>
+                    <div class="text-[10px] text-amber-800/40 text-right mt-1.5">由 ${l.operator} 登記</div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // ================= 模組 3：活動報名管理 =================
+        function renderEventsList() {
+            const container = document.getElementById('eventListContainer');
+            container.innerHTML = "";
+            document.getElementById('eventCountText').textContent = `共 ${eventsData.length} 場活動`;
+
+            if (eventsData.length === 0) {
+                container.innerHTML = `<div class="bg-white rounded-2xl p-6 text-center text-xs text-amber-900/60 font-bold border border-amber-200/60">目前無任何活動，點擊右上角新增</div>`;
+                return;
+            }
+
+            eventsData.forEach(evt => {
+                const attendeesCount = evt.attendees.length;
+                const limitText = evt.maxLimit ? `${attendeesCount} / ${evt.maxLimit} 人` : `${attendeesCount} 人 (不限人數)`;
+                const percent = evt.maxLimit ? Math.min(100, Math.round((attendeesCount / evt.maxLimit) * 100)) : 100;
+
+                const card = document.createElement('div');
+                card.className = "bg-white rounded-2xl p-4 border-2 border-amber-200/80 soft-card-shadow fade-in text-left space-y-3";
+                card.innerHTML = `
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-md ${evt.status === '報名中' ? 'bg-emerald-100 text-emerald-800' : 'bg-stone-100 text-stone-600'}">${evt.status}</span>
+                            <h3 class="text-base font-black text-amber-950 mt-1">${evt.title}</h3>
+                            <div class="text-xs text-amber-800/70 font-bold mt-0.5">📅 ${evt.date} · ⏰ ${evt.time} 集合</div>
+                        </div>
+                        <div class="flex gap-1">
+                            <button onclick="openEventModal('edit', '${evt.id}')" class="bg-amber-50 text-amber-900 border border-amber-200 text-xs font-bold px-2 py-1 rounded-lg">編輯</button>
+                            <button onclick="deleteEvent('${evt.id}')" class="bg-rose-50 text-rose-700 border border-rose-200 text-xs font-bold px-2 py-1 rounded-lg">刪除</button>
+                        </div>
+                    </div>
+
+                    <p class="text-xs text-amber-900/80 bg-[#FFFDF9] p-2.5 rounded-xl border border-amber-100 leading-relaxed">${evt.desc || '無備註'}</p>
+
+                    <div>
+                        <div class="flex justify-between text-xs font-bold mb-1">
+                            <span class="text-amber-900/70">報名進度</span>
+                            <span class="text-amber-950 font-mono">${limitText}</span>
+                        </div>
+                        <div class="w-full h-2 bg-stone-100 rounded-full overflow-hidden">
+                            <div class="h-full bg-amber-500 rounded-full" style="width: ${percent}%"></div>
+                        </div>
+                    </div>
+
+                    <button onclick="viewAttendees('${evt.id}')" class="w-full bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 font-bold text-xs py-2 rounded-xl transition flex items-center justify-center gap-1">
+                        <span>👥 查看已報名成員 (${attendeesCount})</span>
+                    </button>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function openEventModal(mode, eventId = null) {
+            const modal = document.getElementById('eventModal');
+            document.getElementById('eventForm').reset();
+            if (mode === 'create') {
+                document.getElementById('eventModalTitle').textContent = "建立新活動";
+                document.getElementById('formEventId').value = "";
+                document.getElementById('formEventDate').value = new Date().toISOString().split('T')[0];
+                document.getElementById('formEventStatus').value = "報名中";
+            } else {
+                document.getElementById('eventModalTitle').textContent = "編輯活動內容";
+                const evt = eventsData.find(e => e.id === eventId);
+                if (!evt) return;
+                document.getElementById('formEventId').value = evt.id;
+                document.getElementById('formEventTitle').value = evt.title;
+                document.getElementById('formEventDate').value = evt.date;
+                document.getElementById('formEventTime').value = evt.time;
+                document.getElementById('formEventMaxLimit').value = evt.maxLimit || "";
+                document.getElementById('formEventStatus').value = evt.status;
+                document.getElementById('formEventDesc').value = evt.desc || "";
+            }
+            modal.classList.remove('hidden');
+        }
+
+        document.getElementById('eventForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const eId = document.getElementById('formEventId').value;
+            const data = {
+                title: document.getElementById('formEventTitle').value.trim(),
+                date: document.getElementById('formEventDate').value,
+                time: document.getElementById('formEventTime').value,
+                maxLimit: parseInt(document.getElementById('formEventMaxLimit').value) || null,
+                status: document.getElementById('formEventStatus').value,
+                desc: document.getElementById('formEventDesc').value.trim()
+            };
+
+            if (eId) {
+                const target = eventsData.find(e => e.id === eId);
+                if (target) Object.assign(target, data);
+            } else {
+                data.id = "EVT" + Date.now();
+                data.attendees = [];
+                eventsData.unshift(data);
+            }
+            closeModal('eventModal');
+            renderEventsList();
         });
+
+        function deleteEvent(eventId) {
+            const evt = eventsData.find(e => e.id === eventId);
+            if (evt && confirm(`確定要刪除活動【${evt.title}】嗎？此動作無法復原！`)) {
+                eventsData = eventsData.filter(e => e.id !== eventId);
+                renderEventsList();
+            }
+        }
+
+        function viewAttendees(eventId) {
+            const evt = eventsData.find(e => e.id === eventId);
+            if (!evt) return;
+
+            document.getElementById('attendeesModalTitle').textContent = evt.title;
+            document.getElementById('attendeesModalSub').textContent = `共 ${evt.attendees.length} 人報名 · 集合時間 ${evt.date} ${evt.time}`;
+
+            const container = document.getElementById('attendeesListContainer');
+            container.innerHTML = "";
+
+            if (evt.attendees.length === 0) {
+                container.innerHTML = `<div class="py-8 text-center text-xs text-amber-900/60 font-bold">目前尚無人報名</div>`;
+            } else {
+                evt.attendees.forEach((a, i) => {
+                    const row = document.createElement('div');
+                    row.className = "flex items-center justify-between p-2.5 rounded-xl bg-[#FFFDF9] border border-amber-200/60";
+                    row.innerHTML = `
+                        <div class="flex items-center gap-2">
+                            <span class="w-5 h-5 bg-amber-100 text-amber-900 rounded-full flex items-center justify-center font-bold text-[10px]">${i+1}</span>
+                            <div>
+                                <div class="font-black text-amber-950">${a.gameNickname}</div>
+                                <div class="text-[10px] text-amber-800/60 font-bold">${a.gameClass}</div>
+                            </div>
+                        </div>
+                        <span class="text-[10px] text-amber-800/40 font-mono">${a.time}</span>
+                    `;
+                    container.appendChild(row);
+                });
+            }
+            document.getElementById('eventAttendeesModal').classList.remove('hidden');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
     </script>
 </body>
 </html>
