@@ -349,56 +349,73 @@
             await verifyAndDisplayLeaveView(liffErrorDetail);
         });
 
-        async function verifyAndDisplayLeaveView(errorMsg) {
-            if (!currentSelf.userId) {
-                document.getElementById('loadingSpinner').classList.add('hidden');
-                document.getElementById('loadingTitle').textContent = "無法辨識 LINE 身分";
-                document.getElementById('loadingDesc').textContent = "請確認您是點擊 LINE 官方專用連結開啟";
-                
-                const errBox = document.getElementById('errorBox');
-                const errDetail = document.getElementById('errorDetail');
-                errDetail.textContent = errorMsg || "LIFF 未能成功取得 Profile 資料。";
-                errBox.classList.remove('hidden');
-                return;
-            }
+async function verifyAndDisplayLeaveView(errorMsg) {
+    if (!currentSelf.userId) {
+        document.getElementById('loadingSpinner').classList.add('hidden');
+        document.getElementById('loadingTitle').textContent = "無法辨識 LINE 身分";
+        document.getElementById('loadingDesc').textContent = "請確認您是點擊 LINE 官方專用連結開啟";
+        
+        const errBox = document.getElementById('errorBox');
+        const errDetail = document.getElementById('errorDetail');
+        errDetail.textContent = errorMsg || "LIFF 未能成功取得 Profile 資料。";
+        errBox.classList.remove('hidden');
+        return;
+    }
 
-            // 查詢身分
-            const result = await jsonpCall({ uid: currentSelf.userId });
+    // 查詢身分
+    const result = await jsonpCall({ uid: currentSelf.userId });
 
-            // 逾時或異常防呆：跳出提示並讓使用者手動重試，不放行未確認之身分
-            if (result && (result.status === "timeout" || result.status === "error")) {
-                document.getElementById('loadingSpinner').classList.add('hidden');
-                document.getElementById('loadingTitle').textContent = "連線名冊逾時";
-                document.getElementById('loadingDesc').textContent = "Google 試算表伺服器回應較慢，請點擊下方重試";
-                
-                const errBox = document.getElementById('errorBox');
-                const errDetail = document.getElementById('errorDetail');
-                errDetail.textContent = `[${result.status}] ${result.message || '請確認網路連線是否正常'}`;
-                errBox.classList.remove('hidden');
-                return;
-            }
+    // 逾時或連線失敗防呆
+    if (!result || result.status === "timeout" || result.status === "error") {
+        document.getElementById('loadingSpinner').classList.add('hidden');
+        document.getElementById('loadingTitle').textContent = "連線名冊逾時";
+        document.getElementById('loadingDesc').textContent = "Google 試算表伺服器回應較慢，請點擊下方重試";
+        
+        const errBox = document.getElementById('errorBox');
+        const errDetail = document.getElementById('errorDetail');
+        errDetail.textContent = `[${result ? result.status : 'no_response'}] ${result?.message || '請確認網路是否正常'}`;
+        errBox.classList.remove('hidden');
+        return;
+    }
 
-            if (result && result.status === "found") {
-                currentSelf.gameNickname = result.gameNickname || "";
-                currentSelf.gameClass = result.gameClass || "";
-                currentSelf.displayName = result.lineDisplayName || currentSelf.displayName;
-                currentSelf.accountStatus = String(result.accountStatus || "").trim();
-                currentSelf.isRegistered = true;
-            }
+    // 解析資料
+    let isFound = false;
+    let accountStatus = "";
+    let guildRole = ""; // 對應試算表 H 欄的「公會職位」
 
-            document.getElementById('loadingCard').classList.add('hidden');
+    if (result && (result.status === "found" || result.gameNickname)) {
+        currentSelf.gameNickname = String(result.gameNickname || "").trim();
+        currentSelf.gameClass = String(result.gameClass || "").trim();
+        currentSelf.displayName = String(result.lineDisplayName || currentSelf.displayName || "").trim();
+        
+        accountStatus = String(result.accountStatus || "").trim();
+        guildRole = String(result.guildRole || result.role || "").trim(); // 若後端有回傳職位
+        isFound = Boolean(currentSelf.gameNickname);
+    }
 
-            // 身分狀態嚴格分流：待審核、退會、未登記、已審核
-            if (currentSelf.isRegistered && currentSelf.accountStatus === "待審核") {
-                applyPendingReviewUI();
-            } else if (currentSelf.isRegistered && currentSelf.accountStatus === "退會") {
-                applyRejectedUI();
-            } else if (currentSelf.isRegistered && currentSelf.accountStatus === "已審核") {
-                applyLeaveFormUI();
-            } else {
-                applyUnregisteredUI();
-            }
-        }
+    document.getElementById('loadingCard').classList.add('hidden');
+
+    // 判斷是否為退會（兼顧 F 欄狀態或 H 欄公會職位）
+    const isRetired = accountStatus.includes("退會") || guildRole.includes("退會");
+
+    // 身分分流：
+    // 1. 退會 或 找不到資料 ➜ 統一走「未登記會員」
+    if (!isFound || isRetired) {
+        applyUnregisteredUI();
+    } 
+    // 2. 待審核 ➜ 顯示等待審核卡片
+    else if (accountStatus.includes("待審")) {
+        applyPendingReviewUI();
+    } 
+    // 3. 只有狀態為「已審核」且非退會 ➜ 放行填寫請假表單
+    else if (accountStatus === "已審核") {
+        applyLeaveFormUI();
+    } 
+    // 4. 其他未定義狀態 ➜ 預設為未登記保護
+    else {
+        applyUnregisteredUI();
+    }
+}
 
         function applyPendingReviewUI() {
             document.getElementById('topBadge').textContent = "資格審核";
