@@ -33,13 +33,31 @@
             line-height: 42px;
             box-sizing: border-box;
         }
+
+        /* 讓空值的 date input 顯示灰字提示 */
+        input[type="date"]:invalid {
+            color: #94a3b8;
+        }
+        input[type="date"]:not(:invalid) {
+            color: #0f172a;
+        }
+        input[type="date"]::before {
+            content: attr(placeholder);
+            color: #94a3b8;
+            margin-right: 0.5em;
+        }
+        input[type="date"]:focus::before,
+        input[type="date"]:valid::before {
+            content: "" !important;
+            display: none !important;
+        }
     </style>
 </head>
 <body class="bg-[#F0F9FF] text-slate-800 antialiased selection:bg-sky-200 selection:text-sky-900 min-h-screen flex flex-col justify-between py-6 px-3 sm:px-4">
 
     <main class="max-w-lg w-full mx-auto">
         <!-- 頂部身分與快捷按鈕 -->
-        <div class="flex items-center justify-between mb-4 px-1">
+        <div class="flex items-center justify-between mb-3 px-1">
             <div>
                 <div class="inline-flex items-center gap-1.5 bg-sky-100 text-sky-800 border border-sky-200 text-[11px] font-bold px-3 py-0.5 rounded-full mb-1">
                     幹部專用後台
@@ -47,6 +65,29 @@
                 <h1 class="text-2xl font-black text-slate-900 tracking-tight">後台管理中心</h1>
             </div>
             <div id="quickActionBtnContainer"></div>
+        </div>
+
+        <!-- LINE 群組推播目標設定卡片 (公會群 ID / 幹部群 ID) -->
+        <div class="bg-white rounded-2xl p-3.5 border-2 border-sky-200/80 soft-sky-shadow mb-4 text-left">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-black text-slate-900">LINE 推播群組 ID 設定</span>
+                <span id="groupIdSaveMsg" class="text-[10px] text-emerald-600 font-bold hidden">已成功更新儲存</span>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-600 mb-0.5">公會大群組 ID</label>
+                    <input type="text" id="guildGroupIdInput" placeholder="例如：C1234567890abcdef..."
+                           class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-2.5 py-1.5 text-xs font-mono font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-600 mb-0.5">幹部專用群組 ID</label>
+                    <input type="text" id="adminGroupIdInput" placeholder="例如：C0987654321fedcba..."
+                           class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-2.5 py-1.5 text-xs font-mono font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400">
+                </div>
+            </div>
+            <button onclick="saveGroupSettings()" class="w-full bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 text-xs font-bold py-1.5 rounded-xl transition">
+                儲存群組 ID 設定
+            </button>
         </div>
 
         <!-- 經典 4 頁籤列 -->
@@ -82,7 +123,7 @@
                     <button id="subTabRetired" onclick="switchMemberSubTab('retired')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800">退會封存</button>
                 </div>
 
-                <!-- 搜尋與篩選列 (團體速查也保留搜尋) -->
+                <!-- 搜尋與篩選列 -->
                 <div class="flex gap-2 items-center">
                     <div class="relative flex-1">
                         <input type="text" id="memberSearchInput" oninput="handleMemberSearchInput()" placeholder="搜尋角色或 LINE 暱稱..."
@@ -99,12 +140,17 @@
                     </select>
                 </div>
 
-                <!-- 團體速查快捷按鈕 -->
-                <div id="groupToolBar" class="hidden flex items-center justify-between px-1">
-                    <span class="text-xs font-bold text-slate-500">團體歸類速查</span>
-                    <button onclick="openCreateGroupModal()" class="text-xs font-bold text-sky-600 hover:text-sky-700 bg-sky-50 px-2.5 py-1 rounded-lg border border-sky-200 transition">
-                        + 新增小團體
-                    </button>
+                <!-- 團體速查專屬工具列 (活躍/封存頁籤 + 新增小團體按鈕) -->
+                <div id="groupToolBar" class="hidden space-y-2">
+                    <div class="flex items-center justify-between">
+                        <div class="flex gap-1 bg-sky-50/80 p-1 rounded-xl border border-sky-100">
+                            <button id="groupTabActive" onclick="switchGroupSubTab('active')" class="px-2.5 py-1 text-xs font-black rounded-lg bg-white text-sky-900 shadow-xs">活躍團體</button>
+                            <button id="groupTabArchived" onclick="switchGroupSubTab('archived')" class="px-2.5 py-1 text-xs font-bold rounded-lg text-slate-500 hover:text-slate-800">封存團體</button>
+                        </div>
+                        <button onclick="openCreateGroupModal()" class="text-xs font-bold text-sky-600 hover:text-sky-700 bg-sky-50 px-2.5 py-1 rounded-lg border border-sky-200 transition">
+                            + 新增小團體
+                        </button>
+                    </div>
                 </div>
 
                 <div id="memberListContainer" class="space-y-3 min-h-[260px]"></div>
@@ -130,14 +176,15 @@
                     <div id="rankListContainer" class="space-y-2"></div>
                 </div>
 
-                <!-- 請假明細列表 (支援角色/活動關鍵字與日期過濾) -->
+                <!-- 請假明細列表 (日期欄位具備灰字提示) -->
                 <div id="leaveListView" class="hidden space-y-3">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         <input type="text" id="leaveSearchInput" oninput="renderLeaveList()" placeholder="搜尋角色或活動名稱..."
                                class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:bg-white transition">
+                        
                         <div class="flex items-center gap-1.5">
-                            <input type="date" id="leaveDateFilter" onchange="renderLeaveList()" 
-                                   class="flex-1 bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:bg-white transition">
+                            <input type="date" id="leaveDateFilter" onchange="renderLeaveList()" placeholder="請選擇搜尋日期..."
+                                   class="flex-1 bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-sky-400 focus:bg-white transition">
                             <button onclick="clearLeaveDateFilter()" class="bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold px-2.5 h-[42px] rounded-xl transition">
                                 清除
                             </button>
@@ -158,7 +205,6 @@
 
             <!-- 區塊 4：推播設定 -->
             <section id="sectionBroadcast" class="hidden space-y-4">
-                <!-- 紅字額度提醒 -->
                 <div class="p-3 bg-rose-50 border border-rose-200 rounded-xl text-left">
                     <div class="text-xs font-black text-rose-700 mb-1">LINE 訊息發送額度提醒</div>
                     <p class="text-[11px] text-rose-600 leading-relaxed font-bold">
@@ -166,7 +212,6 @@
                     </p>
                 </div>
 
-                <!-- (1) 請假項目與超時推播管理 -->
                 <div class="space-y-2 text-left">
                     <div class="flex items-center justify-between">
                         <div>
@@ -182,7 +227,6 @@
 
                 <div class="border-t border-slate-100 pt-2"></div>
 
-                <!-- (2) 固定排程與事件推播設定 -->
                 <div class="space-y-2 text-left">
                     <div class="flex items-center justify-between">
                         <span class="text-xs font-black text-slate-900">固定與事件推播排程</span>
@@ -331,7 +375,7 @@
         </div>
     </div>
 
-    <!-- 彈窗 4：推播排程編輯 Modal (頻率下拉選單與時間輸入框等高) -->
+    <!-- 彈窗 4：推播排程編輯 Modal -->
     <div id="broadcastModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
         <div class="bg-white w-full max-w-md rounded-[28px] p-6 border-2 border-sky-200 soft-sky-shadow max-h-[90vh] overflow-y-auto">
             <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
@@ -359,18 +403,15 @@
                     </div>
                 </div>
 
-                <!-- 動態觸發/週期容器 -->
                 <div>
                     <label class="block mb-1 text-slate-800">觸發條件 / 重複週期</label>
                     
-                    <!-- Always 模式 -->
                     <div id="freqBoxAlways" class="hidden">
                         <select id="formBcEventSelect" class="w-full h-[42px] leading-[42px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900">
                             <option value="Join">Join (成員加入公會大群時)</option>
                         </select>
                     </div>
 
-                    <!-- Weekly 模式 (複選星期) -->
                     <div id="freqBoxWeekly" class="space-y-1.5">
                         <div class="grid grid-cols-7 gap-1 text-center select-none">
                             <label class="cursor-pointer"><input type="checkbox" name="weekCheck" value="1" class="sr-only peer"><div class="p-1.5 bg-[#F8FAFC] border border-sky-200 rounded-lg text-slate-600 peer-checked:bg-sky-500 peer-checked:text-white font-bold text-[11px]">一</div></label>
@@ -383,7 +424,6 @@
                         </div>
                     </div>
 
-                    <!-- Daily 模式 -->
                     <div id="freqBoxDaily" class="hidden">
                         <input type="text" disabled value="每日定時發送（無須額外事件）" class="w-full h-[42px] leading-[42px] bg-slate-100 border border-slate-200 text-slate-400 rounded-xl px-3 text-xs font-bold cursor-not-allowed">
                     </div>
@@ -425,7 +465,7 @@
         </div>
     </div>
 
-    <!-- 彈窗 6：請假項目與超時推播設定 Modal (新增星期複選功能) -->
+    <!-- 彈窗 6：請假項目與超時推播設定 Modal -->
     <div id="urgentRuleModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
         <div class="bg-white w-full max-w-md rounded-[28px] p-6 border-2 border-sky-200 soft-sky-shadow max-h-[90vh] overflow-y-auto">
             <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
@@ -451,7 +491,6 @@
                     </div>
                 </div>
 
-                <!-- 星期複選設定 -->
                 <div>
                     <label class="block mb-1 text-slate-800">活動舉辦星期（供排程提醒，可複選）</label>
                     <div class="grid grid-cols-7 gap-1 text-center select-none">
@@ -520,30 +559,52 @@
             }
         ];
 
-        // 請假項目與超時推播設定 (支援 cycle 星期)
         let urgentLeaveRules = [
             { event: "公會GVG聯賽", latestTime: "20:00", enabled: true, cycle: "2;4" },
             { event: "週常公會副本", latestTime: "20:00", enabled: false, cycle: "6" }
         ];
 
-        // 推播排程
         let broadcastSchedules = [
             { id: "BC01", item: "新人入會", freq: "Always", cycle: "Join", time: "", content: "熱烈歡迎新夥伴加入公會！請先詳閱記事本規範並綁定資料喔～", active: true },
             { id: "BC02", item: "聯賽開始", freq: "Weekly", cycle: "2;4", time: "20:00", content: "聯賽準備開始，請全體成員進 DC 語音就位！", active: true },
             { id: "BC03", item: "提醒請假", freq: "Weekly", cycle: "2;4", time: "18:00", content: "今日有聯賽，有事不能參加請提前於 20:00 前至系統請假完成！", active: true }
         ];
 
+        // 手動封存的小團體黑名單
+        let manuallyArchivedGroups = [];
+
         let currentMainSection = "members";
         let currentMemberSubTab = "pending";
+        let currentGroupSubTab = "active"; // 'active' | 'archived'
         let currentLeaveView = "rank";
         let currentRankFilter = "all";
         let currentViewingEventId = null;
 
         window.addEventListener("DOMContentLoaded", () => {
+            loadGroupSettings();
             updateHeaderActionBtn();
             updateMemberCounts();
             renderMembersList();
         });
+
+        // 讀取/儲存 群組 ID
+        function loadGroupSettings() {
+            const savedGuildId = localStorage.getItem("gm_guild_group_id") || "";
+            const savedAdminId = localStorage.getItem("gm_admin_group_id") || "";
+            document.getElementById('guildGroupIdInput').value = savedGuildId;
+            document.getElementById('adminGroupIdInput').value = savedAdminId;
+        }
+
+        function saveGroupSettings() {
+            const gId = document.getElementById('guildGroupIdInput').value.trim();
+            const aId = document.getElementById('adminGroupIdInput').value.trim();
+            localStorage.setItem("gm_guild_group_id", gId);
+            localStorage.setItem("gm_admin_group_id", aId);
+
+            const msg = document.getElementById('groupIdSaveMsg');
+            msg.classList.remove('hidden');
+            setTimeout(() => msg.classList.add('hidden'), 2500);
+        }
 
         function switchMainSection(section) {
             currentMainSection = section;
@@ -620,6 +681,21 @@
                 groupToolBar.classList.add('hidden');
                 renderMembersList();
             }
+        }
+
+        function switchGroupSubTab(subTab) {
+            currentGroupSubTab = subTab;
+            const tabAct = document.getElementById('groupTabActive');
+            const tabArch = document.getElementById('groupTabArchived');
+
+            if (subTab === 'active') {
+                tabAct.className = "px-2.5 py-1 text-xs font-black rounded-lg bg-white text-sky-900 shadow-xs";
+                tabArch.className = "px-2.5 py-1 text-xs font-bold rounded-lg text-slate-500 hover:text-slate-800";
+            } else {
+                tabArch.className = "px-2.5 py-1 text-xs font-black rounded-lg bg-white text-sky-900 shadow-xs";
+                tabAct.className = "px-2.5 py-1 text-xs font-bold rounded-lg text-slate-500 hover:text-slate-800";
+            }
+            renderGroupOverview();
         }
 
         function handleMemberSearchInput() {
@@ -707,7 +783,7 @@
             });
         }
 
-        // 團體速查 (支援成員查詢、在籍改為現任、不顯示未分組獨立成員)
+        // 團體速查 (自動封存全部退會團體、支援手動封存與解除、支援關鍵字搜尋)
         function renderGroupOverview() {
             const container = document.getElementById('memberListContainer');
             container.innerHTML = "";
@@ -716,27 +792,34 @@
             const groups = {};
             membersData.forEach(m => {
                 const groupName = m.teamGroup ? m.teamGroup.trim() : "";
-                // 排除未分組獨立成員
                 if (!groupName) return;
 
                 if (!groups[groupName]) groups[groupName] = [];
                 groups[groupName].push(m);
             });
 
-            const groupKeys = Object.keys(groups).sort((a, b) => groups[b].length - groups[a].length);
-
+            const groupKeys = Object.keys(groups);
             let renderedGroupCount = 0;
 
             groupKeys.forEach(gName => {
                 let list = groups[gName];
 
-                // 支援關鍵字搜尋成員
+                // 判斷團體是否全部退會
+                const allMembersRetired = list.every(m => m.guildRole === "退會");
+                // 判斷是否為封存 (全退會自動封存 OR 幹部手動封存)
+                const isArchived = allMembersRetired || manuallyArchivedGroups.includes(gName);
+
+                // 依當前子頁籤過濾
+                if (currentGroupSubTab === 'active' && isArchived) return;
+                if (currentGroupSubTab === 'archived' && !isArchived) return;
+
+                // 關鍵字搜尋
                 if (keyword) {
                     list = list.filter(m => 
                         (m.gameNickname && m.gameNickname.toLowerCase().includes(keyword)) ||
                         (m.lineDisplayName && m.lineDisplayName.toLowerCase().includes(keyword))
                     );
-                    if (list.length === 0) return; // 該團體無符合成員則不顯示
+                    if (list.length === 0) return;
                 }
 
                 renderedGroupCount++;
@@ -748,7 +831,18 @@
                     <div class="flex items-center justify-between pb-2 border-b border-slate-100">
                         <div class="flex items-center gap-2">
                             <h3 class="text-sm font-black text-slate-900">${gName}</h3>
-                            <span class="text-[10px] bg-sky-100 text-sky-800 px-2 py-0.5 rounded-full font-bold">現任 ${activeCount} 人 / 總計 ${list.length} 人</span>
+                            <span class="text-[10px] ${isArchived ? 'bg-slate-100 text-slate-500' : 'bg-sky-100 text-sky-800'} px-2 py-0.5 rounded-full font-bold">現任 ${activeCount} 人 / 總計 ${list.length} 人</span>
+                        </div>
+                        <div>
+                            ${isArchived ? `
+                                <button onclick="unarchiveGroup('${gName}')" class="text-xs font-bold text-sky-600 hover:text-sky-700 bg-sky-50 border border-sky-200 px-2 py-1 rounded-lg transition">
+                                    解除封存
+                                </button>
+                            ` : `
+                                <button onclick="archiveGroup('${gName}')" class="text-xs font-bold text-slate-500 hover:text-slate-700 bg-slate-50 border border-slate-200 px-2 py-1 rounded-lg transition">
+                                    封存團體
+                                </button>
+                            `}
                         </div>
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -772,11 +866,27 @@
             });
 
             if (renderedGroupCount === 0) {
-                container.innerHTML = `<div class="bg-[#F8FAFC] rounded-2xl p-6 text-center text-xs text-slate-400 font-bold border border-sky-100">查無相符團體或目前尚無建立小團體</div>`;
+                const emptyMsg = currentGroupSubTab === 'active' ? '查無活躍的小團體' : '目前無封存的團體';
+                container.innerHTML = `<div class="bg-[#F8FAFC] rounded-2xl p-6 text-center text-xs text-slate-400 font-bold border border-sky-100">${emptyMsg}</div>`;
             }
         }
 
-        // 開啟快速新增小團體彈窗
+        function archiveGroup(groupName) {
+            if (confirm(`確定要將【${groupName}】移至封存區嗎？`)) {
+                if (!manuallyArchivedGroups.includes(groupName)) {
+                    manuallyArchivedGroups.push(groupName);
+                }
+                renderGroupOverview();
+            }
+        }
+
+        function unarchiveGroup(groupName) {
+            if (confirm(`確定將【${groupName}】恢復為活躍團體嗎？`)) {
+                manuallyArchivedGroups = manuallyArchivedGroups.filter(g => g !== groupName);
+                renderGroupOverview();
+            }
+        }
+
         function openCreateGroupModal() {
             const form = document.getElementById('createGroupForm');
             form.reset();
@@ -819,6 +929,9 @@
                     m.updateTime = new Date().toISOString().split('T')[0];
                 }
             });
+
+            // 若原本手動封存過此名稱，移除封存狀態
+            manuallyArchivedGroups = manuallyArchivedGroups.filter(g => g !== groupName);
 
             closeModal('createGroupModal');
             renderGroupOverview();
@@ -891,7 +1004,7 @@
             else renderMembersList();
         });
 
-        // 請假模組 (支援最近日到最遠日排序、日期過濾)
+        // 請假模組
         function switchLeaveSubView(view) {
             currentLeaveView = view;
             const tabRank = document.getElementById('leaveSubTabRank');
@@ -1009,14 +1122,12 @@
             renderLeaveList();
         }
 
-        // 請假流水帳列表：依日期最近到最遠排序、支援關鍵字與日期過濾
         function renderLeaveList() {
             const container = document.getElementById('leaveHistoryContainer');
             container.innerHTML = "";
             const kw = document.getElementById('leaveSearchInput').value.trim().toLowerCase();
             const dateFilter = document.getElementById('leaveDateFilter').value;
 
-            // 依日期由最近到最遠降冪排序
             let list = [...leavesData].sort((a, b) => new Date(b.date) - new Date(a.date));
 
             list = list.filter(l => {
@@ -1206,7 +1317,7 @@
             }
         }
 
-        // 推播設定模組 (含請假活動項目列表與星期複選)
+        // 推播設定模組
         function renderBroadcastSection() {
             const urgentContainer = document.getElementById('urgentRuleContainer');
             urgentContainer.innerHTML = "";
@@ -1274,7 +1385,6 @@
             renderBroadcastSection();
         }
 
-        // 請假項目 Modal (支援星期複選)
         function openUrgentRuleModal(mode, idx = null) {
             const modal = document.getElementById('urgentRuleModal');
             document.getElementById('urgentRuleForm').reset();
@@ -1326,7 +1436,6 @@
             renderBroadcastSection();
         });
 
-        // 頻率聯動
         function handleFrequencyChange() {
             const freq = document.getElementById('formBcFreq').value;
             const boxAlways = document.getElementById('freqBoxAlways');
