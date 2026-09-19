@@ -40,35 +40,41 @@
             <div id="quickActionBtnContainer"></div>
         </div>
 
-        <!-- 經典頁籤列 (比照範例圖結構) -->
-        <div class="bg-sky-500 rounded-t-2xl px-3 pt-3 flex items-end gap-1.5 select-none">
+        <!-- 經典 4 頁籤列 -->
+        <div class="bg-sky-500 rounded-t-2xl px-2 pt-3 flex items-end gap-1 select-none overflow-x-auto">
             <button id="mainTabMembers" onclick="switchMainSection('members')" 
-                    class="bg-white text-sky-900 font-black px-4 py-2.5 rounded-t-xl text-xs flex items-center gap-1.5 transition-all relative top-[1px] shadow-sm">
+                    class="bg-white text-sky-900 font-black px-3 py-2.5 rounded-t-xl text-xs flex items-center gap-1 transition-all relative top-[1px] shadow-sm whitespace-nowrap">
                 <span>成員名冊</span>
                 <span id="badgePendingCount" class="bg-rose-500 text-white text-[10px] px-1.5 py-0.2 rounded-full hidden">0</span>
             </button>
             <button id="mainTabLeaves" onclick="switchMainSection('leaves')" 
-                    class="text-sky-100 hover:text-white font-bold px-4 py-2 text-xs rounded-t-xl transition-all">
+                    class="text-sky-100 hover:text-white font-bold px-3 py-2 text-xs rounded-t-xl transition-all whitespace-nowrap">
                 <span>請假紀錄</span>
             </button>
             <button id="mainTabEvents" onclick="switchMainSection('events')" 
-                    class="text-sky-100 hover:text-white font-bold px-4 py-2 text-xs rounded-t-xl transition-all">
+                    class="text-sky-100 hover:text-white font-bold px-3 py-2 text-xs rounded-t-xl transition-all whitespace-nowrap">
                 <span>活動報名</span>
+            </button>
+            <button id="mainTabBroadcast" onclick="switchMainSection('broadcast')" 
+                    class="text-sky-100 hover:text-white font-bold px-3 py-2 text-xs rounded-t-xl transition-all whitespace-nowrap">
+                <span>推播設定</span>
             </button>
         </div>
 
-        <!-- 主體內容卡片 (與頁籤連為一體) -->
+        <!-- 主體內容卡片 -->
         <div class="bg-white rounded-b-2xl p-4 sm:p-5 border-2 border-t-0 border-sky-200/80 soft-sky-shadow mb-6">
             
             <!-- 區塊 1：成員名冊與審核 -->
             <section id="sectionMembers" class="space-y-4">
-                <div class="grid grid-cols-3 gap-1.5 p-1 bg-sky-50 rounded-xl border border-sky-100 text-xs font-bold">
+                <div class="grid grid-cols-4 gap-1 p-1 bg-sky-50 rounded-xl border border-sky-100 text-xs font-bold">
                     <button id="subTabPending" onclick="switchMemberSubTab('pending')" class="py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black">待審核</button>
                     <button id="subTabActive" onclick="switchMemberSubTab('active')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800">現任成員</button>
+                    <button id="subTabGroups" onclick="switchMemberSubTab('groups')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800">團體速查</button>
                     <button id="subTabRetired" onclick="switchMemberSubTab('retired')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800">退會封存</button>
                 </div>
 
-                <div class="flex gap-2 items-center">
+                <!-- 搜尋列 (一般列表模式) -->
+                <div id="memberFilterBar" class="flex gap-2 items-center">
                     <div class="relative flex-1">
                         <input type="text" id="memberSearchInput" oninput="renderMembersList()" placeholder="搜尋角色或 LINE 暱稱..."
                                class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:bg-white transition">
@@ -122,6 +128,39 @@
                     <span id="eventCountText" class="text-sky-900">共 0 場活動</span>
                 </div>
                 <div id="eventListContainer" class="space-y-3"></div>
+            </section>
+
+            <!-- 區塊 4：推播設定 -->
+            <section id="sectionBroadcast" class="hidden space-y-4">
+                <!-- 紅字額度提醒 -->
+                <div class="p-3 bg-rose-50 border border-rose-200 rounded-xl text-left">
+                    <div class="text-xs font-black text-rose-700 mb-1">LINE 訊息發送額度提醒</div>
+                    <p class="text-[11px] text-rose-600 leading-relaxed font-bold">
+                        目前 LINE 官方帳號免費訊息額度為每月 200 則。若推播頻率較高或群組人數多導致用量超過 200 則，請務必自行至 LINE Official Account Manager 後台升級輕量/中量方案，避免訊息遭系統中斷。
+                    </p>
+                </div>
+
+                <!-- (1) 超時請假即時推播規則 -->
+                <div class="space-y-2 text-left">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-black text-slate-900">超時請假即時推播規則</span>
+                        <span class="text-[10px] text-slate-400 font-bold">逾時送單即刻通知幹部群</span>
+                    </div>
+                    <div id="urgentRuleContainer" class="space-y-2"></div>
+                </div>
+
+                <div class="border-t border-slate-100 pt-2"></div>
+
+                <!-- (2) 固定週期與事件推播設定 -->
+                <div class="space-y-2 text-left">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-black text-slate-900">固定與事件推播排程</span>
+                        <button onclick="openBroadcastModal('create')" class="text-xs font-bold text-sky-600 hover:text-sky-700 bg-sky-50 px-2.5 py-1 rounded-lg border border-sky-200">
+                            + 新增排程
+                        </button>
+                    </div>
+                    <div id="scheduleBroadcastContainer" class="space-y-2"></div>
+                </div>
             </section>
 
         </div>
@@ -246,7 +285,7 @@
         </div>
     </div>
 
-    <!-- 彈窗 3：活動報名名冊抽屜 Modal -->
+    <!-- 彈窗 3：活動報名名冊抽屜 Modal (含移除功能) -->
     <div id="eventAttendeesModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
         <div class="bg-white w-full max-w-md rounded-[28px] p-6 border-2 border-sky-200 soft-sky-shadow max-h-[90vh] flex flex-col">
             <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
@@ -261,13 +300,56 @@
         </div>
     </div>
 
+    <!-- 彈窗 4：推播排程編輯 Modal -->
+    <div id="broadcastModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
+        <div class="bg-white w-full max-w-md rounded-[28px] p-6 border-2 border-sky-200 soft-sky-shadow max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+                <h3 id="broadcastModalTitle" class="text-base font-black text-slate-900">編輯推播項目</h3>
+                <button onclick="closeModal('broadcastModal')" class="text-slate-400 hover:text-slate-600 text-sm font-bold">關閉</button>
+            </div>
+            <form id="broadcastForm" class="space-y-3 text-left text-xs font-bold text-slate-700">
+                <input type="hidden" id="formBroadcastId">
+                <div>
+                    <label class="block mb-1 text-slate-800">項目名稱 <span class="text-rose-500">*</span></label>
+                    <input type="text" id="formBcTitle" required placeholder="例如：提醒請假、聯賽開始" class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block mb-1 text-slate-800">推播頻率</label>
+                        <select id="formBcFreq" onchange="toggleCycleInput()" class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
+                            <option value="Weekly">Weekly (每週固定)</option>
+                            <option value="Always">Always (觸發即發)</option>
+                            <option value="Daily">Daily (每日)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block mb-1 text-slate-800">推播時間</label>
+                        <input type="time" id="formBcTime" class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
+                    </div>
+                </div>
+                <div>
+                    <label class="block mb-1 text-slate-800">推播週期 / 觸發事件</label>
+                    <input type="text" id="formBcCycle" placeholder="例如：2;4 (代表週二、四) 或 Join (新人進群)" class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
+                </div>
+                <div>
+                    <label class="block mb-1 text-slate-800">推播內容 <span class="text-rose-500">*</span></label>
+                    <textarea id="formBcContent" rows="3" required placeholder="輸入要在 LINE 群組推播的文案..." class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl p-3 text-xs font-bold text-slate-900 resize-none"></textarea>
+                </div>
+                <div class="flex gap-2 pt-3">
+                    <button type="button" onclick="closeModal('broadcastModal')" class="w-1/3 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 rounded-xl transition">取消</button>
+                    <button type="submit" class="flex-1 bg-sky-500 hover:bg-sky-600 text-white font-bold py-2.5 rounded-xl transition shadow-md shadow-sky-200">儲存推播</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
-        // 本地模擬資料庫
+        // 本地模擬資料庫 (完整對齊試算表各工作表)
         let membersData = [
             { rowIndex: 2, lineUserId: "U1001", gameNickname: "超級法神", gameClass: "超魔導士", lineDisplayName: "123", allowSearch: "Y", accountStatus: "已審核", updateTime: "2026-09-18", guildRole: "現任", teamGroup: "媽咪團" },
             { rowIndex: 3, lineUserId: "U1002", gameNickname: "暗夜殺手", gameClass: "十字刺客", lineDisplayName: "QQQ", allowSearch: "N", accountStatus: "已審核", updateTime: "2026-09-18", guildRole: "現任", teamGroup: "一線主力" },
-            { rowIndex: 4, lineUserId: "U1003", gameNickname: "舞力全開", gameClass: "冷豔舞姬（舞孃）", lineDisplayName: "ABC", allowSearch: "Y", accountStatus: "已審核", updateTime: "2026-09-18", guildRole: "現任", teamGroup: "" },
-            { rowIndex: 5, lineUserId: "U1004", gameNickname: "克蘿伊", gameClass: "冷豔舞姬（舞孃）", lineDisplayName: "Chloe", allowSearch: "Y", accountStatus: "待審核", updateTime: "2026-09-19", guildRole: "退會", teamGroup: "" },
+            { rowIndex: 4, lineUserId: "U1003", gameNickname: "舞力全開", gameClass: "冷豔舞姬（舞孃）", lineDisplayName: "ABC", allowSearch: "Y", accountStatus: "已審核", updateTime: "2026-09-18", guildRole: "現任", teamGroup: "媽咪團" },
+            { rowIndex: 5, lineUserId: "U1004", gameNickname: "克蘿伊", gameClass: "冷豔舞姬（舞孃）", lineDisplayName: "Chloe", allowSearch: "Y", accountStatus: "待審核", updateTime: "2026-09-19", guildRole: "退會", teamGroup: "媽咪團" },
             { rowIndex: 6, lineUserId: "U1005", gameNickname: "鐵拳無敵", gameClass: "武術宗師", lineDisplayName: "Tom", allowSearch: "Y", accountStatus: "待審核", updateTime: "2026-09-19", guildRole: "", teamGroup: "" }
         ];
 
@@ -308,10 +390,24 @@
             }
         ];
 
+        // 試算表工作表：請假設定 (超時即時推播規則)
+        let urgentLeaveRules = [
+            { event: "聯賽", latestTime: "20:00", enabled: true },
+            { event: "城戰", latestTime: "20:00", enabled: false }
+        ];
+
+        // 試算表工作表：推播設定 (固定排程與事件)
+        let broadcastSchedules = [
+            { id: "BC01", item: "新人入會", freq: "Always", cycle: "Join", time: "", content: "熱烈歡迎新夥伴加入公會！請先詳閱記事本規範並綁定資料喔～", active: true },
+            { id: "BC02", item: "聯賽開始", freq: "Weekly", cycle: "2;4", time: "20:00", content: "聯賽準備開始，請全體成員進 DC 語音就位！", active: true },
+            { id: "BC03", item: "提醒請假", freq: "Weekly", cycle: "2;4", time: "18:00", content: "今日有聯賽，有事不能參加請提前於 20:00 前至系統請假完成！", active: true }
+        ];
+
         let currentMainSection = "members";
         let currentMemberSubTab = "pending";
         let currentLeaveView = "rank";
         let currentRankFilter = "all";
+        let currentViewingEventId = null;
 
         window.addEventListener("DOMContentLoaded", () => {
             updateHeaderActionBtn();
@@ -319,28 +415,30 @@
             renderMembersList();
         });
 
-        // 頁籤切換
+        // 頂層 4 頁籤切換
         function switchMainSection(section) {
             currentMainSection = section;
 
             const tabs = {
                 members: document.getElementById('mainTabMembers'),
                 leaves: document.getElementById('mainTabLeaves'),
-                events: document.getElementById('mainTabEvents')
+                events: document.getElementById('mainTabEvents'),
+                broadcast: document.getElementById('mainTabBroadcast')
             };
             const sections = {
                 members: document.getElementById('sectionMembers'),
                 leaves: document.getElementById('sectionLeaves'),
-                events: document.getElementById('sectionEvents')
+                events: document.getElementById('sectionEvents'),
+                broadcast: document.getElementById('sectionBroadcast')
             };
 
             Object.keys(tabs).forEach(k => {
                 if (k === section) {
-                    tabs[k].className = "bg-white text-sky-900 font-black px-4 py-2.5 rounded-t-xl text-xs flex items-center gap-1.5 transition-all relative top-[1px] shadow-sm";
+                    tabs[k].className = "bg-white text-sky-900 font-black px-3 py-2.5 rounded-t-xl text-xs flex items-center gap-1 transition-all relative top-[1px] shadow-sm whitespace-nowrap";
                     sections[k].classList.remove('hidden');
                     sections[k].classList.add('fade-in');
                 } else {
-                    tabs[k].className = "text-sky-100 hover:text-white font-bold px-4 py-2 text-xs rounded-t-xl transition-all";
+                    tabs[k].className = "text-sky-100 hover:text-white font-bold px-3 py-2 text-xs rounded-t-xl transition-all whitespace-nowrap";
                     sections[k].classList.add('hidden');
                 }
             });
@@ -349,6 +447,7 @@
 
             if (section === 'leaves') renderLeaveSection();
             if (section === 'events') renderEventsList();
+            if (section === 'broadcast') renderBroadcastSection();
         }
 
         function updateHeaderActionBtn() {
@@ -356,13 +455,13 @@
             if (currentMainSection === 'members') {
                 container.innerHTML = `
                     <button onclick="openMemberModal('create')" class="bg-sky-500 hover:bg-sky-600 active:scale-95 text-white text-xs font-black px-3.5 py-2 rounded-xl shadow-md shadow-sky-200 transition">
-                        新增成員
+                        + 新增成員
                     </button>
                 `;
             } else if (currentMainSection === 'events') {
                 container.innerHTML = `
                     <button onclick="openEventModal('create')" class="bg-sky-500 hover:bg-sky-600 active:scale-95 text-white text-xs font-black px-3.5 py-2 rounded-xl shadow-md shadow-sky-200 transition">
-                        建立活動
+                        + 建立活動
                     </button>
                 `;
             } else {
@@ -370,12 +469,13 @@
             }
         }
 
-        // 成員名冊模組
+        // 成員名冊模組 (含團體速查)
         function switchMemberSubTab(tab) {
             currentMemberSubTab = tab;
             const btns = {
                 pending: document.getElementById('subTabPending'),
                 active: document.getElementById('subTabActive'),
+                groups: document.getElementById('subTabGroups'),
                 retired: document.getElementById('subTabRetired')
             };
             Object.keys(btns).forEach(k => {
@@ -383,7 +483,16 @@
                     ? "py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black" 
                     : "py-1.5 rounded-lg text-slate-500 hover:text-slate-800";
             });
-            renderMembersList();
+
+            // 團體速查時隱藏一般搜尋欄
+            const filterBar = document.getElementById('memberFilterBar');
+            if (tab === 'groups') {
+                filterBar.classList.add('hidden');
+                renderGroupOverview();
+            } else {
+                filterBar.classList.remove('hidden');
+                renderMembersList();
+            }
         }
 
         function updateMemberCounts() {
@@ -463,6 +572,62 @@
             });
         }
 
+        // 團體速查功能：分析成員團體連帶關係
+        function renderGroupOverview() {
+            const container = document.getElementById('memberListContainer');
+            container.innerHTML = "";
+
+            const groups = {};
+            membersData.forEach(m => {
+                const groupName = m.teamGroup ? m.teamGroup.trim() : "未分組獨立成員";
+                if (!groups[groupName]) groups[groupName] = [];
+                groups[groupName].push(m);
+            });
+
+            const groupKeys = Object.keys(groups).sort((a, b) => {
+                if (a === "未分組獨立成員") return 1;
+                if (b === "未分組獨立成員") return -1;
+                return groups[b].length - groups[a].length;
+            });
+
+            groupKeys.forEach(gName => {
+                const list = groups[gName];
+                const activeCount = list.filter(x => x.guildRole !== "退會" && x.accountStatus === "已審核").length;
+                const isSolo = gName === "未分組獨立成員";
+
+                const card = document.createElement('div');
+                card.className = "bg-white rounded-2xl p-4 border border-sky-100 soft-sky-shadow text-left space-y-2.5 fade-in";
+                card.innerHTML = `
+                    <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h3 class="text-sm font-black text-slate-900">${gName}</h3>
+                                <span class="text-[10px] bg-sky-100 text-sky-800 px-2 py-0.5 rounded-full font-bold">在籍 ${activeCount} 人 / 總計 ${list.length} 人</span>
+                            </div>
+                            ${!isSolo ? `<p class="text-[10px] text-amber-700 mt-0.5">出走風險：若剔除核心成員，該團體其餘成員可能連帶出走</p>` : ''}
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        ${list.map(member => `
+                            <div class="p-2 rounded-xl bg-[#F8FAFC] border border-sky-100 flex items-center justify-between text-xs">
+                                <div>
+                                    <div class="font-black text-slate-800 flex items-center gap-1">
+                                        <span>${member.gameNickname}</span>
+                                        <span class="text-[9px] text-slate-400 font-normal">(${member.guildRole || '成員'})</span>
+                                    </div>
+                                    <div class="text-[10px] text-slate-500">${member.gameClass} · LINE: ${member.lineDisplayName}</div>
+                                </div>
+                                <span class="text-[10px] font-bold ${member.guildRole === '退會' ? 'text-rose-500' : 'text-sky-600'}">
+                                    ${member.guildRole === '退會' ? '已退會' : '正常在籍'}
+                                </span>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
         function approveMember(rowIndex) {
             const m = membersData.find(x => x.rowIndex === rowIndex);
             if (m && confirm(`確定核准【${m.gameNickname}】入會？`)) {
@@ -526,7 +691,8 @@
             }
             closeModal('memberModal');
             updateMemberCounts();
-            renderMembersList();
+            if (currentMemberSubTab === 'groups') renderGroupOverview();
+            else renderMembersList();
         });
 
         // 請假與缺勤排名模組
@@ -679,7 +845,7 @@
             });
         }
 
-        // 活動管理模組
+        // 活動管理模組 (含移除已報名成員)
         function renderEventsList() {
             const container = document.getElementById('eventListContainer');
             container.innerHTML = "";
@@ -786,6 +952,7 @@
         }
 
         function viewAttendees(eventId) {
+            currentViewingEventId = eventId;
             const evt = eventsData.find(e => e.id === eventId);
             if (!evt) return;
 
@@ -806,16 +973,138 @@
                             <span class="w-5 h-5 bg-sky-100 text-sky-800 rounded-full flex items-center justify-center font-bold text-[10px]">${i+1}</span>
                             <div>
                                 <div class="font-black text-slate-800">${a.gameNickname}</div>
-                                <div class="text-[10px] text-slate-400 font-bold">${a.gameClass}</div>
+                                <div class="text-[10px] text-slate-400 font-bold">${a.gameClass} · ${a.time}</div>
                             </div>
                         </div>
-                        <span class="text-[10px] text-slate-400 font-mono">${a.time}</span>
+                        <button onclick="removeAttendee('${a.gameNickname}')" class="text-xs font-bold text-rose-600 hover:text-rose-700 bg-rose-50 border border-rose-200 px-2 py-1 rounded-lg transition">
+                            移除
+                        </button>
                     `;
                     container.appendChild(row);
                 });
             }
             document.getElementById('eventAttendeesModal').classList.remove('hidden');
         }
+
+        // 移除報名成員
+        function removeAttendee(nick) {
+            if (!currentViewingEventId) return;
+            const evt = eventsData.find(e => e.id === currentViewingEventId);
+            if (!evt) return;
+
+            if (confirm(`確定要將【${nick}】從本活動報名名單中移除嗎？`)) {
+                evt.attendees = evt.attendees.filter(a => a.gameNickname !== nick);
+                viewAttendees(currentViewingEventId); // 刷新抽屜
+                renderEventsList(); // 同步刷新底層卡片進度
+            }
+        }
+
+        // 推播設定模組
+        function renderBroadcastSection() {
+            // (1) 超時請假即時推播規則
+            const urgentContainer = document.getElementById('urgentRuleContainer');
+            urgentContainer.innerHTML = "";
+
+            urgentLeaveRules.forEach((rule, idx) => {
+                const item = document.createElement('div');
+                item.className = "p-3 bg-[#F8FAFC] rounded-xl border border-sky-100 flex items-center justify-between text-xs";
+                item.innerHTML = `
+                    <div>
+                        <div class="font-black text-slate-900">${rule.event}</div>
+                        <div class="text-[11px] text-slate-500 font-bold">最晚請假截止時間：<span class="font-mono text-sky-700">${rule.latestTime}</span></div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-[10px] font-bold ${rule.enabled ? 'text-emerald-600' : 'text-slate-400'}">${rule.enabled ? '已啟用推播' : '關閉'}</span>
+                        <input type="checkbox" ${rule.enabled ? 'checked' : ''} onchange="toggleUrgentRule(${idx})" class="w-4 h-4 accent-sky-500 cursor-pointer">
+                    </div>
+                `;
+                urgentContainer.appendChild(item);
+            });
+
+            // (2) 固定排程與事件推播
+            const schedContainer = document.getElementById('scheduleBroadcastContainer');
+            schedContainer.innerHTML = "";
+
+            broadcastSchedules.forEach((bc, idx) => {
+                const item = document.createElement('div');
+                item.className = "p-3 bg-[#F8FAFC] rounded-xl border border-sky-100 space-y-2 text-xs";
+                item.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-1.5">
+                            <span class="font-black text-slate-900">${bc.item}</span>
+                            <span class="text-[10px] bg-sky-100 text-sky-800 px-1.5 py-0.2 rounded font-bold">${bc.freq}</span>
+                            <span class="text-[10px] text-slate-400 font-mono">${bc.time ? bc.time : '即時觸發'}</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <button onclick="openBroadcastModal('edit', '${bc.id}')" class="text-xs text-sky-700 hover:text-sky-800 font-bold">編輯</button>
+                            <span class="text-slate-300">|</span>
+                            <input type="checkbox" ${bc.active ? 'checked' : ''} onchange="toggleScheduleActive(${idx})" class="w-4 h-4 accent-sky-500 cursor-pointer">
+                        </div>
+                    </div>
+                    <div class="text-[11px] text-slate-600 bg-white p-2 rounded-lg border border-slate-100 font-medium">
+                        ${bc.content}
+                    </div>
+                    <div class="text-[10px] text-slate-400">觸發條件 / 週期：${bc.cycle}</div>
+                `;
+                schedContainer.appendChild(item);
+            });
+        }
+
+        function toggleUrgentRule(idx) {
+            urgentLeaveRules[idx].enabled = !urgentLeaveRules[idx].enabled;
+            renderBroadcastSection();
+        }
+
+        function toggleScheduleActive(idx) {
+            broadcastSchedules[idx].active = !broadcastSchedules[idx].active;
+            renderBroadcastSection();
+        }
+
+        function openBroadcastModal(mode, id = null) {
+            const modal = document.getElementById('broadcastModal');
+            document.getElementById('broadcastForm').reset();
+
+            if (mode === 'create') {
+                document.getElementById('broadcastModalTitle').textContent = "新增推播排程";
+                document.getElementById('formBroadcastId').value = "";
+                document.getElementById('formBcFreq').value = "Weekly";
+                document.getElementById('formBcTime').value = "20:00";
+            } else {
+                document.getElementById('broadcastModalTitle').textContent = "編輯推播排程";
+                const bc = broadcastSchedules.find(x => x.id === id);
+                if (!bc) return;
+                document.getElementById('formBroadcastId').value = bc.id;
+                document.getElementById('formBcTitle').value = bc.item;
+                document.getElementById('formBcFreq').value = bc.freq;
+                document.getElementById('formBcTime').value = bc.time || "";
+                document.getElementById('formBcCycle').value = bc.cycle || "";
+                document.getElementById('formBcContent').value = bc.content;
+            }
+            modal.classList.remove('hidden');
+        }
+
+        document.getElementById('broadcastForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const id = document.getElementById('formBroadcastId').value;
+            const data = {
+                item: document.getElementById('formBcTitle').value.trim(),
+                freq: document.getElementById('formBcFreq').value,
+                time: document.getElementById('formBcTime').value,
+                cycle: document.getElementById('formBcCycle').value.trim(),
+                content: document.getElementById('formBcContent').value.trim(),
+                active: true
+            };
+
+            if (id) {
+                const target = broadcastSchedules.find(x => x.id === id);
+                if (target) Object.assign(target, data);
+            } else {
+                data.id = "BC" + Date.now();
+                broadcastSchedules.push(data);
+            }
+            closeModal('broadcastModal');
+            renderBroadcastSection();
+        });
 
         function closeModal(id) {
             document.getElementById(id).classList.add('hidden');
