@@ -28,36 +28,18 @@
         input[type="date"], input[type="time"], select {
             -webkit-appearance: none;
             appearance: none;
-            min-height: 42px;
-            height: 42px;
-            line-height: 42px;
+            min-height: 40px;
+            height: 40px;
+            line-height: 40px;
             box-sizing: border-box;
-        }
-
-        /* 讓空值的 date input 顯示灰字提示 */
-        input[type="date"]:invalid {
-            color: #94a3b8;
-        }
-        input[type="date"]:not(:invalid) {
-            color: #0f172a;
-        }
-        input[type="date"]::before {
-            content: attr(placeholder);
-            color: #94a3b8;
-            margin-right: 0.5em;
-        }
-        input[type="date"]:focus::before,
-        input[type="date"]:valid::before {
-            content: "" !important;
-            display: none !important;
         }
     </style>
 </head>
 <body class="bg-[#F0F9FF] text-slate-800 antialiased selection:bg-sky-200 selection:text-sky-900 min-h-screen flex flex-col justify-between py-6 px-3 sm:px-4">
 
     <main class="max-w-lg w-full mx-auto">
-        <!-- 頂部身分與快捷按鈕 -->
-        <div class="flex items-center justify-between mb-3 px-1">
+        <!-- 頂部身分與快捷按鈕 (乾淨清爽版面) -->
+        <div class="flex items-center justify-between mb-4 px-1">
             <div>
                 <div class="inline-flex items-center gap-1.5 bg-sky-100 text-sky-800 border border-sky-200 text-[11px] font-bold px-3 py-0.5 rounded-full mb-1">
                     幹部專用後台
@@ -65,29 +47,6 @@
                 <h1 class="text-2xl font-black text-slate-900 tracking-tight">後台管理中心</h1>
             </div>
             <div id="quickActionBtnContainer"></div>
-        </div>
-
-        <!-- LINE 群組推播目標設定卡片 (公會群 ID / 幹部群 ID) -->
-        <div class="bg-white rounded-2xl p-3.5 border-2 border-sky-200/80 soft-sky-shadow mb-4 text-left">
-            <div class="flex items-center justify-between mb-2">
-                <span class="text-xs font-black text-slate-900">LINE 推播群組 ID 設定</span>
-                <span id="groupIdSaveMsg" class="text-[10px] text-emerald-600 font-bold hidden">已成功更新儲存</span>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
-                <div>
-                    <label class="block text-[11px] font-bold text-slate-600 mb-0.5">公會大群組 ID</label>
-                    <input type="text" id="guildGroupIdInput" placeholder="例如：C1234567890abcdef..."
-                           class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-2.5 py-1.5 text-xs font-mono font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400">
-                </div>
-                <div>
-                    <label class="block text-[11px] font-bold text-slate-600 mb-0.5">幹部專用群組 ID</label>
-                    <input type="text" id="adminGroupIdInput" placeholder="例如：C0987654321fedcba..."
-                           class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-2.5 py-1.5 text-xs font-mono font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400">
-                </div>
-            </div>
-            <button onclick="saveGroupSettings()" class="w-full bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 text-xs font-bold py-1.5 rounded-xl transition">
-                儲存群組 ID 設定
-            </button>
         </div>
 
         <!-- 經典 4 頁籤列 -->
@@ -127,9 +86,9 @@
                 <div class="flex gap-2 items-center">
                     <div class="relative flex-1">
                         <input type="text" id="memberSearchInput" oninput="handleMemberSearchInput()" placeholder="搜尋角色或 LINE 暱稱..."
-                               class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:bg-white transition">
+                               class="w-full h-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:bg-white transition box-border">
                     </div>
-                    <select id="memberClassFilter" onchange="renderMembersList()" class="bg-[#F8FAFC] border border-sky-200 rounded-xl px-2.5 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:bg-white transition">
+                    <select id="memberClassFilter" onchange="renderMembersList()" class="h-[40px] leading-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-2.5 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:bg-white transition box-border">
                         <option value="">全部職業</option>
                         <option value="劍士系">劍士系</option>
                         <option value="魔法師系">魔法師系</option>
@@ -140,7 +99,7 @@
                     </select>
                 </div>
 
-                <!-- 團體速查專屬工具列 (活躍/封存頁籤 + 新增小團體按鈕) -->
+                <!-- 團體速查專屬工具列 -->
                 <div id="groupToolBar" class="hidden space-y-2">
                     <div class="flex items-center justify-between">
                         <div class="flex gap-1 bg-sky-50/80 p-1 rounded-xl border border-sky-100">
@@ -176,16 +135,21 @@
                     <div id="rankListContainer" class="space-y-2"></div>
                 </div>
 
-                <!-- 請假明細列表 (日期欄位具備灰字提示) -->
+                <!-- 請假明細列表 (高度完全等高 h-[40px] + 日曆圖示提示) -->
                 <div id="leaveListView" class="hidden space-y-3">
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div class="space-y-2">
                         <input type="text" id="leaveSearchInput" oninput="renderLeaveList()" placeholder="搜尋角色或活動名稱..."
-                               class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:bg-white transition">
+                               class="w-full h-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:bg-white transition box-border">
                         
                         <div class="flex items-center gap-1.5">
-                            <input type="date" id="leaveDateFilter" onchange="renderLeaveList()" placeholder="請選擇搜尋日期..."
-                                   class="flex-1 bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-sky-400 focus:bg-white transition">
-                            <button onclick="clearLeaveDateFilter()" class="bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold px-2.5 h-[42px] rounded-xl transition">
+                            <!-- 附帶日曆圖示與文字提示的日期容器 -->
+                            <div class="flex-1 flex items-center bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 h-[40px] focus-within:ring-2 focus-within:ring-sky-400 focus-within:bg-white transition box-border">
+                                <span class="text-xs mr-2 select-none">📅</span>
+                                <span class="text-slate-400 text-xs font-bold whitespace-nowrap mr-1 select-none">請假日期：</span>
+                                <input type="date" id="leaveDateFilter" onchange="renderLeaveList()" 
+                                       class="w-full h-full bg-transparent border-0 p-0 text-xs font-bold text-slate-900 focus:outline-none cursor-pointer">
+                            </div>
+                            <button onclick="clearLeaveDateFilter()" class="bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold px-3 h-[40px] rounded-xl transition box-border whitespace-nowrap">
                                 清除
                             </button>
                         </div>
@@ -203,8 +167,10 @@
                 <div id="eventListContainer" class="space-y-3"></div>
             </section>
 
-            <!-- 區塊 4：推播設定 -->
+            <!-- 區塊 4：推播設定 (群組 ID 設定收納於此) -->
             <section id="sectionBroadcast" class="hidden space-y-4">
+                
+                <!-- 紅字額度提醒 -->
                 <div class="p-3 bg-rose-50 border border-rose-200 rounded-xl text-left">
                     <div class="text-xs font-black text-rose-700 mb-1">LINE 訊息發送額度提醒</div>
                     <p class="text-[11px] text-rose-600 leading-relaxed font-bold">
@@ -212,6 +178,30 @@
                     </p>
                 </div>
 
+                <!-- LINE 群組推播目標設定卡片 (移至推播設定內) -->
+                <div class="bg-[#F8FAFC] rounded-2xl p-3.5 border border-sky-100 text-left">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-black text-slate-900">LINE 推播群組 ID 設定</span>
+                        <span id="groupIdSaveMsg" class="text-[10px] text-emerald-600 font-bold hidden">已儲存完成</span>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-600 mb-0.5">公會大群組 ID</label>
+                            <input type="text" id="guildGroupIdInput" placeholder="例如：C1234567890abcdef..."
+                                   class="w-full h-[38px] bg-white border border-sky-200 rounded-xl px-2.5 text-xs font-mono font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400 box-border">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-600 mb-0.5">幹部專用群組 ID</label>
+                            <input type="text" id="adminGroupIdInput" placeholder="例如：C0987654321fedcba..."
+                                   class="w-full h-[38px] bg-white border border-sky-200 rounded-xl px-2.5 text-xs font-mono font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400 box-border">
+                        </div>
+                    </div>
+                    <button onclick="saveGroupSettings()" class="w-full bg-white hover:bg-sky-50 text-sky-800 border border-sky-200 text-xs font-bold py-2 rounded-xl transition shadow-xs">
+                        儲存群組 ID 設定
+                    </button>
+                </div>
+
+                <!-- 請假項目與超時推播管理 -->
                 <div class="space-y-2 text-left">
                     <div class="flex items-center justify-between">
                         <div>
@@ -227,6 +217,7 @@
 
                 <div class="border-t border-slate-100 pt-2"></div>
 
+                <!-- 固定與事件推播排程 -->
                 <div class="space-y-2 text-left">
                     <div class="flex items-center justify-between">
                         <span class="text-xs font-black text-slate-900">固定與事件推播排程</span>
@@ -258,7 +249,7 @@
                 </div>
                 <div>
                     <label class="block mb-1 text-slate-800">遊戲職業 <span class="text-rose-500">*</span></label>
-                    <select id="formGameClass" required class="w-full h-[42px] leading-[42px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-sky-400">
+                    <select id="formGameClass" required class="w-full h-[40px] leading-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-sky-400">
                         <option value="超魔導士">超魔導士</option>
                         <option value="學者（智者）">學者（智者）</option>
                         <option value="神射手">神射手</option>
@@ -281,7 +272,7 @@
                     </div>
                     <div>
                         <label class="block mb-1 text-slate-800">公會職位</label>
-                        <select id="formGuildRole" class="w-full h-[42px] leading-[42px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900">
+                        <select id="formGuildRole" class="w-full h-[40px] leading-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900">
                             <option value="現任">現任</option>
                             <option value="幹部">幹部</option>
                             <option value="副會長">副會長</option>
@@ -297,7 +288,7 @@
                     </div>
                     <div>
                         <label class="block mb-1 text-slate-800">帳號狀態</label>
-                        <select id="formAccountStatus" class="w-full h-[42px] leading-[42px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900">
+                        <select id="formAccountStatus" class="w-full h-[40px] leading-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900">
                             <option value="已審核">已審核</option>
                             <option value="待審核">待審核</option>
                         </select>
@@ -327,11 +318,11 @@
                 <div class="grid grid-cols-2 gap-3">
                     <div class="w-full">
                         <label class="block mb-1 text-slate-800">活動日期 <span class="text-rose-500">*</span></label>
-                        <input type="date" id="formEventDate" required class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900">
+                        <input type="date" id="formEventDate" required class="w-full h-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900">
                     </div>
                     <div class="w-full">
                         <label class="block mb-1 text-slate-800">集合時間 <span class="text-rose-500">*</span></label>
-                        <input type="time" id="formEventTime" required class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900">
+                        <input type="time" id="formEventTime" required class="w-full h-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900">
                     </div>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
@@ -341,7 +332,7 @@
                     </div>
                     <div>
                         <label class="block mb-1 text-slate-800">活動狀態</label>
-                        <select id="formEventStatus" class="w-full h-[42px] leading-[42px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900">
+                        <select id="formEventStatus" class="w-full h-[40px] leading-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900">
                             <option value="報名中">報名中</option>
                             <option value="已截止">已截止</option>
                             <option value="已結束">已結束</option>
@@ -391,7 +382,7 @@
                 <div class="grid grid-cols-2 gap-3">
                     <div class="w-full">
                         <label class="block mb-1 text-slate-800">推播頻率</label>
-                        <select id="formBcFreq" onchange="handleFrequencyChange()" class="w-full h-[42px] leading-[42px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900">
+                        <select id="formBcFreq" onchange="handleFrequencyChange()" class="w-full h-[40px] leading-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900">
                             <option value="Weekly">Weekly (每週固定)</option>
                             <option value="Always">Always (即時觸發)</option>
                             <option value="Daily">Daily (每日)</option>
@@ -399,7 +390,7 @@
                     </div>
                     <div class="w-full">
                         <label class="block mb-1 text-slate-800">推播時間</label>
-                        <input type="time" id="formBcTime" class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900">
+                        <input type="time" id="formBcTime" class="w-full h-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900">
                     </div>
                 </div>
 
@@ -407,7 +398,7 @@
                     <label class="block mb-1 text-slate-800">觸發條件 / 重複週期</label>
                     
                     <div id="freqBoxAlways" class="hidden">
-                        <select id="formBcEventSelect" class="w-full h-[42px] leading-[42px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900">
+                        <select id="formBcEventSelect" class="w-full h-[40px] leading-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900">
                             <option value="Join">Join (成員加入公會大群時)</option>
                         </select>
                     </div>
@@ -425,7 +416,7 @@
                     </div>
 
                     <div id="freqBoxDaily" class="hidden">
-                        <input type="text" disabled value="每日定時發送（無須額外事件）" class="w-full h-[42px] leading-[42px] bg-slate-100 border border-slate-200 text-slate-400 rounded-xl px-3 text-xs font-bold cursor-not-allowed">
+                        <input type="text" disabled value="每日定時發送（無須額外事件）" class="w-full h-[40px] leading-[40px] bg-slate-100 border border-slate-200 text-slate-400 rounded-xl px-3 text-xs font-bold cursor-not-allowed">
                     </div>
                 </div>
 
@@ -481,10 +472,10 @@
                 <div class="grid grid-cols-2 gap-3">
                     <div class="w-full">
                         <label class="block mb-1 text-slate-800">最晚送單截止時間 <span class="text-rose-500">*</span></label>
-                        <input type="time" id="formUrgentLatestTime" required class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900">
+                        <input type="time" id="formUrgentLatestTime" required class="w-full h-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900">
                     </div>
                     <div class="w-full flex flex-col justify-end">
-                        <label class="flex items-center gap-2 p-2 bg-[#F8FAFC] border border-sky-200 rounded-xl cursor-pointer h-[42px]">
+                        <label class="flex items-center gap-2 p-2 bg-[#F8FAFC] border border-sky-200 rounded-xl cursor-pointer h-[40px]">
                             <input type="checkbox" id="formUrgentEnabled" class="w-4 h-4 accent-sky-500" checked>
                             <span class="text-xs text-slate-800 font-bold">啟用超時推播</span>
                         </label>
@@ -522,13 +513,14 @@
             { rowIndex: 6, lineUserId: "U1005", gameNickname: "鐵拳無敵", gameClass: "武術宗師", lineDisplayName: "Tom", allowSearch: "Y", accountStatus: "待審核", updateTime: "2026-09-19", guildRole: "", teamGroup: "" }
         ];
 
+        // 請假資料新增 submitTime (填單日期時間)
         let leavesData = [
-            { id: "L001", gameNickname: "暗夜殺手", gameClass: "十字刺客", event: "公會GVG聯賽", date: "2026-09-19", reason: "加班無奈", isUrgent: true, operator: "本人" },
-            { id: "L002", gameNickname: "暗夜殺手", gameClass: "十字刺客", event: "週常公會副本", date: "2026-09-12", reason: "朋友聚會", isUrgent: false, operator: "本人" },
-            { id: "L003", gameNickname: "暗夜殺手", gameClass: "十字刺客", event: "公會團隊戰", date: "2026-08-20", reason: "身體不適", isUrgent: true, operator: "本人" },
-            { id: "L004", gameNickname: "超級法神", gameClass: "超魔導士", event: "公會GVG聯賽", date: "2026-09-19", reason: "家庭旅遊出國", isUrgent: false, operator: "本人" },
-            { id: "L005", gameNickname: "舞力全開", gameClass: "冷豔舞姬（舞孃）", event: "公會團隊戰", date: "2026-09-05", reason: "臨時有事", isUrgent: true, operator: "由 超級法神 代理" },
-            { id: "L006", gameNickname: "鐵拳無敵", gameClass: "武術宗師", event: "公會GVG聯賽", date: "2026-09-02", reason: "網路維護中", isUrgent: true, operator: "本人" }
+            { id: "L001", gameNickname: "暗夜殺手", gameClass: "十字刺客", event: "公會GVG聯賽", date: "2026-09-19", submitTime: "2026-09-19 20:15", reason: "加班無奈", isUrgent: true, operator: "本人" },
+            { id: "L002", gameNickname: "暗夜殺手", gameClass: "十字刺客", event: "週常公會副本", date: "2026-09-12", submitTime: "2026-09-11 14:20", reason: "朋友聚會", isUrgent: false, operator: "本人" },
+            { id: "L003", gameNickname: "暗夜殺手", gameClass: "十字刺客", event: "公會團隊戰", date: "2026-08-20", submitTime: "2026-08-20 18:40", reason: "身體不適", isUrgent: true, operator: "本人" },
+            { id: "L004", gameNickname: "超級法神", gameClass: "超魔導士", event: "公會GVG聯賽", date: "2026-09-19", submitTime: "2026-09-17 09:30", reason: "家庭旅遊出國", isUrgent: false, operator: "本人" },
+            { id: "L005", gameNickname: "舞力全開", gameClass: "冷豔舞姬（舞孃）", event: "公會團隊戰", date: "2026-09-05", submitTime: "2026-09-05 20:05", reason: "臨時有事", isUrgent: true, operator: "由 超級法神 代理" },
+            { id: "L006", gameNickname: "鐵拳無敵", gameClass: "武術宗師", event: "公會GVG聯賽", date: "2026-09-02", submitTime: "2026-09-02 20:30", reason: "網路維護中", isUrgent: true, operator: "本人" }
         ];
 
         let eventsData = [
@@ -570,12 +562,11 @@
             { id: "BC03", item: "提醒請假", freq: "Weekly", cycle: "2;4", time: "18:00", content: "今日有聯賽，有事不能參加請提前於 20:00 前至系統請假完成！", active: true }
         ];
 
-        // 手動封存的小團體黑名單
         let manuallyArchivedGroups = [];
 
         let currentMainSection = "members";
         let currentMemberSubTab = "pending";
-        let currentGroupSubTab = "active"; // 'active' | 'archived'
+        let currentGroupSubTab = "active";
         let currentLeaveView = "rank";
         let currentRankFilter = "all";
         let currentViewingEventId = null;
@@ -783,7 +774,7 @@
             });
         }
 
-        // 團體速查 (自動封存全部退會團體、支援手動封存與解除、支援關鍵字搜尋)
+        // 團體速查
         function renderGroupOverview() {
             const container = document.getElementById('memberListContainer');
             container.innerHTML = "";
@@ -804,16 +795,12 @@
             groupKeys.forEach(gName => {
                 let list = groups[gName];
 
-                // 判斷團體是否全部退會
                 const allMembersRetired = list.every(m => m.guildRole === "退會");
-                // 判斷是否為封存 (全退會自動封存 OR 幹部手動封存)
                 const isArchived = allMembersRetired || manuallyArchivedGroups.includes(gName);
 
-                // 依當前子頁籤過濾
                 if (currentGroupSubTab === 'active' && isArchived) return;
                 if (currentGroupSubTab === 'archived' && !isArchived) return;
 
-                // 關鍵字搜尋
                 if (keyword) {
                     list = list.filter(m => 
                         (m.gameNickname && m.gameNickname.toLowerCase().includes(keyword)) ||
@@ -930,7 +917,6 @@
                 }
             });
 
-            // 若原本手動封存過此名稱，移除封存狀態
             manuallyArchivedGroups = manuallyArchivedGroups.filter(g => g !== groupName);
 
             closeModal('createGroupModal');
@@ -1004,7 +990,7 @@
             else renderMembersList();
         });
 
-        // 請假模組
+        // 請假模組 (含填單日期時間顯示)
         function switchLeaveSubView(view) {
             currentLeaveView = view;
             const tabRank = document.getElementById('leaveSubTabRank');
@@ -1145,20 +1131,23 @@
 
             list.forEach(l => {
                 const card = document.createElement('div');
-                card.className = "bg-white rounded-2xl p-3 border border-sky-100 text-left soft-sky-shadow fade-in";
+                card.className = "bg-white rounded-2xl p-3.5 border border-sky-100 text-left soft-sky-shadow fade-in space-y-1.5";
                 card.innerHTML = `
-                    <div class="flex items-center justify-between mb-1">
+                    <div class="flex items-center justify-between">
                         <div class="flex items-center gap-1.5">
                             <span class="text-xs font-black text-slate-900">${l.gameNickname}</span>
                             ${l.isUrgent ? `<span class="bg-rose-50 text-rose-700 text-[9px] font-black px-1.5 py-0.2 rounded border border-rose-100">臨時請假</span>` : ''}
                         </div>
-                        <span class="text-[10px] font-mono text-slate-400">${l.date}</span>
+                        <span class="text-xs font-bold text-sky-800 font-mono">請假日期：${l.date}</span>
                     </div>
                     <div class="text-xs text-slate-700 font-bold">活動：${l.event}</div>
-                    <div class="text-xs text-slate-600 mt-1 bg-slate-50 p-2 rounded-xl border border-slate-100">
+                    <div class="text-xs text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-100 leading-relaxed">
                         理由：${l.reason}
                     </div>
-                    <div class="text-[10px] text-slate-400 text-right mt-1.5">由 ${l.operator} 登記</div>
+                    <div class="flex items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-slate-50">
+                        <span>由 ${l.operator} 登記</span>
+                        <span class="font-mono">填單時間：${l.submitTime || l.date}</span>
+                    </div>
                 `;
                 container.appendChild(card);
             });
