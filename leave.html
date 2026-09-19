@@ -401,10 +401,10 @@
         }
 
         function applyPendingReviewUI() {
-            document.getElementById('topBadge').textContent = "資格審核中";
+            document.getElementById('topBadge').textContent = "資格審核";
             document.getElementById('topBadge').className = "inline-block bg-amber-100/80 text-amber-800 border border-amber-200 text-xs font-bold px-3.5 py-1 rounded-full mb-3";
-            document.getElementById('pageMainTitle').textContent = "入會審核處理中";
-            document.getElementById('pageSubTitle').textContent = "幹部正在核對名冊，審核通過前無法請假";
+            document.getElementById('pageMainTitle').textContent = "入會申請處理中";
+            document.getElementById('pageSubTitle').textContent = "幹部正在核對名冊，目前無法請假";
 
             document.getElementById('pendingNickname').textContent = currentSelf.gameNickname || "-";
             document.getElementById('pendingClass').textContent = currentSelf.gameClass || "-";
@@ -428,7 +428,7 @@
 
         function applyUnregisteredUI() {
             document.getElementById('topBadge').textContent = "未登記會員";
-            document.getElementById('pageMainTitle').textContent = "尚未加入會員";
+            document.getElementById('pageMainTitle').textContent = "查無會員身分";
             document.getElementById('pageSubTitle').textContent = "請先綁定會員身分並待審核通過後再行請假";
 
             const unregCard = document.getElementById('unregisteredCard');
