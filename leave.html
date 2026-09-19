@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
-    <title>GuildMaster</title>
+    <title>GuildMaster - 請假系統</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800;900&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
@@ -39,30 +39,98 @@
     <main class="max-w-md w-full mx-auto">
         <!-- 頂部標題區 -->
         <div class="text-center mb-6">
-            <div class="inline-block bg-amber-100/80 text-amber-800 border border-amber-200 text-xs font-bold px-3.5 py-1 rounded-full mb-3">
-                請假表單
+            <div id="topBadge" class="inline-block bg-amber-100/80 text-amber-800 border border-amber-200 text-xs font-bold px-3.5 py-1 rounded-full mb-3">
+                身分確認中
             </div>
-            <h1 class="text-2xl font-black text-amber-950">
+            <h1 id="pageMainTitle" class="text-2xl font-black text-amber-950">
                 活動請假申請
             </h1>
-            <p class="text-xs text-amber-900/70 mt-1.5 leading-relaxed px-4">
-                公會活動需要大家齊心協力，請盡量出席一同並肩作戰喔！
+            <p id="pageSubTitle" class="text-xs text-amber-900/70 mt-1.5 leading-relaxed px-4">
+                正在連線核對會員資料...
             </p>
         </div>
 
-        <!-- 讀取狀態卡片 -->
+        <!-- 狀態 1：讀取中與逾時異常卡片 -->
         <div id="loadingCard" class="bg-white rounded-[32px] p-8 border-2 border-amber-200/80 soft-card-shadow text-center">
-            <div class="relative w-14 h-14 mx-auto mb-4">
+            <div id="loadingSpinner" class="relative w-14 h-14 mx-auto mb-4">
                 <div class="absolute inset-0 rounded-full border-4 border-amber-200 border-t-amber-500 animate-spin"></div>
                 <div class="w-full h-full rounded-full flex items-center justify-center text-xl">
                     📋
                 </div>
             </div>
-            <h3 class="text-sm font-black text-amber-950 mb-1">正在連線會員資料...</h3>
-            <p class="text-xs text-amber-800/60">正在確認會員身分，請稍候</p>
+            <h3 id="loadingTitle" class="text-sm font-black text-amber-950 mb-1">正在連線會員資料...</h3>
+            <p id="loadingDesc" class="text-xs text-amber-800/60">正在確認會員身分，請稍候</p>
+            
+            <div id="errorBox" class="hidden mt-4 text-left">
+                <div class="text-xs font-bold text-rose-700 mb-1">偵測到連線異常：</div>
+                <div id="errorDetail" class="text-[11px] text-rose-600 bg-rose-50 border border-rose-200 p-3 rounded-xl font-mono break-all leading-relaxed"></div>
+                <button onclick="location.reload()" class="w-full mt-3 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold py-2.5 rounded-xl shadow-md transition">
+                    重新載入重試
+                </button>
+            </div>
         </div>
 
-        <!-- 請假表單卡片 -->
+        <!-- 狀態 2：審核中專屬阻擋卡片 -->
+        <div id="pendingReviewCard" class="hidden bg-white rounded-[32px] p-6 sm:p-7 border-2 border-amber-200/80 soft-card-shadow text-center relative">
+            <div class="w-14 h-14 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-3 border-2 border-amber-200 text-2xl">
+                ⏳
+            </div>
+            <h3 class="text-base font-black text-amber-950 mb-1">入會資格審核中</h3>
+            <p class="text-xs text-amber-900/70 leading-relaxed mb-5">
+                您的會員資料尚在審核階段，目前無法使用請假系統。待幹部審核通過後即可正常申請！
+            </p>
+
+            <div class="bg-[#FFFDF9] rounded-2xl p-4 border border-amber-200/80 text-left text-sm space-y-2 mb-6 text-amber-950 shadow-inner">
+                <div class="flex items-center justify-between">
+                    <span class="text-amber-800/80 font-bold">遊戲暱稱：</span>
+                    <span id="pendingNickname" class="font-bold text-amber-950">-</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-amber-800/80 font-bold">遊戲職業：</span>
+                    <span id="pendingClass" class="font-bold text-amber-950">-</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-amber-800/80 font-bold">LINE 暱稱：</span>
+                    <span id="pendingLineName" class="font-bold text-amber-950">-</span>
+                </div>
+            </div>
+
+            <button onclick="closeLiffWindow()" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold py-3.5 rounded-2xl text-sm shadow-md shadow-amber-300/40 transition">
+                稍後再回來確認
+            </button>
+        </div>
+
+        <!-- 狀態 3：退會狀態專屬阻擋卡片 -->
+        <div id="rejectedCard" class="hidden bg-white rounded-[32px] p-6 sm:p-7 border-2 border-rose-200 soft-card-shadow text-center relative">
+            <div class="w-14 h-14 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-3 border-2 border-rose-200 text-2xl text-rose-500">
+                🚫
+            </div>
+            <h3 class="text-base font-black text-rose-950 mb-1">已退出公會</h3>
+            <p class="text-xs text-rose-800/70 leading-relaxed mb-5">
+                系統紀錄您目前為退會狀態，無法使用公會活動請假系統。如有疑問請向公會幹部反映。
+            </p>
+
+            <button onclick="closeLiffWindow()" class="w-full bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold py-3.5 rounded-2xl text-sm transition">
+                關閉視窗
+            </button>
+        </div>
+
+        <!-- 狀態 4：未登記成員卡片 -->
+        <div id="unregisteredCard" class="hidden bg-white rounded-[32px] p-6 sm:p-7 border-2 border-amber-200/80 soft-card-shadow text-center relative">
+            <div class="w-14 h-14 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-3 border-2 border-amber-200 text-2xl">
+                📝
+            </div>
+            <h3 class="text-base font-black text-amber-950 mb-1">尚未完成會員登記</h3>
+            <p class="text-xs text-amber-900/70 leading-relaxed mb-5">
+                請先填寫公會會員資料並通過審核，才能進行活動請假喔！
+            </p>
+
+            <button onclick="closeLiffWindow()" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold py-3.5 rounded-2xl text-sm shadow-md transition">
+                返回進行登記
+            </button>
+        </div>
+
+        <!-- 狀態 5：已審核會員請假表單卡片 -->
         <div id="leaveFormCard" class="hidden bg-white rounded-[32px] p-6 sm:p-7 border-2 border-amber-200/80 soft-card-shadow relative fade-in">
             
             <!-- 請假人員資訊列 -->
@@ -188,8 +256,11 @@
         let currentSelf = {
             userId: "",
             displayName: "",
+            pictureUrl: "",
             gameNickname: "",
-            gameClass: ""
+            gameClass: "",
+            accountStatus: "",
+            isRegistered: false
         };
 
         let targetMember = {
@@ -200,8 +271,9 @@
         };
 
         let availableMembers = [];
-        let isMembersLoading = true; // 狀態標記：是否仍在抓取名冊
+        let isMembersLoading = true;
 
+        // 15 秒 JSONP 逾時防護機制，防範 GAS 冷啟動逾時
         function jsonpCall(params) {
             return new Promise((resolve) => {
                 const callbackName = "gas_cb_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
@@ -215,7 +287,7 @@
 
                 const timer = setTimeout(() => {
                     cleanup();
-                    resolve({ status: "timeout" });
+                    resolve({ status: "timeout", message: "GAS 回應超過 15 秒逾時" });
                 }, 15000);
 
                 function cleanup() {
@@ -232,7 +304,7 @@
                 script.src = `${GAS_API_URL}?${queryString}`;
                 script.onerror = function() {
                     cleanup();
-                    resolve({ status: "error" });
+                    resolve({ status: "error", message: "Script 載入失敗或網路阻擋" });
                 };
 
                 document.body.appendChild(script);
@@ -240,7 +312,17 @@
         }
 
         window.addEventListener("DOMContentLoaded", async () => {
+            localStorage.clear();
+            sessionStorage.clear();
+
             document.getElementById('leaveDate').value = new Date().toISOString().split('T')[0];
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const queryUid = urlParams.get('uid') || urlParams.get('userId');
+            const queryName = urlParams.get('name') || urlParams.get('displayName');
+
+            let isLiffReady = false;
+            let liffErrorDetail = "";
 
             if (MY_LIFF_ID && typeof liff !== 'undefined') {
                 try {
@@ -249,34 +331,126 @@
                         const profile = await liff.getProfile();
                         currentSelf.userId = profile.userId;
                         currentSelf.displayName = profile.displayName;
+                        currentSelf.pictureUrl = profile.pictureUrl || "";
+                        isLiffReady = true;
                     } else {
                         liff.login();
                         return;
                     }
                 } catch (err) {
-                    console.error("LIFF 異常:", err);
+                    liffErrorDetail = (err.code ? `[代碼 ${err.code}] ` : "") + (err.message || JSON.stringify(err));
                 }
             }
 
+            if (!isLiffReady && queryUid) {
+                currentSelf.userId = queryUid;
+                if (queryName) currentSelf.displayName = decodeURIComponent(queryName);
+            }
+
+            await verifyAndDisplayLeaveView(liffErrorDetail);
+        });
+
+        async function verifyAndDisplayLeaveView(errorMsg) {
             if (!currentSelf.userId) {
-                const urlParams = new URLSearchParams(window.location.search);
-                currentSelf.userId = urlParams.get('uid') || "U2b228d4c591535f6cdbb37a3e3f69952";
+                document.getElementById('loadingSpinner').classList.add('hidden');
+                document.getElementById('loadingTitle').textContent = "無法辨識 LINE 身分";
+                document.getElementById('loadingDesc').textContent = "請確認您是點擊 LINE 官方專用連結開啟";
+                
+                const errBox = document.getElementById('errorBox');
+                const errDetail = document.getElementById('errorDetail');
+                errDetail.textContent = errorMsg || "LIFF 未能成功取得 Profile 資料。";
+                errBox.classList.remove('hidden');
+                return;
             }
 
-            // 同步讀取本人身分與背景名冊
-            loadAvailableMembers();
+            // 查詢身分
+            const result = await jsonpCall({ uid: currentSelf.userId });
 
-            const myData = await jsonpCall({ uid: currentSelf.userId });
-            if (myData && myData.status === "found") {
-                currentSelf.gameNickname = myData.gameNickname || "";
-                currentSelf.gameClass = myData.gameClass || "";
+            // 逾時或異常防呆：跳出提示並讓使用者手動重試，不放行未確認之身分
+            if (result && (result.status === "timeout" || result.status === "error")) {
+                document.getElementById('loadingSpinner').classList.add('hidden');
+                document.getElementById('loadingTitle').textContent = "連線名冊逾時";
+                document.getElementById('loadingDesc').textContent = "Google 試算表伺服器回應較慢，請點擊下方重試";
+                
+                const errBox = document.getElementById('errorBox');
+                const errDetail = document.getElementById('errorDetail');
+                errDetail.textContent = `[${result.status}] ${result.message || '請確認網路連線是否正常'}`;
+                errBox.classList.remove('hidden');
+                return;
             }
+
+            if (result && result.status === "found") {
+                currentSelf.gameNickname = result.gameNickname || "";
+                currentSelf.gameClass = result.gameClass || "";
+                currentSelf.displayName = result.lineDisplayName || currentSelf.displayName;
+                currentSelf.accountStatus = String(result.accountStatus || "").trim();
+                currentSelf.isRegistered = true;
+            }
+
+            document.getElementById('loadingCard').classList.add('hidden');
+
+            // 身分狀態嚴格分流：待審核、退會、未登記、已審核
+            if (currentSelf.isRegistered && currentSelf.accountStatus === "待審核") {
+                applyPendingReviewUI();
+            } else if (currentSelf.isRegistered && currentSelf.accountStatus === "退會") {
+                applyRejectedUI();
+            } else if (currentSelf.isRegistered && currentSelf.accountStatus === "已審核") {
+                applyLeaveFormUI();
+            } else {
+                applyUnregisteredUI();
+            }
+        }
+
+        function applyPendingReviewUI() {
+            document.getElementById('topBadge').textContent = "資格審核中";
+            document.getElementById('topBadge').className = "inline-block bg-amber-100/80 text-amber-800 border border-amber-200 text-xs font-bold px-3.5 py-1 rounded-full mb-3";
+            document.getElementById('pageMainTitle').textContent = "入會審核處理中";
+            document.getElementById('pageSubTitle').textContent = "幹部正在核對名冊，審核通過前無法請假";
+
+            document.getElementById('pendingNickname').textContent = currentSelf.gameNickname || "-";
+            document.getElementById('pendingClass').textContent = currentSelf.gameClass || "-";
+            document.getElementById('pendingLineName').textContent = currentSelf.displayName || "-";
+
+            const pendingCard = document.getElementById('pendingReviewCard');
+            pendingCard.classList.remove('hidden');
+            pendingCard.classList.add('fade-in');
+        }
+
+        function applyRejectedUI() {
+            document.getElementById('topBadge').textContent = "無使用權限";
+            document.getElementById('topBadge').className = "inline-block bg-rose-100 text-rose-800 border border-rose-200 text-xs font-bold px-3.5 py-1 rounded-full mb-3";
+            document.getElementById('pageMainTitle').textContent = "會員資格無效";
+            document.getElementById('pageSubTitle').textContent = "您目前非公會有效會員，無法使用此功能";
+
+            const rejectedCard = document.getElementById('rejectedCard');
+            rejectedCard.classList.remove('hidden');
+            rejectedCard.classList.add('fade-in');
+        }
+
+        function applyUnregisteredUI() {
+            document.getElementById('topBadge').textContent = "未登記會員";
+            document.getElementById('pageMainTitle').textContent = "尚未加入公會名冊";
+            document.getElementById('pageSubTitle').textContent = "請先登記會員身分並待審核通過後再行請假";
+
+            const unregCard = document.getElementById('unregisteredCard');
+            unregCard.classList.remove('hidden');
+            unregCard.classList.add('fade-in');
+        }
+
+        function applyLeaveFormUI() {
+            document.getElementById('topBadge').textContent = "請假表單";
+            document.getElementById('pageMainTitle').textContent = "活動請假申請";
+            document.getElementById('pageSubTitle').textContent = "公會活動需要大家齊心協力，請盡量出席一同並肩作戰喔！";
 
             resetToSelf();
 
-            document.getElementById('loadingCard').classList.add('hidden');
-            document.getElementById('leaveFormCard').classList.remove('hidden');
-        });
+            const formCard = document.getElementById('leaveFormCard');
+            formCard.classList.remove('hidden');
+            formCard.classList.add('fade-in');
+
+            // 准入後再於背景預載開放查詢名冊，供代他人請假使用
+            loadAvailableMembers();
+        }
 
         function resetToSelf() {
             targetMember.userId = currentSelf.userId;
@@ -298,7 +472,6 @@
             }
             isMembersLoading = false;
 
-            // 若使用者已開啟彈窗，資料抵達後立刻刷新清單
             const modal = document.getElementById('memberSelectModal');
             if (!modal.classList.contains('hidden')) {
                 renderMemberList(availableMembers);
@@ -309,12 +482,11 @@
             document.getElementById('memberSelectModal').classList.remove('hidden');
             document.getElementById('memberSearchInput').value = "";
 
-            // 若後台資料尚未回傳，先顯示優雅的轉圈動畫緩衝
             if (isMembersLoading) {
                 const container = document.getElementById('memberListContainer');
                 container.innerHTML = `
                     <div class="py-10 text-center">
-                        <div class="w-8 h-8 border-3 border-amber-200 border-t-amber-500 rounded-full animate-spin mx-auto mb-2"></div>
+                        <div class="w-8 h-8 border-4 border-amber-200 border-t-amber-500 rounded-full animate-spin mx-auto mb-2"></div>
                         <p class="text-xs font-bold text-amber-800/70">正在連線名冊資料庫...</p>
                     </div>
                 `;
@@ -331,7 +503,7 @@
             const container = document.getElementById('memberListContainer');
             container.innerHTML = "";
 
-            // 嚴格排除本人，只列出其他開放查詢之夥伴
+            // 排除本人
             const otherMembers = (list || []).filter(m => {
                 const isSameUid = m.lineUserId && currentSelf.userId && (m.lineUserId === currentSelf.userId);
                 const isSameNick = m.gameNickname && currentSelf.gameNickname && (m.gameNickname === currentSelf.gameNickname);
@@ -433,6 +605,7 @@
             if (typeof liff !== 'undefined' && liff.closeWindow) {
                 liff.closeWindow();
             } else {
+                alert("已完成操作，請返回 LINE！");
                 location.reload();
             }
         }
