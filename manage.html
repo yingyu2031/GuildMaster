@@ -49,24 +49,25 @@
             <div id="quickActionBtnContainer"></div>
         </div>
 
-        <!-- 5 大頁籤列 -->
+        <!-- 5 大頁籤列 (主選單：改為 會員、請假、活動、推播、其他) -->
         <div class="bg-sky-500 rounded-t-2xl px-2 pt-3 flex items-end gap-1 select-none overflow-x-auto">
             <button id="mainTabMembers" onclick="switchMainSection('members')" 
                     class="bg-white text-sky-900 font-black px-3 py-2.5 rounded-t-xl text-xs flex items-center gap-1 transition-all relative top-[1px] shadow-sm whitespace-nowrap">
-                <span>成員名冊</span>
+                <span>會員</span>
                 <span id="badgePendingCount" class="bg-rose-500 text-white text-[10px] px-1.5 py-0.2 rounded-full hidden">0</span>
             </button>
             <button id="mainTabLeaves" onclick="switchMainSection('leaves')" 
-                    class="text-sky-100 hover:text-white font-bold px-3 py-2 text-xs rounded-t-xl transition-all whitespace-nowrap">
-                <span>請假紀錄</span>
+                    class="text-sky-100 hover:text-white font-bold px-3 py-2 text-xs rounded-t-xl transition-all whitespace-nowrap flex items-center gap-1">
+                <span>請假</span>
+                <span id="badgeMainTodayLeave" class="bg-rose-500 text-white text-[10px] px-1.5 py-0.2 rounded-full hidden">0</span>
             </button>
             <button id="mainTabEvents" onclick="switchMainSection('events')" 
                     class="text-sky-100 hover:text-white font-bold px-3 py-2 text-xs rounded-t-xl transition-all whitespace-nowrap">
-                <span>活動報名</span>
+                <span>活動</span>
             </button>
             <button id="mainTabBroadcast" onclick="switchMainSection('broadcast')" 
                     class="text-sky-100 hover:text-white font-bold px-3 py-2 text-xs rounded-t-xl transition-all whitespace-nowrap">
-                <span>推播設定</span>
+                <span>推播</span>
             </button>
             <button id="mainTabOthers" onclick="switchMainSection('others')" 
                     class="text-sky-100 hover:text-white font-bold px-3 py-2 text-xs rounded-t-xl transition-all whitespace-nowrap">
@@ -92,9 +93,7 @@
                         <input type="text" id="memberSearchInput" oninput="handleMemberSearchInput()" placeholder="搜尋角色或 LINE 暱稱..."
                                class="w-full h-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:bg-white transition box-border">
                     </div>
-                    <!-- 動態職業篩選 -->
                     <select id="memberClassFilter" onchange="renderMembersList()" class="h-[40px] leading-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-2.5 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:bg-white transition box-border">
-                        <!-- 由 JS 自動注入 -->
                     </select>
                 </div>
 
@@ -116,9 +115,13 @@
 
             <!-- 區塊 2：請假紀錄與缺勤排名 -->
             <section id="sectionLeaves" class="hidden space-y-4">
-                <div class="grid grid-cols-2 gap-1.5 p-1 bg-sky-50 rounded-xl border border-sky-100 text-xs font-bold">
-                    <button id="leaveSubTabRank" onclick="switchLeaveSubView('rank')" class="py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black">缺勤與臨時請假排名</button>
-                    <button id="leaveSubTabList" onclick="switchLeaveSubView('list')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800">請假單紀錄列表</button>
+                <div class="grid grid-cols-3 gap-1 p-1 bg-sky-50 rounded-xl border border-sky-100 text-[11px] font-bold">
+                    <button id="leaveSubTabRank" onclick="switchLeaveSubView('rank')" class="py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black">排名統計</button>
+                    <button id="leaveSubTabToday" onclick="switchLeaveSubView('today')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800 flex items-center justify-center gap-1">
+                        <span>今日請假</span>
+                        <span id="badgeTodayLeaveCount" class="bg-rose-500 text-white text-[10px] px-1.5 py-0.2 rounded-full hidden">0</span>
+                    </button>
+                    <button id="leaveSubTabList" onclick="switchLeaveSubView('list')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800">全部紀錄列表</button>
                 </div>
 
                 <!-- 排名儀表板 -->
@@ -134,7 +137,16 @@
                     <div id="rankListContainer" class="space-y-2"></div>
                 </div>
 
-                <!-- 請假明細列表 -->
+                <!-- 今日請假名單 -->
+                <div id="leaveTodayView" class="hidden space-y-3">
+                    <div class="flex items-center justify-between px-1">
+                        <span class="text-xs font-bold text-slate-500" id="todayDateLabel">今日日期：載入中</span>
+                        <span class="text-xs font-black text-sky-900" id="todayLeaveSummaryText">共 0 人請假</span>
+                    </div>
+                    <div id="leaveTodayContainer" class="space-y-2.5"></div>
+                </div>
+
+                <!-- 全部請假紀錄列表 -->
                 <div id="leaveListView" class="hidden space-y-3">
                     <div class="space-y-2">
                         <input type="text" id="leaveSearchInput" oninput="renderLeaveList()" placeholder="搜尋角色或活動名稱..."
@@ -221,7 +233,7 @@
                 </div>
             </section>
 
-            <!-- 區塊 5：其他 (自訂選單管理) -->
+            <!-- 區塊 5：其他 (自訂選單管理：修復按鈕不折行) -->
             <section id="sectionOthers" class="hidden space-y-4 text-left">
                 <div>
                     <div class="flex items-center justify-between mb-1">
@@ -230,17 +242,16 @@
                             <p class="text-[11px] text-slate-500">自訂當前手遊的職業項目，全系統表單與篩選將即時連動套用。</p>
                         </div>
                     </div>
-                    <div class="flex gap-2 my-3">
-                        <input type="text" id="newClassInput" placeholder="輸入新職業名稱（例如：拳聖、槍騎...）"
-                               class="flex-1 h-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400 box-border">
-                        <button onclick="addNewCustomClass()" class="bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold px-4 h-[40px] rounded-xl shadow-sm transition box-border">
+                    <!-- 需求 1：輸入框自動縮短，按鈕 whitespace-nowrap 不換行 -->
+                    <div class="flex gap-2 my-3 items-center">
+                        <input type="text" id="newClassInput" placeholder="輸入新職業名稱（例：拳聖、槍騎...）"
+                               class="flex-1 min-w-0 h-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400 box-border">
+                        <button onclick="addNewCustomClass()" class="shrink-0 whitespace-nowrap bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold px-3.5 h-[40px] rounded-xl shadow-sm transition box-border">
                             + 新增職業
                         </button>
                     </div>
 
-                    <!-- 職業標籤列表 -->
                     <div id="classListContainer" class="flex flex-wrap gap-2 p-3 bg-[#F8FAFC] border border-sky-100 rounded-2xl min-h-[100px]">
-                        <!-- 動態載入職業標籤 -->
                     </div>
                 </div>
             </section>
@@ -250,7 +261,7 @@
         <p class="text-[11px] text-slate-400 text-center">&copy; 2026 GuildMaster 幹部後台</p>
     </main>
 
-    <!-- 彈窗 1：成員 新增/編輯 Modal (含提供查詢開關與異動歷程明細) -->
+    <!-- 彈窗 1：成員 新增/編輯 Modal -->
     <div id="memberModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
         <div class="bg-white w-full max-w-md rounded-[28px] p-6 border-2 border-sky-200 soft-sky-shadow max-h-[90vh] overflow-y-auto">
             <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
@@ -268,7 +279,6 @@
                 <div>
                     <label class="block mb-1 text-slate-800">遊戲職業 <span class="text-rose-500">*</span></label>
                     <select id="formGameClass" required class="w-full h-[40px] leading-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-sky-400">
-                        <!-- 動態由 customClassList 載入 -->
                     </select>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
@@ -277,23 +287,21 @@
                         <input type="text" id="formLineName" class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
                     </div>
                     <div>
-                        <label class="block mb-1 text-slate-800">公會職位</label>
+                        <label class="block mb-1 text-slate-800">會員狀態</label>
                         <select id="formGuildRole" class="w-full h-[40px] leading-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900">
                             <option value="現任">現任</option>
                             <option value="幹部">幹部</option>
-                            <option value="副會長">副會長</option>
-                            <option value="會長">會長</option>
                             <option value="退會">退會</option>
                         </select>
                     </div>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block mb-1 text-slate-800">小隊/組別</label>
-                        <input type="text" id="formTeamGroup" placeholder="例如：一隊、媽咪團" class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
+                        <label class="block mb-1 text-slate-800">團體</label>
+                        <input type="text" id="formTeamGroup" placeholder="例如：媽咪團、一線主力" class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
                     </div>
                     <div>
-                        <label class="block mb-1 text-slate-800">帳號狀態</label>
+                        <label class="block mb-1 text-slate-800">審核狀態</label>
                         <select id="formAccountStatus" class="w-full h-[40px] leading-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900">
                             <option value="已審核">已審核</option>
                             <option value="待審核">待審核</option>
@@ -301,12 +309,11 @@
                     </div>
                 </div>
 
-                <!-- 需求 1：提供查詢 ON/OFF 開關 -->
                 <div class="pt-1">
                     <label class="flex items-center justify-between p-3 rounded-2xl bg-[#F8FAFC] border border-sky-100 cursor-pointer hover:bg-sky-50/50 transition">
                         <div>
                             <div class="text-xs font-black text-slate-800">提供查詢 (開放會員搜尋)</div>
-                            <div class="text-[10px] text-slate-400 font-normal mt-0.5">會員是否願意在會員名冊公開自己的遊戲暱稱、職業與 LINE 名稱</div>
+                            <div class="text-[10px] text-slate-400 font-normal mt-0.5">是否允許其他會員查詢角色與 LINE 資訊</div>
                         </div>
                         <div class="relative inline-flex items-center cursor-pointer">
                             <input type="checkbox" id="formAllowSearch" class="sr-only peer" checked>
@@ -315,14 +322,12 @@
                     </label>
                 </div>
 
-                <!-- 需求 2：資料修改歷程明細 -->
                 <div id="auditLogSection" class="pt-2">
                     <div class="flex items-center justify-between mb-1.5">
                         <span class="text-xs font-black text-slate-800">資料異動歷程明細</span>
                         <span id="auditLogCount" class="text-[10px] text-slate-400">共 0 筆紀錄</span>
                     </div>
                     <div id="auditLogContainer" class="space-y-1.5 max-h-36 overflow-y-auto p-2 bg-[#F8FAFC] border border-sky-100 rounded-xl text-[11px]">
-                        <!-- 動態插入異動紀錄 -->
                     </div>
                 </div>
 
@@ -536,23 +541,20 @@
     </div>
 
     <script>
-        // 1. 動態自訂職業清單 (初始為預設，幹部可隨意在「其他」增刪)
         let customClassList = [
             "超魔導士", "學者（智者）", "神射手", "搞笑藝人（詩人）", 
             "冷豔舞姬（舞孃）", "騎士領主", "聖殿十字軍", "十字刺客", 
             "神行（神偷）", "神官（大主教）", "武術宗師", "神工匠", "創造者（鍊金術士）"
         ];
 
-        // 2. 本地模擬資料庫
         let membersData = [
             { rowIndex: 2, lineUserId: "U2b228d4c5915", gameNickname: "克蘿伊", gameClass: "冷豔舞姬（舞孃）", lineDisplayName: "Chloe", allowSearch: "Y", accountStatus: "待審核", updateTime: "2026-09-19 22:55:01", guildRole: "退會", teamGroup: "媽咪團" },
             { rowIndex: 3, lineUserId: "U1001", gameNickname: "超級法神", gameClass: "超魔導士", lineDisplayName: "123", allowSearch: "Y", accountStatus: "已審核", updateTime: "2026-09-18 10:00:00", guildRole: "現任", teamGroup: "媽咪團" },
             { rowIndex: 4, lineUserId: "U1002", gameNickname: "暗夜殺手", gameClass: "十字刺客", lineDisplayName: "QQQ", allowSearch: "N", accountStatus: "已審核", updateTime: "2026-09-18 11:30:00", guildRole: "現任", teamGroup: "一線主力" },
             { rowIndex: 5, lineUserId: "U1003", gameNickname: "舞力全開", gameClass: "冷豔舞姬（舞孃）", lineDisplayName: "ABC", allowSearch: "Y", accountStatus: "已審核", updateTime: "2026-09-18 15:20:00", guildRole: "現任", teamGroup: "媽咪團" },
-            { rowIndex: 6, lineUserId: "U1005", gameNickname: "鐵拳無敵", gameClass: "武術宗師", lineDisplayName: "Tom", allowSearch: "Y", accountStatus: "待審核", updateTime: "2026-09-19 09:15:00", guildRole: "", teamGroup: "" }
+            { rowIndex: 6, lineUserId: "U1005", gameNickname: "鐵拳無敵", gameClass: "武術宗師", lineDisplayName: "Tom", allowSearch: "Y", accountStatus: "待審核", updateTime: "2026-09-19 09:15:00", guildRole: "現任", teamGroup: "" }
         ];
 
-        // 3. 異動歷程資料庫 (完全對齊試算表截圖欄位)
         let auditLogsData = [
             { updateTime: "2026-09-19 22:55:01", lineUserId: "U2b228d4c5915", field: "退會重新登記", oldValue: "退會", newValue: "現任：克蘿伊 (冷豔舞姬（舞孃）)" },
             { updateTime: "2026-09-19 19:24:09", lineUserId: "U2b228d4c5915", field: "退會重新登記", oldValue: "退會", newValue: "現任：克蘿伊 (超魔導士)" },
@@ -563,6 +565,8 @@
         ];
 
         let leavesData = [
+            { id: "L000", gameNickname: "超級法神", gameClass: "超魔導士", event: "週日大型 GVG 決戰要塞", date: "2026-09-20", submitTime: "2026-09-20 01:10", reason: "臨時輪夜班無法出席", isUrgent: true, operator: "本人" },
+            { id: "L000B", gameNickname: "舞力全開", gameClass: "冷豔舞姬（舞孃）", event: "週日大型 GVG 決戰要塞", date: "2026-09-20", submitTime: "2026-09-20 02:05", reason: "手機送修無法上線", isUrgent: true, operator: "由 超級法神 代理" },
             { id: "L001", gameNickname: "暗夜殺手", gameClass: "十字刺客", event: "公會GVG聯賽", date: "2026-09-19", submitTime: "2026-09-19 20:15", reason: "加班無奈", isUrgent: true, operator: "本人" },
             { id: "L002", gameNickname: "暗夜殺手", gameClass: "十字刺客", event: "週常公會副本", date: "2026-09-12", submitTime: "2026-09-11 14:20", reason: "朋友聚會", isUrgent: false, operator: "本人" },
             { id: "L003", gameNickname: "暗夜殺手", gameClass: "十字刺客", event: "公會團隊戰", date: "2026-08-20", submitTime: "2026-08-20 18:40", reason: "身體不適", isUrgent: true, operator: "本人" },
@@ -619,18 +623,19 @@
         let currentRankFilter = "all";
         let currentViewingEventId = null;
 
+        const TODAY_STR = new Date().toISOString().split('T')[0];
+
         window.addEventListener("DOMContentLoaded", () => {
             loadGroupSettings();
             syncAllClassDropdowns();
             renderCustomClassManager();
             updateHeaderActionBtn();
             updateMemberCounts();
+            updateTodayLeaveBadge();
             renderMembersList();
         });
 
-        // 需求 3：動態同步全站所有職業選單
         function syncAllClassDropdowns() {
-            // 1. 同步成員名冊頂部快篩下拉
             const filterSelect = document.getElementById('memberClassFilter');
             const currentFilterVal = filterSelect.value;
             filterSelect.innerHTML = `<option value="">全部職業</option>`;
@@ -642,7 +647,6 @@
             });
             filterSelect.value = currentFilterVal;
 
-            // 2. 同步成員編輯彈窗下拉
             const formClassSelect = document.getElementById('formGameClass');
             const currentFormVal = formClassSelect.value;
             formClassSelect.innerHTML = `<option value="" disabled selected>請選擇職業</option>`;
@@ -655,7 +659,6 @@
             if (currentFormVal) formClassSelect.value = currentFormVal;
         }
 
-        // 渲染「其他」頁籤中的職業管理清單
         function renderCustomClassManager() {
             const container = document.getElementById('classListContainer');
             container.innerHTML = "";
@@ -740,7 +743,7 @@
                     sections[k].classList.remove('hidden');
                     sections[k].classList.add('fade-in');
                 } else {
-                    tabs[k].className = "text-sky-100 hover:text-white font-bold px-3 py-2 text-xs rounded-t-xl transition-all whitespace-nowrap";
+                    tabs[k].className = "text-sky-100 hover:text-white font-bold px-3 py-2 text-xs rounded-t-xl transition-all whitespace-nowrap flex items-center gap-1";
                     sections[k].classList.add('hidden');
                 }
             });
@@ -1064,7 +1067,6 @@
             }
         }
 
-        // 開啟成員 Modal (支援提供查詢開關 + 載入修改歷程明細)
         function openMemberModal(mode, rowIndex = null) {
             const modal = document.getElementById('memberModal');
             document.getElementById('memberForm').reset();
@@ -1082,7 +1084,7 @@
                 document.getElementById('formGuildRole').value = "現任";
                 document.getElementById('formAccountStatus').value = "已審核";
                 document.getElementById('formAllowSearch').checked = true;
-                auditSection.classList.add('hidden'); // 新增時不顯示歷程
+                auditSection.classList.add('hidden');
             } else {
                 document.getElementById('memberModalTitle').textContent = "編輯成員資料";
                 const m = membersData.find(x => x.rowIndex === rowIndex);
@@ -1097,7 +1099,6 @@
                 document.getElementById('formAccountStatus').value = m.accountStatus;
                 document.getElementById('formAllowSearch').checked = (m.allowSearch === "Y" || m.allowSearch === true);
 
-                // 需求 2：篩選並渲染該成員的修改歷程明細
                 auditSection.classList.remove('hidden');
                 const memberLogs = auditLogsData.filter(log => log.lineUserId === m.lineUserId);
                 auditCountText.textContent = `共 ${memberLogs.length} 筆紀錄`;
@@ -1145,7 +1146,6 @@
             if (rIndex) {
                 const target = membersData.find(x => x.rowIndex === parseInt(rIndex));
                 if (target) {
-                    // 自動登記一筆修改歷程
                     if (target.gameClass !== data.gameClass) {
                         auditLogsData.unshift({
                             updateTime: data.updateTime,
@@ -1177,25 +1177,51 @@
             else renderMembersList();
         });
 
-        // 請假模組
+        function updateTodayLeaveBadge() {
+            const todayLeaves = leavesData.filter(l => l.date === TODAY_STR);
+            const count = todayLeaves.length;
+
+            const badgeSub = document.getElementById('badgeTodayLeaveCount');
+            const badgeMain = document.getElementById('badgeMainTodayLeave');
+
+            if (count > 0) {
+                badgeSub.textContent = count;
+                badgeSub.classList.remove('hidden');
+
+                badgeMain.textContent = count;
+                badgeMain.classList.remove('hidden');
+            } else {
+                badgeSub.classList.add('hidden');
+                badgeMain.classList.add('hidden');
+            }
+        }
+
         function switchLeaveSubView(view) {
             currentLeaveView = view;
             const tabRank = document.getElementById('leaveSubTabRank');
+            const tabToday = document.getElementById('leaveSubTabToday');
             const tabList = document.getElementById('leaveSubTabList');
+
             const rankView = document.getElementById('leaveRankView');
+            const todayView = document.getElementById('leaveTodayView');
             const listView = document.getElementById('leaveListView');
 
+            [tabRank, tabToday, tabList].forEach(t => {
+                t.className = "py-1.5 rounded-lg text-slate-500 hover:text-slate-800 flex items-center justify-center gap-1";
+            });
+            [rankView, todayView, listView].forEach(v => v.classList.add('hidden'));
+
             if (view === 'rank') {
-                tabRank.className = "py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black";
-                tabList.className = "py-1.5 rounded-lg text-slate-500 hover:text-slate-800";
+                tabRank.className = "py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black flex items-center justify-center gap-1";
                 rankView.classList.remove('hidden');
-                listView.classList.add('hidden');
                 renderLeaveRank();
+            } else if (view === 'today') {
+                tabToday.className = "py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black flex items-center justify-center gap-1";
+                todayView.classList.remove('hidden');
+                renderTodayLeaveList();
             } else {
-                tabList.className = "py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black";
-                tabRank.className = "py-1.5 rounded-lg text-slate-500 hover:text-slate-800";
+                tabList.className = "py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black flex items-center justify-center gap-1";
                 listView.classList.remove('hidden');
-                rankView.classList.add('hidden');
                 renderLeaveList();
             }
         }
@@ -1216,7 +1242,9 @@
         }
 
         function renderLeaveSection() {
+            updateTodayLeaveBadge();
             if (currentLeaveView === 'rank') renderLeaveRank();
+            else if (currentLeaveView === 'today') renderTodayLeaveList();
             else renderLeaveList();
         }
 
@@ -1224,7 +1252,7 @@
             const container = document.getElementById('rankListContainer');
             container.innerHTML = "";
 
-            const currentYearMonth = "2026-09";
+            const currentYearMonth = TODAY_STR.substring(0, 7);
             const stats = {};
 
             leavesData.forEach(item => {
@@ -1284,6 +1312,49 @@
                             <div class="text-[10px] text-slate-400 font-bold">${currentRankFilter === 'month' ? '當月缺席' : '總缺勤'}</div>
                             <div class="text-sm font-black text-sky-900">${currentRankFilter === 'month' ? r.monthLeaves : r.totalLeaves} 次</div>
                         </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function renderTodayLeaveList() {
+            const container = document.getElementById('leaveTodayContainer');
+            container.innerHTML = "";
+
+            document.getElementById('todayDateLabel').textContent = `今日日期：${TODAY_STR}`;
+
+            const todayList = leavesData.filter(l => l.date === TODAY_STR);
+            document.getElementById('todayLeaveSummaryText').textContent = `共 ${todayList.length} 人請假`;
+
+            if (todayList.length === 0) {
+                container.innerHTML = `
+                    <div class="bg-[#F8FAFC] rounded-2xl p-8 text-center border border-sky-100">
+                        <div class="text-xs font-bold text-slate-400">今日全員出席，無人請假！</div>
+                    </div>
+                `;
+                return;
+            }
+
+            todayList.forEach(l => {
+                const card = document.createElement('div');
+                card.className = "bg-white rounded-2xl p-3.5 border border-sky-100 text-left soft-sky-shadow fade-in space-y-1.5";
+                card.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-xs font-black text-slate-900">${l.gameNickname}</span>
+                            <span class="text-[10px] text-slate-400">(${l.gameClass})</span>
+                            ${l.isUrgent ? `<span class="bg-rose-50 text-rose-700 text-[9px] font-black px-1.5 py-0.2 rounded border border-rose-100">臨時請假</span>` : ''}
+                        </div>
+                        <span class="text-[10px] font-mono text-sky-800 bg-sky-50 px-2 py-0.5 rounded font-bold">今日活動</span>
+                    </div>
+                    <div class="text-xs text-slate-700 font-bold">請假活動：${l.event}</div>
+                    <div class="text-xs text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-100 leading-relaxed">
+                        事由：${l.reason}
+                    </div>
+                    <div class="flex items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-slate-50">
+                        <span>由 ${l.operator} 登記</span>
+                        <span class="font-mono">填單時間：${l.submitTime || l.date}</span>
                     </div>
                 `;
                 container.appendChild(card);
@@ -1397,7 +1468,7 @@
             if (mode === 'create') {
                 document.getElementById('eventModalTitle').textContent = "建立新活動";
                 document.getElementById('formEventId').value = "";
-                document.getElementById('formEventDate').value = new Date().toISOString().split('T')[0];
+                document.getElementById('formEventDate').value = TODAY_STR;
                 document.getElementById('formEventStatus').value = "報名中";
             } else {
                 document.getElementById('eventModalTitle').textContent = "編輯活動內容";
@@ -1493,7 +1564,6 @@
             }
         }
 
-        // 推播設定
         function renderBroadcastSection() {
             const urgentContainer = document.getElementById('urgentRuleContainer');
             urgentContainer.innerHTML = "";
