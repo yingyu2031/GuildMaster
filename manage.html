@@ -49,7 +49,7 @@
             <div id="quickActionBtnContainer"></div>
         </div>
 
-        <!-- 5 大頁籤列 (主選單：改為 會員、請假、活動、推播、其他) -->
+        <!-- 5 大頁籤列 (主選單：會員名冊、請假紀錄、活動列表、推播、其他) -->
         <div class="bg-sky-500 rounded-t-2xl px-2 pt-3 flex items-end gap-1 select-none overflow-x-auto">
             <button id="mainTabMembers" onclick="switchMainSection('members')" 
                     class="bg-white text-sky-900 font-black px-3 py-2.5 rounded-t-xl text-xs flex items-center gap-1 transition-all relative top-[1px] shadow-sm whitespace-nowrap">
@@ -58,12 +58,12 @@
             </button>
             <button id="mainTabLeaves" onclick="switchMainSection('leaves')" 
                     class="text-sky-100 hover:text-white font-bold px-3 py-2 text-xs rounded-t-xl transition-all whitespace-nowrap flex items-center gap-1">
-                <span>請假列表</span>
+                <span>請假紀錄</span>
                 <span id="badgeMainTodayLeave" class="bg-rose-500 text-white text-[10px] px-1.5 py-0.2 rounded-full hidden">0</span>
             </button>
             <button id="mainTabEvents" onclick="switchMainSection('events')" 
                     class="text-sky-100 hover:text-white font-bold px-3 py-2 text-xs rounded-t-xl transition-all whitespace-nowrap">
-                <span>活動</span>
+                <span>活動列表</span>
             </button>
             <button id="mainTabBroadcast" onclick="switchMainSection('broadcast')" 
                     class="text-sky-100 hover:text-white font-bold px-3 py-2 text-xs rounded-t-xl transition-all whitespace-nowrap">
