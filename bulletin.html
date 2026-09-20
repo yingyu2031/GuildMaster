@@ -100,7 +100,7 @@
         <p class="text-[11px] text-amber-900/40 text-center mt-8">&copy; 2026 GuildMaster 公會資訊中心</p>
     </main>
 
-    <!-- 彈窗 1：幹部 發布/編輯公告 Modal (已換成圖檔選取上傳與預覽) -->
+    <!-- 彈窗 1：幹部 發布/編輯公告 Modal -->
     <div id="postModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
         <div class="bg-white w-full max-w-md rounded-[28px] p-6 border-2 border-amber-200 soft-amber-shadow max-h-[90vh] overflow-y-auto">
             <div class="flex items-center justify-between pb-3 border-b border-amber-100 mb-4">
@@ -127,17 +127,16 @@
                     </div>
                 </div>
 
-                <!-- 圖片上傳區塊 (支援點選圖檔/拍照/相簿，並支援預覽與移除) -->
+                <!-- 圖片上傳區塊 (無相機符號、無網址輸入框) -->
                 <div>
-                    <label class="block mb-1 text-slate-800">上傳公告圖檔 (選填，可選取戰報或排陣截圖)</label>
+                    <label class="block mb-1 text-slate-800">上傳公告圖檔 (選填)</label>
                     <input type="file" id="formPostFileInput" accept="image/*" class="hidden" onchange="handleImageFileSelect(event)">
                     
                     <!-- 點擊上傳卡片 -->
                     <div id="imageUploadBox" onclick="document.getElementById('formPostFileInput').click()" 
-                         class="border-2 border-dashed border-amber-300 rounded-2xl p-3.5 bg-amber-50/40 hover:bg-amber-100/50 cursor-pointer text-center transition">
-                        <div class="text-2xl mb-1">📷</div>
-                        <div class="text-xs font-black text-amber-950">點擊選擇手機相簿圖檔 / 截圖</div>
-                        <div class="text-[10px] text-amber-800/60 mt-0.5">支援 JPG、PNG、WEBP 格式</div>
+                         class="border-2 border-dashed border-amber-300 rounded-2xl p-4 bg-amber-50/40 hover:bg-amber-100/50 cursor-pointer text-center transition">
+                        <div class="text-xs font-black text-amber-950">點擊選擇手機相簿圖檔 / 拍照</div>
+                        <div class="text-[10px] text-amber-800/60 mt-0.5">支援戰報截圖、排陣圖等</div>
                     </div>
 
                     <!-- 圖片預覽區 -->
@@ -148,13 +147,6 @@
                             ✕
                         </button>
                     </div>
-
-                    <!-- 備用圖片網址展開器 -->
-                    <details class="mt-1.5 text-[11px] text-slate-400 select-none">
-                        <summary class="cursor-pointer hover:text-slate-600">或直接貼上現成圖片網址</summary>
-                        <input type="url" id="formPostImageUrl" oninput="handleImageUrlInput()" placeholder="https://..." 
-                               class="w-full h-[36px] bg-amber-50/40 border border-amber-200 rounded-xl px-3 text-xs font-bold text-slate-900 mt-1 focus:ring-2 focus:ring-amber-400">
-                    </details>
                 </div>
 
                 <div>
@@ -491,7 +483,6 @@
             document.getElementById('readersModal').classList.remove('hidden');
         }
 
-        // 處理手機選取圖檔並轉成預覽與 Base64
         function handleImageFileSelect(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -500,21 +491,9 @@
             reader.onload = function(e) {
                 const base64Data = e.target.result;
                 document.getElementById('formPostImageBase64').value = base64Data;
-                document.getElementById('formPostImageUrl').value = ""; // 清空手動網址
                 showImagePreview(base64Data);
             };
             reader.readAsDataURL(file);
-        }
-
-        // 處理手動填入網址時的預覽
-        function handleImageUrlInput() {
-            const url = document.getElementById('formPostImageUrl').value.trim();
-            if (url) {
-                document.getElementById('formPostImageBase64').value = url;
-                showImagePreview(url);
-            } else {
-                clearSelectedImage();
-            }
         }
 
         function showImagePreview(src) {
@@ -525,14 +504,12 @@
 
         function clearSelectedImage() {
             document.getElementById('formPostFileInput').value = "";
-            document.getElementById('formPostImageUrl').value = "";
             document.getElementById('formPostImageBase64').value = "";
             document.getElementById('imagePreviewImg').src = "";
             document.getElementById('imagePreviewContainer').classList.add('hidden');
             document.getElementById('imageUploadBox').classList.remove('hidden');
         }
 
-        // 開啟 發布/編輯 彈窗
         function openPostModal(mode, postId = null) {
             const modal = document.getElementById('postModal');
             document.getElementById('postForm').reset();
@@ -545,7 +522,7 @@
                 document.getElementById('formPostId').value = "";
                 document.getElementById('formPostCategory').value = "重要公告";
                 document.getElementById('formPostPin').checked = false;
-                deleteWrapper.classList.add('hidden'); // 新增時不顯示刪除按鈕
+                deleteWrapper.classList.add('hidden');
             } else {
                 document.getElementById('postModalTitle').textContent = "編輯公告內容";
                 document.getElementById('formPostSubmitBtn').textContent = "儲存變更";
@@ -559,19 +536,17 @@
                 document.getElementById('formPostLinkUrl').value = post.linkUrl || "";
                 document.getElementById('formPostPin').checked = post.isPinned || false;
 
-                // 若有舊圖檔或網址則帶入預覽
                 if (post.imageUrl) {
                     document.getElementById('formPostImageBase64').value = post.imageUrl;
                     showImagePreview(post.imageUrl);
                 }
 
-                deleteWrapper.classList.remove('hidden'); // 編輯時顯示刪除按鈕
+                deleteWrapper.classList.remove('hidden');
             }
 
             modal.classList.remove('hidden');
         }
 
-        // 彈窗內部執行刪除公告
         function deleteCurrentPost() {
             const postId = document.getElementById('formPostId').value;
             const target = bulletinsData.find(b => b.id === postId);
@@ -587,7 +562,7 @@
         document.getElementById('postForm').addEventListener('submit', (e) => {
             e.preventDefault();
             const postId = document.getElementById('formPostId').value;
-            const imageFinalSrc = document.getElementById('formPostImageBase64').value || document.getElementById('formPostImageUrl').value.trim();
+            const imageFinalSrc = document.getElementById('formPostImageBase64').value;
             
             const now = new Date();
             const timeStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
