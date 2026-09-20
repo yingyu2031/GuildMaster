@@ -39,7 +39,7 @@
 
     <main class="max-w-lg w-full mx-auto">
         <!-- 頂部身分與快捷按鈕 -->
-        <div class="flex items-center justify-between mb-4 px-1">
+        <div class="flex items-center justify-between mb-3 px-1">
             <div>
                 <div class="inline-flex items-center gap-1.5 bg-sky-100 text-sky-800 border border-sky-200 text-[11px] font-bold px-3 py-0.5 rounded-full mb-1">
                     幹部專用後台
@@ -47,6 +47,33 @@
                 <h1 class="text-2xl font-black text-slate-900 tracking-tight">後台管理中心</h1>
             </div>
             <div id="quickActionBtnContainer"></div>
+        </div>
+
+        <!-- 幹部登入資訊卡片 (檢視 LINE UID 與幹部身分) -->
+        <div class="bg-white border-2 border-sky-200/80 rounded-2xl p-3.5 mb-4 flex items-center gap-3.5 soft-sky-shadow text-left">
+            <!-- 頭貼與 LINE 小角標 -->
+            <div class="relative shrink-0">
+                <img id="adminAvatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&h=120&q=80" 
+                     alt="Avatar" class="w-12 h-12 rounded-full object-cover border-2 border-white shadow-xs">
+                <span class="absolute -bottom-1 -right-1 bg-[#06C755] text-white text-[9px] font-black px-1 py-0.2 rounded-full border border-white leading-tight">
+                    LINE
+                </span>
+            </div>
+
+            <!-- 幹部權限資訊 -->
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2">
+                    <span id="adminNickName" class="text-base font-black text-slate-900 truncate">超級法神</span>
+                    <span class="bg-sky-100 text-sky-800 text-[11px] font-black px-2 py-0.5 rounded-full border border-sky-200 shrink-0">
+                        幹部
+                    </span>
+                </div>
+                <div class="text-xs font-bold text-slate-500 truncate mt-0.5">
+                    職業：<span id="adminClass" class="text-slate-700 font-bold">超魔導士</span>
+                    <span class="mx-1 text-slate-300">|</span>
+                    <span id="adminUid" class="font-mono text-[11px] text-slate-400">UID: U1001***</span>
+                </div>
+            </div>
         </div>
 
         <!-- 4 大主頁籤列 -->
@@ -163,7 +190,7 @@
                 </div>
             </section>
 
-            <!-- 區塊 3：活動列表 (橫向排版與分頁) -->
+            <!-- 區塊 3：活動列表 -->
             <section id="sectionEvents" class="hidden space-y-4">
                 <div class="grid grid-cols-2 gap-1 p-1 bg-sky-50 rounded-xl border border-sky-100 text-xs font-bold">
                     <button id="eventSubTabActive" onclick="switchEventSubTab('active')" class="py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black">進行中活動</button>
@@ -269,7 +296,7 @@
         <p class="text-[11px] text-slate-400 text-center">&copy; 2026 GuildMaster 幹部後台</p>
     </main>
 
-    <!-- 彈窗 1：成員 新增/編輯 Modal (需求 2：下方加入刪除成員功能) -->
+    <!-- 彈窗 1：成員 新增/編輯 Modal -->
     <div id="memberModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
         <div class="bg-white w-full max-w-md rounded-[28px] p-6 border-2 border-sky-200 soft-sky-shadow max-h-[90vh] overflow-y-auto">
             <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
@@ -344,7 +371,6 @@
                     <button type="submit" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-2.5 rounded-xl transition shadow-md shadow-sky-200">儲存變更</button>
                 </div>
 
-                <!-- 需求 2：會員編輯內頁下方新增刪除成員按鈕 -->
                 <div id="deleteMemberBtnWrapper" class="pt-2 border-t border-slate-100">
                     <button type="button" onclick="deleteCurrentMember()" class="w-full bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold py-2.5 rounded-xl text-xs transition">
                         刪除此成員資料
@@ -354,7 +380,7 @@
         </div>
     </div>
 
-    <!-- 彈窗 2：活動 新增/編輯 Modal (需求 1：下方移入刪除活動按鈕) -->
+    <!-- 彈窗 2：活動 新增/編輯 Modal -->
     <div id="eventModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
         <div class="bg-white w-full max-w-md rounded-[28px] p-6 border-2 border-sky-200 soft-sky-shadow max-h-[90vh] overflow-y-auto">
             <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
@@ -425,7 +451,6 @@
                     <button type="submit" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-2.5 rounded-xl transition shadow-md shadow-sky-200">儲存活動</button>
                 </div>
 
-                <!-- 需求 1：活動編輯內頁下方移入刪除活動按鈕 -->
                 <div id="deleteEventBtnWrapper" class="pt-2 border-t border-slate-100">
                     <button type="button" onclick="deleteCurrentEvent()" class="w-full bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold py-2.5 rounded-xl text-xs transition">
                         刪除此活動
@@ -594,9 +619,17 @@
             "神行（神偷）", "神官（大主教）", "武術宗師", "神工匠", "創造者（鍊金術士）"
         ];
 
+        // 當前登入之幹部資料
+        let currentAdminUser = {
+            lineUserId: "U1001",
+            gameNickname: "超級法神",
+            gameClass: "超魔導士",
+            guildRole: "幹部"
+        };
+
         let membersData = [
             { rowIndex: 2, lineUserId: "U2b228d4c5915", gameNickname: "克蘿伊", gameClass: "冷豔舞姬（舞孃）", lineDisplayName: "Chloe", allowSearch: "Y", accountStatus: "待審核", updateTime: "2026-09-19 22:55:01", guildRole: "退會", teamGroup: "媽咪團" },
-            { rowIndex: 3, lineUserId: "U1001", gameNickname: "超級法神", gameClass: "超魔導士", lineDisplayName: "123", allowSearch: "Y", accountStatus: "已審核", updateTime: "2026-09-18 10:00:00", guildRole: "現任", teamGroup: "媽咪團" },
+            { rowIndex: 3, lineUserId: "U1001", gameNickname: "超級法神", gameClass: "超魔導士", lineDisplayName: "123", allowSearch: "Y", accountStatus: "已審核", updateTime: "2026-09-18 10:00:00", guildRole: "幹部", teamGroup: "媽咪團" },
             { rowIndex: 4, lineUserId: "U1002", gameNickname: "暗夜殺手", gameClass: "十字刺客", lineDisplayName: "QQQ", allowSearch: "N", accountStatus: "已審核", updateTime: "2026-09-18 11:30:00", guildRole: "現任", teamGroup: "一線主力" },
             { rowIndex: 5, lineUserId: "U1003", gameNickname: "舞力全開", gameClass: "冷豔舞姬（舞孃）", lineDisplayName: "ABC", allowSearch: "Y", accountStatus: "已審核", updateTime: "2026-09-18 15:20:00", guildRole: "現任", teamGroup: "媽咪團" },
             { rowIndex: 6, lineUserId: "U1005", gameNickname: "鐵拳無敵", gameClass: "武術宗師", lineDisplayName: "Tom", allowSearch: "Y", accountStatus: "待審核", updateTime: "2026-09-19 09:15:00", guildRole: "現任", teamGroup: "" }
@@ -694,6 +727,7 @@
         const TODAY_STR = new Date().toISOString().split('T')[0];
 
         window.addEventListener("DOMContentLoaded", () => {
+            renderAdminIdentity();
             loadGroupSettings();
             syncAllClassDropdowns();
             renderCustomClassManager();
@@ -702,6 +736,15 @@
             updateTodayLeaveBadge();
             renderMembersList();
         });
+
+        // 渲染幹部登入身分資訊
+        function renderAdminIdentity() {
+            document.getElementById('adminNickName').textContent = currentAdminUser.gameNickname;
+            document.getElementById('adminClass').textContent = currentAdminUser.gameClass;
+            const uidStr = currentAdminUser.lineUserId;
+            const maskedUid = uidStr.length > 5 ? uidStr.substring(0, 5) + '***' : uidStr;
+            document.getElementById('adminUid').textContent = `UID: ${maskedUid}`;
+        }
 
         function syncAllClassDropdowns() {
             const filterSelect = document.getElementById('memberClassFilter');
@@ -1182,7 +1225,7 @@
                 document.getElementById('formAccountStatus').value = "已審核";
                 document.getElementById('formAllowSearch').checked = true;
                 auditSection.classList.add('hidden');
-                deleteMemberWrapper.classList.add('hidden'); // 新增時不顯示刪除按鈕
+                deleteMemberWrapper.classList.add('hidden');
             } else {
                 document.getElementById('memberModalTitle').textContent = "編輯成員資料";
                 const m = membersData.find(x => x.rowIndex === rowIndex);
@@ -1198,7 +1241,7 @@
                 document.getElementById('formAllowSearch').checked = (m.allowSearch === "Y" || m.allowSearch === true);
 
                 auditSection.classList.remove('hidden');
-                deleteMemberWrapper.classList.remove('hidden'); // 編輯時顯示刪除按鈕
+                deleteMemberWrapper.classList.remove('hidden');
 
                 const memberLogs = auditLogsData.filter(log => log.lineUserId === m.lineUserId);
                 auditCountText.textContent = `共 ${memberLogs.length} 筆紀錄`;
@@ -1227,7 +1270,6 @@
             modal.classList.remove('hidden');
         }
 
-        // 需求 2：會員編輯畫面刪除此成員
         function deleteCurrentMember() {
             const rIndex = parseInt(document.getElementById('formMemberRowIndex').value);
             const target = membersData.find(x => x.rowIndex === rIndex);
@@ -1541,7 +1583,6 @@
             renderEventsList();
         }
 
-        // 需求 1：活動卡片按鈕改為橫排，移除刪除鈕
         function renderEventsList() {
             const container = document.getElementById('eventListContainer');
             container.innerHTML = "";
@@ -1585,7 +1626,6 @@
                             <h3 class="text-base font-black text-slate-900 mt-1">${evt.title}</h3>
                             <div class="text-xs text-slate-500 font-bold mt-0.5">日期：${evt.date} · 集合：${evt.time}</div>
                         </div>
-                        <!-- 需求 1：橫排按鈕，無刪除鈕 -->
                         <div class="flex items-center gap-1.5">
                             <button onclick="openEventModal('edit', '${evt.id}')" class="bg-sky-50 text-sky-800 border border-sky-200 text-xs font-bold px-3 py-1.5 rounded-xl hover:bg-sky-100 transition">
                                 編輯
@@ -1662,7 +1702,7 @@
                 document.getElementById('formEventSignupEndDate').value = TODAY_STR;
                 document.getElementById('formEventSignupEndTime').value = "19:00";
                 document.getElementById('formEventStatus').value = "報名中";
-                deleteWrapper.classList.add('hidden'); // 新增時隱藏刪除按鈕
+                deleteWrapper.classList.add('hidden');
             } else {
                 document.getElementById('eventModalTitle').textContent = "編輯活動內容";
                 const evt = eventsData.find(e => e.id === eventId);
@@ -1686,12 +1726,11 @@
                 document.getElementById('formEventMaxLimit').value = evt.maxLimit || "";
                 document.getElementById('formEventStatus').value = evt.status;
                 document.getElementById('formEventDesc').value = evt.desc || "";
-                deleteWrapper.classList.remove('hidden'); // 編輯時顯示刪除按鈕
+                deleteWrapper.classList.remove('hidden');
             }
             modal.classList.remove('hidden');
         }
 
-        // 需求 1：編輯活動彈窗內執行刪除
         function deleteCurrentEvent() {
             const eventId = document.getElementById('formEventId').value;
             const evt = eventsData.find(e => e.id === eventId);
