@@ -116,7 +116,7 @@
 
                 <!-- 需求 1：第二行工具列（左側人數統計、右側 +新增會員，僅在現任成員頁籤顯示） -->
                 <div id="activeMemberActionRow" class="hidden flex items-center justify-between px-1">
-                    <span id="activeMemberCountText" class="text-xs font-black text-sky-900">共 0 名公會會員</span>
+                    <span id="activeMemberCountText" class="text-xs font-black text-sky-900">共 0 名會員</span>
                     <button onclick="openMemberModal('create')" class="bg-sky-500 hover:bg-sky-600 active:scale-95 text-white text-xs font-black px-3 py-1.5 rounded-xl shadow-xs transition">
                         + 新增會員
                     </button>
@@ -251,7 +251,7 @@
                     <div class="p-3 bg-rose-50 border border-rose-200 rounded-xl text-left">
                         <div class="text-xs font-black text-rose-700 mb-1">LINE 訊息發送額度提醒</div>
                         <p class="text-[11px] text-rose-600 leading-relaxed font-bold">
-                            目前 LINE 官方帳號免費訊息額度為每月 200 則。若推播頻率較高或群組人數多導致用量超過 200 則，請務必自行至 LINE Official Account Manager 後台升級輕量/中量方案，避免訊息遭系統中斷。
+                            目前 LINE 官方帳號免費訊息額度為每月 200 則。若推播頻率較高或群組人數多導致用量超過，請務必自行至 LINE Official Account Manager 後台升級方案，避免訊息遭系統中斷。
                         </p>
                     </div>
 
@@ -964,7 +964,7 @@
 
             // 更新現任成員計數文字
             const activeTotal = membersData.filter(m => m.accountStatus === "已審核" && m.guildRole !== "退會").length;
-            document.getElementById('activeMemberCountText').textContent = `共 ${activeTotal} 名公會會員`;
+            document.getElementById('activeMemberCountText').textContent = `共 ${activeTotal} 名會員`;
         }
 
         function renderMembersList() {
