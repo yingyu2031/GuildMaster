@@ -100,7 +100,7 @@
         <p class="text-[11px] text-amber-900/40 text-center mt-8">&copy; 2026 GuildMaster 公會資訊中心</p>
     </main>
 
-    <!-- 彈窗 1：幹部 發布/編輯公告 Modal (刪除按鈕已移至最下方) -->
+    <!-- 彈窗 1：幹部 發布/編輯公告 Modal (已換成圖檔選取上傳與預覽) -->
     <div id="postModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
         <div class="bg-white w-full max-w-md rounded-[28px] p-6 border-2 border-amber-200 soft-amber-shadow max-h-[90vh] overflow-y-auto">
             <div class="flex items-center justify-between pb-3 border-b border-amber-100 mb-4">
@@ -109,6 +109,7 @@
             </div>
             <form id="postForm" class="space-y-3.5 text-left text-xs font-bold text-slate-700">
                 <input type="hidden" id="formPostId">
+                <input type="hidden" id="formPostImageBase64">
 
                 <div class="grid grid-cols-3 gap-2">
                     <div class="col-span-1">
@@ -126,10 +127,34 @@
                     </div>
                 </div>
 
+                <!-- 圖片上傳區塊 (支援點選圖檔/拍照/相簿，並支援預覽與移除) -->
                 <div>
-                    <label class="block mb-1 text-slate-800">圖片連結網址 (選填，可貼截圖或戰報圖)</label>
-                    <input type="url" id="formPostImageUrl" placeholder="https://... (例如圖床或試算表截圖)" 
-                           class="w-full h-[40px] bg-amber-50/40 border border-amber-200 rounded-xl px-3 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-amber-400">
+                    <label class="block mb-1 text-slate-800">上傳公告圖檔 (選填，可選取戰報或排陣截圖)</label>
+                    <input type="file" id="formPostFileInput" accept="image/*" class="hidden" onchange="handleImageFileSelect(event)">
+                    
+                    <!-- 點擊上傳卡片 -->
+                    <div id="imageUploadBox" onclick="document.getElementById('formPostFileInput').click()" 
+                         class="border-2 border-dashed border-amber-300 rounded-2xl p-3.5 bg-amber-50/40 hover:bg-amber-100/50 cursor-pointer text-center transition">
+                        <div class="text-2xl mb-1">📷</div>
+                        <div class="text-xs font-black text-amber-950">點擊選擇手機相簿圖檔 / 截圖</div>
+                        <div class="text-[10px] text-amber-800/60 mt-0.5">支援 JPG、PNG、WEBP 格式</div>
+                    </div>
+
+                    <!-- 圖片預覽區 -->
+                    <div id="imagePreviewContainer" class="hidden relative mt-2 rounded-2xl overflow-hidden border-2 border-amber-200 bg-slate-900">
+                        <img id="imagePreviewImg" src="" alt="圖片預覽" class="w-full max-h-48 object-contain">
+                        <button type="button" onclick="clearSelectedImage()" 
+                                class="absolute top-2 right-2 bg-slate-900/70 hover:bg-rose-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold transition shadow-md">
+                            ✕
+                        </button>
+                    </div>
+
+                    <!-- 備用圖片網址展開器 -->
+                    <details class="mt-1.5 text-[11px] text-slate-400 select-none">
+                        <summary class="cursor-pointer hover:text-slate-600">或直接貼上現成圖片網址</summary>
+                        <input type="url" id="formPostImageUrl" oninput="handleImageUrlInput()" placeholder="https://..." 
+                               class="w-full h-[36px] bg-amber-50/40 border border-amber-200 rounded-xl px-3 text-xs font-bold text-slate-900 mt-1 focus:ring-2 focus:ring-amber-400">
+                    </details>
                 </div>
 
                 <div>
@@ -163,7 +188,7 @@
                     <button type="submit" id="formPostSubmitBtn" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 rounded-xl transition shadow-md shadow-amber-200">發布公告</button>
                 </div>
 
-                <!-- 刪除此公告按鈕 (與刪除會員、活動一致) -->
+                <!-- 刪除此公告按鈕 -->
                 <div id="deletePostBtnWrapper" class="pt-2 border-t border-slate-100">
                     <button type="button" onclick="deleteCurrentPost()" class="w-full bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold py-2.5 rounded-xl text-xs transition">
                         刪除此公告
@@ -363,7 +388,6 @@
                 card.className = `bg-white rounded-2xl p-4 border-2 ${item.isPinned ? 'border-amber-400 bg-gradient-to-b from-amber-50/20 to-white' : 'border-amber-200/70'} text-left soft-amber-shadow fade-in space-y-3`;
 
                 card.innerHTML = `
-                    <!-- 頂部資訊列：右上角僅保留編輯按鈕 -->
                     <div class="flex items-start justify-between gap-2">
                         <div class="flex items-center gap-1.5 flex-wrap">
                             ${item.isPinned ? `<span class="bg-amber-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-xs">📌 置頂</span>` : ''}
@@ -371,7 +395,6 @@
                             <span class="text-[10px] font-bold text-slate-400 font-mono">${item.date} · 由 ${item.author}</span>
                         </div>
                         
-                        <!-- 幹部操作：僅顯示編輯按鈕 -->
                         ${isAdmin ? `
                             <div class="shrink-0">
                                 <button onclick="openPostModal('edit', '${item.id}')" class="text-xs font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg hover:bg-amber-100 transition">
@@ -381,24 +404,20 @@
                         ` : ''}
                     </div>
 
-                    <!-- 標題 -->
                     <h2 class="text-base font-black text-slate-900 leading-snug tracking-tight">
                         ${item.title}
                     </h2>
 
-                    <!-- 圖片 -->
                     ${item.imageUrl ? `
-                        <div class="rounded-xl overflow-hidden border border-amber-200/80 max-h-56 bg-amber-50">
+                        <div class="rounded-xl overflow-hidden border border-amber-200/80 max-h-64 bg-amber-50">
                             <img src="${item.imageUrl}" alt="公告圖片" class="w-full h-full object-cover">
                         </div>
                     ` : ''}
 
-                    <!-- 內文 -->
                     <div class="text-xs text-slate-700 leading-relaxed font-medium bg-[#FFFDF7] p-3 rounded-xl border border-amber-100 whitespace-pre-line">
                         ${item.content}
                     </div>
 
-                    <!-- 超連結按鈕 -->
                     ${item.linkUrl && item.linkText ? `
                         <div class="pt-0.5">
                             <a href="${item.linkUrl}" target="_blank" class="inline-flex items-center gap-1.5 text-xs font-black text-amber-900 bg-amber-100/80 hover:bg-amber-200 border border-amber-300 px-3 py-2 rounded-xl transition">
@@ -409,7 +428,6 @@
                         </div>
                     ` : ''}
 
-                    <!-- 底部已閱互動區 -->
                     <div class="pt-2 border-t border-amber-100/80 flex items-center justify-between gap-2">
                         <button onclick="toggleRead('${item.id}')" 
                                 class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-black transition border ${isRead ? 'bg-emerald-500 text-white border-emerald-500 shadow-xs' : 'bg-white text-slate-700 border-slate-200 hover:bg-emerald-50'}">
@@ -473,10 +491,52 @@
             document.getElementById('readersModal').classList.remove('hidden');
         }
 
-        // 開啟 發布/編輯 彈窗 (新增隱藏刪除鈕，編輯時顯示)
+        // 處理手機選取圖檔並轉成預覽與 Base64
+        function handleImageFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const base64Data = e.target.result;
+                document.getElementById('formPostImageBase64').value = base64Data;
+                document.getElementById('formPostImageUrl').value = ""; // 清空手動網址
+                showImagePreview(base64Data);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // 處理手動填入網址時的預覽
+        function handleImageUrlInput() {
+            const url = document.getElementById('formPostImageUrl').value.trim();
+            if (url) {
+                document.getElementById('formPostImageBase64').value = url;
+                showImagePreview(url);
+            } else {
+                clearSelectedImage();
+            }
+        }
+
+        function showImagePreview(src) {
+            document.getElementById('imagePreviewImg').src = src;
+            document.getElementById('imagePreviewContainer').classList.remove('hidden');
+            document.getElementById('imageUploadBox').classList.add('hidden');
+        }
+
+        function clearSelectedImage() {
+            document.getElementById('formPostFileInput').value = "";
+            document.getElementById('formPostImageUrl').value = "";
+            document.getElementById('formPostImageBase64').value = "";
+            document.getElementById('imagePreviewImg').src = "";
+            document.getElementById('imagePreviewContainer').classList.add('hidden');
+            document.getElementById('imageUploadBox').classList.remove('hidden');
+        }
+
+        // 開啟 發布/編輯 彈窗
         function openPostModal(mode, postId = null) {
             const modal = document.getElementById('postModal');
             document.getElementById('postForm').reset();
+            clearSelectedImage();
             const deleteWrapper = document.getElementById('deletePostBtnWrapper');
 
             if (mode === 'create') {
@@ -494,11 +554,17 @@
                 document.getElementById('formPostId').value = post.id;
                 document.getElementById('formPostCategory').value = post.category;
                 document.getElementById('formPostTitle').value = post.title;
-                document.getElementById('formPostImageUrl').value = post.imageUrl || "";
                 document.getElementById('formPostContent').value = post.content;
                 document.getElementById('formPostLinkText').value = post.linkText || "";
                 document.getElementById('formPostLinkUrl').value = post.linkUrl || "";
                 document.getElementById('formPostPin').checked = post.isPinned || false;
+
+                // 若有舊圖檔或網址則帶入預覽
+                if (post.imageUrl) {
+                    document.getElementById('formPostImageBase64').value = post.imageUrl;
+                    showImagePreview(post.imageUrl);
+                }
+
                 deleteWrapper.classList.remove('hidden'); // 編輯時顯示刪除按鈕
             }
 
@@ -521,6 +587,7 @@
         document.getElementById('postForm').addEventListener('submit', (e) => {
             e.preventDefault();
             const postId = document.getElementById('formPostId').value;
+            const imageFinalSrc = document.getElementById('formPostImageBase64').value || document.getElementById('formPostImageUrl').value.trim();
             
             const now = new Date();
             const timeStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
@@ -528,7 +595,7 @@
             const data = {
                 category: document.getElementById('formPostCategory').value,
                 title: document.getElementById('formPostTitle').value.trim(),
-                imageUrl: document.getElementById('formPostImageUrl').value.trim(),
+                imageUrl: imageFinalSrc,
                 content: document.getElementById('formPostContent').value.trim(),
                 linkText: document.getElementById('formPostLinkText').value.trim(),
                 linkUrl: document.getElementById('formPostLinkUrl').value.trim(),
