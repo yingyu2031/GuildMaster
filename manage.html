@@ -163,25 +163,29 @@
                 </div>
             </section>
 
-            <!-- 區塊 3：活動列表 -->
+            <!-- 區塊 3：活動列表 (新增進行中與封存活動頁籤) -->
             <section id="sectionEvents" class="hidden space-y-4">
+                <div class="grid grid-cols-2 gap-1 p-1 bg-sky-50 rounded-xl border border-sky-100 text-xs font-bold">
+                    <button id="eventSubTabActive" onclick="switchEventSubTab('active')" class="py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black">進行中活動</button>
+                    <button id="eventSubTabArchived" onclick="switchEventSubTab('archived')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800">封存活動 (已結束)</button>
+                </div>
+
                 <div class="flex items-center justify-between text-xs font-bold px-1">
-                    <span class="text-slate-500">點擊活動可檢視報名人員</span>
+                    <span class="text-slate-500">點擊活動可檢視報名名冊</span>
                     <span id="eventCountText" class="text-sky-900">共 0 場活動</span>
                 </div>
                 <div id="eventListContainer" class="space-y-3"></div>
             </section>
 
-            <!-- 區塊 4：其他設定 (整併 LINE群、推播、職業 子分類) -->
+            <!-- 區塊 4：其他設定 -->
             <section id="sectionSettings" class="hidden space-y-4">
-                <!-- 子分類頁籤：LINE群、推播、職業 -->
                 <div class="grid grid-cols-3 gap-1 p-1 bg-sky-50 rounded-xl border border-sky-100 text-xs font-bold">
                     <button id="subTabSettingLine" onclick="switchSettingSubTab('line')" class="py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black">LINE群</button>
                     <button id="subTabSettingBroadcast" onclick="switchSettingSubTab('broadcast')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800">推播</button>
                     <button id="subTabSettingClasses" onclick="switchSettingSubTab('classes')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800">職業</button>
                 </div>
 
-                <!-- 子視圖 1：LINE群 設定 -->
+                <!-- 子視圖 1：LINE群 -->
                 <div id="settingViewLine" class="space-y-3 text-left fade-in">
                     <div class="bg-[#F8FAFC] rounded-2xl p-4 border border-sky-100">
                         <div class="flex items-center justify-between mb-2">
@@ -207,7 +211,7 @@
                     </div>
                 </div>
 
-                <!-- 子視圖 2：推播 設定 -->
+                <!-- 子視圖 2：推播 -->
                 <div id="settingViewBroadcast" class="hidden space-y-4 text-left fade-in">
                     <div class="p-3 bg-rose-50 border border-rose-200 rounded-xl text-left">
                         <div class="text-xs font-black text-rose-700 mb-1">LINE 訊息發送額度提醒</div>
@@ -242,7 +246,7 @@
                     </div>
                 </div>
 
-                <!-- 子視圖 3：職業 設定 -->
+                <!-- 子視圖 3：職業 -->
                 <div id="settingViewClasses" class="hidden space-y-3 text-left fade-in">
                     <div>
                         <h3 class="text-sm font-black text-slate-900">遊戲職業選單設定</h3>
@@ -343,7 +347,7 @@
         </div>
     </div>
 
-    <!-- 彈窗 2：活動 新增/編輯 Modal -->
+    <!-- 彈窗 2：活動 新增/編輯 Modal (新增報名開始與截止時間) -->
     <div id="eventModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
         <div class="bg-white w-full max-w-md rounded-[28px] p-6 border-2 border-sky-200 soft-sky-shadow max-h-[90vh] overflow-y-auto">
             <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
@@ -356,6 +360,8 @@
                     <label class="block mb-1 text-slate-800">活動名稱 <span class="text-rose-500">*</span></label>
                     <input type="text" id="formEventTitle" required placeholder="例如：週六GVG要塞攻防戰" class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
                 </div>
+
+                <!-- 活動舉辦時間 -->
                 <div class="grid grid-cols-2 gap-3">
                     <div class="w-full">
                         <label class="block mb-1 text-slate-800">活動日期 <span class="text-rose-500">*</span></label>
@@ -366,6 +372,31 @@
                         <input type="time" id="formEventTime" required class="w-full h-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900">
                     </div>
                 </div>
+
+                <!-- 需求 2：報名開始時間 -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="w-full">
+                        <label class="block mb-1 text-slate-800">報名開始日期 <span class="text-rose-500">*</span></label>
+                        <input type="date" id="formEventSignupStartDate" required class="w-full h-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900">
+                    </div>
+                    <div class="w-full">
+                        <label class="block mb-1 text-slate-800">開始時間 <span class="text-rose-500">*</span></label>
+                        <input type="time" id="formEventSignupStartTime" required class="w-full h-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900">
+                    </div>
+                </div>
+
+                <!-- 需求 2：報名截止時間 -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="w-full">
+                        <label class="block mb-1 text-slate-800">報名截止日期 <span class="text-rose-500">*</span></label>
+                        <input type="date" id="formEventSignupEndDate" required class="w-full h-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900">
+                    </div>
+                    <div class="w-full">
+                        <label class="block mb-1 text-slate-800">截止時間 <span class="text-rose-500">*</span></label>
+                        <input type="time" id="formEventSignupEndTime" required class="w-full h-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900">
+                    </div>
+                </div>
+
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block mb-1 text-slate-800">人數上限</label>
@@ -380,6 +411,7 @@
                         </select>
                     </div>
                 </div>
+
                 <div>
                     <label class="block mb-1 text-slate-800">備註說明</label>
                     <textarea id="formEventDesc" rows="2" placeholder="語音集合頻道、攜帶物資說明等..." class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl p-3 text-xs font-bold text-slate-900 resize-none"></textarea>
@@ -579,14 +611,18 @@
             { id: "L006", gameNickname: "鐵拳無敵", gameClass: "武術宗師", event: "公會GVG聯賽", date: "2026-09-02", submitTime: "2026-09-02 20:30", reason: "網路維護中", isUrgent: true, operator: "本人" }
         ];
 
+        // 包含報名期間與封存設定之活動資料
         let eventsData = [
             {
                 id: "EVT01",
                 title: "週日大型 GVG 決戰要塞",
                 date: "2026-09-20",
                 time: "20:00",
+                signupStart: "2026-09-15 12:00",
+                signupEnd: "2026-09-20 19:30",
                 maxLimit: 24,
                 status: "報名中",
+                isArchived: false,
                 desc: "請於 19:50 前進入 DC 語音頻道集合，聽從指揮分配攻防組別。",
                 attendees: [
                     { gameNickname: "超級法神", gameClass: "超魔導士", time: "09-18 12:30" },
@@ -598,12 +634,28 @@
                 title: "每週公會副本快速全通團",
                 date: "2026-09-22",
                 time: "21:00",
+                signupStart: "2026-09-16 00:00",
+                signupEnd: "2026-09-22 20:00",
                 maxLimit: 12,
                 status: "報名中",
+                isArchived: false,
                 desc: "協助公會新成員與戰力提升，輕鬆通關獲取獎勵。",
                 attendees: [
                     { gameNickname: "暗夜殺手", gameClass: "十字刺客", time: "09-19 10:00" }
                 ]
+            },
+            {
+                id: "EVT00_OLD",
+                title: "上週跨服要塞演習戰",
+                date: "2026-09-13",
+                time: "20:00",
+                signupStart: "2026-09-08 12:00",
+                signupEnd: "2026-09-13 19:00",
+                maxLimit: 24,
+                status: "已結束",
+                isArchived: true,
+                desc: "已順利打完結算！",
+                attendees: []
             }
         ];
 
@@ -625,7 +677,8 @@
         let currentGroupSubTab = "active";
         let currentLeaveView = "rank";
         let currentRankFilter = "all";
-        let currentSettingSubTab = "line"; // 'line' | 'broadcast' | 'classes'
+        let currentEventSubTab = "active"; // 'active' | 'archived'
+        let currentSettingSubTab = "line";
         let currentViewingEventId = null;
 
         const TODAY_STR = new Date().toISOString().split('T')[0];
@@ -725,7 +778,6 @@
             setTimeout(() => msg.classList.add('hidden'), 2500);
         }
 
-        // 主選單切換 (4 大分頁)
         function switchMainSection(section) {
             currentMainSection = section;
             const tabs = {
@@ -759,7 +811,6 @@
             if (section === 'settings') renderSettingsSection();
         }
 
-        // 其他設定 子選單切換 (LINE群、推播、職業)
         function switchSettingSubTab(tab) {
             currentSettingSubTab = tab;
             const btns = {
@@ -1446,34 +1497,84 @@
             });
         }
 
+        // 需求 1：活動列表子頁籤切換
+        function switchEventSubTab(tab) {
+            currentEventSubTab = tab;
+            const tabAct = document.getElementById('eventSubTabActive');
+            const tabArch = document.getElementById('eventSubTabArchived');
+
+            if (tab === 'active') {
+                tabAct.className = "py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black";
+                tabArch.className = "py-1.5 rounded-lg text-slate-500 hover:text-slate-800";
+            } else {
+                tabArch.className = "py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black";
+                tabAct.className = "py-1.5 rounded-lg text-slate-500 hover:text-slate-800";
+            }
+            renderEventsList();
+        }
+
+        // 活動模組 (支援自動判斷過期已結束封存、手動封存與解除封存)
         function renderEventsList() {
             const container = document.getElementById('eventListContainer');
             container.innerHTML = "";
-            document.getElementById('eventCountText').textContent = `共 ${eventsData.length} 場活動`;
 
-            if (eventsData.length === 0) {
-                container.innerHTML = `<div class="bg-[#F8FAFC] rounded-2xl p-6 text-center text-xs text-slate-400 font-bold border border-sky-100">目前無任何活動</div>`;
+            // 需求 1：自動檢查活動日期，若已過期自動設定為已結束並封存
+            eventsData.forEach(evt => {
+                if (evt.date < TODAY_STR) {
+                    evt.isArchived = true;
+                    evt.status = "已結束";
+                }
+            });
+
+            // 依子頁籤過濾
+            const list = eventsData.filter(evt => {
+                if (currentEventSubTab === 'active') return !evt.isArchived;
+                return evt.isArchived;
+            });
+
+            document.getElementById('eventCountText').textContent = `共 ${list.length} 場活動`;
+
+            if (list.length === 0) {
+                const emptyText = currentEventSubTab === 'active' ? "目前無進行中的活動" : "目前無已封存之歷史活動";
+                container.innerHTML = `<div class="bg-[#F8FAFC] rounded-2xl p-6 text-center text-xs text-slate-400 font-bold border border-sky-100">${emptyText}</div>`;
                 return;
             }
 
-            eventsData.forEach(evt => {
+            list.forEach(evt => {
                 const attendeesCount = evt.attendees.length;
                 const limitText = evt.maxLimit ? `${attendeesCount} / ${evt.maxLimit} 人` : `${attendeesCount} 人 (無上限)`;
                 const percent = evt.maxLimit ? Math.min(100, Math.round((attendeesCount / evt.maxLimit) * 100)) : 100;
 
                 const card = document.createElement('div');
                 card.className = "bg-white rounded-2xl p-4 border border-sky-100 soft-sky-shadow fade-in text-left space-y-3";
+                
+                // 狀態徽章色彩
+                let statusBadgeClass = "bg-slate-100 text-slate-500";
+                if (evt.status === '報名中') statusBadgeClass = "bg-sky-100 text-sky-800";
+                if (evt.status === '已截止') statusBadgeClass = "bg-amber-100 text-amber-800";
+
                 card.innerHTML = `
                     <div class="flex items-start justify-between">
                         <div>
-                            <span class="text-[10px] font-black px-2 py-0.5 rounded ${evt.status === '報名中' ? 'bg-sky-100 text-sky-800' : 'bg-slate-100 text-slate-500'}">${evt.status}</span>
+                            <span class="text-[10px] font-black px-2 py-0.5 rounded ${statusBadgeClass}">${evt.status}</span>
                             <h3 class="text-base font-black text-slate-900 mt-1">${evt.title}</h3>
                             <div class="text-xs text-slate-500 font-bold mt-0.5">日期：${evt.date} · 集合：${evt.time}</div>
                         </div>
                         <div class="flex gap-1">
                             <button onclick="openEventModal('edit', '${evt.id}')" class="bg-sky-50 text-sky-800 border border-sky-200 text-xs font-bold px-2 py-1 rounded-lg">編輯</button>
+                            ${evt.isArchived ? `
+                                <button onclick="unarchiveEvent('${evt.id}')" class="bg-sky-50 text-sky-700 border border-sky-200 text-xs font-bold px-2 py-1 rounded-lg">解封</button>
+                            ` : `
+                                <button onclick="archiveEvent('${evt.id}')" class="bg-slate-50 text-slate-600 border border-slate-200 text-xs font-bold px-2 py-1 rounded-lg">封存</button>
+                            `}
                             <button onclick="deleteEvent('${evt.id}')" class="bg-rose-50 text-rose-700 border border-rose-200 text-xs font-bold px-2 py-1 rounded-lg">刪除</button>
                         </div>
+                    </div>
+
+                    <!-- 報名時間資訊 -->
+                    <div class="text-[11px] text-slate-500 bg-[#F8FAFC] p-2 rounded-xl border border-slate-100 space-y-0.5 font-mono">
+                        <div>報名開放：${evt.signupStart || '無限制'}</div>
+                        <div>報名截止：${evt.signupEnd || '活動開始前'}</div>
                     </div>
 
                     <p class="text-xs text-slate-600 bg-[#F8FAFC] p-2.5 rounded-xl border border-slate-100 leading-relaxed">${evt.desc || '無備註'}</p>
@@ -1496,6 +1597,28 @@
             });
         }
 
+        // 手動封存活動
+        function archiveEvent(id) {
+            const evt = eventsData.find(e => e.id === id);
+            if (!evt) return;
+            if (confirm(`確定要手動封存活動【${evt.title}】嗎？`)) {
+                evt.isArchived = true;
+                evt.status = "已結束";
+                renderEventsList();
+            }
+        }
+
+        // 解除封存活動
+        function unarchiveEvent(id) {
+            const evt = eventsData.find(e => e.id === id);
+            if (!evt) return;
+            if (confirm(`確定要將活動【${evt.title}】移回進行中嗎？`)) {
+                evt.isArchived = false;
+                if (evt.status === "已結束") evt.status = "報名中";
+                renderEventsList();
+            }
+        }
+
         function openEventModal(mode, eventId = null) {
             const modal = document.getElementById('eventModal');
             document.getElementById('eventForm').reset();
@@ -1503,6 +1626,11 @@
                 document.getElementById('eventModalTitle').textContent = "建立新活動";
                 document.getElementById('formEventId').value = "";
                 document.getElementById('formEventDate').value = TODAY_STR;
+                document.getElementById('formEventTime').value = "20:00";
+                document.getElementById('formEventSignupStartDate').value = TODAY_STR;
+                document.getElementById('formEventSignupStartTime').value = "12:00";
+                document.getElementById('formEventSignupEndDate').value = TODAY_STR;
+                document.getElementById('formEventSignupEndTime').value = "19:00";
                 document.getElementById('formEventStatus').value = "報名中";
             } else {
                 document.getElementById('eventModalTitle').textContent = "編輯活動內容";
@@ -1512,6 +1640,19 @@
                 document.getElementById('formEventTitle').value = evt.title;
                 document.getElementById('formEventDate').value = evt.date;
                 document.getElementById('formEventTime').value = evt.time;
+
+                // 拆解報名開始與截止時間
+                if (evt.signupStart) {
+                    const parts = evt.signupStart.split(' ');
+                    document.getElementById('formEventSignupStartDate').value = parts[0] || TODAY_STR;
+                    document.getElementById('formEventSignupStartTime').value = parts[1] || "12:00";
+                }
+                if (evt.signupEnd) {
+                    const parts = evt.signupEnd.split(' ');
+                    document.getElementById('formEventSignupEndDate').value = parts[0] || TODAY_STR;
+                    document.getElementById('formEventSignupEndTime').value = parts[1] || "19:00";
+                }
+
                 document.getElementById('formEventMaxLimit').value = evt.maxLimit || "";
                 document.getElementById('formEventStatus').value = evt.status;
                 document.getElementById('formEventDesc').value = evt.desc || "";
@@ -1522,10 +1663,17 @@
         document.getElementById('eventForm').addEventListener('submit', (e) => {
             e.preventDefault();
             const eId = document.getElementById('formEventId').value;
+            
+            const signupStartVal = `${document.getElementById('formEventSignupStartDate').value} ${document.getElementById('formEventSignupStartTime').value}`;
+            const signupEndVal = `${document.getElementById('formEventSignupEndDate').value} ${document.getElementById('formEventSignupEndTime').value}`;
+            const eventDateVal = document.getElementById('formEventDate').value;
+
             const data = {
                 title: document.getElementById('formEventTitle').value.trim(),
-                date: document.getElementById('formEventDate').value,
+                date: eventDateVal,
                 time: document.getElementById('formEventTime').value,
+                signupStart: signupStartVal,
+                signupEnd: signupEndVal,
                 maxLimit: parseInt(document.getElementById('formEventMaxLimit').value) || null,
                 status: document.getElementById('formEventStatus').value,
                 desc: document.getElementById('formEventDesc').value.trim()
@@ -1537,6 +1685,7 @@
             } else {
                 data.id = "EVT" + Date.now();
                 data.attendees = [];
+                data.isArchived = (eventDateVal < TODAY_STR);
                 eventsData.unshift(data);
             }
             closeModal('eventModal');
@@ -1598,7 +1747,6 @@
             }
         }
 
-        // 推播設定排程渲染
         function renderBroadcastSection() {
             const urgentContainer = document.getElementById('urgentRuleContainer');
             urgentContainer.innerHTML = "";
