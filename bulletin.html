@@ -69,7 +69,7 @@
             </button>
         </div>
 
-        <!-- 需求 1 & 2：分類改為「重要公告、聯賽名單、攻略分享」，標準頁籤式篩選 -->
+        <!-- 分類頁籤式快速篩選 -->
         <div class="grid grid-cols-4 gap-1 p-1 bg-amber-100/70 rounded-xl border border-amber-200/80 text-xs font-bold mb-3 select-none">
             <button id="catTabAll" onclick="filterCategory('全部')" class="py-1.5 rounded-lg bg-white text-amber-950 shadow-xs font-black transition">全部</button>
             <button id="catTabNotice" onclick="filterCategory('重要公告')" class="py-1.5 rounded-lg text-amber-900/70 hover:text-amber-950 transition">重要公告</button>
@@ -77,13 +77,13 @@
             <button id="catTabGuide" onclick="filterCategory('攻略分享')" class="py-1.5 rounded-lg text-amber-900/70 hover:text-amber-950 transition">攻略分享</button>
         </div>
 
-        <!-- 需求 3：新增一列查詢標題與文章關鍵字 -->
+        <!-- 關鍵字查詢列 -->
         <div class="relative mb-3">
             <input type="text" id="bulletinSearchInput" oninput="handleSearchInput()" placeholder="搜尋公告標題或內文關鍵字..."
                    class="w-full h-[40px] bg-white border-2 border-amber-200/80 rounded-xl px-3 text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition box-border">
         </div>
 
-        <!-- 需求 4：換行置左「共 N 則公告」，置右「+ 新增公告」 -->
+        <!-- 置左「共 N 則公告」，置右「+ 新增公告」 -->
         <div class="flex items-center justify-between px-1 mb-4">
             <span id="bulletinCountText" class="text-xs font-black text-amber-950">共 0 則公告</span>
             <button id="adminCreatePostBtn" onclick="openPostModal('create')" 
@@ -105,7 +105,7 @@
         <div class="bg-white w-full max-w-md rounded-[28px] p-6 border-2 border-amber-200 soft-amber-shadow max-h-[90vh] overflow-y-auto">
             <div class="flex items-center justify-between pb-3 border-b border-amber-100 mb-4">
                 <h3 id="postModalTitle" class="text-base font-black text-slate-900">發布新公告</h3>
-                <button onclick="closeModal('postModal')" class="text-slate-400 hover:text-slate-600 text-sm font-bold">關閉</button>
+                <button onclick="closeModal('postModal')" class="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-400 hover:text-slate-700 flex items-center justify-center font-black text-sm transition">✕</button>
             </div>
             <form id="postForm" class="space-y-3.5 text-left text-xs font-bold text-slate-700">
                 <input type="hidden" id="formPostId">
@@ -166,15 +166,20 @@
         </div>
     </div>
 
-    <!-- 彈窗 2：查看已閱名冊 Modal -->
+    <!-- 彈窗 2：查看已閱名冊 Modal (關閉按鈕改為右上角 ✕) -->
     <div id="readersModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
         <div class="bg-white w-full max-w-md rounded-[28px] p-6 border-2 border-amber-200 soft-amber-shadow max-h-[85vh] flex flex-col">
-            <div class="flex items-center justify-between pb-3 border-b border-amber-100 mb-3">
-                <div>
-                    <h3 id="readersModalTitle" class="text-base font-black text-slate-900">已閱會員名單</h3>
-                    <p id="readersModalSub" class="text-[11px] text-amber-800 font-bold mt-0.5">名冊明細</p>
+            <!-- 頂部標題與 ✕ 按鈕 -->
+            <div class="flex items-start justify-between pb-3 border-b border-amber-100 mb-3 gap-2">
+                <div class="min-w-0 flex-1 pr-2">
+                    <h3 id="readersModalTitle" class="text-base font-black text-slate-900 leading-snug">已閱會員名單</h3>
+                    <p id="readersModalSub" class="text-[11px] text-amber-800 font-bold mt-1">共 0 位會員已閱</p>
                 </div>
-                <button onclick="closeModal('readersModal')" class="text-slate-400 hover:text-slate-600 text-sm font-bold">關閉</button>
+                <!-- ✕ 關閉按鈕 -->
+                <button onclick="closeModal('readersModal')" 
+                        class="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 active:scale-90 text-slate-400 hover:text-slate-700 flex items-center justify-center font-black text-sm transition shrink-0">
+                    ✕
+                </button>
             </div>
             
             <div id="readersListContent" class="flex-1 overflow-y-auto space-y-1.5 pr-1 text-xs text-left">
@@ -193,7 +198,6 @@
             guildRole: "幹部",
         };
 
-        // 公告資料庫 (分類採用：重要公告、聯賽名單、攻略分享)
         let bulletinsData = [
             {
                 id: "POST_01",
@@ -224,8 +228,8 @@
                 linkText: "",
                 linkUrl: "",
                 readUsers: [
-                    { uid: "U1001", nick: "超級法神", class: "超魔導士", time: "09-19 18:40" },
-                    { uid: "U1003", nick: "舞力全開", class: "冷豔舞姬（舞孃）", time: "09-19 19:10" }
+                    { uid: "U1003", nick: "舞力全開", class: "冷豔舞姬（舞孃）", time: "09-19 19:10" },
+                    { uid: "U1001", nick: "超級法神", class: "超魔導士", time: "09-20 23:59" }
                 ]
             },
             {
@@ -315,12 +319,10 @@
 
             let list = [...bulletinsData];
 
-            // 分類篩選
             if (currentSelectedCategory !== "全部") {
                 list = list.filter(b => b.category === currentSelectedCategory);
             }
 
-            // 關鍵字搜尋篩選 (標題、內文、發布人)
             if (keyword) {
                 list = list.filter(b => 
                     b.title.toLowerCase().includes(keyword) || 
@@ -329,10 +331,8 @@
                 );
             }
 
-            // 更新計數文字
             document.getElementById('bulletinCountText').textContent = `共 ${list.length} 則公告`;
 
-            // 排序：置頂優先，依發布日期由新到舊
             list.sort((a, b) => {
                 if (a.isPinned && !b.isPinned) return -1;
                 if (!a.isPinned && b.isPinned) return 1;
@@ -358,7 +358,6 @@
                 card.className = `bg-white rounded-2xl p-4 border-2 ${item.isPinned ? 'border-amber-400 bg-gradient-to-b from-amber-50/20 to-white' : 'border-amber-200/70'} text-left soft-amber-shadow fade-in space-y-3`;
 
                 card.innerHTML = `
-                    <!-- 頂部資訊列 -->
                     <div class="flex items-start justify-between gap-2">
                         <div class="flex items-center gap-1.5 flex-wrap">
                             ${item.isPinned ? `<span class="bg-amber-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-xs">📌 置頂</span>` : ''}
@@ -366,7 +365,6 @@
                             <span class="text-[10px] font-bold text-slate-400 font-mono">${item.date} · 由 ${item.author}</span>
                         </div>
                         
-                        <!-- 幹部操作 -->
                         ${isAdmin ? `
                             <div class="flex items-center gap-1 shrink-0">
                                 <button onclick="openPostModal('edit', '${item.id}')" class="text-xs font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg hover:bg-amber-100 transition">
@@ -379,24 +377,20 @@
                         ` : ''}
                     </div>
 
-                    <!-- 標題 -->
                     <h2 class="text-base font-black text-slate-900 leading-snug tracking-tight">
                         ${item.title}
                     </h2>
 
-                    <!-- 圖片 -->
                     ${item.imageUrl ? `
                         <div class="rounded-xl overflow-hidden border border-amber-200/80 max-h-56 bg-amber-50">
                             <img src="${item.imageUrl}" alt="公告圖片" class="w-full h-full object-cover">
                         </div>
                     ` : ''}
 
-                    <!-- 內文 -->
                     <div class="text-xs text-slate-700 leading-relaxed font-medium bg-[#FFFDF7] p-3 rounded-xl border border-amber-100 whitespace-pre-line">
                         ${item.content}
                     </div>
 
-                    <!-- 超連結按鈕 -->
                     ${item.linkUrl && item.linkText ? `
                         <div class="pt-0.5">
                             <a href="${item.linkUrl}" target="_blank" class="inline-flex items-center gap-1.5 text-xs font-black text-amber-900 bg-amber-100/80 hover:bg-amber-200 border border-amber-300 px-3 py-2 rounded-xl transition">
@@ -407,16 +401,13 @@
                         </div>
                     ` : ''}
 
-                    <!-- 需求 5：移除+1，只保留已閱按鈕與檢視名單 -->
                     <div class="pt-2 border-t border-amber-100/80 flex items-center justify-between gap-2">
-                        <!-- 已閱 按鈕 -->
                         <button onclick="toggleRead('${item.id}')" 
                                 class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-black transition border ${isRead ? 'bg-emerald-500 text-white border-emerald-500 shadow-xs' : 'bg-white text-slate-700 border-slate-200 hover:bg-emerald-50'}">
                             <span>👁️</span>
                             <span>${isRead ? '已閱完畢' : '點擊已閱'} (${item.readUsers.length})</span>
                         </button>
 
-                        <!-- 查看已閱成員名單 -->
                         <button onclick="viewInteractionList('${item.id}')" class="text-[11px] font-bold text-amber-800 hover:text-amber-900 underline">
                             查看已閱名單
                         </button>
@@ -427,7 +418,6 @@
             });
         }
 
-        // 點擊「已閱」互動
         function toggleRead(postId) {
             const post = bulletinsData.find(b => b.id === postId);
             if (!post) return;
@@ -448,7 +438,6 @@
             renderBulletins();
         }
 
-        // 查看已閱會員名冊
         function viewInteractionList(postId) {
             const post = bulletinsData.find(b => b.id === postId);
             if (!post) return;
@@ -465,7 +454,7 @@
                         <div class="flex items-center gap-2">
                             <span class="w-5 h-5 bg-amber-200 text-amber-900 rounded-full flex items-center justify-center font-bold text-[10px]">${i+1}</span>
                             <span class="font-black text-slate-800">${u.nick}</span>
-                            <span class="text-[10px] text-slate-400 font-bold">(${u.class})</span>
+                            <span class="text-[10px] text-slate-400">(${u.class})</span>
                         </div>
                         <span class="text-[10px] text-slate-400 font-mono">${u.time}</span>
                     </div>
