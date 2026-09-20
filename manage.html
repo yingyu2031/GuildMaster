@@ -49,36 +49,32 @@
             <div id="quickActionBtnContainer"></div>
         </div>
 
-        <!-- 5 大頁籤列 (主選單：會員名冊、請假紀錄、活動列表、推播、其他) -->
+        <!-- 4 大主頁籤列 -->
         <div class="bg-sky-500 rounded-t-2xl px-2 pt-3 flex items-end gap-1 select-none overflow-x-auto">
             <button id="mainTabMembers" onclick="switchMainSection('members')" 
-                    class="bg-white text-sky-900 font-black px-3 py-2.5 rounded-t-xl text-xs flex items-center gap-1 transition-all relative top-[1px] shadow-sm whitespace-nowrap">
+                    class="bg-white text-sky-900 font-black px-3.5 py-2.5 rounded-t-xl text-xs flex items-center gap-1 transition-all relative top-[1px] shadow-sm whitespace-nowrap">
                 <span>會員名冊</span>
                 <span id="badgePendingCount" class="bg-rose-500 text-white text-[10px] px-1.5 py-0.2 rounded-full hidden">0</span>
             </button>
             <button id="mainTabLeaves" onclick="switchMainSection('leaves')" 
-                    class="text-sky-100 hover:text-white font-bold px-3 py-2 text-xs rounded-t-xl transition-all whitespace-nowrap flex items-center gap-1">
+                    class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl transition-all whitespace-nowrap flex items-center gap-1">
                 <span>請假紀錄</span>
                 <span id="badgeMainTodayLeave" class="bg-rose-500 text-white text-[10px] px-1.5 py-0.2 rounded-full hidden">0</span>
             </button>
             <button id="mainTabEvents" onclick="switchMainSection('events')" 
-                    class="text-sky-100 hover:text-white font-bold px-3 py-2 text-xs rounded-t-xl transition-all whitespace-nowrap">
+                    class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl transition-all whitespace-nowrap">
                 <span>活動列表</span>
             </button>
-            <button id="mainTabBroadcast" onclick="switchMainSection('broadcast')" 
-                    class="text-sky-100 hover:text-white font-bold px-3 py-2 text-xs rounded-t-xl transition-all whitespace-nowrap">
-                <span>推播</span>
-            </button>
-            <button id="mainTabOthers" onclick="switchMainSection('others')" 
-                    class="text-sky-100 hover:text-white font-bold px-3 py-2 text-xs rounded-t-xl transition-all whitespace-nowrap">
-                <span>其他</span>
+            <button id="mainTabSettings" onclick="switchMainSection('settings')" 
+                    class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl transition-all whitespace-nowrap">
+                <span>其他設定</span>
             </button>
         </div>
 
         <!-- 主體內容卡片 -->
         <div class="bg-white rounded-b-2xl p-4 sm:p-5 border-2 border-t-0 border-sky-200/80 soft-sky-shadow mb-6">
             
-            <!-- 區塊 1：成員名冊與審核 -->
+            <!-- 區塊 1：會員名冊 -->
             <section id="sectionMembers" class="space-y-4">
                 <div class="grid grid-cols-4 gap-1 p-1 bg-sky-50 rounded-xl border border-sky-100 text-xs font-bold">
                     <button id="subTabPending" onclick="switchMemberSubTab('pending')" class="py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black">待審核</button>
@@ -113,7 +109,7 @@
                 <div id="memberListContainer" class="space-y-3 min-h-[260px]"></div>
             </section>
 
-            <!-- 區塊 2：請假紀錄與缺勤排名 -->
+            <!-- 區塊 2：請假紀錄 -->
             <section id="sectionLeaves" class="hidden space-y-4">
                 <div class="grid grid-cols-3 gap-1 p-1 bg-sky-50 rounded-xl border border-sky-100 text-[11px] font-bold">
                     <button id="leaveSubTabRank" onclick="switchLeaveSubView('rank')" class="py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black">排名統計</button>
@@ -124,7 +120,7 @@
                     <button id="leaveSubTabList" onclick="switchLeaveSubView('list')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800">全部紀錄列表</button>
                 </div>
 
-                <!-- 排名儀表板 -->
+                <!-- 視圖 A：排名儀表板 -->
                 <div id="leaveRankView" class="space-y-3">
                     <div class="flex items-center justify-between bg-sky-50/60 rounded-xl p-2 border border-sky-100">
                         <span class="text-xs font-bold text-slate-600">統計維度：</span>
@@ -137,7 +133,7 @@
                     <div id="rankListContainer" class="space-y-2"></div>
                 </div>
 
-                <!-- 今日請假名單 -->
+                <!-- 視圖 B：今日請假專屬清單 -->
                 <div id="leaveTodayView" class="hidden space-y-3">
                     <div class="flex items-center justify-between px-1">
                         <span class="text-xs font-bold text-slate-500" id="todayDateLabel">今日日期：載入中</span>
@@ -146,7 +142,7 @@
                     <div id="leaveTodayContainer" class="space-y-2.5"></div>
                 </div>
 
-                <!-- 全部請假紀錄列表 -->
+                <!-- 視圖 C：全部請假紀錄列表 -->
                 <div id="leaveListView" class="hidden space-y-3">
                     <div class="space-y-2">
                         <input type="text" id="leaveSearchInput" oninput="renderLeaveList()" placeholder="搜尋角色或活動名稱..."
@@ -167,7 +163,7 @@
                 </div>
             </section>
 
-            <!-- 區塊 3：活動報名管理 -->
+            <!-- 區塊 3：活動列表 -->
             <section id="sectionEvents" class="hidden space-y-4">
                 <div class="flex items-center justify-between text-xs font-bold px-1">
                     <span class="text-slate-500">點擊活動可檢視報名人員</span>
@@ -176,81 +172,89 @@
                 <div id="eventListContainer" class="space-y-3"></div>
             </section>
 
-            <!-- 區塊 4：推播設定 -->
-            <section id="sectionBroadcast" class="hidden space-y-4">
-                <div class="p-3 bg-rose-50 border border-rose-200 rounded-xl text-left">
-                    <div class="text-xs font-black text-rose-700 mb-1">LINE 訊息發送額度提醒</div>
-                    <p class="text-[11px] text-rose-600 leading-relaxed font-bold">
-                        目前 LINE 官方帳號免費訊息額度為每月 200 則。若推播頻率較高或群組人數多導致用量超過 200 則，請務必自行至 LINE Official Account Manager 後台升級輕量/中量方案，避免訊息遭系統中斷。
-                    </p>
+            <!-- 區塊 4：其他設定 (整併 LINE群、推播、職業 子分類) -->
+            <section id="sectionSettings" class="hidden space-y-4">
+                <!-- 子分類頁籤：LINE群、推播、職業 -->
+                <div class="grid grid-cols-3 gap-1 p-1 bg-sky-50 rounded-xl border border-sky-100 text-xs font-bold">
+                    <button id="subTabSettingLine" onclick="switchSettingSubTab('line')" class="py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black">LINE群</button>
+                    <button id="subTabSettingBroadcast" onclick="switchSettingSubTab('broadcast')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800">推播</button>
+                    <button id="subTabSettingClasses" onclick="switchSettingSubTab('classes')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800">職業</button>
                 </div>
 
-                <div class="bg-[#F8FAFC] rounded-2xl p-3.5 border border-sky-100 text-left">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-xs font-black text-slate-900">LINE 推播群組 ID 設定</span>
-                        <span id="groupIdSaveMsg" class="text-[10px] text-emerald-600 font-bold hidden">已儲存完成</span>
-                    </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
-                        <div>
-                            <label class="block text-[11px] font-bold text-slate-600 mb-0.5">公會大群組 ID</label>
-                            <input type="text" id="guildGroupIdInput" placeholder="例如：C1234567890abcdef..."
-                                   class="w-full h-[38px] bg-white border border-sky-200 rounded-xl px-2.5 text-xs font-mono font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400 box-border">
+                <!-- 子視圖 1：LINE群 設定 -->
+                <div id="settingViewLine" class="space-y-3 text-left fade-in">
+                    <div class="bg-[#F8FAFC] rounded-2xl p-4 border border-sky-100">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-black text-slate-900">LINE 推播群組 ID 設定</span>
+                            <span id="groupIdSaveMsg" class="text-[10px] text-emerald-600 font-bold hidden">已儲存完成</span>
                         </div>
-                        <div>
-                            <label class="block text-[11px] font-bold text-slate-600 mb-0.5">幹部專用群組 ID</label>
-                            <input type="text" id="adminGroupIdInput" placeholder="例如：C0987654321fedcba..."
-                                   class="w-full h-[38px] bg-white border border-sky-200 rounded-xl px-2.5 text-xs font-mono font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400 box-border">
+                        <p class="text-[11px] text-slate-500 mb-3">設定推播目標群組識別碼，供系統判定發送至公會大群或幹部專用群組。</p>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-3">
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-600 mb-1">公會大群組 ID</label>
+                                <input type="text" id="guildGroupIdInput" placeholder="例如：C1234567890abcdef..."
+                                       class="w-full h-[38px] bg-white border border-sky-200 rounded-xl px-2.5 text-xs font-mono font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400 box-border">
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-600 mb-1">幹部專用群組 ID</label>
+                                <input type="text" id="adminGroupIdInput" placeholder="例如：C0987654321fedcba..."
+                                       class="w-full h-[38px] bg-white border border-sky-200 rounded-xl px-2.5 text-xs font-mono font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400 box-border">
+                            </div>
                         </div>
-                    </div>
-                    <button onclick="saveGroupSettings()" class="w-full bg-white hover:bg-sky-50 text-sky-800 border border-sky-200 text-xs font-bold py-2 rounded-xl transition shadow-xs">
-                        儲存群組 ID 設定
-                    </button>
-                </div>
-
-                <div class="space-y-2 text-left">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <span class="text-xs font-black text-slate-900">請假項目與超時推播規則</span>
-                            <div class="text-[10px] text-slate-400 font-bold">此處清單將同時作為前台請假單選項</div>
-                        </div>
-                        <button onclick="openUrgentRuleModal('create')" class="text-xs font-bold text-sky-600 hover:text-sky-700 bg-sky-50 px-2.5 py-1 rounded-lg border border-sky-200">
-                            + 新增請假項目
+                        <button onclick="saveGroupSettings()" class="w-full bg-white hover:bg-sky-50 text-sky-800 border border-sky-200 text-xs font-bold py-2 rounded-xl transition shadow-xs">
+                            儲存群組 ID 設定
                         </button>
                     </div>
-                    <div id="urgentRuleContainer" class="space-y-2"></div>
                 </div>
 
-                <div class="border-t border-slate-100 pt-2"></div>
-
-                <div class="space-y-2 text-left">
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs font-black text-slate-900">固定與事件推播排程</span>
-                        <button onclick="openBroadcastModal('create')" class="text-xs font-bold text-sky-600 hover:text-sky-700 bg-sky-50 px-2.5 py-1 rounded-lg border border-sky-200">
-                            + 新增排程
-                        </button>
+                <!-- 子視圖 2：推播 設定 -->
+                <div id="settingViewBroadcast" class="hidden space-y-4 text-left fade-in">
+                    <div class="p-3 bg-rose-50 border border-rose-200 rounded-xl text-left">
+                        <div class="text-xs font-black text-rose-700 mb-1">LINE 訊息發送額度提醒</div>
+                        <p class="text-[11px] text-rose-600 leading-relaxed font-bold">
+                            目前 LINE 官方帳號免費訊息額度為每月 200 則。若推播頻率較高或群組人數多導致用量超過 200 則，請務必自行至 LINE Official Account Manager 後台升級輕量/中量方案，避免訊息遭系統中斷。
+                        </p>
                     </div>
-                    <div id="scheduleBroadcastContainer" class="space-y-2"></div>
-                </div>
-            </section>
 
-            <!-- 區塊 5：其他 (自訂選單管理：修復按鈕不折行) -->
-            <section id="sectionOthers" class="hidden space-y-4 text-left">
-                <div>
-                    <div class="flex items-center justify-between mb-1">
-                        <div>
-                            <h3 class="text-sm font-black text-slate-900">遊戲職業選單設定</h3>
-                            <p class="text-[11px] text-slate-500">自訂當前手遊的職業項目，全系統表單與篩選將即時連動套用。</p>
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <span class="text-xs font-black text-slate-900">請假項目與超時推播規則</span>
+                                <div class="text-[10px] text-slate-400 font-bold">此處清單將同時作為前台請假單選項</div>
+                            </div>
+                            <button onclick="openUrgentRuleModal('create')" class="text-xs font-bold text-sky-600 hover:text-sky-700 bg-sky-50 px-2.5 py-1 rounded-lg border border-sky-200">
+                                + 新增請假項目
+                            </button>
                         </div>
+                        <div id="urgentRuleContainer" class="space-y-2"></div>
                     </div>
-                    <!-- 需求 1：輸入框自動縮短，按鈕 whitespace-nowrap 不換行 -->
-                    <div class="flex gap-2 my-3 items-center">
+
+                    <div class="border-t border-slate-100 pt-2"></div>
+
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-black text-slate-900">固定與事件推播排程</span>
+                            <button onclick="openBroadcastModal('create')" class="text-xs font-bold text-sky-600 hover:text-sky-700 bg-sky-50 px-2.5 py-1 rounded-lg border border-sky-200">
+                                + 新增排程
+                            </button>
+                        </div>
+                        <div id="scheduleBroadcastContainer" class="space-y-2"></div>
+                    </div>
+                </div>
+
+                <!-- 子視圖 3：職業 設定 -->
+                <div id="settingViewClasses" class="hidden space-y-3 text-left fade-in">
+                    <div>
+                        <h3 class="text-sm font-black text-slate-900">遊戲職業選單設定</h3>
+                        <p class="text-[11px] text-slate-500 mt-0.5">自訂當前手遊的職業項目，全系統表單與篩選將即時連動套用。</p>
+                    </div>
+                    <div class="flex gap-2 my-2 items-center">
                         <input type="text" id="newClassInput" placeholder="輸入新職業名稱（例：拳聖、槍騎...）"
                                class="flex-1 min-w-0 h-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400 box-border">
                         <button onclick="addNewCustomClass()" class="shrink-0 whitespace-nowrap bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold px-3.5 h-[40px] rounded-xl shadow-sm transition box-border">
                             + 新增職業
                         </button>
                     </div>
-
                     <div id="classListContainer" class="flex flex-wrap gap-2 p-3 bg-[#F8FAFC] border border-sky-100 rounded-2xl min-h-[100px]">
                     </div>
                 </div>
@@ -621,6 +625,7 @@
         let currentGroupSubTab = "active";
         let currentLeaveView = "rank";
         let currentRankFilter = "all";
+        let currentSettingSubTab = "line"; // 'line' | 'broadcast' | 'classes'
         let currentViewingEventId = null;
 
         const TODAY_STR = new Date().toISOString().split('T')[0];
@@ -720,30 +725,29 @@
             setTimeout(() => msg.classList.add('hidden'), 2500);
         }
 
+        // 主選單切換 (4 大分頁)
         function switchMainSection(section) {
             currentMainSection = section;
             const tabs = {
                 members: document.getElementById('mainTabMembers'),
                 leaves: document.getElementById('mainTabLeaves'),
                 events: document.getElementById('mainTabEvents'),
-                broadcast: document.getElementById('mainTabBroadcast'),
-                others: document.getElementById('mainTabOthers')
+                settings: document.getElementById('mainTabSettings')
             };
             const sections = {
                 members: document.getElementById('sectionMembers'),
                 leaves: document.getElementById('sectionLeaves'),
                 events: document.getElementById('sectionEvents'),
-                broadcast: document.getElementById('sectionBroadcast'),
-                others: document.getElementById('sectionOthers')
+                settings: document.getElementById('sectionSettings')
             };
 
             Object.keys(tabs).forEach(k => {
                 if (k === section) {
-                    tabs[k].className = "bg-white text-sky-900 font-black px-3 py-2.5 rounded-t-xl text-xs flex items-center gap-1 transition-all relative top-[1px] shadow-sm whitespace-nowrap";
+                    tabs[k].className = "bg-white text-sky-900 font-black px-3.5 py-2.5 rounded-t-xl text-xs flex items-center gap-1 transition-all relative top-[1px] shadow-sm whitespace-nowrap";
                     sections[k].classList.remove('hidden');
                     sections[k].classList.add('fade-in');
                 } else {
-                    tabs[k].className = "text-sky-100 hover:text-white font-bold px-3 py-2 text-xs rounded-t-xl transition-all whitespace-nowrap flex items-center gap-1";
+                    tabs[k].className = "text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl transition-all whitespace-nowrap flex items-center gap-1";
                     sections[k].classList.add('hidden');
                 }
             });
@@ -752,8 +756,39 @@
 
             if (section === 'leaves') renderLeaveSection();
             if (section === 'events') renderEventsList();
-            if (section === 'broadcast') renderBroadcastSection();
-            if (section === 'others') renderCustomClassManager();
+            if (section === 'settings') renderSettingsSection();
+        }
+
+        // 其他設定 子選單切換 (LINE群、推播、職業)
+        function switchSettingSubTab(tab) {
+            currentSettingSubTab = tab;
+            const btns = {
+                line: document.getElementById('subTabSettingLine'),
+                broadcast: document.getElementById('subTabSettingBroadcast'),
+                classes: document.getElementById('subTabSettingClasses')
+            };
+            const views = {
+                line: document.getElementById('settingViewLine'),
+                broadcast: document.getElementById('settingViewBroadcast'),
+                classes: document.getElementById('settingViewClasses')
+            };
+
+            Object.keys(btns).forEach(k => {
+                if (k === tab) {
+                    btns[k].className = "py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black";
+                    views[k].classList.remove('hidden');
+                } else {
+                    btns[k].className = "py-1.5 rounded-lg text-slate-500 hover:text-slate-800";
+                    views[k].classList.add('hidden');
+                }
+            });
+
+            if (tab === 'broadcast') renderBroadcastSection();
+            if (tab === 'classes') renderCustomClassManager();
+        }
+
+        function renderSettingsSection() {
+            switchSettingSubTab(currentSettingSubTab);
         }
 
         function updateHeaderActionBtn() {
@@ -1411,7 +1446,6 @@
             });
         }
 
-        // 活動模組
         function renderEventsList() {
             const container = document.getElementById('eventListContainer');
             container.innerHTML = "";
@@ -1564,6 +1598,7 @@
             }
         }
 
+        // 推播設定排程渲染
         function renderBroadcastSection() {
             const urgentContainer = document.getElementById('urgentRuleContainer');
             urgentContainer.innerHTML = "";
