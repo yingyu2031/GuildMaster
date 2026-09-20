@@ -163,7 +163,7 @@
                 </div>
             </section>
 
-            <!-- 區塊 3：活動列表 (新增進行中與封存活動頁籤) -->
+            <!-- 區塊 3：活動列表 (橫向排版與分頁) -->
             <section id="sectionEvents" class="hidden space-y-4">
                 <div class="grid grid-cols-2 gap-1 p-1 bg-sky-50 rounded-xl border border-sky-100 text-xs font-bold">
                     <button id="eventSubTabActive" onclick="switchEventSubTab('active')" class="py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black">進行中活動</button>
@@ -269,7 +269,7 @@
         <p class="text-[11px] text-slate-400 text-center">&copy; 2026 GuildMaster 幹部後台</p>
     </main>
 
-    <!-- 彈窗 1：成員 新增/編輯 Modal -->
+    <!-- 彈窗 1：成員 新增/編輯 Modal (需求 2：下方加入刪除成員功能) -->
     <div id="memberModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
         <div class="bg-white w-full max-w-md rounded-[28px] p-6 border-2 border-sky-200 soft-sky-shadow max-h-[90vh] overflow-y-auto">
             <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
@@ -343,11 +343,18 @@
                     <button type="button" onclick="closeModal('memberModal')" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 rounded-xl transition">取消</button>
                     <button type="submit" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-2.5 rounded-xl transition shadow-md shadow-sky-200">儲存變更</button>
                 </div>
+
+                <!-- 需求 2：會員編輯內頁下方新增刪除成員按鈕 -->
+                <div id="deleteMemberBtnWrapper" class="pt-2 border-t border-slate-100">
+                    <button type="button" onclick="deleteCurrentMember()" class="w-full bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold py-2.5 rounded-xl text-xs transition">
+                        刪除此成員資料
+                    </button>
+                </div>
             </form>
         </div>
     </div>
 
-    <!-- 彈窗 2：活動 新增/編輯 Modal (新增報名開始與截止時間) -->
+    <!-- 彈窗 2：活動 新增/編輯 Modal (需求 1：下方移入刪除活動按鈕) -->
     <div id="eventModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
         <div class="bg-white w-full max-w-md rounded-[28px] p-6 border-2 border-sky-200 soft-sky-shadow max-h-[90vh] overflow-y-auto">
             <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
@@ -361,7 +368,6 @@
                     <input type="text" id="formEventTitle" required placeholder="例如：週六GVG要塞攻防戰" class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
                 </div>
 
-                <!-- 活動舉辦時間 -->
                 <div class="grid grid-cols-2 gap-3">
                     <div class="w-full">
                         <label class="block mb-1 text-slate-800">活動日期 <span class="text-rose-500">*</span></label>
@@ -373,7 +379,6 @@
                     </div>
                 </div>
 
-                <!-- 需求 2：報名開始時間 -->
                 <div class="grid grid-cols-2 gap-3">
                     <div class="w-full">
                         <label class="block mb-1 text-slate-800">報名開始日期 <span class="text-rose-500">*</span></label>
@@ -385,7 +390,6 @@
                     </div>
                 </div>
 
-                <!-- 需求 2：報名截止時間 -->
                 <div class="grid grid-cols-2 gap-3">
                     <div class="w-full">
                         <label class="block mb-1 text-slate-800">報名截止日期 <span class="text-rose-500">*</span></label>
@@ -419,6 +423,13 @@
                 <div class="grid grid-cols-2 gap-3 pt-3">
                     <button type="button" onclick="closeModal('eventModal')" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 rounded-xl transition">取消</button>
                     <button type="submit" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-2.5 rounded-xl transition shadow-md shadow-sky-200">儲存活動</button>
+                </div>
+
+                <!-- 需求 1：活動編輯內頁下方移入刪除活動按鈕 -->
+                <div id="deleteEventBtnWrapper" class="pt-2 border-t border-slate-100">
+                    <button type="button" onclick="deleteCurrentEvent()" class="w-full bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold py-2.5 rounded-xl text-xs transition">
+                        刪除此活動
+                    </button>
                 </div>
             </form>
         </div>
@@ -611,7 +622,6 @@
             { id: "L006", gameNickname: "鐵拳無敵", gameClass: "武術宗師", event: "公會GVG聯賽", date: "2026-09-02", submitTime: "2026-09-02 20:30", reason: "網路維護中", isUrgent: true, operator: "本人" }
         ];
 
-        // 包含報名期間與封存設定之活動資料
         let eventsData = [
             {
                 id: "EVT01",
@@ -677,7 +687,7 @@
         let currentGroupSubTab = "active";
         let currentLeaveView = "rank";
         let currentRankFilter = "all";
-        let currentEventSubTab = "active"; // 'active' | 'archived'
+        let currentEventSubTab = "active";
         let currentSettingSubTab = "line";
         let currentViewingEventId = null;
 
@@ -1161,6 +1171,7 @@
             const auditSection = document.getElementById('auditLogSection');
             const auditContainer = document.getElementById('auditLogContainer');
             const auditCountText = document.getElementById('auditLogCount');
+            const deleteMemberWrapper = document.getElementById('deleteMemberBtnWrapper');
             auditContainer.innerHTML = "";
 
             if (mode === 'create') {
@@ -1171,6 +1182,7 @@
                 document.getElementById('formAccountStatus').value = "已審核";
                 document.getElementById('formAllowSearch').checked = true;
                 auditSection.classList.add('hidden');
+                deleteMemberWrapper.classList.add('hidden'); // 新增時不顯示刪除按鈕
             } else {
                 document.getElementById('memberModalTitle').textContent = "編輯成員資料";
                 const m = membersData.find(x => x.rowIndex === rowIndex);
@@ -1186,6 +1198,8 @@
                 document.getElementById('formAllowSearch').checked = (m.allowSearch === "Y" || m.allowSearch === true);
 
                 auditSection.classList.remove('hidden');
+                deleteMemberWrapper.classList.remove('hidden'); // 編輯時顯示刪除按鈕
+
                 const memberLogs = auditLogsData.filter(log => log.lineUserId === m.lineUserId);
                 auditCountText.textContent = `共 ${memberLogs.length} 筆紀錄`;
 
@@ -1211,6 +1225,21 @@
                 }
             }
             modal.classList.remove('hidden');
+        }
+
+        // 需求 2：會員編輯畫面刪除此成員
+        function deleteCurrentMember() {
+            const rIndex = parseInt(document.getElementById('formMemberRowIndex').value);
+            const target = membersData.find(x => x.rowIndex === rIndex);
+            if (!target) return;
+
+            if (confirm(`確定要將成員【${target.gameNickname}】從資料庫中徹底刪除嗎？\n此動作無法復原！`)) {
+                membersData = membersData.filter(x => x.rowIndex !== rIndex);
+                closeModal('memberModal');
+                updateMemberCounts();
+                if (currentMemberSubTab === 'groups') renderGroupOverview();
+                else renderMembersList();
+            }
         }
 
         document.getElementById('memberForm').addEventListener('submit', (e) => {
@@ -1497,7 +1526,6 @@
             });
         }
 
-        // 需求 1：活動列表子頁籤切換
         function switchEventSubTab(tab) {
             currentEventSubTab = tab;
             const tabAct = document.getElementById('eventSubTabActive');
@@ -1513,12 +1541,11 @@
             renderEventsList();
         }
 
-        // 活動模組 (支援自動判斷過期已結束封存、手動封存與解除封存)
+        // 需求 1：活動卡片按鈕改為橫排，移除刪除鈕
         function renderEventsList() {
             const container = document.getElementById('eventListContainer');
             container.innerHTML = "";
 
-            // 需求 1：自動檢查活動日期，若已過期自動設定為已結束並封存
             eventsData.forEach(evt => {
                 if (evt.date < TODAY_STR) {
                     evt.isArchived = true;
@@ -1526,7 +1553,6 @@
                 }
             });
 
-            // 依子頁籤過濾
             const list = eventsData.filter(evt => {
                 if (currentEventSubTab === 'active') return !evt.isArchived;
                 return evt.isArchived;
@@ -1548,7 +1574,6 @@
                 const card = document.createElement('div');
                 card.className = "bg-white rounded-2xl p-4 border border-sky-100 soft-sky-shadow fade-in text-left space-y-3";
                 
-                // 狀態徽章色彩
                 let statusBadgeClass = "bg-slate-100 text-slate-500";
                 if (evt.status === '報名中') statusBadgeClass = "bg-sky-100 text-sky-800";
                 if (evt.status === '已截止') statusBadgeClass = "bg-amber-100 text-amber-800";
@@ -1560,18 +1585,23 @@
                             <h3 class="text-base font-black text-slate-900 mt-1">${evt.title}</h3>
                             <div class="text-xs text-slate-500 font-bold mt-0.5">日期：${evt.date} · 集合：${evt.time}</div>
                         </div>
-                        <div class="flex gap-1">
-                            <button onclick="openEventModal('edit', '${evt.id}')" class="bg-sky-50 text-sky-800 border border-sky-200 text-xs font-bold px-2 py-1 rounded-lg">編輯</button>
+                        <!-- 需求 1：橫排按鈕，無刪除鈕 -->
+                        <div class="flex items-center gap-1.5">
+                            <button onclick="openEventModal('edit', '${evt.id}')" class="bg-sky-50 text-sky-800 border border-sky-200 text-xs font-bold px-3 py-1.5 rounded-xl hover:bg-sky-100 transition">
+                                編輯
+                            </button>
                             ${evt.isArchived ? `
-                                <button onclick="unarchiveEvent('${evt.id}')" class="bg-sky-50 text-sky-700 border border-sky-200 text-xs font-bold px-2 py-1 rounded-lg">解封</button>
+                                <button onclick="unarchiveEvent('${evt.id}')" class="bg-sky-50 text-sky-700 border border-sky-200 text-xs font-bold px-3 py-1.5 rounded-xl hover:bg-sky-100 transition">
+                                    解封
+                                </button>
                             ` : `
-                                <button onclick="archiveEvent('${evt.id}')" class="bg-slate-50 text-slate-600 border border-slate-200 text-xs font-bold px-2 py-1 rounded-lg">封存</button>
+                                <button onclick="archiveEvent('${evt.id}')" class="bg-slate-50 text-slate-600 border border-slate-200 text-xs font-bold px-3 py-1.5 rounded-xl hover:bg-slate-100 transition">
+                                    封存
+                                </button>
                             `}
-                            <button onclick="deleteEvent('${evt.id}')" class="bg-rose-50 text-rose-700 border border-rose-200 text-xs font-bold px-2 py-1 rounded-lg">刪除</button>
                         </div>
                     </div>
 
-                    <!-- 報名時間資訊 -->
                     <div class="text-[11px] text-slate-500 bg-[#F8FAFC] p-2 rounded-xl border border-slate-100 space-y-0.5 font-mono">
                         <div>報名開放：${evt.signupStart || '無限制'}</div>
                         <div>報名截止：${evt.signupEnd || '活動開始前'}</div>
@@ -1597,7 +1627,6 @@
             });
         }
 
-        // 手動封存活動
         function archiveEvent(id) {
             const evt = eventsData.find(e => e.id === id);
             if (!evt) return;
@@ -1608,7 +1637,6 @@
             }
         }
 
-        // 解除封存活動
         function unarchiveEvent(id) {
             const evt = eventsData.find(e => e.id === id);
             if (!evt) return;
@@ -1622,6 +1650,8 @@
         function openEventModal(mode, eventId = null) {
             const modal = document.getElementById('eventModal');
             document.getElementById('eventForm').reset();
+            const deleteWrapper = document.getElementById('deleteEventBtnWrapper');
+
             if (mode === 'create') {
                 document.getElementById('eventModalTitle').textContent = "建立新活動";
                 document.getElementById('formEventId').value = "";
@@ -1632,6 +1662,7 @@
                 document.getElementById('formEventSignupEndDate').value = TODAY_STR;
                 document.getElementById('formEventSignupEndTime').value = "19:00";
                 document.getElementById('formEventStatus').value = "報名中";
+                deleteWrapper.classList.add('hidden'); // 新增時隱藏刪除按鈕
             } else {
                 document.getElementById('eventModalTitle').textContent = "編輯活動內容";
                 const evt = eventsData.find(e => e.id === eventId);
@@ -1641,7 +1672,6 @@
                 document.getElementById('formEventDate').value = evt.date;
                 document.getElementById('formEventTime').value = evt.time;
 
-                // 拆解報名開始與截止時間
                 if (evt.signupStart) {
                     const parts = evt.signupStart.split(' ');
                     document.getElementById('formEventSignupStartDate').value = parts[0] || TODAY_STR;
@@ -1656,8 +1686,22 @@
                 document.getElementById('formEventMaxLimit').value = evt.maxLimit || "";
                 document.getElementById('formEventStatus').value = evt.status;
                 document.getElementById('formEventDesc').value = evt.desc || "";
+                deleteWrapper.classList.remove('hidden'); // 編輯時顯示刪除按鈕
             }
             modal.classList.remove('hidden');
+        }
+
+        // 需求 1：編輯活動彈窗內執行刪除
+        function deleteCurrentEvent() {
+            const eventId = document.getElementById('formEventId').value;
+            const evt = eventsData.find(e => e.id === eventId);
+            if (!evt) return;
+
+            if (confirm(`確定要刪除活動【${evt.title}】嗎？此動作無法復原！`)) {
+                eventsData = eventsData.filter(e => e.id !== eventId);
+                closeModal('eventModal');
+                renderEventsList();
+            }
         }
 
         document.getElementById('eventForm').addEventListener('submit', (e) => {
@@ -1691,14 +1735,6 @@
             closeModal('eventModal');
             renderEventsList();
         });
-
-        function deleteEvent(eventId) {
-            const evt = eventsData.find(e => e.id === eventId);
-            if (evt && confirm(`確定要刪除活動【${evt.title}】嗎？`)) {
-                eventsData = eventsData.filter(e => e.id !== eventId);
-                renderEventsList();
-            }
-        }
 
         function viewAttendees(eventId) {
             currentViewingEventId = eventId;
