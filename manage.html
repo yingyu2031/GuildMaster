@@ -38,7 +38,7 @@
 <body class="bg-[#F0F9FF] text-slate-800 antialiased selection:bg-sky-200 selection:text-sky-900 min-h-screen flex flex-col justify-between py-6 px-3 sm:px-4">
 
     <main class="max-w-lg w-full mx-auto">
-        <!-- 需求 1：頂部標題區改為置中排版 (對齊請假申請風格) -->
+        <!-- 頂部標題區 (置中排版) -->
         <div class="text-center mb-5 pt-1">
             <div class="inline-block bg-sky-100 text-sky-800 text-xs font-black px-4 py-1 rounded-full mb-2.5 border border-sky-200/80">
                 幹部專用
@@ -47,7 +47,7 @@
             <p class="text-[13px] font-bold text-slate-500">公會事務、成員審核與活動出勤統整</p>
         </div>
 
-        <!-- 需求 2：幹部登入小卡 (拿掉職業標籤文字與UID，簡潔呈現) -->
+        <!-- 幹部登入小卡 (純粹顯示職業名稱) -->
         <div class="bg-white border-2 border-sky-200/80 rounded-2xl p-3.5 mb-5 flex items-center gap-3.5 soft-sky-shadow text-left">
             <div class="relative shrink-0">
                 <img id="adminAvatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&h=120&q=80" 
@@ -64,7 +64,6 @@
                         幹部
                     </span>
                 </div>
-                <!-- 僅純粹顯示職業名稱，不加「職業：」與「UID」 -->
                 <div id="adminClass" class="text-xs font-bold text-slate-600 truncate mt-0.5">
                     超魔導士
                 </div>
@@ -105,17 +104,21 @@
                     <button id="subTabRetired" onclick="switchMemberSubTab('retired')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800">退會封存</button>
                 </div>
 
-                <!-- 需求 3：搜尋與篩選列，將 +新增成員 移至此處緊密搭配 -->
-                <div class="flex gap-1.5 items-center">
+                <!-- 第一行：搜尋角色與職業篩選 -->
+                <div class="flex gap-2 items-center">
                     <div class="relative flex-1 min-w-0">
                         <input type="text" id="memberSearchInput" oninput="handleMemberSearchInput()" placeholder="搜尋角色或 LINE 暱稱..."
                                class="w-full h-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:bg-white transition box-border">
                     </div>
                     <select id="memberClassFilter" onchange="renderMembersList()" class="h-[40px] leading-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-2.5 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:bg-white transition box-border shrink-0">
                     </select>
-                    <!-- 下移的 +新增成員 按鈕 -->
-                    <button onclick="openMemberModal('create')" class="shrink-0 whitespace-nowrap bg-sky-500 hover:bg-sky-600 active:scale-95 text-white text-xs font-black px-3 h-[40px] rounded-xl shadow-xs transition box-border">
-                        + 新增
+                </div>
+
+                <!-- 需求 1：第二行工具列（左側人數統計、右側 +新增會員，僅在現任成員頁籤顯示） -->
+                <div id="activeMemberActionRow" class="hidden flex items-center justify-between px-1">
+                    <span id="activeMemberCountText" class="text-xs font-black text-sky-900">共 0 名公會會員</span>
+                    <button onclick="openMemberModal('create')" class="bg-sky-500 hover:bg-sky-600 active:scale-95 text-white text-xs font-black px-3 py-1.5 rounded-xl shadow-xs transition">
+                        + 新增會員
                     </button>
                 </div>
 
@@ -196,13 +199,12 @@
                     <button id="eventSubTabArchived" onclick="switchEventSubTab('archived')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800">封存活動 (已結束)</button>
                 </div>
 
-                <!-- 需求 3：工具列整合下移的「+ 建立活動」按鈕 -->
+                <!-- 工具列：左側統計與提示、右側 +建立活動 按鈕 -->
                 <div class="flex items-center justify-between text-xs font-bold px-1">
                     <div class="flex items-center gap-2">
                         <span id="eventCountText" class="text-sky-900 font-black">共 0 場活動</span>
                         <span class="text-slate-400 font-normal">| 點擊檢視名冊</span>
                     </div>
-                    <!-- 下移的 +建立活動 按鈕 -->
                     <button onclick="openEventModal('create')" class="bg-sky-500 hover:bg-sky-600 active:scale-95 text-white text-xs font-black px-3 py-1.5 rounded-xl shadow-xs transition">
                         + 建立活動
                     </button>
@@ -386,7 +388,7 @@
         </div>
     </div>
 
-    <!-- 彈窗 2：活動 新增/編輯 Modal -->
+    <!-- 彈窗 2：活動 新增/編輯 Modal (集合時間已改為活動時間) -->
     <div id="eventModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
         <div class="bg-white w-full max-w-md rounded-[28px] p-6 border-2 border-sky-200 soft-sky-shadow max-h-[90vh] overflow-y-auto">
             <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
@@ -406,7 +408,8 @@
                         <input type="date" id="formEventDate" required class="w-full h-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900">
                     </div>
                     <div class="w-full">
-                        <label class="block mb-1 text-slate-800">集合時間 <span class="text-rose-500">*</span></label>
+                        <!-- 需求 2：集合時間改為活動時間 -->
+                        <label class="block mb-1 text-slate-800">活動時間 <span class="text-rose-500">*</span></label>
                         <input type="time" id="formEventTime" required class="w-full h-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900">
                     </div>
                 </div>
@@ -741,7 +744,6 @@
             renderMembersList();
         });
 
-        // 渲染幹部登入身分資訊 (僅保留暱稱、身分與職業名稱)
         function renderAdminIdentity() {
             document.getElementById('adminNickName').textContent = currentAdminUser.gameNickname;
             document.getElementById('adminClass').textContent = currentAdminUser.gameClass;
@@ -909,6 +911,14 @@
             });
 
             const groupToolBar = document.getElementById('groupToolBar');
+            const activeMemberRow = document.getElementById('activeMemberActionRow');
+
+            // 需求 1：僅在「現任成員」頁籤顯示第二行工具列
+            if (tab === 'active') {
+                activeMemberRow.classList.remove('hidden');
+            } else {
+                activeMemberRow.classList.add('hidden');
+            }
 
             if (tab === 'groups') {
                 groupToolBar.classList.remove('hidden');
@@ -951,6 +961,10 @@
             } else {
                 badge.classList.add('hidden');
             }
+
+            // 更新現任成員計數文字
+            const activeTotal = membersData.filter(m => m.accountStatus === "已審核" && m.guildRole !== "退會").length;
+            document.getElementById('activeMemberCountText').textContent = `共 ${activeTotal} 名公會會員`;
         }
 
         function renderMembersList() {
@@ -972,6 +986,10 @@
                 const matchClass = !classFilter || (m.gameClass === classFilter);
                 return matchKey && matchClass;
             });
+
+            if (currentMemberSubTab === 'active') {
+                document.getElementById('activeMemberCountText').textContent = `共 ${list.length} 名公會會員`;
+            }
 
             if (list.length === 0) {
                 container.innerHTML = `<div class="bg-[#F8FAFC] rounded-2xl p-6 text-center text-xs text-slate-400 font-bold border border-sky-100">查無相符成員資料</div>`;
@@ -1604,7 +1622,8 @@
                         <div>
                             <span class="text-[10px] font-black px-2 py-0.5 rounded ${statusBadgeClass}">${evt.status}</span>
                             <h3 class="text-base font-black text-slate-900 mt-1">${evt.title}</h3>
-                            <div class="text-xs text-slate-500 font-bold mt-0.5">日期：${evt.date} · 集合：${evt.time}</div>
+                            <!-- 需求 2：改為 活動：XX:XX -->
+                            <div class="text-xs text-slate-500 font-bold mt-0.5">日期：${evt.date} · 活動：${evt.time}</div>
                         </div>
                         <div class="flex items-center gap-1.5">
                             <button onclick="openEventModal('edit', '${evt.id}')" class="bg-sky-50 text-sky-800 border border-sky-200 text-xs font-bold px-3 py-1.5 rounded-xl hover:bg-sky-100 transition">
@@ -1761,7 +1780,7 @@
             if (!evt) return;
 
             document.getElementById('attendeesModalTitle').textContent = evt.title;
-            document.getElementById('attendeesModalSub').textContent = `共 ${evt.attendees.length} 人報名 · 集合時間 ${evt.date} ${evt.time}`;
+            document.getElementById('attendeesModalSub').textContent = `共 ${evt.attendees.length} 人報名 · 活動時間 ${evt.date} ${evt.time}`;
 
             const container = document.getElementById('attendeesListContainer');
             container.innerHTML = "";
