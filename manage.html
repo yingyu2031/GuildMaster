@@ -47,7 +47,7 @@
             <p class="text-[13px] font-bold text-slate-500">公會事務、成員審核與活動出勤統整</p>
         </div>
 
-        <!-- 幹部登入小卡 (純粹顯示職業名稱) -->
+        <!-- 幹部登入小卡 -->
         <div class="bg-white border-2 border-sky-200/80 rounded-2xl p-3.5 mb-5 flex items-center gap-3.5 soft-sky-shadow text-left">
             <div class="relative shrink-0">
                 <img id="adminAvatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&h=120&q=80" 
@@ -114,7 +114,7 @@
                     </select>
                 </div>
 
-                <!-- 需求 1：第二行工具列（左側人數統計、右側 +新增會員，僅在現任成員頁籤顯示） -->
+                <!-- 需求 1：第二行工具列（改為「共 N 名會員」，右側 + 新增會員） -->
                 <div id="activeMemberActionRow" class="hidden flex items-center justify-between px-1">
                     <span id="activeMemberCountText" class="text-xs font-black text-sky-900">共 0 名會員</span>
                     <button onclick="openMemberModal('create')" class="bg-sky-500 hover:bg-sky-600 active:scale-95 text-white text-xs font-black px-3 py-1.5 rounded-xl shadow-xs transition">
@@ -122,14 +122,14 @@
                     </button>
                 </div>
 
-                <!-- 團體速查工具列 -->
+                <!-- 需求 2：團體速查工具列（按鈕改為「+ 新增團體」，樣式高度與其他按鈕一致） -->
                 <div id="groupToolBar" class="hidden space-y-2">
                     <div class="flex items-center justify-between">
                         <div class="flex gap-1 bg-sky-50/80 p-1 rounded-xl border border-sky-100">
                             <button id="groupTabActive" onclick="switchGroupSubTab('active')" class="px-2.5 py-1 text-xs font-black rounded-lg bg-white text-sky-900 shadow-xs">活躍團體</button>
                             <button id="groupTabArchived" onclick="switchGroupSubTab('archived')" class="px-2.5 py-1 text-xs font-bold rounded-lg text-slate-500 hover:text-slate-800">封存團體</button>
                         </div>
-                        <button onclick="openCreateGroupModal()" class="text-xs font-bold text-sky-600 hover:text-sky-700 bg-sky-50 px-2.5 py-1 rounded-lg border border-sky-200 transition">
+                        <button onclick="openCreateGroupModal()" class="bg-sky-500 hover:bg-sky-600 active:scale-95 text-white text-xs font-black px-3 py-1.5 rounded-xl shadow-xs transition">
                             + 新增團體
                         </button>
                     </div>
@@ -199,7 +199,6 @@
                     <button id="eventSubTabArchived" onclick="switchEventSubTab('archived')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800">封存活動 (已結束)</button>
                 </div>
 
-                <!-- 工具列：左側統計與提示、右側 +建立活動 按鈕 -->
                 <div class="flex items-center justify-between text-xs font-bold px-1">
                     <div class="flex items-center gap-2">
                         <span id="eventCountText" class="text-sky-900 font-black">共 0 場活動</span>
@@ -246,12 +245,12 @@
                     </div>
                 </div>
 
-                <!-- 子視圖 2：推播 -->
+                <!-- 子視圖 2：推播 (需求 4：維持您調整的用量提醒文案) -->
                 <div id="settingViewBroadcast" class="hidden space-y-4 text-left fade-in">
                     <div class="p-3 bg-rose-50 border border-rose-200 rounded-xl text-left">
                         <div class="text-xs font-black text-rose-700 mb-1">LINE 訊息發送額度提醒</div>
                         <p class="text-[11px] text-rose-600 leading-relaxed font-bold">
-                            目前 LINE 官方帳號免費訊息額度為每月 200 則。若推播頻率較高或群組人數多導致用量超過，請務必自行至 LINE Official Account Manager 後台升級方案，避免訊息遭系統中斷。
+                            目前 LINE 官方帳號免費訊息額度為每月 200 則。若推播頻率較高或群組人數多導致用量超過 200 則，請務必自行至 LINE Official Account Manager 後台升級輕量/中量方案，避免訊息遭系統中斷。
                         </p>
                     </div>
 
@@ -388,7 +387,7 @@
         </div>
     </div>
 
-    <!-- 彈窗 2：活動 新增/編輯 Modal (集合時間已改為活動時間) -->
+    <!-- 彈窗 2：活動 新增/編輯 Modal -->
     <div id="eventModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
         <div class="bg-white w-full max-w-md rounded-[28px] p-6 border-2 border-sky-200 soft-sky-shadow max-h-[90vh] overflow-y-auto">
             <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
@@ -408,7 +407,7 @@
                         <input type="date" id="formEventDate" required class="w-full h-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900">
                     </div>
                     <div class="w-full">
-                        <!-- 需求 2：集合時間改為活動時間 -->
+                        <!-- 活動時間 -->
                         <label class="block mb-1 text-slate-800">活動時間 <span class="text-rose-500">*</span></label>
                         <input type="time" id="formEventTime" required class="w-full h-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900">
                     </div>
@@ -550,16 +549,16 @@
         </div>
     </div>
 
-    <!-- 彈窗 5：快速新增小團體 Modal -->
+    <!-- 彈窗 5：快速新增團體 Modal -->
     <div id="createGroupModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
         <div class="bg-white w-full max-w-md rounded-[28px] p-6 border-2 border-sky-200 soft-sky-shadow max-h-[90vh] flex flex-col">
             <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
-                <h3 class="text-base font-black text-slate-900">快速建立小團體</h3>
+                <h3 class="text-base font-black text-slate-900">快速建立團體</h3>
                 <button onclick="closeModal('createGroupModal')" class="text-slate-400 hover:text-slate-600 text-sm font-bold">關閉</button>
             </div>
             <form id="createGroupForm" class="flex-1 flex flex-col space-y-3 text-left text-xs font-bold text-slate-700 overflow-hidden">
                 <div>
-                    <label class="block mb-1 text-slate-800">小團體名稱 <span class="text-rose-500">*</span></label>
+                    <label class="block mb-1 text-slate-800">團體名稱 <span class="text-rose-500">*</span></label>
                     <input type="text" id="newGroupNameInput" required placeholder="例如：狂暴推王團、親友組" class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
                 </div>
                 <div class="flex-1 flex flex-col min-h-0">
@@ -913,7 +912,6 @@
             const groupToolBar = document.getElementById('groupToolBar');
             const activeMemberRow = document.getElementById('activeMemberActionRow');
 
-            // 需求 1：僅在「現任成員」頁籤顯示第二行工具列
             if (tab === 'active') {
                 activeMemberRow.classList.remove('hidden');
             } else {
@@ -962,7 +960,7 @@
                 badge.classList.add('hidden');
             }
 
-            // 更新現任成員計數文字
+            // 需求 1：修正文字為「共 N 名會員」
             const activeTotal = membersData.filter(m => m.accountStatus === "已審核" && m.guildRole !== "退會").length;
             document.getElementById('activeMemberCountText').textContent = `共 ${activeTotal} 名會員`;
         }
@@ -987,8 +985,9 @@
                 return matchKey && matchClass;
             });
 
+            // 需求 1：修正文字為「共 N 名會員」
             if (currentMemberSubTab === 'active') {
-                document.getElementById('activeMemberCountText').textContent = `共 ${list.length} 名公會會員`;
+                document.getElementById('activeMemberCountText').textContent = `共 ${list.length} 名會員`;
             }
 
             if (list.length === 0) {
@@ -1622,8 +1621,8 @@
                         <div>
                             <span class="text-[10px] font-black px-2 py-0.5 rounded ${statusBadgeClass}">${evt.status}</span>
                             <h3 class="text-base font-black text-slate-900 mt-1">${evt.title}</h3>
-                            <!-- 需求 2：改為 活動：XX:XX -->
-                            <div class="text-xs text-slate-500 font-bold mt-0.5">日期：${evt.date} · 活動：${evt.time}</div>
+                            <!-- 需求 3：改為 時間：XX:XX -->
+                            <div class="text-xs text-slate-500 font-bold mt-0.5">日期：${evt.date} · 時間：${evt.time}</div>
                         </div>
                         <div class="flex items-center gap-1.5">
                             <button onclick="openEventModal('edit', '${evt.id}')" class="bg-sky-50 text-sky-800 border border-sky-200 text-xs font-bold px-3 py-1.5 rounded-xl hover:bg-sky-100 transition">
