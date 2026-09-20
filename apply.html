@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <title>公會活動報名 - GuildMaster</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800;900&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { 
+            font-family: 'M PLUS Rounded 1c', 'Noto Sans TC', sans-serif; 
+        }
+        .soft-amber-shadow {
+            box-shadow: 0 16px 32px -8px rgba(245, 158, 11, 0.15), 0 4px 12px -2px rgba(0, 0, 0, 0.04);
+        }
+        .fade-in { 
+            animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards; 
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-[#FFFDF7] text-slate-800 antialiased selection:bg-amber-200 selection:text-amber-900 min-h-screen flex flex-col justify-between py-6 px-3 sm:px-4">
+
+    <main class="max-w-md w-full mx-auto">
+        <!-- 頂部標題與會員身分卡片 (經典溫暖橘黃風格) -->
+        <div class="mb-4 text-left px-1">
+            <div class="inline-flex items-center gap-1.5 bg-amber-100 text-amber-900 border border-amber-200 text-[11px] font-black px-3 py-0.5 rounded-full mb-1">
+                公會成員專屬
+            </div>
+            <h1 class="text-2xl font-black text-slate-900 tracking-tight">活動報名中心</h1>
+            
+            <!-- 目前身分橫條 -->
+            <div class="mt-3 bg-white border-2 border-amber-200/80 rounded-2xl p-3 flex items-center justify-between soft-amber-shadow">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-10 h-10 rounded-xl bg-amber-100 border border-amber-300 flex items-center justify-center text-xl shadow-xs">
+                        🛡️
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-1.5">
+                            <span id="userGameNickname" class="text-sm font-black text-slate-900">超級法神</span>
+                            <span id="userGuildRole" class="text-[10px] bg-amber-100 text-amber-800 font-black px-1.5 py-0.2 rounded border border-amber-200">現任</span>
+                        </div>
+                        <div id="userGameClass" class="text-[11px] font-bold text-slate-500">超魔導士 · 媽咪團</div>
+                    </div>
+                </div>
+                <button onclick="simulateSwitchUser()" class="text-[11px] font-black text-amber-700 hover:text-amber-800 bg-amber-50 border border-amber-200 px-2.5 py-1.5 rounded-xl transition shadow-xs">
+                    切換身分
+                </button>
+            </div>
+        </div>
+
+        <!-- 活動篩選子頁籤 (橘黃風格) -->
+        <div class="grid grid-cols-2 gap-1.5 p-1 bg-amber-100/70 rounded-xl border border-amber-200/80 text-xs font-bold mb-4">
+            <button id="tabAvailable" onclick="switchEventFilter('available')" class="py-2 rounded-lg bg-white text-amber-900 shadow-xs font-black transition">開放報名中</button>
+            <button id="tabAll" onclick="switchEventFilter('all')" class="py-2 rounded-lg text-amber-800/70 hover:text-amber-900 transition">全部活動</button>
+        </div>
+
+        <!-- 活動列表容器 -->
+        <div id="eventCardListContainer" class="space-y-4">
+            <!-- 動態生成活動卡片 -->
+        </div>
+
+        <!-- 底部版權 -->
+        <p class="text-[11px] text-amber-900/40 text-center mt-6">&copy; 2026 GuildMaster 活動報名系統</p>
+    </main>
+
+    <!-- 彈窗：已報名隊友明細 Drawer Modal (橘黃風格) -->
+    <div id="attendeesModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
+        <div class="bg-white w-full max-w-md rounded-[28px] p-6 border-2 border-amber-200 soft-amber-shadow max-h-[85vh] flex flex-col">
+            <div class="flex items-center justify-between pb-3 border-b border-amber-100 mb-3">
+                <div>
+                    <h3 id="modalEventTitle" class="text-base font-black text-slate-900">活動名稱</h3>
+                    <p id="modalEventSub" class="text-[11px] text-amber-800 font-bold mt-0.5">名冊明細</p>
+                </div>
+                <button onclick="closeAttendeesModal()" class="text-slate-400 hover:text-slate-600 text-sm font-bold">關閉</button>
+            </div>
+            
+            <!-- 職業分佈統計簡條 -->
+            <div id="classSummaryBar" class="text-[11px] font-bold text-slate-700 bg-amber-50/60 p-2 rounded-xl border border-amber-100 mb-2.5 flex flex-wrap gap-1.5">
+                <!-- 動態注入職業分佈 -->
+            </div>
+
+            <div id="modalAttendeesList" class="flex-1 overflow-y-auto space-y-2 pr-1 text-xs text-left">
+                <!-- 隊友列表 -->
+            </div>
+            <button onclick="closeAttendeesModal()" class="mt-4 w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 rounded-xl text-xs transition">
+                返回活動列表
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // 模擬當前登入的公會成員資料
+        let currentUser = {
+            lineUserId: "U1001",
+            gameNickname: "超級法神",
+            gameClass: "超魔導士",
+            guildRole: "現任",
+            teamGroup: "媽咪團",
+            accountStatus: "已審核"
+        };
+
+        // 活動資料庫
+        let eventsDatabase = [
+            {
+                id: "EVT01",
+                title: "週日大型 GVG 決戰要塞",
+                date: "2026-09-20",
+                time: "20:00",
+                signupStart: "2026-09-15 12:00",
+                signupEnd: "2026-09-20 19:30",
+                maxLimit: 24,
+                status: "報名中",
+                isArchived: false,
+                desc: "請全體公會主力準時於 19:50 前進入 DC 語音頻道集合，聽從指揮分配攻防組別，攜帶足夠補給品！",
+                attendees: [
+                    { lineUserId: "U1001", gameNickname: "超級法神", gameClass: "超魔導士", signupTime: "2026-09-18 12:30" },
+                    { lineUserId: "U1003", gameNickname: "舞力全開", gameClass: "冷豔舞姬（舞孃）", signupTime: "2026-09-18 14:10" },
+                    { lineUserId: "U1002", gameNickname: "暗夜殺手", gameClass: "十字刺客", signupTime: "2026-09-19 09:00" }
+                ]
+            },
+            {
+                id: "EVT02",
+                title: "每週公會副本快速全通團",
+                date: "2026-09-22",
+                time: "21:00",
+                signupStart: "2026-09-16 00:00",
+                signupEnd: "2026-09-22 20:00",
+                maxLimit: 12,
+                status: "報名中",
+                isArchived: false,
+                desc: "協助公會新成員與戰力提升，通關獲取高階附魔與精煉材料，歡迎踴躍參加。",
+                attendees: [
+                    { lineUserId: "U1002", gameNickname: "暗夜殺手", gameClass: "十字刺客", signupTime: "2026-09-19 10:00" }
+                ]
+            },
+            {
+                id: "EVT03_FUTURE",
+                title: "下週六跨服世界王爭奪戰",
+                date: "2026-09-26",
+                time: "20:30",
+                signupStart: "2026-09-22 12:00",
+                signupEnd: "2026-09-26 19:00",
+                maxLimit: 30,
+                status: "報名中",
+                isArchived: false,
+                desc: "需先完成前置公會科技強化任務，請務必先向小隊長報到確認配置。",
+                attendees: []
+            }
+        ];
+
+        let currentFilter = "available"; // 'available' | 'all'
+
+        window.addEventListener("DOMContentLoaded", () => {
+            renderUserInfo();
+            renderEvents();
+        });
+
+        function renderUserInfo() {
+            document.getElementById('userGameNickname').textContent = currentUser.gameNickname;
+            document.getElementById('userGuildRole').textContent = currentUser.guildRole || '現任';
+            document.getElementById('userGameClass').textContent = `${currentUser.gameClass} · ${currentUser.teamGroup || '無小隊'}`;
+        }
+
+        function simulateSwitchUser() {
+            if (currentUser.lineUserId === "U1001") {
+                currentUser = {
+                    lineUserId: "U1005",
+                    gameNickname: "鐵拳無敵",
+                    gameClass: "武術宗師",
+                    guildRole: "現任",
+                    teamGroup: "自由隊伍",
+                    accountStatus: "已審核"
+                };
+            } else {
+                currentUser = {
+                    lineUserId: "U1001",
+                    gameNickname: "超級法神",
+                    gameClass: "超魔導士",
+                    guildRole: "現任",
+                    teamGroup: "媽咪團",
+                    accountStatus: "已審核"
+                };
+            }
+            renderUserInfo();
+            renderEvents();
+        }
+
+        function switchEventFilter(filter) {
+            currentFilter = filter;
+            const tabAvail = document.getElementById('tabAvailable');
+            const tabAll = document.getElementById('tabAll');
+
+            if (filter === 'available') {
+                tabAvail.className = "py-2 rounded-lg bg-white text-amber-900 shadow-xs font-black transition";
+                tabAll.className = "py-2 rounded-lg text-amber-800/70 hover:text-amber-900 transition";
+            } else {
+                tabAll.className = "py-2 rounded-lg bg-white text-amber-900 shadow-xs font-black transition";
+                tabAvail.className = "py-2 rounded-lg text-amber-800/70 hover:text-amber-900 transition";
+            }
+            renderEvents();
+        }
+
+        function getCurrentDateTimeStr() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            return `${year}-${month}-${day} ${hours}:${minutes}`;
+        }
+
+        function renderEvents() {
+            const container = document.getElementById('eventCardListContainer');
+            container.innerHTML = "";
+
+            const currentDT = getCurrentDateTimeStr();
+
+            let list = eventsDatabase.filter(evt => !evt.isArchived);
+
+            if (currentFilter === 'available') {
+                list = list.filter(evt => {
+                    const hasStarted = !evt.signupStart || currentDT >= evt.signupStart;
+                    const notEnded = !evt.signupEnd || currentDT <= evt.signupEnd;
+                    return hasStarted && notEnded && evt.status === "報名中";
+                });
+            }
+
+            if (list.length === 0) {
+                container.innerHTML = `
+                    <div class="bg-white rounded-2xl p-8 text-center border-2 border-amber-200/80 soft-amber-shadow">
+                        <div class="text-3xl mb-2">📅</div>
+                        <div class="text-xs font-black text-slate-800">目前沒有開放報名中的活動</div>
+                        <div class="text-[11px] text-amber-800/60 mt-1 font-bold">請留意幹部於群組發布之最新公告</div>
+                    </div>
+                `;
+                return;
+            }
+
+            list.forEach(evt => {
+                const attendeesCount = evt.attendees.length;
+                const isFull = evt.maxLimit && evt.maxLimit > 0 && attendeesCount >= evt.maxLimit;
+                const isUserJoined = evt.attendees.some(a => a.lineUserId === currentUser.lineUserId);
+
+                const notStarted = evt.signupStart && currentDT < evt.signupStart;
+                const isEnded = (evt.signupEnd && currentDT > evt.signupEnd) || evt.status !== "報名中";
+
+                // 橘黃系狀態徽章
+                let statusBadge = "";
+                if (notStarted) {
+                    statusBadge = `<span class="bg-slate-100 text-slate-500 text-[10px] font-black px-2 py-0.5 rounded">未開放報名</span>`;
+                } else if (isEnded) {
+                    statusBadge = `<span class="bg-rose-50 text-rose-600 border border-rose-200 text-[10px] font-black px-2 py-0.5 rounded">報名已截止</span>`;
+                } else if (isFull && !isUserJoined) {
+                    statusBadge = `<span class="bg-amber-100 text-amber-800 border border-amber-200 text-[10px] font-black px-2 py-0.5 rounded">名額已滿</span>`;
+                } else {
+                    statusBadge = `<span class="bg-amber-500 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full shadow-xs">開放報名中</span>`;
+                }
+
+                // 橘黃系報名按鈕
+                let actionBtnHtml = "";
+                if (isUserJoined) {
+                    actionBtnHtml = `
+                        <button onclick="handleCancelSignup('${evt.id}')" class="w-full bg-emerald-500 hover:bg-emerald-600 active:scale-98 text-white font-black text-xs py-2.5 rounded-xl transition shadow-md shadow-emerald-200 flex items-center justify-center gap-1.5">
+                            <span>✓ 已報名成功</span>
+                            <span class="text-[11px] font-normal opacity-90">(點此取消)</span>
+                        </button>
+                    `;
+                } else if (notStarted) {
+                    actionBtnHtml = `
+                        <button disabled class="w-full bg-slate-100 text-slate-400 font-bold text-xs py-2.5 rounded-xl cursor-not-allowed">
+                            報名尚未開放
+                        </button>
+                    `;
+                } else if (isEnded) {
+                    actionBtnHtml = `
+                        <button disabled class="w-full bg-slate-100 text-slate-400 font-bold text-xs py-2.5 rounded-xl cursor-not-allowed">
+                            報名已截止
+                        </button>
+                    `;
+                } else if (isFull) {
+                    actionBtnHtml = `
+                        <button disabled class="w-full bg-slate-100 text-slate-400 font-bold text-xs py-2.5 rounded-xl cursor-not-allowed">
+                            名額已滿無法報名
+                        </button>
+                    `;
+                } else {
+                    actionBtnHtml = `
+                        <button onclick="handleJoinSignup('${evt.id}')" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 active:scale-98 text-white font-black text-xs py-2.5 rounded-xl transition shadow-md shadow-orange-200">
+                            立即報名參加
+                        </button>
+                    `;
+                }
+
+                const percent = evt.maxLimit ? Math.min(100, Math.round((attendeesCount / evt.maxLimit) * 100)) : 100;
+                const limitText = evt.maxLimit ? `${attendeesCount} / ${evt.maxLimit} 人` : `${attendeesCount} 人 (無上限)`;
+
+                const card = document.createElement('div');
+                card.className = "bg-white rounded-2xl p-4 border-2 border-amber-200/70 text-left soft-amber-shadow fade-in space-y-3";
+                card.innerHTML = `
+                    <div class="flex items-start justify-between">
+                        <div>
+                            ${statusBadge}
+                            <h3 class="text-base font-black text-slate-900 mt-1.5">${evt.title}</h3>
+                            <div class="text-xs text-slate-600 font-bold mt-0.5">
+                                活動時間：<span class="text-amber-900 font-black font-mono">${evt.date} ${evt.time}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 報名期間資訊 (橘黃柔和底) -->
+                    <div class="bg-amber-50/70 border border-amber-200/80 rounded-xl p-2.5 text-[11px] text-slate-700 font-bold space-y-1">
+                        <div class="flex justify-between items-center">
+                            <span class="text-slate-500">報名開放：</span>
+                            <span class="font-mono text-slate-800">${evt.signupStart || '即刻起'}</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-slate-500">報名截止：</span>
+                            <span class="font-mono text-orange-700 font-black">${evt.signupEnd || '活動前截止'}</span>
+                        </div>
+                    </div>
+
+                    <p class="text-xs text-slate-600 bg-[#FFFDF7] p-2.5 rounded-xl border border-amber-100 leading-relaxed font-medium">
+                        ${evt.desc || '幹部未填寫備註。'}
+                    </p>
+
+                    <!-- 報名進度條 (橘黃色漸層) -->
+                    <div>
+                        <div class="flex justify-between text-xs font-bold mb-1">
+                            <span class="text-slate-500">已報名人數</span>
+                            <span class="text-slate-900 font-mono">${limitText}</span>
+                        </div>
+                        <div class="w-full h-2 bg-amber-100 rounded-full overflow-hidden">
+                            <div class="h-full bg-gradient-to-r from-amber-400 to-orange-500 rounded-full transition-all duration-300" style="width: ${percent}%"></div>
+                        </div>
+                    </div>
+
+                    <!-- 報名操作與隊友檢視 -->
+                    <div class="pt-1 space-y-2">
+                        ${actionBtnHtml}
+                        <button onclick="viewAttendeesModal('${evt.id}')" class="w-full bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 text-xs font-black py-1.5 rounded-xl transition">
+                            查看已報名隊友 (${attendeesCount})
+                        </button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function handleJoinSignup(eventId) {
+            const evt = eventsDatabase.find(e => e.id === eventId);
+            if (!evt) return;
+
+            if (confirm(`確定要報名參加【${evt.title}】嗎？\n請確認當日時間可準時出席！`)) {
+                evt.attendees.push({
+                    lineUserId: currentUser.lineUserId,
+                    gameNickname: currentUser.gameNickname,
+                    gameClass: currentUser.gameClass,
+                    signupTime: getCurrentDateTimeStr()
+                });
+                renderEvents();
+            }
+        }
+
+        function handleCancelSignup(eventId) {
+            const evt = eventsDatabase.find(e => e.id === eventId);
+            if (!evt) return;
+
+            if (confirm(`確定要取消【${evt.title}】的報名嗎？\n取消後名額將釋出給其他夥伴。`)) {
+                evt.attendees = evt.attendees.filter(a => a.lineUserId !== currentUser.lineUserId);
+                renderEvents();
+            }
+        }
+
+        function viewAttendeesModal(eventId) {
+            const evt = eventsDatabase.find(e => e.id === eventId);
+            if (!evt) return;
+
+            document.getElementById('modalEventTitle').textContent = evt.title;
+            document.getElementById('modalEventSub').textContent = `已報名 ${evt.attendees.length} 人 · 集合時間 ${evt.date} ${evt.time}`;
+
+            const classCounts = {};
+            evt.attendees.forEach(a => {
+                classCounts[a.gameClass] = (classCounts[a.gameClass] || 0) + 1;
+            });
+            const summaryContainer = document.getElementById('classSummaryBar');
+            summaryContainer.innerHTML = "";
+            Object.keys(classCounts).forEach(cls => {
+                const badge = document.createElement('span');
+                badge.className = "bg-white border border-amber-200 px-2 py-0.5 rounded-lg text-[10px] text-amber-900 font-bold";
+                badge.textContent = `${cls}: ${classCounts[cls]}人`;
+                summaryContainer.appendChild(badge);
+            });
+
+            const listContainer = document.getElementById('modalAttendeesList');
+            listContainer.innerHTML = "";
+
+            if (evt.attendees.length === 0) {
+                listContainer.innerHTML = `<div class="py-6 text-center text-xs text-slate-400 font-bold">目前尚無隊友報名</div>`;
+            } else {
+                evt.attendees.forEach((a, i) => {
+                    const row = document.createElement('div');
+                    row.className = "flex items-center justify-between p-2.5 rounded-xl bg-amber-50/40 border border-amber-100";
+                    const isSelf = a.lineUserId === currentUser.lineUserId;
+
+                    row.innerHTML = `
+                        <div class="flex items-center gap-2">
+                            <span class="w-5 h-5 bg-amber-200 text-amber-900 rounded-full flex items-center justify-center font-black text-[10px]">${i+1}</span>
+                            <div>
+                                <div class="font-black text-slate-800 flex items-center gap-1">
+                                    <span>${a.gameNickname}</span>
+                                    ${isSelf ? `<span class="text-[9px] bg-emerald-100 text-emerald-800 px-1 py-0.2 rounded font-bold">你自己</span>` : ''}
+                                </div>
+                                <div class="text-[10px] text-slate-400 font-bold">${a.gameClass} · ${a.signupTime}</div>
+                            </div>
+                        </div>
+                    `;
+                    listContainer.appendChild(row);
+                });
+            }
+
+            document.getElementById('attendeesModal').classList.remove('hidden');
+        }
+
+        function closeAttendeesModal() {
+            document.getElementById('attendeesModal').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
