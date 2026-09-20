@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
-    <title>公會活動報名 - GuildMaster</title>
+    <title>GuildMaster - 公會活動報名</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800;900&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
@@ -29,29 +29,43 @@
 <body class="bg-[#FFFDF7] text-slate-800 antialiased selection:bg-amber-200 selection:text-amber-900 min-h-screen flex flex-col justify-between py-6 px-3 sm:px-4">
 
     <main class="max-w-md w-full mx-auto">
-        <!-- 頂部標題與會員身分卡片 -->
-        <div class="mb-4 text-left px-1">
-            <div class="inline-flex items-center gap-1.5 bg-amber-100 text-amber-900 border border-amber-200 text-[11px] font-black px-3 py-0.5 rounded-full mb-1">
-                公會成員專屬
+        <!-- 頂部標題區 (仿會員綁定/資料修改風格) -->
+        <div class="text-center mb-5">
+            <div class="inline-block bg-amber-100/80 text-amber-900 text-xs font-black px-4 py-1 rounded-full mb-2">
+                活動報名
             </div>
-            <h1 class="text-2xl font-black text-slate-900 tracking-tight">活動報名中心</h1>
-            
-            <!-- 目前身分橫條 -->
-            <div class="mt-3 bg-white border-2 border-amber-200/80 rounded-2xl p-3 flex items-center gap-3 soft-amber-shadow">
-                <div class="w-10 h-10 rounded-xl bg-amber-100 border border-amber-300 flex items-center justify-center text-xl shadow-xs shrink-0">
-                    🛡️
+            <h1 class="text-3xl font-black text-amber-950 tracking-tight">公會活動報名</h1>
+            <p class="text-xs font-bold text-amber-900/60 mt-1">記得確認個人時間後踴躍報名參加喔！</p>
+        </div>
+
+        <!-- 會員資訊卡片 (對齊截圖樣式：LINE大頭貼 + 現任 + 隱藏UID改為職業，絕無小團體) -->
+        <div class="bg-amber-50/50 border-2 border-amber-200/80 rounded-2xl p-3.5 mb-5 flex items-center gap-3.5 soft-amber-shadow text-left">
+            <!-- 頭貼與 LINE 小角標 -->
+            <div class="relative shrink-0">
+                <img id="userAvatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&h=120&q=80" 
+                     alt="Avatar" class="w-12 h-12 rounded-full object-cover border-2 border-white shadow-xs">
+                <span class="absolute -bottom-1 -right-1 bg-[#06C755] text-white text-[9px] font-black px-1 py-0.2 rounded-full border border-white leading-tight">
+                    LINE
+                </span>
+            </div>
+
+            <!-- 會員資訊 -->
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2">
+                    <span id="userGameNickname" class="text-base font-black text-slate-900 truncate">克蘿伊</span>
+                    <!-- 標籤改為：現任 -->
+                    <span class="bg-emerald-100 text-emerald-800 text-[11px] font-black px-2 py-0.5 rounded-full border border-emerald-200 shrink-0">
+                        現任
+                    </span>
                 </div>
-                <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-1.5">
-                        <span id="userGameNickname" class="text-sm font-black text-slate-900 truncate">超級法神</span>
-                        <span id="userGuildRole" class="text-[10px] bg-amber-100 text-amber-800 font-black px-1.5 py-0.2 rounded border border-amber-200 shrink-0">現任</span>
-                    </div>
-                    <div id="userGameClass" class="text-[11px] font-bold text-slate-500 truncate mt-0.5">超魔導士 · 媽咪團</div>
+                <!-- 隱藏UID改為顯示遊戲職業，無小團體 -->
+                <div class="text-xs font-bold text-slate-500 truncate mt-0.5">
+                    職業：<span id="userGameClass" class="text-slate-700 font-bold">冷豔舞姬（舞孃）</span>
                 </div>
             </div>
         </div>
 
-        <!-- 活動列表容器 (僅純粹顯示當前開放報名中的活動) -->
+        <!-- 活動列表容器 (僅純粹顯示開放報名中的活動) -->
         <div id="eventCardListContainer" class="space-y-4">
             <!-- 動態生成活動卡片 -->
         </div>
@@ -86,13 +100,12 @@
     </div>
 
     <script>
-        // 當前登入的公會成員資料
+        // 當前登入的公會成員資料 (小團體欄位不予在前台顯示)
         let currentUser = {
-            lineUserId: "U1001",
-            gameNickname: "超級法神",
-            gameClass: "超魔導士",
+            lineUserId: "U2b228d4c5915",
+            gameNickname: "克蘿伊",
+            gameClass: "冷豔舞姬（舞孃）",
             guildRole: "現任",
-            teamGroup: "媽咪團",
             accountStatus: "已審核"
         };
 
@@ -104,14 +117,14 @@
                 date: "2026-09-20",
                 time: "20:00",
                 signupStart: "2026-09-15 12:00",
-                signupEnd: "2026-09-20 19:30",
+                signupEnd: "2026-09-20 23:59",
                 maxLimit: 24,
                 status: "報名中",
                 isArchived: false,
                 desc: "請全體公會主力準時於 19:50 前進入 DC 語音頻道集合，聽從指揮分配攻防組別，攜帶足夠補給品！",
                 attendees: [
                     { lineUserId: "U1001", gameNickname: "超級法神", gameClass: "超魔導士", signupTime: "2026-09-18 12:30" },
-                    { lineUserId: "U1003", gameNickname: "舞力全開", gameClass: "冷豔舞姬（舞孃）", signupTime: "2026-09-18 14:10" },
+                    { lineUserId: "U2b228d4c5915", gameNickname: "克蘿伊", gameClass: "冷豔舞姬（舞孃）", signupTime: "2026-09-18 14:10" },
                     { lineUserId: "U1002", gameNickname: "暗夜殺手", gameClass: "十字刺客", signupTime: "2026-09-19 09:00" }
                 ]
             },
@@ -135,25 +148,12 @@
                 title: "下週六跨服世界王爭奪戰",
                 date: "2026-09-26",
                 time: "20:30",
-                signupStart: "2026-09-22 12:00", // 未開放
+                signupStart: "2026-09-22 12:00", // 未開放，會自動被過濾
                 signupEnd: "2026-09-26 19:00",
                 maxLimit: 30,
                 status: "報名中",
                 isArchived: false,
                 desc: "需先完成前置公會科技強化任務，請務必先向小隊長報到確認配置。",
-                attendees: []
-            },
-            {
-                id: "EVT00_OLD",
-                title: "上週跨服要塞演習戰",
-                date: "2026-09-13",
-                time: "20:00",
-                signupStart: "2026-09-08 12:00",
-                signupEnd: "2026-09-13 19:00", // 已截止
-                maxLimit: 24,
-                status: "已結束",
-                isArchived: true,
-                desc: "已順利打完結算！",
                 attendees: []
             }
         ];
@@ -165,8 +165,7 @@
 
         function renderUserInfo() {
             document.getElementById('userGameNickname').textContent = currentUser.gameNickname;
-            document.getElementById('userGuildRole').textContent = currentUser.guildRole || '現任';
-            document.getElementById('userGameClass').textContent = `${currentUser.gameClass} · ${currentUser.teamGroup || '無小隊'}`;
+            document.getElementById('userGameClass').textContent = currentUser.gameClass;
         }
 
         function getCurrentDateTimeStr() {
