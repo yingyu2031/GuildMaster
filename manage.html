@@ -38,20 +38,17 @@
 <body class="bg-[#F0F9FF] text-slate-800 antialiased selection:bg-sky-200 selection:text-sky-900 min-h-screen flex flex-col justify-between py-6 px-3 sm:px-4">
 
     <main class="max-w-lg w-full mx-auto">
-        <!-- 頂部身分與快捷按鈕 -->
-        <div class="flex items-center justify-between mb-3 px-1">
-            <div>
-                <div class="inline-flex items-center gap-1.5 bg-sky-100 text-sky-800 border border-sky-200 text-[11px] font-bold px-3 py-0.5 rounded-full mb-1">
-                    幹部專用後台
-                </div>
-                <h1 class="text-2xl font-black text-slate-900 tracking-tight">後台管理中心</h1>
+        <!-- 需求 1：頂部標題區改為置中排版 (對齊請假申請風格) -->
+        <div class="text-center mb-5 pt-1">
+            <div class="inline-block bg-sky-100 text-sky-800 text-xs font-black px-4 py-1 rounded-full mb-2.5 border border-sky-200/80">
+                幹部專用
             </div>
-            <div id="quickActionBtnContainer"></div>
+            <h1 class="text-2xl font-black text-slate-900 tracking-tight mb-1.5">後台管理中心</h1>
+            <p class="text-[13px] font-bold text-slate-500">公會事務、成員審核與活動出勤統整</p>
         </div>
 
-        <!-- 幹部登入資訊卡片 (檢視 LINE UID 與幹部身分) -->
-        <div class="bg-white border-2 border-sky-200/80 rounded-2xl p-3.5 mb-4 flex items-center gap-3.5 soft-sky-shadow text-left">
-            <!-- 頭貼與 LINE 小角標 -->
+        <!-- 需求 2：幹部登入小卡 (拿掉職業標籤文字與UID，簡潔呈現) -->
+        <div class="bg-white border-2 border-sky-200/80 rounded-2xl p-3.5 mb-5 flex items-center gap-3.5 soft-sky-shadow text-left">
             <div class="relative shrink-0">
                 <img id="adminAvatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&h=120&q=80" 
                      alt="Avatar" class="w-12 h-12 rounded-full object-cover border-2 border-white shadow-xs">
@@ -60,7 +57,6 @@
                 </span>
             </div>
 
-            <!-- 幹部權限資訊 -->
             <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2">
                     <span id="adminNickName" class="text-base font-black text-slate-900 truncate">超級法神</span>
@@ -68,10 +64,9 @@
                         幹部
                     </span>
                 </div>
-                <div class="text-xs font-bold text-slate-500 truncate mt-0.5">
-                    職業：<span id="adminClass" class="text-slate-700 font-bold">超魔導士</span>
-                    <span class="mx-1 text-slate-300">|</span>
-                    <span id="adminUid" class="font-mono text-[11px] text-slate-400">UID: U1001***</span>
+                <!-- 僅純粹顯示職業名稱，不加「職業：」與「UID」 -->
+                <div id="adminClass" class="text-xs font-bold text-slate-600 truncate mt-0.5">
+                    超魔導士
                 </div>
             </div>
         </div>
@@ -110,14 +105,18 @@
                     <button id="subTabRetired" onclick="switchMemberSubTab('retired')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800">退會封存</button>
                 </div>
 
-                <!-- 搜尋與篩選列 -->
-                <div class="flex gap-2 items-center">
-                    <div class="relative flex-1">
+                <!-- 需求 3：搜尋與篩選列，將 +新增成員 移至此處緊密搭配 -->
+                <div class="flex gap-1.5 items-center">
+                    <div class="relative flex-1 min-w-0">
                         <input type="text" id="memberSearchInput" oninput="handleMemberSearchInput()" placeholder="搜尋角色或 LINE 暱稱..."
                                class="w-full h-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:bg-white transition box-border">
                     </div>
-                    <select id="memberClassFilter" onchange="renderMembersList()" class="h-[40px] leading-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-2.5 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:bg-white transition box-border">
+                    <select id="memberClassFilter" onchange="renderMembersList()" class="h-[40px] leading-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-2.5 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:bg-white transition box-border shrink-0">
                     </select>
+                    <!-- 下移的 +新增成員 按鈕 -->
+                    <button onclick="openMemberModal('create')" class="shrink-0 whitespace-nowrap bg-sky-500 hover:bg-sky-600 active:scale-95 text-white text-xs font-black px-3 h-[40px] rounded-xl shadow-xs transition box-border">
+                        + 新增
+                    </button>
                 </div>
 
                 <!-- 團體速查工具列 -->
@@ -197,9 +196,16 @@
                     <button id="eventSubTabArchived" onclick="switchEventSubTab('archived')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800">封存活動 (已結束)</button>
                 </div>
 
+                <!-- 需求 3：工具列整合下移的「+ 建立活動」按鈕 -->
                 <div class="flex items-center justify-between text-xs font-bold px-1">
-                    <span class="text-slate-500">點擊活動可檢視報名名冊</span>
-                    <span id="eventCountText" class="text-sky-900">共 0 場活動</span>
+                    <div class="flex items-center gap-2">
+                        <span id="eventCountText" class="text-sky-900 font-black">共 0 場活動</span>
+                        <span class="text-slate-400 font-normal">| 點擊檢視名冊</span>
+                    </div>
+                    <!-- 下移的 +建立活動 按鈕 -->
+                    <button onclick="openEventModal('create')" class="bg-sky-500 hover:bg-sky-600 active:scale-95 text-white text-xs font-black px-3 py-1.5 rounded-xl shadow-xs transition">
+                        + 建立活動
+                    </button>
                 </div>
                 <div id="eventListContainer" class="space-y-3"></div>
             </section>
@@ -619,7 +625,6 @@
             "神行（神偷）", "神官（大主教）", "武術宗師", "神工匠", "創造者（鍊金術士）"
         ];
 
-        // 當前登入之幹部資料
         let currentAdminUser = {
             lineUserId: "U1001",
             gameNickname: "超級法神",
@@ -731,19 +736,15 @@
             loadGroupSettings();
             syncAllClassDropdowns();
             renderCustomClassManager();
-            updateHeaderActionBtn();
             updateMemberCounts();
             updateTodayLeaveBadge();
             renderMembersList();
         });
 
-        // 渲染幹部登入身分資訊
+        // 渲染幹部登入身分資訊 (僅保留暱稱、身分與職業名稱)
         function renderAdminIdentity() {
             document.getElementById('adminNickName').textContent = currentAdminUser.gameNickname;
             document.getElementById('adminClass').textContent = currentAdminUser.gameClass;
-            const uidStr = currentAdminUser.lineUserId;
-            const maskedUid = uidStr.length > 5 ? uidStr.substring(0, 5) + '***' : uidStr;
-            document.getElementById('adminUid').textContent = `UID: ${maskedUid}`;
         }
 
         function syncAllClassDropdowns() {
@@ -857,8 +858,6 @@
                 }
             });
 
-            updateHeaderActionBtn();
-
             if (section === 'leaves') renderLeaveSection();
             if (section === 'events') renderEventsList();
             if (section === 'settings') renderSettingsSection();
@@ -893,25 +892,6 @@
 
         function renderSettingsSection() {
             switchSettingSubTab(currentSettingSubTab);
-        }
-
-        function updateHeaderActionBtn() {
-            const container = document.getElementById('quickActionBtnContainer');
-            if (currentMainSection === 'members') {
-                container.innerHTML = `
-                    <button onclick="openMemberModal('create')" class="bg-sky-500 hover:bg-sky-600 active:scale-95 text-white text-xs font-black px-3.5 py-2 rounded-xl shadow-md shadow-sky-200 transition">
-                        + 新增成員
-                    </button>
-                `;
-            } else if (currentMainSection === 'events') {
-                container.innerHTML = `
-                    <button onclick="openEventModal('create')" class="bg-sky-500 hover:bg-sky-600 active:scale-95 text-white text-xs font-black px-3.5 py-2 rounded-xl shadow-md shadow-sky-200 transition">
-                        + 建立活動
-                    </button>
-                `;
-            } else {
-                container.innerHTML = "";
-            }
         }
 
         function switchMemberSubTab(tab) {
