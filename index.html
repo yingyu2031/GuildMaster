@@ -1,4 +1,9 @@
 <script>
+        // 手機版除錯用：如果發生錯誤直接印在畫面上
+window.onerror = function(msg, url, line) {
+    alert("前端錯誤: " + msg + " (行數: " + line + ")");
+};
+        
         const MY_LIFF_ID = "2011659633-OPPcInzb";
         // 改為指向我們剛剛在 Zeabur 部署成功的 Node.js 後台 API 網域
         const BACKEND_API_URL = "https://guildmaster.zeabur.app";
