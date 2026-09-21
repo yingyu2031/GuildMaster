@@ -51,7 +51,8 @@ input[type="date"], input[type="time"], select {
     <!-- 幹部登入小卡 -->
     <div class="bg-white border-2 border-sky-200/80 rounded-2xl p-3.5 mb-5 flex items-center gap-3.5 soft-sky-shadow text-left">
         <div class="relative shrink-0">
-            <img id="avatarImg" src="https://api.dicebear.com/7.x/avataaars/svg?seed=LuckyFox" alt="Avatar" class="w-12 h-12 rounded-full border-2 border-white shadow-sm object-cover bg-amber-100">
+            <img id="adminAvatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&h=120&q=80" 
+                 alt="Avatar" class="w-12 h-12 rounded-full object-cover border-2 border-white shadow-xs">
             <span class="absolute -bottom-1 -right-1 bg-[#06C755] text-white text-[9px] font-black px-1 py-0.2 rounded-full border border-white leading-tight">
                 LINE
             </span>
@@ -137,165 +138,18 @@ input[type="date"], input[type="time"], select {
         </section>
 
         <!-- 區塊 2：請假紀錄 -->
-        <section id="sectionLeaves" class="hidden space-y-4">
-            <div class="grid grid-cols-3 gap-1 p-1 bg-sky-50 rounded-xl border border-sky-100 text-[11px] font-bold">
-                <button id="leaveSubTabRank" onclick="switchLeaveSubView('rank')" class="py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black cursor-pointer">排名統計</button>
-                <button id="leaveSubTabToday" onclick="switchLeaveSubView('today')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800 flex items-center justify-center gap-1 cursor-pointer">
-                    <span>今日請假</span>
-                    <span id="badgeTodayLeaveCount" class="bg-rose-500 text-white text-[10px] px-1.5 py-0.2 rounded-full hidden">0</span>
-                </button>
-                <button id="leaveSubTabList" onclick="switchLeaveSubView('list')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800 cursor-pointer">全部紀錄列表</button>
-            </div>
-
-            <div id="leaveRankView" class="space-y-3">
-                <div class="flex items-center justify-between bg-sky-50/60 rounded-xl p-2 border border-sky-100">
-                    <span class="text-xs font-bold text-slate-600">統計維度：</span>
-                    <div class="flex gap-1">
-                        <button id="rankFilterAll" onclick="setRankType('all')" class="px-2.5 py-1 text-xs font-black rounded-lg bg-sky-500 text-white shadow-xs cursor-pointer">全部累積</button>
-                        <button id="rankFilterMonth" onclick="setRankType('month')" class="px-2.5 py-1 text-xs font-bold rounded-lg bg-white text-slate-600 border border-sky-100 cursor-pointer">當月統計</button>
-                        <button id="rankFilterUrgent" onclick="setRankType('urgent')" class="px-2.5 py-1 text-xs font-bold rounded-lg bg-white text-slate-600 border border-sky-100 cursor-pointer">臨時請假</button>
-                    </div>
-                </div>
-                <div id="rankListContainer" class="space-y-2"></div>
-            </div>
-
-            <div id="leaveTodayView" class="hidden space-y-3">
-                <div class="flex items-center justify-between px-1">
-                    <span class="text-xs font-bold text-slate-500" id="todayDateLabel">今日日期：載入中</span>
-                    <span class="text-xs font-black text-sky-900" id="todayLeaveSummaryText">共 0 人請假</span>
-                </div>
-                <div id="leaveTodayContainer" class="space-y-2.5"></div>
-            </div>
-
-            <div id="leaveListView" class="hidden space-y-3">
-                <div class="space-y-2">
-                    <input type="text" id="leaveSearchInput" oninput="renderLeaveList()" placeholder="搜尋角色或活動名稱..."
-                           class="w-full h-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:bg-white transition box-border">
-
-                    <div class="flex items-center gap-1.5">
-                        <div class="flex-1 flex items-center bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 h-[40px] focus-within:ring-2 focus-within:ring-sky-400 focus-within:bg-white transition box-border">
-                            <span class="text-slate-400 text-xs font-bold whitespace-nowrap mr-1 select-none">搜尋請假日期：</span>
-                            <input type="date" id="leaveDateFilter" onchange="renderLeaveList()" 
-                                   class="w-full h-full bg-transparent border-0 p-0 text-xs font-bold text-slate-900 focus:outline-none cursor-pointer">
-                        </div>
-                        <button onclick="clearLeaveDateFilter()" class="bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold px-3 h-[40px] rounded-xl transition box-border whitespace-nowrap cursor-pointer">
-                            清除
-                        </button>
-                    </div>
-                </div>
-                <div id="leaveHistoryContainer" class="space-y-2.5"></div>
-            </div>
-        </section>
-
+        <section id="sectionLeaves" class="hidden space-y-4"></section>
         <!-- 區塊 3：活動列表 -->
-        <section id="sectionEvents" class="hidden space-y-4">
-            <div class="grid grid-cols-2 gap-1 p-1 bg-sky-50 rounded-xl border border-sky-100 text-xs font-bold">
-                <button id="eventSubTabActive" onclick="switchEventSubTab('active')" class="py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black cursor-pointer">進行中活動</button>
-                <button id="eventSubTabArchived" onclick="switchEventSubTab('archived')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800 cursor-pointer">封存活動 (已結束)</button>
-            </div>
-
-            <div class="flex items-center justify-between text-xs font-bold px-1">
-                <div class="flex items-center gap-2">
-                    <span id="eventCountText" class="text-sky-900 font-black">共 0 場活動</span>
-                    <span class="text-slate-400 font-normal">| 點擊檢視名冊</span>
-                </div>
-                <button onclick="openEventModal('create')" class="bg-sky-500 hover:bg-sky-600 active:scale-95 text-white text-xs font-black px-3 py-1.5 rounded-xl shadow-xs transition cursor-pointer">
-                    + 建立活動
-                </button>
-            </div>
-            <div id="eventListContainer" class="space-y-3"></div>
-        </section>
-
+        <section id="sectionEvents" class="hidden space-y-4"></section>
         <!-- 區塊 4：其他設定 -->
-        <section id="sectionSettings" class="hidden space-y-4">
-            <div class="grid grid-cols-3 gap-1 p-1 bg-sky-50 rounded-xl border border-sky-100 text-xs font-bold">
-                <button id="subTabSettingLine" onclick="switchSettingSubTab('line')" class="py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black cursor-pointer">LINE群</button>
-                <button id="subTabSettingBroadcast" onclick="switchSettingSubTab('broadcast')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800 cursor-pointer">推播</button>
-                <button id="subTabSettingClasses" onclick="switchSettingSubTab('classes')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800 cursor-pointer">職業</button>
-            </div>
-
-            <div id="settingViewLine" class="space-y-3 text-left fade-in">
-                <div class="bg-[#F8FAFC] rounded-2xl p-4 border border-sky-100">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-xs font-black text-slate-900">LINE 推播群組 ID 設定</span>
-                        <span id="groupIdSaveMsg" class="text-[10px] text-emerald-600 font-bold hidden">已儲存完成</span>
-                    </div>
-                    <p class="text-[11px] text-slate-500 mb-3">設定推播目標群組識別碼，供系統判定發送至公會大群或幹部專用群組。</p>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-3">
-                        <div>
-                            <label class="block text-[11px] font-bold text-slate-600 mb-1">公會大群組 ID</label>
-                            <input type="text" id="guildGroupIdInput" placeholder="例如：C1234567890abcdef..."
-                                   class="w-full h-[38px] bg-white border border-sky-200 rounded-xl px-2.5 text-xs font-mono font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400 box-border">
-                        </div>
-                        <div>
-                            <label class="block text-[11px] font-bold text-slate-600 mb-1">幹部專用群組 ID</label>
-                            <input type="text" id="adminGroupIdInput" placeholder="例如：C0987654321fedcba..."
-                                   class="w-full h-[38px] bg-white border border-sky-200 rounded-xl px-2.5 text-xs font-mono font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400 box-border">
-                        </div>
-                    </div>
-                    <button onclick="saveGroupSettings()" class="w-full bg-white hover:bg-sky-50 text-sky-800 border border-sky-200 text-xs font-bold py-2 rounded-xl transition shadow-xs cursor-pointer">
-                        儲存群組 ID 設定
-                    </button>
-                </div>
-            </div>
-
-            <div id="settingViewBroadcast" class="hidden space-y-4 text-left fade-in">
-                <div class="p-3 bg-rose-50 border border-rose-200 rounded-xl text-left">
-                    <div class="text-xs font-black text-rose-700 mb-1">LINE 訊息發送額度提醒</div>
-                    <p class="text-[11px] text-rose-600 leading-relaxed font-bold">
-                        目前 LINE 官方帳號免費訊息額度為每月 200 則。若推播頻率較高或群組人數多導致用量超過 200 則，請務必自行至 LINE Official Account Manager 後台升級輕量/中量方案，避免訊息遭系統中斷。
-                    </p>
-                </div>
-
-                <div class="space-y-2">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <span class="text-xs font-black text-slate-900">請假項目與超時推播規則</span>
-                            <div class="text-[10px] text-slate-400 font-bold">此處清單將同時作為前台請假單選項</div>
-                        </div>
-                        <button onclick="openUrgentRuleModal('create')" class="text-xs font-bold text-sky-600 hover:text-sky-700 bg-sky-50 px-2.5 py-1 rounded-lg border border-sky-200 cursor-pointer">
-                            + 新增請假項目
-                        </button>
-                    </div>
-                    <div id="urgentRuleContainer" class="space-y-2"></div>
-                </div>
-
-                <div class="border-t border-slate-100 pt-2"></div>
-
-                <div class="space-y-2">
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs font-black text-slate-900">固定與事件推播排程</span>
-                        <button onclick="openBroadcastModal('create')" class="text-xs font-bold text-sky-600 hover:text-sky-700 bg-sky-50 px-2.5 py-1 rounded-lg border border-sky-200 cursor-pointer">
-                            + 新增排程
-                        </button>
-                    </div>
-                    <div id="scheduleBroadcastContainer" class="space-y-2"></div>
-                </div>
-            </div>
-
-            <div id="settingViewClasses" class="hidden space-y-3 text-left fade-in">
-                <div>
-                    <h3 class="text-sm font-black text-slate-900">遊戲職業選單設定</h3>
-                    <p class="text-[11px] text-slate-500 mt-0.5">自訂當前手遊的職業項目，全系統表單與篩選將即時連動套用。</p>
-                </div>
-                <div class="flex gap-2 my-2 items-center">
-                    <input type="text" id="newClassInput" placeholder="輸入新職業名稱（例：拳聖、槍騎...）"
-                           class="flex-1 min-w-0 h-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400 box-border">
-                    <button onclick="addNewCustomClass()" class="shrink-0 whitespace-nowrap bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold px-3.5 h-[40px] rounded-xl shadow-sm transition box-border cursor-pointer">
-                        + 新增職業
-                    </button>
-                </div>
-                <div id="classListContainer" class="flex flex-wrap gap-2 p-3 bg-[#F8FAFC] border border-sky-100 rounded-2xl min-h-[100px]">
-                </div>
-            </div>
-        </section>
+        <section id="sectionSettings" class="hidden space-y-4"></section>
 
     </div>
 
     <p class="text-[11px] text-slate-400 text-center">&copy; 2026 GuildMaster 幹部後台</p>
 </main>
 
-<!-- 彈窗 1：成員 新зов/編輯 Modal -->
+<!-- 彈窗 1：成員 新增/編輯 Modal -->
 <div id="memberModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
     <div class="bg-white w-full max-w-md rounded-[28px] p-6 border-2 border-sky-200 soft-sky-shadow max-h-[90vh] overflow-y-auto">
         <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
@@ -303,7 +157,6 @@ input[type="date"], input[type="time"], select {
             <button onclick="closeModal('memberModal')" class="text-slate-400 hover:text-slate-600 text-sm font-bold cursor-pointer">關閉</button>
         </div>
         <form id="memberForm" class="space-y-3 text-left text-xs font-bold text-slate-700">
-            <input type="hidden" id="formMemberRowIndex">
             <input type="hidden" id="formMemberUid">
 
             <div>
@@ -343,7 +196,7 @@ input[type="date"], input[type="time"], select {
                 </div>
             </div>
 
-            <!-- 開關選項：開放查詢置頂，已加入LINE與已加入DC並列在下 -->
+            <!-- 開關選項：開放查詢置頂，已加入LINE與已加入DC並列在下 (Y/N 字串) -->
             <div class="space-y-2 pt-1">
                 <label class="flex items-center justify-between p-3 rounded-2xl bg-[#F8FAFC] border border-sky-100 cursor-pointer hover:bg-sky-50/50 transition">
                     <div>
@@ -378,12 +231,45 @@ input[type="date"], input[type="time"], select {
     </div>
 </div>
 
-<!-- 其他彈窗 (活動、推播、團體等維持不變) -->
-<div id="eventModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in"></div>
-<div id="eventAttendeesModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in"></div>
-<div id="broadcastModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in"></div>
-<div id="createGroupModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in"></div>
-<div id="urgentRuleModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in"></div>
+<!-- 彈窗 2：快速新增團體 Modal -->
+<div id="createGroupModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
+    <div class="bg-white w-full max-w-md rounded-[28px] p-6 border-2 border-sky-200 soft-sky-shadow max-h-[90vh] flex flex-col">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
+            <h3 class="text-base font-black text-slate-900">快速建立團體</h3>
+            <button onclick="closeModal('createGroupModal')" class="text-slate-400 hover:text-slate-600 text-sm font-bold cursor-pointer">關閉</button>
+        </div>
+        <form id="createGroupForm" class="flex-1 flex flex-col space-y-3 text-left text-xs font-bold text-slate-700 overflow-hidden">
+            <div>
+                <label class="block mb-1 text-slate-800">團體名稱 <span class="text-rose-500">*</span></label>
+                <input type="text" id="newGroupNameInput" required placeholder="例如：狂暴推王團、親友組" class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
+            </div>
+            <div class="flex-1 flex flex-col min-h-0">
+                <label class="block mb-1 text-slate-800">選擇納入成員（可多選）</label>
+                <div id="groupCandidateList" class="flex-1 overflow-y-auto space-y-1.5 pr-1 border border-sky-100 rounded-xl p-2 bg-[#F8FAFC]"></div>
+            </div>
+            <div class="grid grid-cols-2 gap-3 pt-2">
+                <button type="button" onclick="closeModal('createGroupModal')" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 rounded-xl transition cursor-pointer">取消</button>
+                <button type="submit" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-2.5 rounded-xl transition shadow-md shadow-sky-200 cursor-pointer">確認加入</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 彈窗 3：核准入會確認 Modal -->
+<div id="approveConfirmModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
+    <div class="bg-white w-full max-w-xs rounded-[28px] p-6 border-2 border-sky-200 soft-sky-shadow text-center">
+        <div class="w-12 h-12 bg-sky-50 rounded-full flex items-center justify-center mx-auto mb-3 text-xl border border-sky-200">
+            ✅
+        </div>
+        <h3 class="text-base font-black text-slate-900 mb-1">確認核准入會？</h3>
+        <p id="approveConfirmText" class="text-xs text-slate-500 mb-5">將核准此成員加入公會並設為現任成員</p>
+        <input type="hidden" id="approveTargetUid">
+        <div class="grid grid-cols-2 gap-2">
+            <button onclick="closeModal('approveConfirmModal')" class="bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold py-2.5 rounded-xl transition cursor-pointer">取消</button>
+            <button onclick="executeApproveMember()" class="bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold py-2.5 rounded-xl transition shadow-md cursor-pointer">確認核准</button>
+        </div>
+    </div>
+</div>
 
 <script>
     const MY_LIFF_ID = "2011659633-9Km5nhzg";
@@ -396,11 +282,9 @@ input[type="date"], input[type="time"], select {
     ];
 
     let currentAdminUser = { lineUserId: "", gameNickname: "", gameClass: "", guildRole: "", accountStatus: "" };
-    let membersData = [], eventsData = [], leavesData = [];
+    let membersData = [], manuallyArchivedGroups = [];
     let currentMainSection = "members", currentMemberSubTab = "pending", currentGroupSubTab = "active";
-    const TODAY_STR = new Date().toISOString().split('T')[0];
 
-    // 初始化與權限驗證
     window.addEventListener("DOMContentLoaded", async () => {
         const urlParams = new URLSearchParams(window.location.search);
         const queryUid = urlParams.get('uid') || urlParams.get('userId');
@@ -437,12 +321,9 @@ input[type="date"], input[type="time"], select {
         }
 
         renderAdminIdentity();
-        loadGroupSettings();
         syncAllClassDropdowns();
-        renderCustomClassManager();
         await fetchAllBackendData();
         updateMemberCounts();
-        updateTodayLeaveBadge();
         renderMembersList();
     });
 
@@ -462,81 +343,22 @@ input[type="date"], input[type="time"], select {
     function syncAllClassDropdowns() {
         const filterSelect = document.getElementById('memberClassFilter');
         filterSelect.innerHTML = `<option value="">全部職業</option>`;
-        customClassList.forEach(cls => {
-            filterSelect.innerHTML += `<option value="${cls}">${cls}</option>`;
-        });
+        customClassList.forEach(cls => { filterSelect.innerHTML += `<option value="${cls}">${cls}</option>`; });
         const formClassSelect = document.getElementById('formGameClass');
         formClassSelect.innerHTML = `<option value="" disabled selected>請選擇職業</option>`;
-        customClassList.forEach(cls => {
-            formClassSelect.innerHTML += `<option value="${cls}">${cls}</option>`;
-        });
-    }
-
-    function renderCustomClassManager() {
-        const container = document.getElementById('classListContainer');
-        container.innerHTML = "";
-        customClassList.forEach((cls, idx) => {
-            const badge = document.createElement('div');
-            badge.className = "inline-flex items-center gap-1.5 bg-white border border-sky-200 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-800 shadow-xs";
-            badge.innerHTML = `<span>${cls}</span><button onclick="removeCustomClass(${idx})" class="text-slate-400 hover:text-rose-600 text-sm font-bold cursor-pointer">×</button>`;
-            container.appendChild(badge);
-        });
-    }
-
-    function addNewCustomClass() {
-        const input = document.getElementById('newClassInput');
-        const val = input.value.trim();
-        if (!val || customClassList.includes(val)) return;
-        customClassList.push(val);
-        input.value = "";
-        renderCustomClassManager();
-        syncAllClassDropdowns();
-    }
-
-    function removeCustomClass(idx) {
-        customClassList.splice(idx, 1);
-        renderCustomClassManager();
-        syncAllClassDropdowns();
-    }
-
-    function loadGroupSettings() {
-        document.getElementById('guildGroupIdInput').value = localStorage.getItem("gm_guild_group_id") || "";
-        document.getElementById('adminGroupIdInput').value = localStorage.getItem("gm_admin_group_id") || "";
-    }
-
-    function saveGroupSettings() {
-        localStorage.setItem("gm_guild_group_id", document.getElementById('guildGroupIdInput').value.trim());
-        localStorage.setItem("gm_admin_group_id", document.getElementById('adminGroupIdInput').value.trim());
-        const msg = document.getElementById('groupIdSaveMsg');
-        msg.classList.remove('hidden');
-        setTimeout(() => msg.classList.add('hidden'), 2500);
+        customClassList.forEach(cls => { formClassSelect.innerHTML += `<option value="${cls}">${cls}</option>`; });
     }
 
     function switchMainSection(section) {
         currentMainSection = section;
-        const tabs = { members: document.getElementById('mainTabMembers'), leaves: document.getElementById('mainTabLeaves'), events: document.getElementById('mainTabEvents'), settings: document.getElementById('mainTabSettings') };
-        const sections = { members: document.getElementById('sectionMembers'), leaves: document.getElementById('sectionLeaves'), events: document.getElementById('sectionEvents'), settings: document.getElementById('sectionSettings') };
-
-        Object.keys(tabs).forEach(k => {
-            if (k === section) {
-                tabs[k].className = "bg-white text-sky-900 font-black px-3.5 py-2.5 rounded-t-xl text-xs flex items-center gap-1 transition-all relative top-[1px] shadow-sm whitespace-nowrap";
-                sections[k].classList.remove('hidden');
-                sections[k].classList.add('fade-in');
-            } else {
-                tabs[k].className = "text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl transition-all whitespace-nowrap flex items-center gap-1";
-                sections[k].classList.add('hidden');
+        ['members', 'leaves', 'events', 'settings'].forEach(k => {
+            document.getElementById('section' + k.charAt(0).toUpperCase() + k.slice(1)).classList.toggle('hidden', k !== section);
+            const btn = document.getElementById('mainTab' + k.charAt(0).toUpperCase() + k.slice(1));
+            if (btn) {
+                btn.className = (k === section) 
+                    ? "bg-white text-sky-900 font-black px-3.5 py-2.5 rounded-t-xl text-xs flex items-center gap-1 transition-all relative top-[1px] shadow-sm whitespace-nowrap cursor-pointer" 
+                    : "text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl transition-all whitespace-nowrap flex items-center gap-1 cursor-pointer";
             }
-        });
-    }
-
-    function switchSettingSubTab(tab) {
-        currentSettingSubTab = tab;
-        const btns = { line: document.getElementById('subTabSettingLine'), broadcast: document.getElementById('subTabSettingBroadcast'), classes: document.getElementById('subTabSettingClasses') };
-        const views = { line: document.getElementById('settingViewLine'), broadcast: document.getElementById('settingViewBroadcast'), classes: document.getElementById('settingViewClasses') };
-
-        Object.keys(btns).forEach(k => {
-            btns[k].className = (k === tab) ? "py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black" : "py-1.5 rounded-lg text-slate-500 hover:text-slate-800";
-            views[k].classList.toggle('hidden', k !== tab);
         });
     }
 
@@ -547,10 +369,22 @@ input[type="date"], input[type="time"], select {
         });
         document.getElementById('activeMemberActionRow').classList.toggle('hidden', tab !== 'active');
         document.getElementById('groupToolBar').classList.toggle('hidden', tab !== 'groups');
-        renderMembersList();
+
+        if (tab === 'groups') renderGroupOverview();
+        else renderMembersList();
     }
 
-    function handleMemberSearchInput() { renderMembersList(); }
+    function switchGroupSubTab(subTab) {
+        currentGroupSubTab = subTab;
+        document.getElementById('groupTabActive').className = (subTab === 'active') ? "px-2.5 py-1 text-xs font-black rounded-lg bg-white text-sky-900 shadow-xs cursor-pointer" : "px-2.5 py-1 text-xs font-bold rounded-lg text-slate-500 hover:text-slate-800 cursor-pointer";
+        document.getElementById('groupTabArchived').className = (subTab === 'archived') ? "px-2.5 py-1 text-xs font-black rounded-lg bg-white text-sky-900 shadow-xs cursor-pointer" : "px-2.5 py-1 text-xs font-bold rounded-lg text-slate-500 hover:text-slate-800 cursor-pointer";
+        renderGroupOverview();
+    }
+
+    function handleMemberSearchInput() {
+        if (currentMemberSubTab === 'groups') renderGroupOverview();
+        else renderMembersList();
+    }
 
     function updateMemberCounts() {
         const pendingCount = membersData.filter(m => m.accountStatus === "待審核" && m.guildRole !== "退會").length;
@@ -588,11 +422,14 @@ input[type="date"], input[type="time"], select {
             const card = document.createElement('div');
             card.className = "bg-white rounded-2xl p-3.5 border border-sky-100 soft-sky-shadow fade-in text-left";
             
-            // 身分顏色對應：幹部藍色、現任綠色、退會灰色
             let roleBadgeClass = "bg-emerald-100 text-emerald-800";
             const role = m.guildRole || '現任';
             if (role === '幹部') roleBadgeClass = "bg-sky-100 text-sky-800";
             if (role === '退會') roleBadgeClass = "bg-slate-100 text-slate-600";
+
+            // 已加入 LINE 群與 DC 標籤
+            const lineTag = (m.joinedLineGroup === 'Y') ? '<span class="bg-emerald-50 text-emerald-700 text-[9px] font-bold px-1.5 py-0.2 rounded border border-emerald-100">已入LINE群</span>' : '<span class="bg-slate-50 text-slate-400 text-[9px] px-1.5 py-0.2 rounded border border-slate-100">未入LINE群</span>';
+            const dcTag = (m.joinedDc === 'Y') ? '<span class="bg-indigo-50 text-indigo-700 text-[9px] font-bold px-1.5 py-0.2 rounded border border-indigo-100">已入DC</span>' : '<span class="bg-slate-50 text-slate-400 text-[9px] px-1.5 py-0.2 rounded border border-slate-100">未入DC</span>';
 
             if (currentMemberSubTab === 'pending') {
                 card.innerHTML = `
@@ -601,10 +438,11 @@ input[type="date"], input[type="time"], select {
                             <span class="bg-rose-50 text-rose-700 text-[10px] font-black px-2 py-0.5 rounded border border-rose-100">新申請待審</span>
                             <h3 class="text-sm font-black text-slate-900 mt-1">${m.gameNickname}</h3>
                             <p class="text-xs font-bold text-slate-500">${m.gameClass} · LINE: ${m.lineDisplayName || '-'}</p>
+                            <div class="flex items-center gap-1 mt-1.5">${lineTag} ${dcTag}</div>
                         </div>
                     </div>
                     <div class="flex items-center gap-2 pt-2.5 border-t border-slate-100 mt-2.5">
-                        <button onclick="approveMember('${m.lineUserId}')" class="flex-1 bg-sky-500 hover:bg-sky-600 text-white font-bold text-xs py-1.5 rounded-xl transition cursor-pointer">核准入會</button>
+                        <button onclick="promptApproveMember('${m.lineUserId}', '${m.gameNickname}')" class="flex-1 bg-sky-500 hover:bg-sky-600 text-white font-bold text-xs py-1.5 rounded-xl transition cursor-pointer">核准入會</button>
                         <button onclick="openMemberModal('edit', '${m.lineUserId}')" class="px-3 bg-sky-50 text-sky-800 border border-sky-200 font-bold text-xs py-1.5 rounded-xl cursor-pointer">編輯</button>
                     </div>
                 `;
@@ -619,6 +457,7 @@ input[type="date"], input[type="time"], select {
                                 ${m.teamGroup ? `<span class="text-[10px] bg-slate-100 text-slate-600 px-1 py-0.2 rounded font-bold">${m.teamGroup}</span>` : ''}
                             </div>
                             <div class="text-xs text-slate-500 font-bold mt-0.5">${m.gameClass} · LINE: ${m.lineDisplayName || '-'}</div>
+                            <div class="flex items-center gap-1 mt-1.5">${lineTag} ${dcTag}</div>
                         </div>
                         <div class="flex items-center gap-1">
                             <button onclick="openMemberModal('edit', '${m.lineUserId}')" class="bg-sky-50 text-sky-800 border border-sky-200 text-xs font-bold px-2 py-1 rounded-lg cursor-pointer">編輯</button>
@@ -631,11 +470,21 @@ input[type="date"], input[type="time"], select {
         });
     }
 
-    async function approveMember(lineUserId) {
+    // 核准確認彈窗機制
+    function promptApproveMember(lineUserId, nickname) {
+        document.getElementById('approveTargetUid').value = lineUserId;
+        document.getElementById('approveConfirmText').textContent = `將核准【${nickname}】加入公會並設為現任成員`;
+        document.getElementById('approveConfirmModal').classList.remove('hidden');
+    }
+
+    async function executeApproveMember() {
+        const lineUserId = document.getElementById('approveTargetUid').value;
+        if (!lineUserId) return;
         await fetch(`${BACKEND_API_URL}/api/admin/members/status`, {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ lineUserId, accountStatus: '已審核', guildRole: '現任' })
         });
+        closeModal('approveConfirmModal');
         await fetchAllBackendData();
         updateMemberCounts();
         renderMembersList();
@@ -650,6 +499,136 @@ input[type="date"], input[type="time"], select {
         updateMemberCounts();
         renderMembersList();
     }
+
+    // 團體速查完整渲染與互動邏輯
+    function renderGroupOverview() {
+        const container = document.getElementById('memberListContainer');
+        container.innerHTML = "";
+        const keyword = document.getElementById('memberSearchInput').value.trim().toLowerCase();
+
+        const groups = {};
+        membersData.forEach(m => {
+            const groupName = m.teamGroup ? m.teamGroup.trim() : "";
+            if (!groupName) return;
+            if (!groups[groupName]) groups[groupName] = [];
+            groups[groupName].push(m);
+        });
+
+        const groupKeys = Object.keys(groups);
+        let renderedGroupCount = 0;
+
+        groupKeys.forEach(gName => {
+            let list = groups[gName];
+            const allMembersRetired = list.every(m => m.guildRole === "退會");
+            const isArchived = allMembersRetired || manuallyArchivedGroups.includes(gName);
+
+            if (currentGroupSubTab === 'active' && isArchived) return;
+            if (currentGroupSubTab === 'archived' && !isArchived) return;
+
+            if (keyword) {
+                list = list.filter(m => (m.gameNickname && m.gameNickname.toLowerCase().includes(keyword)) || (m.lineDisplayName && m.lineDisplayName.toLowerCase().includes(keyword)));
+                if (list.length === 0) return;
+            }
+
+            renderedGroupCount++;
+            const activeCount = list.filter(x => x.guildRole !== "退會" && x.accountStatus === "已審核").length;
+
+            const card = document.createElement('div');
+            card.className = "bg-white rounded-2xl p-4 border border-sky-100 soft-sky-shadow text-left space-y-2.5 fade-in";
+            card.innerHTML = `
+                <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+                    <div class="flex items-center gap-2">
+                        <h3 class="text-sm font-black text-slate-900">${gName}</h3>
+                        <span class="text-[10px] ${isArchived ? 'bg-slate-100 text-slate-500' : 'bg-sky-100 text-sky-800'} px-2 py-0.5 rounded-full font-bold">現任 ${activeCount} 人 / 總計 ${list.length} 人</span>
+                    </div>
+                    <div>
+                        ${isArchived ? `
+                            <button onclick="unarchiveGroup('${gName}')" class="text-xs font-bold text-sky-600 hover:text-sky-700 bg-sky-50 border border-sky-200 px-2 py-1 rounded-lg transition cursor-pointer">解除封存</button>
+                        ` : `
+                            <button onclick="archiveGroup('${gName}')" class="text-xs font-bold text-slate-500 hover:text-slate-700 bg-slate-50 border border-slate-200 px-2 py-1 rounded-lg transition cursor-pointer">封存團體</button>
+                        `}
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    ${list.map(member => `
+                        <div class="p-2 rounded-xl bg-[#F8FAFC] border border-sky-100 flex items-center justify-between text-xs">
+                            <div>
+                                <div class="font-black text-slate-800 flex items-center gap-1">
+                                    <span>${member.gameNickname}</span>
+                                    <span class="text-[9px] text-slate-400 font-normal">(${member.guildRole || '成員'})</span>
+                                </div>
+                                <div class="text-[10px] text-slate-500">${member.gameClass} · LINE: ${member.lineDisplayName || '-'}</div>
+                            </div>
+                            <button onclick="openMemberModal('edit', '${member.lineUserId}')" class="text-[10px] bg-sky-50 text-sky-800 border border-sky-200 px-2 py-1 rounded-lg cursor-pointer">編輯</button>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            container.appendChild(card);
+        });
+
+        if (renderedGroupCount === 0) {
+            const emptyMsg = currentGroupSubTab === 'active' ? '查無活躍的小團體' : '目前無封存的團體';
+            container.innerHTML = `<div class="bg-[#F8FAFC] rounded-2xl p-6 text-center text-xs text-slate-400 font-bold border border-sky-100">${emptyMsg}</div>`;
+        }
+    }
+
+    function archiveGroup(groupName) {
+        if (confirm(`確定要將【${groupName}】移至封存區嗎？`)) {
+            if (!manuallyArchivedGroups.includes(groupName)) manuallyArchivedGroups.push(groupName);
+            renderGroupOverview();
+        }
+    }
+
+    function unarchiveGroup(groupName) {
+        if (confirm(`確定將【${groupName}】恢復為活躍團體嗎？`)) {
+            manuallyArchivedGroups = manuallyArchivedGroups.filter(g => g !== groupName);
+            renderGroupOverview();
+        }
+    }
+
+    function openCreateGroupModal() {
+        const container = document.getElementById('groupCandidateList');
+        container.innerHTML = "";
+        const activeMembers = membersData.filter(m => m.accountStatus === "已審核" && m.guildRole !== "退會");
+        activeMembers.forEach(m => {
+            const label = document.createElement('label');
+            label.className = "flex items-center justify-between p-2 rounded-lg bg-white border border-slate-100 hover:bg-sky-50/50 cursor-pointer";
+            label.innerHTML = `
+                <div class="flex items-center gap-2">
+                    <input type="checkbox" name="groupMemberPick" value="${m.lineUserId}" class="w-4 h-4 accent-sky-500 cursor-pointer">
+                    <span class="text-xs font-black text-slate-800">${m.gameNickname}</span>
+                    <span class="text-[10px] text-slate-400">(${m.gameClass})</span>
+                </div>
+                <span class="text-[10px] font-bold text-slate-400">${m.teamGroup ? m.teamGroup : '未分組'}</span>
+            `;
+            container.appendChild(label);
+        });
+        document.getElementById('newGroupNameInput').value = "";
+        document.getElementById('createGroupModal').classList.remove('hidden');
+    }
+
+    document.getElementById('createGroupForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const groupName = document.getElementById('newGroupNameInput').value.trim();
+        const checkedBoxes = Array.from(document.querySelectorAll('input[name="groupMemberPick"]:checked'));
+        if (checkedBoxes.length === 0) { alert("請至少勾選一位成員！"); return; }
+
+        for (const cb of checkedBoxes) {
+            const uid = cb.value;
+            const m = membersData.find(x => x.lineUserId === uid);
+            if (m) {
+                m.teamGroup = groupName;
+                await fetch(`${BACKEND_API_URL}/api/admin/members/save`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ...m, allowSearch: m.allowSearch || 'N', joinedLineGroup: m.joinedLineGroup || 'N', joinedDc: m.joinedDc || 'N' })
+                });
+            }
+        }
+        closeModal('createGroupModal');
+        await fetchAllBackendData();
+        renderGroupOverview();
+    });
 
     function openMemberModal(mode, lineUserId = null) {
         document.getElementById('memberForm').reset();
@@ -676,9 +655,9 @@ input[type="date"], input[type="time"], select {
             document.getElementById('formTeamGroup').value = m.teamGroup || "";
             document.getElementById('formAccountStatus').value = m.accountStatus;
             
-            document.getElementById('formAllowSearch').checked = (m.allowSearch === true || m.allowSearch === 'Y' || m.allowSearch === 'true');
-            document.getElementById('formJoinedLineGroup').checked = (m.joinedLineGroup === true || m.joinedLineGroup === 'Y' || m.joinedLineGroup === 'true');
-            document.getElementById('formJoinedDc').checked = (m.joinedDc === true || m.joinedDc === 'Y' || m.joinedDc === 'true');
+            document.getElementById('formAllowSearch').checked = (m.allowSearch === 'Y');
+            document.getElementById('formJoinedLineGroup').checked = (m.joinedLineGroup === 'Y');
+            document.getElementById('formJoinedDc').checked = (m.joinedDc === 'Y');
             document.getElementById('deleteMemberBtnWrapper').classList.remove('hidden');
         }
         document.getElementById('memberModal').classList.remove('hidden');
@@ -694,11 +673,12 @@ input[type="date"], input[type="time"], select {
             closeModal('memberModal');
             await fetchAllBackendData();
             updateMemberCounts();
-            renderMembersList();
+            if (currentMemberSubTab === 'groups') renderGroupOverview();
+            else renderMembersList();
         }
     }
 
-    // 直接寫入 SQL 儲存，不重複跑驗證畫面
+    // 儲存變更直接寫入資料庫
     document.getElementById('memberForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const data = {
@@ -709,9 +689,9 @@ input[type="date"], input[type="time"], select {
             guildRole: document.getElementById('formGuildRole').value,
             teamGroup: document.getElementById('formTeamGroup').value.trim(),
             accountStatus: document.getElementById('formAccountStatus').value,
-            allowSearch: document.getElementById('formAllowSearch').checked,
-            joinedLineGroup: document.getElementById('formJoinedLineGroup').checked,
-            joinedDc: document.getElementById('formJoinedDc').checked
+            allowSearch: document.getElementById('formAllowSearch').checked ? 'Y' : 'N',
+            joinedLineGroup: document.getElementById('formJoinedLineGroup').checked ? 'Y' : 'N',
+            joinedDc: document.getElementById('formJoinedDc').checked ? 'Y' : 'N'
         };
 
         try {
@@ -722,22 +702,12 @@ input[type="date"], input[type="time"], select {
             closeModal('memberModal');
             await fetchAllBackendData();
             updateMemberCounts();
-            renderMembersList();
+            if (currentMemberSubTab === 'groups') renderGroupOverview();
+            else renderMembersList();
         } catch (err) {
             alert("儲存失敗");
         }
     });
-
-    function updateTodayLeaveBadge() {
-        const todayLeaves = leavesData.filter(l => l.date === TODAY_STR);
-        const count = todayLeaves.length;
-        if (count > 0) {
-            document.getElementById('badgeTodayLeaveCount').textContent = count;
-            document.getElementById('badgeTodayLeaveCount').classList.remove('hidden');
-            document.getElementById('badgeMainTodayLeave').textContent = count;
-            document.getElementById('badgeMainTodayLeave').classList.remove('hidden');
-        }
-    }
 
     function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
     function closeLiffWindow() { if (typeof liff !== 'undefined' && liff.closeWindow) liff.closeWindow(); }
