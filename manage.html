@@ -149,7 +149,7 @@ input[type="date"], input[type="time"], select {
     <p class="text-[11px] text-slate-400 text-center">&copy; 2026 GuildMaster 幹部後台</p>
 </main>
 
-<!-- 彈窗 1：成員 新增/編輯 Modal (保留開放查詢，去除英文) -->
+<!-- 彈窗 1：成員 新增/編輯 Modal (包含開放查詢與異動歷程) -->
 <div id="memberModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
     <div class="bg-white w-full max-w-md rounded-[28px] p-6 border-2 border-sky-200 soft-sky-shadow max-h-[90vh] overflow-y-auto">
         <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
@@ -196,7 +196,7 @@ input[type="date"], input[type="time"], select {
                 </div>
             </div>
 
-            <!-- 開關選項：開放查詢 (無英文)，已加入LINE與已加入DC並列在下 -->
+            <!-- 開關選項：開放查詢，已加入LINE與已加入DC並列在下 -->
             <div class="space-y-2 pt-1">
                 <label class="flex items-center justify-between p-3 rounded-2xl bg-[#F8FAFC] border border-sky-100 cursor-pointer hover:bg-sky-50/50 transition">
                     <div>
@@ -215,6 +215,15 @@ input[type="date"], input[type="time"], select {
                         <input type="checkbox" id="formJoinedDc" class="w-4 h-4 accent-sky-500 cursor-pointer">
                     </label>
                 </div>
+            </div>
+
+            <!-- 還原：資料異動歷程明細區塊 -->
+            <div id="auditLogSection" class="pt-2">
+                <div class="flex items-center justify-between mb-1.5">
+                    <span class="text-xs font-black text-slate-800">資料異動歷程明細 (member_audit_logs)</span>
+                    <span id="auditLogCount" class="text-[10px] text-slate-400">共 0 筆紀錄</span>
+                </div>
+                <div id="auditLogContainer" class="space-y-1.5 max-h-36 overflow-y-auto p-2 bg-[#F8FAFC] border border-sky-100 rounded-xl text-[11px]"></div>
             </div>
 
             <div class="grid grid-cols-2 gap-3 pt-3">
@@ -703,7 +712,7 @@ input[type="date"], input[type="time"], select {
                 m.teamGroup = groupName;
                 await fetch(`${BACKEND_API_URL}/api/admin/members/save`, {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ ...m, joinedLineGroup: m.joinedLineGroup || 'N', joinedDc: m.joinedDc || 'N' })
+                    body: JSON.stringify({ ...m, allowSearch: m.allowSearch || 'N', joinedLineGroup: m.joinedLineGroup || 'N', joinedDc: m.joinedDc || 'N' })
                 });
             }
         }
@@ -712,17 +721,24 @@ input[type="date"], input[type="time"], select {
         renderGroupOverview();
     });
 
-    function openMemberModal(mode, lineUserId = null) {
+    async function openMemberModal(mode, lineUserId = null) {
         document.getElementById('memberForm').reset();
         syncAllClassDropdowns();
+
+        const auditSection = document.getElementById('auditLogSection');
+        const auditContainer = document.getElementById('auditLogContainer');
+        const auditCountText = document.getElementById('auditLogCount');
+        auditContainer.innerHTML = "";
 
         if (mode === 'create') {
             document.getElementById('memberModalTitle').textContent = "手動新增成員";
             document.getElementById('formMemberUid').value = "";
             document.getElementById('formGuildRole').value = "現任";
             document.getElementById('formAccountStatus').value = "已審核";
+            document.getElementById('formAllowSearch').checked = true;
             document.getElementById('formJoinedLineGroup').checked = false;
             document.getElementById('formJoinedDc').checked = false;
+            auditSection.classList.add('hidden');
             document.getElementById('deleteMemberBtnWrapper').classList.add('hidden');
         } else {
             document.getElementById('memberModalTitle').textContent = "編輯成員資料";
@@ -736,9 +752,44 @@ input[type="date"], input[type="time"], select {
             document.getElementById('formTeamGroup').value = m.teamGroup || "";
             document.getElementById('formAccountStatus').value = m.accountStatus;
             
+            document.getElementById('formAllowSearch').checked = (m.allowSearch === 'Y');
             document.getElementById('formJoinedLineGroup').checked = (m.joinedLineGroup === 'Y');
             document.getElementById('formJoinedDc').checked = (m.joinedDc === 'Y');
+            auditSection.classList.remove('hidden');
             document.getElementById('deleteMemberBtnWrapper').classList.remove('hidden');
+
+            // 取得對應的異動歷程 (`member_audit_logs`)
+            try {
+                const logRes = await fetch(`${BACKEND_API_URL}/api/admin/members/logs/${encodeURIComponent(lineUserId)}`);
+                if (logRes.ok) {
+                    const logData = await logRes.json();
+                    if (logData.status === "success" && logData.logs) {
+                        auditCountText.textContent = `共 ${logData.logs.length} 筆紀錄`;
+                        if (logData.logs.length === 0) {
+                            auditContainer.innerHTML = `<div class="text-center py-2 text-slate-400 font-normal">查無此成員之歷史修改紀錄</div>`;
+                        } else {
+                            logData.logs.forEach(log => {
+                                const item = document.createElement('div');
+                                item.className = "p-2 rounded-lg bg-white border border-slate-100 flex flex-col gap-0.5";
+                                item.innerHTML = `
+                                    <div class="flex items-center justify-between text-slate-400 font-mono text-[10px]">
+                                        <span class="font-bold text-sky-700 bg-sky-50 px-1 rounded">${log.field}</span>
+                                        <span>${log.updateTime}</span>
+                                    </div>
+                                    <div class="flex items-center gap-1.5 text-slate-700 mt-0.5">
+                                        <span class="line-through text-slate-400">${log.oldValue || '-'}</span>
+                                        <span class="text-sky-500">➜</span>
+                                        <span class="font-bold text-slate-900">${log.newValue}</span>
+                                    </div>
+                                `;
+                                auditContainer.appendChild(item);
+                            });
+                        }
+                    }
+                }
+            } catch (err) {
+                auditContainer.innerHTML = `<div class="text-center py-2 text-rose-400 font-normal">載入異動歷程失敗</div>`;
+            }
         }
         document.getElementById('memberModal').classList.remove('hidden');
     }
@@ -753,6 +804,7 @@ input[type="date"], input[type="time"], select {
             guildRole: document.getElementById('formGuildRole').value,
             teamGroup: document.getElementById('formTeamGroup').value.trim(),
             accountStatus: document.getElementById('formAccountStatus').value,
+            allowSearch: document.getElementById('formAllowSearch').checked ? 'Y' : 'N',
             joinedLineGroup: document.getElementById('formJoinedLineGroup').checked ? 'Y' : 'N',
             joinedDc: document.getElementById('formJoinedDc').checked ? 'Y' : 'N'
         };
