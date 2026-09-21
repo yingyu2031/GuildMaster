@@ -773,11 +773,16 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
 
  function syncAllClassDropdowns() {
  const filterSelect = document.getElementById('memberClassFilter');
+ const currentFilterVal = filterSelect.value;
  filterSelect.innerHTML = `<option value="">全部職業</option>`;
  customClassList.forEach(cls => { filterSelect.innerHTML += `<option value="${cls}">${cls}</option>`; });
+ if (currentFilterVal) filterSelect.value = currentFilterVal;
+
  const formClassSelect = document.getElementById('formGameClass');
+ const currentFormVal = formClassSelect.value;
  formClassSelect.innerHTML = `<option value="" disabled selected>請選擇職業</option>`;
  customClassList.forEach(cls => { formClassSelect.innerHTML += `<option value="${cls}">${cls}</option>`; });
+ if (currentFormVal) formClassSelect.value = currentFormVal;
  }
 
  function switchMainSection(section) {
@@ -1021,7 +1026,11 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  if (submitTimeStr && submitTimeStr > rule.latestTime) isUrgent = true;
  }
 
- const submitTimeFormatted = l.submitTime ? String(l.submitTime).replace('T', ' ') : '-';
+ let submitTimeFormatted = "-";
+ if (l.submitTime) {
+ const raw = String(l.submitTime).replace('T', ' ');
+ submitTimeFormatted = raw.length >= 16 ? raw.substring(0, 16) : raw;
+ }
 
  const card = document.createElement('div');
  card.className = "bg-white rounded-2xl p-3.5 border border-sky-100 soft-sky-shadow text-left space-y-1.5 fade-in";
@@ -1029,7 +1038,7 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  <div class="flex items-center justify-between">
  <span class="text-xs font-black text-slate-900">${l.gameNickname}</span>
  <div class="flex items-center gap-1.5">
- ${isUrgent ? '<span class="text-[10px] bg-rose-50 text-rose-700 px-2 py-0.5 rounded-full font-black border border-rose-200">⚡ 臨時</span>' : ''}
+ ${isUrgent ? '<span class="text-[10px] bg-rose-50 text-rose-700 px-2 py-0.5 rounded-full font-normal border border-rose-200">臨時</span>' : ''}
  <span class="text-[10px] text-slate-500 font-bold">${l.date}</span>
  </div>
  </div>
@@ -1072,7 +1081,11 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  if (submitTimeStr && submitTimeStr > rule.latestTime) isUrgent = true;
  }
 
- const submitTimeFormatted = l.submitTime ? String(l.submitTime).replace('T', ' ') : '-';
+ let submitTimeFormatted = "-";
+ if (l.submitTime) {
+ const raw = String(l.submitTime).replace('T', ' ');
+ submitTimeFormatted = raw.length >= 16 ? raw.substring(0, 16) : raw;
+ }
 
  const card = document.createElement('div');
  card.className = "bg-white rounded-2xl p-3.5 border border-sky-100 soft-sky-shadow text-left space-y-1.5 fade-in";
@@ -1080,7 +1093,7 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  <div class="flex items-center justify-between">
  <span class="text-xs font-black text-slate-900">${l.gameNickname}</span>
  <div class="flex items-center gap-1.5">
- ${isUrgent ? '<span class="text-[10px] bg-rose-50 text-rose-700 px-2 py-0.5 rounded-full font-black border border-rose-200">臨時</span>' : ''}
+ ${isUrgent ? '<span class="text-[10px] bg-rose-50 text-rose-700 px-2 py-0.5 rounded-full font-normal border border-rose-200">臨時</span>' : ''}
  <span class="text-[10px] text-slate-500 font-bold">${l.date}</span>
  </div>
  </div>
@@ -1428,7 +1441,7 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  document.getElementById('editClassModal').classList.remove('hidden');
  }
 
- function executeEditClass() {
+ async function executeEditClass() {
  const oldName = document.getElementById('editClassOldName').value;
  const newName = document.getElementById('editClassNewInput').value.trim();
  
@@ -1444,6 +1457,26 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  const index = customClassList.indexOf(oldName);
  if (index !== -1) {
  customClassList[index] = newName;
+ }
+
+ // 同步更新已載入會員名冊中符合該舊職業的成員資料，並透過 API 儲存
+ for (let m of membersData) {
+ if (m.gameClass === oldName) {
+ m.gameClass = newName;
+ try {
+ await fetch(`${BACKEND_API_URL}/api/admin/members/save`, {
+ method: 'POST',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify({
+ ...m,
+ joinedLineGroup: m.joinedLineGroup || 'N',
+ joinedDc: m.joinedDc || 'N'
+ })
+ });
+ } catch (err) {
+ console.error("同步更新會員職業失敗", err);
+ }
+ }
  }
 
  closeModal('editClassModal');
