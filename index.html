@@ -1,11 +1,5 @@
 <script>
-        // 手機版除錯用：如果發生錯誤直接印在畫面上
-window.onerror = function(msg, url, line) {
-    alert("前端錯誤: " + msg + " (行數: " + line + ")");
-};
-        
         const MY_LIFF_ID = "2011659633-OPPcInzb";
-        // 改為指向我們剛剛在 Zeabur 部署成功的 Node.js 後台 API 網域
         const BACKEND_API_URL = "https://guildmaster.zeabur.app";
 
         let currentUser = {
@@ -21,7 +15,7 @@ window.onerror = function(msg, url, line) {
 
         let pendingPayload = null;
 
-        // 改用標準 fetch 向 Node.js 後台查詢會員狀態
+        // 向 Node.js 後台查詢會員狀態
         async function queryMemberFromBackend(uid) {
             try {
                 const controller = new AbortController();
@@ -38,8 +32,7 @@ window.onerror = function(msg, url, line) {
                     return { status: "error", message: `伺服器回應狀態碼: ${response.status}` };
                 }
 
-                const data = await response.json();
-                return data; // 預期後台會回傳 { status: "found" 或 "not_found", ... }
+                return await response.json();
             } catch (err) {
                 if (err.name === 'AbortError') {
                     return { status: "timeout", message: "後台回應超過 15 秒逾時" };
@@ -82,8 +75,45 @@ window.onerror = function(msg, url, line) {
                 if (queryName) currentUser.displayName = decodeURIComponent(queryName);
             }
 
+            // 安全綁定表單事件（確保 DOM 已經載入完成）
+            initFormEventListener();
+
             await verifyAndDisplayView(liffErrorDetail);
         });
+
+        // 避免抓不到 DOM 元素而報錯的防呆包裝
+        function initFormEventListener() {
+            const bindForm = document.getElementById('bindForm');
+            if (bindForm) {
+                bindForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    const gameNick = document.getElementById('gameNickname').value.trim();
+                    const gameClass = document.getElementById('gameClass').value;
+                    const lineName = document.getElementById('manualLineName').value.trim();
+                    const allowSearch = document.getElementById('toggleAllowSearch').checked;
+
+                    currentUser.displayName = lineName;
+
+                    pendingPayload = {
+                        lineUserId: currentUser.userId,
+                        lineDisplayName: lineName,
+                        linePictureUrl: currentUser.pictureUrl,
+                        gameNickname: gameNick,
+                        gameClass: gameClass,
+                        allowSearch: allowSearch ? "Y" : "N",
+                        updateTime: new Date().toISOString()
+                    };
+
+                    document.getElementById('previewNick').textContent = gameNick;
+                    document.getElementById('previewClass').textContent = gameClass;
+                    document.getElementById('previewLine').textContent = lineName;
+                    document.getElementById('previewAllowSearch').textContent = allowSearch ? "開啟" : "關閉";
+
+                    document.getElementById('confirmModal').classList.remove('hidden');
+                });
+            }
+        }
 
         async function verifyAndDisplayView(errorMsg) {
             if (!currentUser.userId) {
@@ -98,7 +128,6 @@ window.onerror = function(msg, url, line) {
                 return;
             }
 
-            // 向 Node.js 後台查詢
             const result = await queryMemberFromBackend(currentUser.userId);
             
             if (result && (result.status === "timeout" || result.status === "error")) {
@@ -124,7 +153,6 @@ window.onerror = function(msg, url, line) {
 
             document.getElementById('loadingCard').classList.add('hidden');
 
-            // 狀態分流：
             if (currentUser.isRegistered && currentUser.accountStatus === "待審核") {
                 applyPendingReviewUI();
             } else if (currentUser.isRegistered && currentUser.accountStatus === "已審核") {
@@ -204,34 +232,6 @@ window.onerror = function(msg, url, line) {
             }
         }
 
-        document.getElementById('bindForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const gameNick = document.getElementById('gameNickname').value.trim();
-            const gameClass = document.getElementById('gameClass').value;
-            const lineName = document.getElementById('manualLineName').value.trim();
-            const allowSearch = document.getElementById('toggleAllowSearch').checked;
-
-            currentUser.displayName = lineName;
-
-            pendingPayload = {
-                lineUserId: currentUser.userId,
-                lineDisplayName: lineName,
-                linePictureUrl: currentUser.pictureUrl,
-                gameNickname: gameNick,
-                gameClass: gameClass,
-                allowSearch: allowSearch ? "Y" : "N",
-                updateTime: new Date().toISOString()
-            };
-
-            document.getElementById('previewNick').textContent = gameNick;
-            document.getElementById('previewClass').textContent = gameClass;
-            document.getElementById('previewLine').textContent = lineName;
-            document.getElementById('previewAllowSearch').textContent = allowSearch ? "開啟" : "關閉";
-
-            document.getElementById('confirmModal').classList.remove('hidden');
-        });
-
         function closeConfirmModal() {
             document.getElementById('confirmModal').classList.add('hidden');
         }
@@ -244,12 +244,9 @@ window.onerror = function(msg, url, line) {
             modalConfirmBtn.disabled = true;
 
             try {
-                // 將資料 POST 到我們的 Node.js 後台 API 寫入 PostgreSQL
                 const response = await fetch(`${BACKEND_API_URL}/api/members/bind`, {
                     method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
+                    headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(pendingPayload)
                 });
 
