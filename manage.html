@@ -51,8 +51,8 @@ input[type="date"], input[type="time"], select {
     <!-- 幹部登入小卡 -->
     <div class="bg-white border-2 border-sky-200/80 rounded-2xl p-3.5 mb-5 flex items-center gap-3.5 soft-sky-shadow text-left">
         <div class="relative shrink-0">
-            <img id="adminAvatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&h=120&q=80" 
-                 alt="Avatar" class="w-12 h-12 rounded-full object-cover border-2 border-white shadow-xs">
+            <img id="adminAvatar" src="https://static.line-scdn.net/li-profile-resource/public/default_profile.png" 
+                 alt="Avatar" class="w-12 h-12 rounded-full object-cover border-2 border-white shadow-xs bg-sky-100">
             <span class="absolute -bottom-1 -right-1 bg-[#06C755] text-white text-[9px] font-black px-1 py-0.2 rounded-full border border-white leading-tight">
                 LINE
             </span>
@@ -149,7 +149,7 @@ input[type="date"], input[type="time"], select {
     <p class="text-[11px] text-slate-400 text-center">&copy; 2026 GuildMaster 幹部後台</p>
 </main>
 
-<!-- 彈窗 1：成員 新增/編輯 Modal -->
+<!-- 彈窗 1：成員 新增/編輯 Modal (保留開放查詢，去除英文) -->
 <div id="memberModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
     <div class="bg-white w-full max-w-md rounded-[28px] p-6 border-2 border-sky-200 soft-sky-shadow max-h-[90vh] overflow-y-auto">
         <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
@@ -196,7 +196,7 @@ input[type="date"], input[type="time"], select {
                 </div>
             </div>
 
-            <!-- 開關選項：開放查詢置頂，已加入LINE與已加入DC並列在下 -->
+            <!-- 開關選項：開放查詢 (無英文)，已加入LINE與已加入DC並列在下 -->
             <div class="space-y-2 pt-1">
                 <label class="flex items-center justify-between p-3 rounded-2xl bg-[#F8FAFC] border border-sky-100 cursor-pointer hover:bg-sky-50/50 transition">
                     <div>
@@ -517,7 +517,6 @@ input[type="date"], input[type="time"], select {
         });
     }
 
-    // 1. 核准確認彈窗
     function promptApproveMember(lineUserId, nickname) {
         document.getElementById('approveTargetUid').value = lineUserId;
         document.getElementById('approveConfirmText').textContent = `將核准【${nickname}】加入公會並設為現任成員`;
@@ -537,7 +536,6 @@ input[type="date"], input[type="time"], select {
         renderMembersList();
     }
 
-    // 2. 退會確認彈窗
     function promptRetireMember(lineUserId, nickname) {
         document.getElementById('retireTargetUid').value = lineUserId;
         document.getElementById('retireConfirmText').textContent = `確定要將【${nickname}】設為退會狀態嗎？`;
@@ -557,7 +555,6 @@ input[type="date"], input[type="time"], select {
         renderMembersList();
     }
 
-    // 3. 刪除會員確認彈窗
     function promptDeleteMember() {
         const lineUserId = document.getElementById('formMemberUid').value;
         const target = membersData.find(x => x.lineUserId === lineUserId);
@@ -579,7 +576,6 @@ input[type="date"], input[type="time"], select {
         else renderMembersList();
     }
 
-    // 團體速查完整渲染與互動
     function renderGroupOverview() {
         const container = document.getElementById('memberListContainer');
         container.innerHTML = "";
@@ -652,7 +648,6 @@ input[type="date"], input[type="time"], select {
         }
     }
 
-    // 4. 封存團體確認彈窗
     function promptArchiveGroup(groupName) {
         document.getElementById('archiveGroupTargetName').value = groupName;
         document.getElementById('archiveGroupConfirmText').textContent = `確定要將【${groupName}】移至封存區嗎？`;
@@ -708,7 +703,7 @@ input[type="date"], input[type="time"], select {
                 m.teamGroup = groupName;
                 await fetch(`${BACKEND_API_URL}/api/admin/members/save`, {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ ...m, allowSearch: m.allowSearch || 'N', joinedLineGroup: m.joinedLineGroup || 'N', joinedDc: m.joinedDc || 'N' })
+                    body: JSON.stringify({ ...m, joinedLineGroup: m.joinedLineGroup || 'N', joinedDc: m.joinedDc || 'N' })
                 });
             }
         }
@@ -726,7 +721,6 @@ input[type="date"], input[type="time"], select {
             document.getElementById('formMemberUid').value = "";
             document.getElementById('formGuildRole').value = "現任";
             document.getElementById('formAccountStatus').value = "已審核";
-            document.getElementById('formAllowSearch').checked = true;
             document.getElementById('formJoinedLineGroup').checked = false;
             document.getElementById('formJoinedDc').checked = false;
             document.getElementById('deleteMemberBtnWrapper').classList.add('hidden');
@@ -742,7 +736,6 @@ input[type="date"], input[type="time"], select {
             document.getElementById('formTeamGroup').value = m.teamGroup || "";
             document.getElementById('formAccountStatus').value = m.accountStatus;
             
-            document.getElementById('formAllowSearch').checked = (m.allowSearch === 'Y');
             document.getElementById('formJoinedLineGroup').checked = (m.joinedLineGroup === 'Y');
             document.getElementById('formJoinedDc').checked = (m.joinedDc === 'Y');
             document.getElementById('deleteMemberBtnWrapper').classList.remove('hidden');
@@ -750,7 +743,6 @@ input[type="date"], input[type="time"], select {
         document.getElementById('memberModal').classList.remove('hidden');
     }
 
-    // 儲存變更直接寫入資料庫
     document.getElementById('memberForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const data = {
@@ -761,7 +753,6 @@ input[type="date"], input[type="time"], select {
             guildRole: document.getElementById('formGuildRole').value,
             teamGroup: document.getElementById('formTeamGroup').value.trim(),
             accountStatus: document.getElementById('formAccountStatus').value,
-            allowSearch: document.getElementById('formAllowSearch').checked ? 'Y' : 'N',
             joinedLineGroup: document.getElementById('formJoinedLineGroup').checked ? 'Y' : 'N',
             joinedDc: document.getElementById('formJoinedDc').checked ? 'Y' : 'N'
         };
