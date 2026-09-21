@@ -172,7 +172,7 @@
                            class="w-full bg-[#FFFDF9] border border-amber-200 rounded-2xl px-4 py-3 text-sm font-bold text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition">
                 </div>
 
-                <div class="pt-2 border-t border-amber-100/80 space-y-2">
+                <div class="pt-2 border-t border-amber-100/80">
                     <label class="flex items-center justify-between p-3 rounded-2xl bg-[#FFFDF9] border border-amber-200/80 cursor-pointer hover:bg-amber-50/50 transition">
                         <div class="pr-2">
                             <div class="text-xs font-bold text-amber-950">開放查詢</div>
@@ -183,17 +183,6 @@
                             <div class="w-11 h-6 bg-stone-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
                         </div>
                     </label>
-
-                    <div class="grid grid-cols-2 gap-2">
-                        <label class="flex items-center justify-between p-2.5 rounded-xl bg-[#FFFDF9] border border-amber-200/80 cursor-pointer">
-                            <span class="text-xs font-bold text-amber-950">已加入 LINE 群</span>
-                            <input type="checkbox" id="toggleJoinedLine" class="w-4 h-4 accent-amber-500 cursor-pointer">
-                        </label>
-                        <label class="flex items-center justify-between p-2.5 rounded-xl bg-[#FFFDF9] border border-amber-200/80 cursor-pointer">
-                            <span class="text-xs font-bold text-amber-950">已加入 DC</span>
-                            <input type="checkbox" id="toggleJoinedDc" class="w-4 h-4 accent-amber-500 cursor-pointer">
-                        </label>
-                    </div>
                 </div>
 
                 <button type="submit" id="submitBtn"
@@ -224,14 +213,6 @@
                         <div class="flex justify-between items-center pt-1.5 border-t border-amber-100/60 text-xs">
                             <span class="text-amber-800/70 font-medium">開放查詢：</span>
                             <span id="previewAllowSearch" class="font-medium text-amber-950">-</span>
-                        </div>
-                        <div class="flex justify-between items-center text-xs">
-                            <span class="text-amber-800/70 font-medium">已加入 LINE：</span>
-                            <span id="previewJoinedLine" class="font-medium text-amber-950">-</span>
-                        </div>
-                        <div class="flex justify-between items-center text-xs">
-                            <span class="text-amber-800/70 font-medium">已加入 DC：</span>
-                            <span id="previewJoinedDc" class="font-medium text-amber-950">-</span>
                         </div>
                     </div>
 
@@ -264,14 +245,6 @@
                         <span class="text-amber-800/70 font-medium">開放查詢：</span>
                         <span id="resAllowSearch" class="font-medium text-amber-950">-</span>
                     </div>
-                    <div class="flex items-center justify-between text-xs">
-                        <span class="text-amber-800/70 font-medium">已加入 LINE：</span>
-                        <span id="resJoinedLine" class="font-medium text-amber-950">-</span>
-                    </div>
-                    <div class="flex items-center justify-between text-xs">
-                        <span class="text-amber-800/70 font-medium">已加入 DC：</span>
-                        <span id="resJoinedDc" class="font-medium text-amber-950">-</span>
-                    </div>
                 </div>
 
                 <button onclick="closeLiffWindow()" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-sm font-bold py-3.5 rounded-2xl shadow-md transition cursor-pointer">
@@ -294,8 +267,6 @@
             gameNickname: "",
             gameClass: "",
             allowSearch: "Y",
-            joinedLineGroup: "N",
-            joinedDc: "N",
             accountStatus: "",
             guildRole: "現任",
             isRegistered: false
@@ -336,8 +307,6 @@
                     const gameClass = document.getElementById('gameClass').value;
                     const lineName = document.getElementById('manualLineName').value.trim();
                     const allowSearch = document.getElementById('toggleAllowSearch').checked ? "Y" : "N";
-                    const joinedLine = document.getElementById('toggleJoinedLine').checked ? "Y" : "N";
-                    const joinedDc = document.getElementById('toggleJoinedDc').checked ? "Y" : "N";
 
                     currentUser.displayName = lineName;
 
@@ -348,8 +317,6 @@
                         gameNickname: gameNick,
                         gameClass: gameClass,
                         allowSearch: allowSearch,
-                        joinedLineGroup: joinedLine,
-                        joinedDc: joinedDc,
                         updateTime: new Date().toISOString()
                     };
 
@@ -357,8 +324,6 @@
                     document.getElementById('previewClass').textContent = gameClass;
                     document.getElementById('previewLine').textContent = lineName;
                     document.getElementById('previewAllowSearch').textContent = allowSearch === "Y" ? "開啟" : "關閉";
-                    document.getElementById('previewJoinedLine').textContent = joinedLine === "Y" ? "是" : "否";
-                    document.getElementById('previewJoinedDc').textContent = joinedDc === "Y" ? "是" : "否";
 
                     document.getElementById('confirmModal').classList.remove('hidden');
                 });
@@ -439,8 +404,6 @@
                 currentUser.gameClass = result.gameClass || "";
                 currentUser.displayName = result.lineDisplayName || currentUser.displayName;
                 currentUser.allowSearch = (result.allowSearch === 'Y' || result.allowSearch === true) ? 'Y' : 'N';
-                currentUser.joinedLineGroup = (result.joinedLineGroup === 'Y' || result.joinedLineGroup === true) ? 'Y' : 'N';
-                currentUser.joinedDc = (result.joinedDc === 'Y' || result.joinedDc === true) ? 'Y' : 'N';
                 currentUser.accountStatus = String(result.accountStatus || "").trim();
                 currentUser.guildRole = String(result.guildRole || "現任").trim();
                 currentUser.isRegistered = true;
@@ -501,8 +464,6 @@
             document.getElementById('gameClass').value = currentUser.gameClass || "";
             document.getElementById('manualLineName').value = currentUser.displayName || "";
             document.getElementById('toggleAllowSearch').checked = (currentUser.allowSearch === 'Y');
-            document.getElementById('toggleJoinedLine').checked = (currentUser.joinedLineGroup === 'Y');
-            document.getElementById('toggleJoinedDc').checked = (currentUser.joinedDc === 'Y');
 
             document.getElementById('submitBtn').textContent = "儲存修改資料";
             document.getElementById('successTitle').textContent = "資料修改成功！";
@@ -525,8 +486,6 @@
             document.getElementById('gameClass').value = "";
             document.getElementById('manualLineName').value = currentUser.displayName || "";
             document.getElementById('toggleAllowSearch').checked = true;
-            document.getElementById('toggleJoinedLine').checked = false;
-            document.getElementById('toggleJoinedDc').checked = false;
 
             document.getElementById('successTitle').textContent = "綁定資料已送出";
             document.getElementById('successDesc').textContent = "審核通過後，將會在 LINE 聊天室通知您";
@@ -569,16 +528,12 @@
             currentUser.gameClass = pendingPayload.gameClass;
             currentUser.displayName = pendingPayload.lineDisplayName;
             currentUser.allowSearch = pendingPayload.allowSearch;
-            currentUser.joinedLineGroup = pendingPayload.joinedLineGroup;
-            currentUser.joinedDc = pendingPayload.joinedDc;
             currentUser.isRegistered = true;
             
             document.getElementById('resGameNick').textContent = pendingPayload.gameNickname;
             document.getElementById('resGameClass').textContent = pendingPayload.gameClass;
             document.getElementById('resLineName').textContent = pendingPayload.lineDisplayName;
             document.getElementById('resAllowSearch').textContent = pendingPayload.allowSearch === "Y" ? "開啟" : "關閉";
-            document.getElementById('resJoinedLine').textContent = pendingPayload.joinedLineGroup === "Y" ? "是" : "否";
-            document.getElementById('resJoinedDc').textContent = pendingPayload.joinedDc === "Y" ? "是" : "否";
             
             document.getElementById('successModal').classList.remove('hidden');
         }
