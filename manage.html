@@ -283,7 +283,7 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  <div id="settingViewClasses" class="hidden space-y-3 text-left fade-in">
  <div>
  <h3 class="text-sm font-black text-slate-900">遊戲職業選單設定</h3>
- <p class="text-[11px] text-slate-500 mt-0.5">自訂當前手遊的職業項目，全系統表單與篩選將即時連動套用。</p>
+ <p class="text-[11px] text-slate-500 mt-0.5">自訂當前手遊的職業項目，全系統表單與篩選將即時連動套用。（點擊下方職業標籤可直接修改名稱）</p>
  </div>
  <div class="flex gap-2 my-2 items-center">
  <input type="text" id="newClassInput" placeholder="輸入新職業名稱（例：拳聖、槍騎...）"
@@ -667,6 +667,20 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  </div>
 </div>
 
+<!-- 彈窗 11：編輯職業名稱 Modal -->
+<div id="editClassModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
+ <div class="bg-white w-full max-w-xs rounded-[28px] p-6 border-2 border-sky-200 soft-sky-shadow text-center">
+ <h3 class="text-base font-black text-slate-900 mb-1 mt-2">修改職業名稱</h3>
+ <p class="text-xs text-slate-500 mb-3">請輸入新的職業名稱</p>
+ <input type="hidden" id="editClassOldName">
+ <input type="text" id="editClassNewInput" class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 mb-4 focus:outline-none focus:ring-2 focus:ring-sky-400">
+ <div class="grid grid-cols-2 gap-2">
+ <button onclick="closeModal('editClassModal')" class="bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold py-2.5 rounded-xl transition cursor-pointer">取消</button>
+ <button onclick="executeEditClass()" class="bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold py-2.5 rounded-xl transition shadow-md cursor-pointer">確認修改</button>
+ </div>
+ </div>
+</div>
+
 
 <script>
  const MY_LIFF_ID = "2011659633-9Km5nhzg";
@@ -1007,19 +1021,24 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  if (submitTimeStr && submitTimeStr > rule.latestTime) isUrgent = true;
  }
 
+ const submitTimeFormatted = l.submitTime ? String(l.submitTime).replace('T', ' ') : '-';
+
  const card = document.createElement('div');
  card.className = "bg-white rounded-2xl p-3.5 border border-sky-100 soft-sky-shadow text-left space-y-1.5 fade-in";
  card.innerHTML = `
  <div class="flex items-center justify-between">
  <span class="text-xs font-black text-slate-900">${l.gameNickname}</span>
  <div class="flex items-center gap-1.5">
- ${isUrgent ? '<span class="text-[10px] bg-rose-100 text-rose-700 px-1.5 py-0.2 rounded font-black">臨</span>' : ''}
+ ${isUrgent ? '<span class="text-[10px] bg-rose-50 text-rose-700 px-2 py-0.5 rounded-full font-black border border-rose-200">⚡ 臨時</span>' : ''}
  <span class="text-[10px] text-slate-500 font-bold">${l.date}</span>
  </div>
  </div>
  <div class="text-xs text-slate-600 font-medium">活動：<span class="font-bold text-slate-800">${l.event}</span></div>
  <div class="text-xs text-slate-600 font-medium bg-[#F8FAFC] p-2 rounded-xl border border-slate-100">理由：${l.reason}</div>
- <div class="text-[10px] text-slate-400 text-right">由 ${l.operator_name || '本人'} 登記</div>
+ <div class="flex items-center justify-between text-[10px] text-slate-400 pt-1">
+ <span>填單時間：${submitTimeFormatted}</span>
+ <span class="text-right">由 ${l.operator_name || '本人'} 登記</span>
+ </div>
  `;
  container.appendChild(card);
  });
@@ -1053,19 +1072,24 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  if (submitTimeStr && submitTimeStr > rule.latestTime) isUrgent = true;
  }
 
+ const submitTimeFormatted = l.submitTime ? String(l.submitTime).replace('T', ' ') : '-';
+
  const card = document.createElement('div');
  card.className = "bg-white rounded-2xl p-3.5 border border-sky-100 soft-sky-shadow text-left space-y-1.5 fade-in";
  card.innerHTML = `
  <div class="flex items-center justify-between">
  <span class="text-xs font-black text-slate-900">${l.gameNickname}</span>
  <div class="flex items-center gap-1.5">
- ${isUrgent ? '<span class="text-[10px] bg-rose-100 text-rose-700 px-1.5 py-0.2 rounded font-black">臨</span>' : ''}
+ ${isUrgent ? '<span class="text-[10px] bg-rose-50 text-rose-700 px-2 py-0.5 rounded-full font-black border border-rose-200">臨時</span>' : ''}
  <span class="text-[10px] text-slate-500 font-bold">${l.date}</span>
  </div>
  </div>
  <div class="text-xs text-slate-600 font-medium">活動：<span class="font-bold text-slate-800">${l.event}</span></div>
  <div class="text-xs text-slate-600 font-medium bg-[#F8FAFC] p-2 rounded-xl border border-slate-100">理由：${l.reason}</div>
- <div class="text-[10px] text-slate-400 text-right">由 ${l.operator_name || '本人'} 登記</div>
+ <div class="flex items-center justify-between text-[10px] text-slate-400 pt-1">
+ <span>填單時間：${submitTimeFormatted}</span>
+ <span class="text-right">由 ${l.operator_name || '本人'} 登記</span>
+ </div>
  `;
  container.appendChild(card);
  });
@@ -1151,7 +1175,7 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  `}
  </div>
  </div>
- <div class="text-[11px] text-slate-500 bg-[#F8FAFC] p-2 rounded-xl border border-slate-100 space-y-0.5 font-mono">
+ <div class="text-[11px] text-slate-500 bg-[#F8FAFC] p-2 rounded-xl border border-sky-100 space-y-0.5 font-mono">
  <div>報名開放：${evt.signupStart || '無限制'}</div>
  <div>報名截止：${evt.signupEnd || '活動開始前'}</div>
  </div>
@@ -1389,13 +1413,43 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
 
  customClassList.forEach((cls, idx) => {
  const badge = document.createElement('div');
- badge.className = "inline-flex items-center gap-1.5 bg-white border border-sky-200 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-800 shadow-xs";
+ badge.className = "inline-flex items-center gap-1.5 bg-white border border-sky-200 px-3.5 py-2 rounded-xl text-xs font-bold text-slate-800 shadow-xs hover:border-sky-400 transition";
  badge.innerHTML = `
- <span>${cls}</span>
- <button onclick="removeCustomClass(${idx})" class="text-slate-400 hover:text-rose-600 text-sm font-bold cursor-pointer">×</button>
+ <span onclick="openEditClassModal('${cls}')" class="cursor-pointer" title="點擊修改名稱">${cls}</span>
+ <button onclick="removeCustomClass(${idx})" class="text-slate-400 hover:text-rose-600 text-sm font-bold cursor-pointer ml-1">×</button>
  `;
  container.appendChild(badge);
  });
+ }
+
+ function openEditClassModal(oldName) {
+ document.getElementById('editClassOldName').value = oldName;
+ document.getElementById('editClassNewInput').value = oldName;
+ document.getElementById('editClassModal').classList.remove('hidden');
+ }
+
+ function executeEditClass() {
+ const oldName = document.getElementById('editClassOldName').value;
+ const newName = document.getElementById('editClassNewInput').value.trim();
+ 
+ if (!newName) {
+ alert("職業名稱不能為空！");
+ return;
+ }
+ if (customClassList.includes(newName) && newName !== oldName) {
+ alert("此職業名稱已存在！");
+ return;
+ }
+
+ const index = customClassList.indexOf(oldName);
+ if (index !== -1) {
+ customClassList[index] = newName;
+ }
+
+ closeModal('editClassModal');
+ renderCustomClassManager();
+ syncAllClassDropdowns();
+ renderMembersList();
  }
 
  function addNewCustomClass() {
