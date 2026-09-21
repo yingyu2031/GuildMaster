@@ -1,264 +1,7 @@
-<!DOCTYPE html>
-<html lang="zh-Hant">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-    <meta http-equiv="Pragma" content="no-cache" />
-    <meta http-equiv="Expires" content="0" />
-    <title>GuildMaster - 會員綁定申請</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800;900&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
-    <!-- LIFF SDK -->
-    <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-    <style>
-        body { 
-            font-family: 'M PLUS Rounded 1c', 'Noto Sans TC', sans-serif; 
-        }
-        .soft-card-shadow {
-            box-shadow: 0 20px 40px -12px rgba(217, 119, 6, 0.12), 0 4px 12px -2px rgba(0, 0, 0, 0.04);
-        }
-        .fade-in {
-            animation: fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(8px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-    </style>
-</head>
-<body class="bg-[#FFFDF9] text-amber-950 antialiased selection:bg-amber-200 selection:text-amber-900 min-h-screen flex flex-col justify-between py-8 px-4">
-
-    <main class="max-w-md w-full mx-auto">
-        <!-- 頂部標題區 -->
-        <div class="text-center mb-6">
-            <div id="topBadge" class="inline-block bg-amber-100/80 text-amber-800 border border-amber-200 text-xs font-bold px-3.5 py-1 rounded-full mb-3">
-                身分確認中
-            </div>
-            <h1 id="pageMainTitle" class="text-2xl font-black text-amber-950">
-                公會會員系統
-            </h1>
-            <p id="pageSubTitle" class="text-xs text-amber-900/60 mt-1.5 leading-relaxed">
-                正在連線核對資料...
-            </p>
-        </div>
-
-        <!-- 狀態 1：預覽讀取畫面 -->
-        <div id="loadingCard" class="bg-white rounded-[32px] p-8 border-2 border-amber-200/80 soft-card-shadow text-center">
-            <div id="loadingSpinner" class="relative w-16 h-16 mx-auto mb-4">
-                <div class="absolute inset-0 rounded-full border-4 border-amber-200 border-t-amber-500 animate-spin"></div>
-                <div class="w-full h-full rounded-full flex items-center justify-center text-xl">
-                    📋
-                </div>
-            </div>
-            <h3 id="loadingTitle" class="text-sm font-black text-amber-950 mb-1">正在連線會員資料...</h3>
-            <p id="loadingDesc" class="text-xs text-amber-800/60">正在確認會員身分，請稍候</p>
-            
-            <div id="errorBox" class="hidden mt-4 text-left">
-                <div class="text-xs font-bold text-rose-700 mb-1">偵測到連線異常：</div>
-                <div id="errorDetail" class="text-[11px] text-rose-600 bg-rose-50 border border-rose-200 p-3 rounded-xl font-mono break-all leading-relaxed"></div>
-                <button onclick="closeLiffWindow()" class="w-full mt-3 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold py-2.5 rounded-xl shadow-md transition">
-                關閉視窗重新載入
-                </button>
-            </div>
-        </div>
-
-        <!-- 狀態 2：審核中專屬卡片 -->
-        <div id="pendingReviewCard" class="hidden bg-white rounded-[32px] p-6 sm:p-7 border-2 border-amber-200/80 soft-card-shadow text-center relative">
-            <div class="w-14 h-14 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-3 border-2 border-amber-200 text-2xl">
-                ⏳
-            </div>
-            <p class="text-xs text-amber-900/70 leading-relaxed mb-5">
-                您的資料已經完成登記，審核中不可再修改資料。
-            </p>
-
-            <div class="bg-[#FFFDF9] rounded-2xl p-4 border border-amber-200/80 text-left text-sm space-y-2 mb-6 text-amber-950 shadow-inner">
-                <div class="flex items-center justify-between">
-                    <span class="text-amber-800/80 font-bold">遊戲暱稱：</span>
-                    <span id="pendingNickname" class="font-bold text-amber-950">-</span>
-                </div>
-                <div class="flex items-center justify-between">
-                    <span class="text-amber-800/80 font-bold">遊戲職業：</span>
-                    <span id="pendingClass" class="font-bold text-amber-950">-</span>
-                </div>
-                <div class="flex items-center justify-between">
-                    <span class="text-amber-800/80 font-bold">LINE 暱稱：</span>
-                    <span id="pendingLineName" class="font-bold text-amber-950">-</span>
-                </div>
-                <div class="flex items-center justify-between pt-1 border-t border-amber-100/60 text-xs">
-                    <span class="text-amber-800/70 font-medium">開放查詢：</span>
-                    <span id="pendingAllowSearch" class="font-medium text-amber-950">-</span>
-                </div>
-            </div>
-
-            <div class="space-y-2.5">
-                <button onclick="closeLiffWindow()" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold py-3.5 rounded-2xl text-sm shadow-md shadow-amber-300/40 transition">
-                    稍後再回來確認
-                </button>
-            </div>
-        </div>
-
-        <!-- 狀態 3：主要表單卡片 (新會員登記 / 已審核修改) -->
-        <div id="mainFormCard" class="hidden bg-white rounded-[32px] p-6 sm:p-7 border-2 border-amber-200/80 soft-card-shadow relative">
-            
-            <div id="lineProfileCard" class="bg-[#FFF9EE] rounded-2xl p-3.5 border border-amber-200/80 mb-6 flex items-center gap-3">
-                <div class="relative">
-                    <img id="avatarImg" src="https://api.dicebear.com/7.x/bottts/svg?seed=member" alt="LINE Avatar" class="w-12 h-12 rounded-full border-2 border-white shadow-sm object-cover bg-amber-100">
-                    <span class="absolute -bottom-1 -right-1 bg-[#06C755] text-white text-[9px] font-black px-1.5 py-0.2 rounded-full border border-white">LINE</span>
-                </div>
-                <div class="flex-1 min-w-0 text-left">
-                    <div class="flex items-center gap-1.5">
-                        <span id="memberDisplayTitle" class="font-black text-base text-amber-950 truncate">新會員</span>
-                        <span id="badgeVerified" class="hidden text-[10px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded-full">已審核</span>
-                    </div>
-                    <div class="text-[11px] text-amber-800/60 font-mono truncate mt-0.5" id="lineUid">UID: 讀取中...</div>
-                </div>
-            </div>
-
-            <form id="bindForm" class="space-y-4 text-left">
-                <div>
-                    <label class="block text-xs font-bold text-amber-900 mb-1.5">
-                        遊戲角色暱稱 <span class="text-rose-500">*</span>
-                    </label>
-                    <input type="text" id="gameNickname" required placeholder="例如：甜心小補師" 
-                           class="w-full bg-[#FFFDF9] border border-amber-200 rounded-2xl px-4 py-3 text-sm font-bold text-amber-950 placeholder:text-amber-800/30 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition">
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold text-amber-900 mb-1.5">
-                        遊戲職業 <span class="text-rose-500">*</span>
-                    </label>
-                    <div class="relative">
-                        <select id="gameClass" required 
-                                class="w-full bg-[#FFFDF9] border border-amber-200 rounded-2xl px-4 py-3 text-sm font-bold text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition appearance-none">
-                            <option value="" disabled selected>請選擇職業</option>
-                            <optgroup label="劍士系">
-                                <option value="騎士領主">騎士領主</option>
-                                <option value="聖殿十字軍">聖殿十字軍</option>
-                            </optgroup>
-                            <optgroup label="魔法師系">
-                                <option value="超魔導士">超魔導士</option>
-                                <option value="學者（智者）">學者（智者）</option>
-                            </optgroup>
-                            <optgroup label="弓箭手系">
-                                <option value="神射手">神射手</option>
-                                <option value="搞笑藝人（詩人）">搞笑藝人（詩人）</option>
-                                <option value="冷豔舞姬（舞孃）">冷豔舞姬（舞孃）</option>
-                            </optgroup>
-                            <optgroup label="盜賊系">
-                                <option value="十字刺客">十字刺客</option>
-                                <option value="神行（神偷）">神行（神偷）</option>
-                            </optgroup>
-                            <optgroup label="服事系">
-                                <option value="神官（大主教）">神官（大主教）</option>
-                                <option value="武術宗師">武術宗師</option>
-                            </optgroup>
-                            <optgroup label="商人系">
-                                <option value="神工匠">神工匠</option>
-                                <option value="創造者（鍊金術士）">創造者（鍊金術士）</option>
-                            </optgroup>
-                            <option value="其他">其他</option>
-                        </select>
-                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-xs text-amber-700">▼</div>
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold text-amber-900 mb-1.5">
-                        LINE 顯示暱稱 <span class="text-rose-500">*</span>
-                    </label>
-                    <input type="text" id="manualLineName" required placeholder="例如：Wendy / Chloe" 
-                           class="w-full bg-[#FFFDF9] border border-amber-200 rounded-2xl px-4 py-3 text-sm font-bold text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition">
-                </div>
-
-                <div class="pt-2 border-t border-amber-100/80">
-                    <label class="flex items-center justify-between p-3 rounded-2xl bg-[#FFFDF9] border border-amber-200/80 cursor-pointer hover:bg-amber-50/50 transition">
-                        <div class="pr-2">
-                            <div class="text-xs font-bold text-amber-950">開放查詢</div>
-                            <div class="text-[10px] text-amber-800/60 mt-0.5">開啟後，公會會員可於會員名冊查詢您的資料</div>
-                        </div>
-                        <div class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" id="toggleAllowSearch" class="sr-only peer" checked>
-                            <div class="w-11 h-6 bg-stone-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
-                        </div>
-                    </label>
-                </div>
-
-                <button type="submit" id="submitBtn"
-                        class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-amber-300/50 hover:shadow-xl transition-all duration-200 flex items-center justify-center cursor-pointer mt-4">
-                    確認送出
-                </button>
-            </form>
-
-            <!-- 彈窗 1：送出前確認視窗 -->
-            <div id="confirmModal" class="hidden absolute inset-0 bg-stone-900/40 backdrop-blur-sm rounded-[32px] p-6 flex flex-col items-center justify-center text-center z-30">
-                <div class="bg-white rounded-3xl p-5 w-full max-w-[320px] border-2 border-amber-200 shadow-2xl">
-                    <h3 class="text-base font-black text-amber-950 mb-1">確認資料無誤？</h3>
-                    <p class="text-[11px] text-amber-800/70 mb-4">請確認以下資訊是否正確：</p>
-                    
-                    <div class="bg-[#FFFDF9] rounded-2xl p-4 text-left text-sm space-y-2 mb-5 border border-amber-200/80 text-amber-950">
-                        <div class="flex justify-between items-center">
-                            <span class="text-amber-800/80 font-bold">遊戲暱稱：</span>
-                            <span id="previewNick" class="font-bold text-amber-950">-</span>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-amber-800/80 font-bold">遊戲職業：</span>
-                            <span id="previewClass" class="font-bold text-amber-950">-</span>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-amber-800/80 font-bold">LINE 暱稱：</span>
-                            <span id="previewLine" class="font-bold text-amber-950">-</span>
-                        </div>
-                        <div class="flex justify-between items-center pt-1.5 border-t border-amber-100/60 text-xs">
-                            <span class="text-amber-800/70 font-medium">開放查詢：</span>
-                            <span id="previewAllowSearch" class="font-medium text-amber-950">-</span>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-2">
-                        <button onclick="closeConfirmModal()" class="bg-stone-100 hover:bg-stone-200 text-stone-600 text-xs font-bold py-2.5 rounded-xl transition cursor-pointer">返回修改</button>
-                        <button onclick="executeFinalSubmit()" id="modalConfirmBtn" class="bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold py-2.5 rounded-xl transition shadow-md cursor-pointer">確認送出</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 彈窗 2：成功結果視窗 -->
-            <div id="successModal" class="hidden absolute inset-0 bg-white/95 backdrop-blur-sm rounded-[32px] p-6 flex flex-col items-center justify-center text-center z-40">
-                <h3 id="successTitle" class="text-lg font-black text-amber-950 mb-1">資料送出成功</h3>
-                <p id="successDesc" class="text-xs text-amber-900/70 max-w-[240px] leading-relaxed mb-5">審核通過後，將會在 LINE 聊天室通知您</p>
-                
-                <div class="bg-[#FFFDF9] border border-amber-200/80 rounded-2xl p-4 w-full text-left text-sm space-y-2 mb-6 text-amber-950 shadow-inner">
-                    <div class="flex items-center justify-between">
-                        <span class="text-amber-800/80 font-bold">遊戲暱稱：</span>
-                        <span id="resGameNick" class="font-bold text-amber-950">-</span>
-                    </div>
-                    <div class="flex items-center justify-between">
-                        <span class="text-amber-800/80 font-bold">遊戲職業：</span>
-                        <span id="resGameClass" class="font-bold text-amber-950">-</span>
-                    </div>
-                    <div class="flex items-center justify-between">
-                        <span class="text-amber-800/80 font-bold">LINE 暱稱：</span>
-                        <span id="resLineName" class="font-bold text-amber-950">-</span>
-                    </div>
-                    <div class="flex items-center justify-between pt-1 border-t border-amber-100/60 text-xs">
-                        <span class="text-amber-800/70 font-medium">開放查詢：</span>
-                        <span id="resAllowSearch" class="font-medium text-amber-950">-</span>
-                    </div>
-                </div>
-
-                <button onclick="closeLiffWindow()" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-sm font-bold py-3.5 rounded-2xl shadow-md transition cursor-pointer">
-                    關閉回到聊天室
-                </button>
-            </div>
-        </div>
-
-        <p class="text-[11px] text-amber-800/40 text-center mt-6">&copy; 2026 GuildMaster</p>
-    </main>
-
-    <script>
+<script>
         const MY_LIFF_ID = "2011659633-OPPcInzb";
-        const GAS_API_URL = "https://script.google.com/macros/s/AKfycbxIRwxVfiCxwKwBi4MTz3C4mzBLg-76SCnp301IGb1_Pdlbi2bdOtOZK3bdXY0TeInTyg/exec";
+        // 改為指向我們剛剛在 Zeabur 部署成功的 Node.js 後台 API 網域
+        const BACKEND_API_URL = "https://guildmaster.zeabur.app";
 
         let currentUser = {
             userId: "",
@@ -273,36 +16,31 @@
 
         let pendingPayload = null;
 
-        // 將連線逾時延長到 15 秒，避免 GAS 冷啟動被誤判斷為失敗
-        function querySheetByJsonp(uid) {
-            return new Promise((resolve) => {
-                const callbackName = "gas_cb_" + Date.now();
-                const script = document.createElement("script");
+        // 改用標準 fetch 向 Node.js 後台查詢會員狀態
+        async function queryMemberFromBackend(uid) {
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-                const timer = setTimeout(() => {
-                    cleanup();
-                    resolve({ status: "timeout", message: "GAS 回應超過 15 秒逾時" });
-                }, 15000);
+                const response = await fetch(`${BACKEND_API_URL}/api/members/${encodeURIComponent(uid)}`, {
+                    method: 'GET',
+                    headers: { 'Accept': 'application/json' },
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
 
-                function cleanup() {
-                    clearTimeout(timer);
-                    if (script.parentNode) script.parentNode.removeChild(script);
-                    delete window[callbackName];
+                if (!response.ok) {
+                    return { status: "error", message: `伺服器回應狀態碼: ${response.status}` };
                 }
 
-                window[callbackName] = function(data) {
-                    cleanup();
-                    resolve(data);
-                };
-
-                script.src = `${GAS_API_URL}?uid=${encodeURIComponent(uid)}&callback=${callbackName}&_t=${Date.now()}`;
-                script.onerror = function(e) {
-                    cleanup();
-                    resolve({ status: "error", message: "Script 載入失敗或網路阻擋" });
-                };
-
-                document.body.appendChild(script);
-            });
+                const data = await response.json();
+                return data; // 預期後台會回傳 { status: "found" 或 "not_found", ... }
+            } catch (err) {
+                if (err.name === 'AbortError') {
+                    return { status: "timeout", message: "後台回應超過 15 秒逾時" };
+                }
+                return { status: "error", message: err.message || "連線後台失敗" };
+            }
         }
 
         window.addEventListener("DOMContentLoaded", async () => {
@@ -355,14 +93,13 @@
                 return;
             }
 
-            // 查詢 GAS
-            const result = await querySheetByJsonp(currentUser.userId);
+            // 向 Node.js 後台查詢
+            const result = await queryMemberFromBackend(currentUser.userId);
             
-            // 異常防呆：如果逾時或連線失敗，直接跳出提示並讓使用者按重試，絕不直接切換為新會員誤導！
             if (result && (result.status === "timeout" || result.status === "error")) {
                 document.getElementById('loadingSpinner').classList.add('hidden');
-                document.getElementById('loadingTitle').textContent = "連線名冊逾時";
-                document.getElementById('loadingDesc').textContent = "Google 試算表伺服器回應較慢，請點擊下方重試";
+                document.getElementById('loadingTitle').textContent = "連線後台逾時";
+                document.getElementById('loadingDesc').textContent = "伺服器回應較慢，請點擊下方重試";
                 
                 const errBox = document.getElementById('errorBox');
                 const errDetail = document.getElementById('errorDetail');
@@ -478,7 +215,7 @@
                 linePictureUrl: currentUser.pictureUrl,
                 gameNickname: gameNick,
                 gameClass: gameClass,
-                allowSearch: allowSearch ? "開啟" : "關閉",
+                allowSearch: allowSearch ? "Y" : "N",
                 updateTime: new Date().toISOString()
             };
 
@@ -501,19 +238,21 @@
             modalConfirmBtn.textContent = "傳送中...";
             modalConfirmBtn.disabled = true;
 
-            if (GAS_API_URL) {
-                try {
-                    await fetch(GAS_API_URL, {
-                        method: "POST",
-                        mode: "no-cors",
-                        headers: {
-                            "Content-Type": "text/plain;charset=utf-8"
-                        },
-                        body: JSON.stringify(pendingPayload)
-                    });
-                } catch (err) {
-                    console.error("寫入 Google Sheet 失敗:", err);
+            try {
+                // 將資料 POST 到我們的 Node.js 後台 API 寫入 PostgreSQL
+                const response = await fetch(`${BACKEND_API_URL}/api/members/bind`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(pendingPayload)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`送出失敗，狀態碼: ${response.status}`);
                 }
+            } catch (err) {
+                console.error("寫入後台資料庫失敗:", err);
             }
 
             modalConfirmBtn.textContent = "確認送出";
@@ -523,13 +262,13 @@
             currentUser.gameNickname = pendingPayload.gameNickname;
             currentUser.gameClass = pendingPayload.gameClass;
             currentUser.displayName = pendingPayload.lineDisplayName;
-            currentUser.allowSearch = (pendingPayload.allowSearch === "開啟");
+            currentUser.allowSearch = (pendingPayload.allowSearch === "Y");
             currentUser.isRegistered = true;
             
             document.getElementById('resGameNick').textContent = pendingPayload.gameNickname;
             document.getElementById('resGameClass').textContent = pendingPayload.gameClass;
             document.getElementById('resLineName').textContent = pendingPayload.lineDisplayName;
-            document.getElementById('resAllowSearch').textContent = pendingPayload.allowSearch;
+            document.getElementById('resAllowSearch').textContent = pendingPayload.allowSearch === "Y" ? "開啟" : "關閉";
             
             document.getElementById('successModal').classList.remove('hidden');
         }
@@ -543,5 +282,3 @@
             }
         }
     </script>
-</body>
-</html>
