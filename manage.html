@@ -138,77 +138,79 @@ input[type="date"], input[type="time"], select {
         </section>
 
         <!-- 區塊 2：請假紀錄 -->
-        <section id="sectionLeaves" class="hidden space-y-4 text-left">
-            <div class="grid grid-cols-3 gap-1 p-1 bg-sky-50 rounded-xl border border-sky-100 text-[11px] font-bold">
-                <button id="leaveSubTabRank" onclick="switchLeaveSubView('rank')" class="py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black cursor-pointer">排名統計</button>
-                <button id="leaveSubTabToday" onclick="switchLeaveSubView('today')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800 flex items-center justify-center gap-1 cursor-pointer">
-                    <span>今日請假</span>
-                    <span id="badgeTodayLeaveCount" class="bg-rose-500 text-white text-[10px] px-1.5 py-0.2 rounded-full hidden">0</span>
+<section id="sectionLeaves" class="hidden space-y-4 text-left">
+    <div class="grid grid-cols-3 gap-1 p-1 bg-sky-50 rounded-xl border border-sky-100 text-[11px] font-bold">
+        <button id="leaveSubTabRank" onclick="switchLeaveSubView('rank')" class="py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black cursor-pointer">排名統計</button>
+        <button id="leaveSubTabToday" onclick="switchLeaveSubView('today')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800 flex items-center justify-center gap-1 cursor-pointer">
+            <span>今日請假</span>
+            <span id="badgeTodayLeaveCount" class="bg-rose-500 text-white text-[10px] px-1.5 py-0.2 rounded-full hidden">0</span>
+        </button>
+        <button id="leaveSubTabList" onclick="switchLeaveSubView('list')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800 cursor-pointer">全部紀錄列表</button>
+    </div>
+
+    <!-- 視圖 A：排名儀表板 -->
+    <div id="leaveRankView" class="space-y-3">
+        <div class="flex items-center justify-between bg-sky-50/60 rounded-xl p-2 border border-sky-100">
+            <span class="text-xs font-bold text-slate-600">統計維度：</span>
+            <div class="flex gap-1">
+                <button id="rankFilterAll" onclick="setRankType('all')" class="px-2.5 py-1 text-xs font-black rounded-lg bg-sky-500 text-white shadow-xs cursor-pointer">全部累積</button>
+                <button id="rankFilterMonth" onclick="setRankType('month')" class="px-2.5 py-1 text-xs font-bold rounded-lg bg-white text-slate-600 border border-sky-100 cursor-pointer">當月統計</button>
+                <button id="rankFilterUrgent" onclick="setRankType('urgent')" class="px-2.5 py-1 text-xs font-bold rounded-lg bg-white text-slate-600 border border-sky-100 cursor-pointer">臨時請假</button>
+            </div>
+        </div>
+        <div id="rankListContainer" class="space-y-2"></div>
+    </div>
+
+    <!-- 視圖 B：今日請假專屬清單 -->
+    <div id="leaveTodayView" class="hidden space-y-3">
+        <div class="flex items-center justify-between px-1">
+            <span class="text-xs font-bold text-slate-500" id="todayDateLabel">今日日期：載入中</span>
+            <span class="text-xs font-black text-sky-900" id="todayLeaveSummaryText">共 0 人請假</span>
+        </div>
+        <div id="leaveTodayContainer" class="space-y-2.5"></div>
+    </div>
+
+    <!-- 視圖 C：全部請假紀錄列表 -->
+    <div id="leaveListView" class="hidden space-y-3">
+        <div class="space-y-2">
+            <input type="text" id="leaveSearchInput" oninput="renderLeaveList()" placeholder="搜尋角色或活動名稱..."
+                   class="w-full h-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:bg-white transition box-border">
+            
+            <div class="flex items-center gap-1.5">
+                <div class="flex-1 flex items-center bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 h-[40px] focus-within:ring-2 focus-within:ring-sky-400 focus-within:bg-white transition box-border">
+                    <span class="text-slate-400 text-xs font-bold whitespace-nowrap mr-1 select-none">搜尋請假日期：</span>
+                    <input type="date" id="leaveDateFilter" onchange="renderLeaveList()" 
+                           class="w-full h-full bg-transparent border-0 p-0 text-xs font-bold text-slate-900 focus:outline-none cursor-pointer">
+                </div>
+                <button onclick="clearLeaveDateFilter()" class="bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold px-3 h-[40px] rounded-xl transition box-border whitespace-nowrap cursor-pointer">
+                    清除
                 </button>
-                <button id="leaveSubTabList" onclick="switchLeaveSubView('list')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800 cursor-pointer">全部紀錄列表</button>
             </div>
+        </div>
+        <div id="leaveHistoryContainer" class="space-y-2.5"></div>
+    </div>
+</section>
 
-            <!-- 視圖 A：排名儀表板 -->
-            <div id="leaveRankView" class="space-y-3">
-                <div class="flex items-center justify-between bg-sky-50/60 rounded-xl p-2 border border-sky-100">
-                    <span class="text-xs font-bold text-slate-600">統計維度：</span>
-                    <div class="flex gap-1">
-                        <button id="rankFilterAll" onclick="setRankType('all')" class="px-2.5 py-1 text-xs font-black rounded-lg bg-sky-500 text-white shadow-xs cursor-pointer">全部累積</button>
-                        <button id="rankFilterMonth" onclick="setRankType('month')" class="px-2.5 py-1 text-xs font-bold rounded-lg bg-white text-slate-600 border border-sky-100 cursor-pointer">當月統計</button>
-                        <button id="rankFilterUrgent" onclick="setRankType('urgent')" class="px-2.5 py-1 text-xs font-bold rounded-lg bg-white text-slate-600 border border-sky-100 cursor-pointer">臨時請假</button>
-                    </div>
-                </div>
-                <div id="rankListContainer" class="space-y-2"></div>
-            </div>
-
-            <!-- 視圖 B：今日請假專屬清單 -->
-            <div id="leaveTodayView" class="hidden space-y-3">
-                <div class="flex items-center justify-between px-1">
-                    <span class="text-xs font-bold text-slate-500" id="todayDateLabel">今日日期：載入中</span>
-                    <span class="text-xs font-black text-sky-900" id="todayLeaveSummaryText">共 0 人請假</span>
-                </div>
-                <div id="leaveTodayContainer" class="space-y-2.5"></div>
-            </div>
-
-            <!-- 視圖 C：全部請假紀錄列表 -->
-            <div id="leaveListView" class="hidden space-y-3">
-                <div class="space-y-2">
-                    <input type="text" id="leaveSearchInput" oninput="renderLeaveList()" placeholder="搜尋角色或活動名稱..."
-                           class="w-full h-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:bg-white transition box-border">
-                    
-                    <div class="flex items-center gap-1.5">
-                        <div class="flex-1 flex items-center bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 h-[40px] focus-within:ring-2 focus-within:ring-sky-400 focus-within:bg-white transition box-border">
-                            <span class="text-slate-400 text-xs font-bold whitespace-nowrap mr-1 select-none">搜尋請假日期：</span>
-                            <input type="date" id="leaveDateFilter" onchange="renderLeaveList()" 
-                                   class="w-full h-full bg-transparent border-0 p-0 text-xs font-bold text-slate-900 focus:outline-none cursor-pointer">
-                        </div>
-                        <button onclick="clearLeaveDateFilter()" class="bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold px-3 h-[40px] rounded-xl transition box-border whitespace-nowrap cursor-pointer">
-                            清除
-                        </button>
-                    </div>
-                </div>
-                <div id="leaveHistoryContainer" class="space-y-2.5"></div>
-            </div>
-        </section>
 
         <!-- 區塊 3：活動列表 -->
         <section id="sectionEvents" class="hidden space-y-4"></section>
 
-        <!-- 區塊 4：其他設定 -->
-        <section id="sectionSettings" class="hidden space-y-4 text-left">
-            <div class="space-y-3">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <span class="text-xs font-black text-slate-900">請假項目與超時推播規則</span>
-                        <div class="text-[10px] text-slate-400 font-bold">此處清單將同時作為前台請假單選項</div>
-                    </div>
-                    <button onclick="openUrgentRuleModal('create')" class="bg-sky-500 hover:bg-sky-600 active:scale-95 text-white text-xs font-black px-3 py-1.5 rounded-xl shadow-xs transition cursor-pointer">
-                        + 新增請假項目
-                    </button>
-                </div>
-                <div id="urgentRuleContainer" class="space-y-2.5"></div>
+<!-- 區塊 4：其他設定 -->
+<section id="sectionSettings" class="hidden space-y-4 text-left">
+    <div class="space-y-3">
+        <div class="flex items-center justify-between">
+            <div>
+                <span class="text-xs font-black text-slate-900">請假項目與超時推播規則</span>
+                <div class="text-[10px] text-slate-400 font-bold">此處清單將同時作為前台請假單選項</div>
             </div>
-        </section>
+            <button onclick="openUrgentRuleModal('create')" class="bg-sky-500 hover:bg-sky-600 active:scale-95 text-white text-xs font-black px-3 py-1.5 rounded-xl shadow-xs transition cursor-pointer">
+                + 新增請假項目
+            </button>
+        </div>
+        <div id="urgentRuleContainer" class="space-y-2.5"></div>
+    </div>
+</section>
+
 
     </div>
 
@@ -429,6 +431,55 @@ input[type="date"], input[type="time"], select {
         </div>
     </div>
 </div>
+<!-- 彈窗 7：請假項目編輯 -->
+<div id="urgentRuleModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
+    <div class="bg-white w-full max-w-md rounded-[28px] p-6 border-2 border-sky-200 soft-sky-shadow max-h-[90vh] overflow-y-auto text-left">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+            <h3 id="urgentRuleModalTitle" class="text-base font-black text-slate-900">編輯請假項目與時間</h3>
+            <button onclick="closeModal('urgentRuleModal')" class="text-slate-400 hover:text-slate-600 text-sm font-bold cursor-pointer">關閉</button>
+        </div>
+        <form id="urgentRuleForm" class="space-y-4 text-xs font-bold text-slate-700">
+            <input type="hidden" id="ruleOriginalEventName">
+            <div>
+                <label class="block mb-1 text-slate-800">請假活動項目名稱 <span class="text-rose-500">*</span></label>
+                <input type="text" id="ruleEventName" required placeholder="例如：公會GVG聯賽" class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-sky-400">
+            </div>
+            
+            <div class="grid grid-cols-2 gap-3 items-center">
+                <div>
+                    <label class="block mb-1 text-slate-800">最晚請假截止時間 <span class="text-rose-500">*</span></label>
+                    <input type="text" id="ruleLatestTime" required placeholder="20:00" class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-sky-400">
+                </div>
+                <div class="pt-5">
+                    <label class="flex items-center gap-2 cursor-pointer bg-[#F8FAFC] p-2.5 rounded-xl border border-sky-100">
+                        <input type="checkbox" id="ruleEnabled" class="w-4 h-4 accent-sky-500 cursor-pointer" checked>
+                        <span class="text-[11px] font-black text-slate-800">啟用超時推播</span>
+                    </label>
+                </div>
+            </div>
+
+            <div>
+                <label class="block mb-2 text-slate-800">觸發條件 / 重複週期（點擊選取）</label>
+                <div id="cyclePickerContainer" class="flex items-center gap-1.5 justify-between">
+                    <button type="button" onclick="toggleCycleDay('一')" data-day="一" class="cycle-btn flex-1 py-2 rounded-xl border border-sky-200 text-xs font-black transition bg-white text-slate-600 cursor-pointer">一</button>
+                    <button type="button" onclick="toggleCycleDay('二')" data-day="二" class="cycle-btn flex-1 py-2 rounded-xl border border-sky-200 text-xs font-black transition bg-white text-slate-600 cursor-pointer">二</button>
+                    <button type="button" onclick="toggleCycleDay('三')" data-day="三" class="cycle-btn flex-1 py-2 rounded-xl border border-sky-200 text-xs font-black transition bg-white text-slate-600 cursor-pointer">三</button>
+                    <button type="button" onclick="toggleCycleDay('四')" data-day="四" class="cycle-btn flex-1 py-2 rounded-xl border border-sky-200 text-xs font-black transition bg-white text-slate-600 cursor-pointer">四</button>
+                    <button type="button" onclick="toggleCycleDay('五')" data-day="五" class="cycle-btn flex-1 py-2 rounded-xl border border-sky-200 text-xs font-black transition bg-white text-slate-600 cursor-pointer">五</button>
+                    <button type="button" onclick="toggleCycleDay('六')" data-day="六" class="cycle-btn flex-1 py-2 rounded-xl border border-sky-200 text-xs font-black transition bg-white text-slate-600 cursor-pointer">六</button>
+                    <button type="button" onclick="toggleCycleDay('日')" data-day="日" class="cycle-btn flex-1 py-2 rounded-xl border border-sky-200 text-xs font-black transition bg-white text-slate-600 cursor-pointer">日</button>
+                </div>
+                <input type="hidden" id="ruleCycleValue">
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 pt-3">
+                <button type="button" onclick="closeModal('urgentRuleModal')" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 rounded-xl transition cursor-pointer">取消</button>
+                <button type="submit" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-2.5 rounded-xl transition shadow-md shadow-sky-200 cursor-pointer">確認儲存</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 
 <script>
     const MY_LIFF_ID = "2011659633-9Km5nhzg";
