@@ -58,7 +58,7 @@
             <div id="errorBox" class="hidden mt-4 text-left">
                 <div class="text-xs font-bold text-rose-700 mb-1">提示與操作：</div>
                 <div id="errorDetail" class="text-[11px] text-rose-600 bg-rose-50 border border-rose-200 p-3 rounded-xl font-mono break-all leading-relaxed"></div>
-                <button onclick="closeLiffWindow()" class="w-full mt-3 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold py-2.5 rounded-xl shadow-md transition">
+                <button onclick="closeLiffWindow()" class="w-full mt-3 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold py-2.5 rounded-xl shadow-md transition cursor-pointer">
                 關閉視窗重新載入
                 </button>
             </div>
@@ -93,7 +93,7 @@
             </div>
 
             <div class="space-y-2.5">
-                <button onclick="closeLiffWindow()" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold py-3.5 rounded-2xl text-sm shadow-md shadow-amber-300/40 transition">
+                <button onclick="closeLiffWindow()" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold py-3.5 rounded-2xl text-sm shadow-md shadow-amber-300/40 transition cursor-pointer">
                     稍後再回來確認
                 </button>
             </div>
@@ -102,6 +102,7 @@
         <!-- 狀態 3：主要表單卡片 (新會員登記 / 已審核修改) -->
         <div id="mainFormCard" class="hidden bg-white rounded-[32px] p-6 sm:p-7 border-2 border-amber-200/80 soft-card-shadow relative">
             
+            <!-- 員工/會員資料卡片 (修改版：顯示遊戲暱稱、guild_role 與遊戲職業) -->
             <div id="lineProfileCard" class="bg-[#FFF9EE] rounded-2xl p-3.5 border border-amber-200/80 mb-6 flex items-center gap-3">
                 <div class="relative">
                     <img id="avatarImg" src="https://api.dicebear.com/7.x/bottts/svg?seed=member" alt="LINE Avatar" class="w-12 h-12 rounded-full border-2 border-white shadow-sm object-cover bg-amber-100">
@@ -110,9 +111,9 @@
                 <div class="flex-1 min-w-0 text-left">
                     <div class="flex items-center gap-1.5">
                         <span id="memberDisplayTitle" class="font-black text-base text-amber-950 truncate">新會員</span>
-                        <span id="badgeVerified" class="hidden text-[10px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded-full">已審核</span>
+                        <span id="badgeGuildRole" class="text-[10px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full border border-amber-200">現任</span>
                     </div>
-                    <div class="text-[11px] text-amber-800/60 font-mono truncate mt-0.5" id="lineUid">UID: 讀取中...</div>
+                    <div class="text-xs text-amber-800 font-bold truncate mt-0.5" id="lineSubInfo">尚未選擇職業</div>
                 </div>
             </div>
 
@@ -131,7 +132,7 @@
                     </label>
                     <div class="relative">
                         <select id="gameClass" required 
-                                class="w-full bg-[#FFFDF9] border border-amber-200 rounded-2xl px-4 py-3 text-sm font-bold text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition appearance-none">
+                                class="w-full bg-[#FFFDF9] border border-amber-200 rounded-2xl px-4 py-3 text-sm font-bold text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition appearance-none cursor-pointer">
                             <option value="" disabled selected>請選擇職業</option>
                             <optgroup label="劍士系">
                                 <option value="騎士領主">騎士領主</option>
@@ -172,16 +173,28 @@
                            class="w-full bg-[#FFFDF9] border border-amber-200 rounded-2xl px-4 py-3 text-sm font-bold text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition">
                 </div>
 
-                <div class="pt-2 border-t border-amber-100/80">
+                <!-- 開關區塊：開放查詢、已加入LINE群、已加入DC -->
+                <div class="space-y-2 pt-2 border-t border-amber-100/80">
                     <label class="flex items-center justify-between p-3 rounded-2xl bg-[#FFFDF9] border border-amber-200/80 cursor-pointer hover:bg-amber-50/50 transition">
-                        <div class="pr-2">
+                        <div>
                             <div class="text-xs font-bold text-amber-950">開放查詢</div>
-                            <div class="text-[10px] text-amber-800/60 mt-0.5">開啟後，公會會員可於會員名冊查詢您的資料</div>
+                            <div class="text-[10px] text-amber-800/60 mt-0.5">公會會員可於名冊查詢您的資料</div>
                         </div>
-                        <div class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" id="toggleAllowSearch" class="sr-only peer" checked>
-                            <div class="w-11 h-6 bg-stone-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                        <input type="checkbox" id="toggleAllowSearch" class="w-5 h-5 accent-amber-500 cursor-pointer" checked>
+                    </label>
+
+                    <label class="flex items-center justify-between p-3 rounded-2xl bg-[#FFFDF9] border border-amber-200/80 cursor-pointer hover:bg-amber-50/50 transition">
+                        <div>
+                            <div class="text-xs font-bold text-amber-950">已加入 LINE 群組</div>
                         </div>
+                        <input type="checkbox" id="toggleJoinedLine" class="w-5 h-5 accent-amber-500 cursor-pointer">
+                    </label>
+
+                    <label class="flex items-center justify-between p-3 rounded-2xl bg-[#FFFDF9] border border-amber-200/80 cursor-pointer hover:bg-amber-50/50 transition">
+                        <div>
+                            <div class="text-xs font-bold text-amber-950">已加入 Discord 伺服器</div>
+                        </div>
+                        <input type="checkbox" id="toggleJoinedDc" class="w-5 h-5 accent-amber-500 cursor-pointer">
                     </label>
                 </div>
 
@@ -210,10 +223,6 @@
                             <span class="text-amber-800/80 font-bold">LINE 暱稱：</span>
                             <span id="previewLine" class="font-bold text-amber-950">-</span>
                         </div>
-                        <div class="flex justify-between items-center pt-1.5 border-t border-amber-100/60 text-xs">
-                            <span class="text-amber-800/70 font-medium">開放查詢：</span>
-                            <span id="previewAllowSearch" class="font-medium text-amber-950">-</span>
-                        </div>
                     </div>
 
                     <div class="grid grid-cols-2 gap-2">
@@ -237,14 +246,6 @@
                         <span class="text-amber-800/80 font-bold">遊戲職業：</span>
                         <span id="resGameClass" class="font-bold text-amber-950">-</span>
                     </div>
-                    <div class="flex items-center justify-between">
-                        <span class="text-amber-800/80 font-bold">LINE 暱稱：</span>
-                        <span id="resLineName" class="font-bold text-amber-950">-</span>
-                    </div>
-                    <div class="flex items-center justify-between pt-1 border-t border-amber-100/60 text-xs">
-                        <span class="text-amber-800/70 font-medium">開放查詢：</span>
-                        <span id="resAllowSearch" class="font-medium text-amber-950">-</span>
-                    </div>
                 </div>
 
                 <button onclick="closeLiffWindow()" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-sm font-bold py-3.5 rounded-2xl shadow-md transition cursor-pointer">
@@ -267,6 +268,9 @@
             gameNickname: "",
             gameClass: "",
             allowSearch: true,
+            joinedLineGroup: false,
+            joinedDc: false,
+            guildRole: "現任",
             accountStatus: "",
             isRegistered: false
         };
@@ -275,26 +279,11 @@
 
         async function queryMemberFromBackend(uid) {
             try {
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 15000);
-
-                const response = await fetch(`${BACKEND_API_URL}/api/members/${encodeURIComponent(uid)}`, {
-                    method: 'GET',
-                    headers: { 'Accept': 'application/json' },
-                    signal: controller.signal
-                });
-                clearTimeout(timeoutId);
-
-                if (!response.ok) {
-                    return { status: "error", message: `伺服器回應狀態碼: ${response.status}` };
-                }
-
+                const response = await fetch(`${BACKEND_API_URL}/api/members/${encodeURIComponent(uid)}`);
+                if (!response.ok) return { status: "error" };
                 return await response.json();
             } catch (err) {
-                if (err.name === 'AbortError') {
-                    return { status: "timeout", message: "後台回應超過 15 秒逾時" };
-                }
-                return { status: "error", message: err.message || "連線後台失敗" };
+                return { status: "error", message: err.message };
             }
         }
 
@@ -308,6 +297,8 @@
                     const gameClass = document.getElementById('gameClass').value;
                     const lineName = document.getElementById('manualLineName').value.trim();
                     const allowSearch = document.getElementById('toggleAllowSearch').checked;
+                    const joinedLineGroup = document.getElementById('toggleJoinedLine').checked;
+                    const joinedDc = document.getElementById('toggleJoinedDc').checked;
 
                     currentUser.displayName = lineName;
 
@@ -317,15 +308,15 @@
                         linePictureUrl: currentUser.pictureUrl,
                         gameNickname: gameNick,
                         gameClass: gameClass,
-                        allowSearch: allowSearch ? "Y" : "N",
+                        allowSearch: allowSearch,
+                        joinedLineGroup: joinedLineGroup,
+                        joinedDc: joinedDc,
                         updateTime: new Date().toISOString()
                     };
 
                     document.getElementById('previewNick').textContent = gameNick;
                     document.getElementById('previewClass').textContent = gameClass;
                     document.getElementById('previewLine').textContent = lineName;
-                    document.getElementById('previewAllowSearch').textContent = allowSearch ? "開啟" : "關閉";
-
                     document.getElementById('confirmModal').classList.remove('hidden');
                 });
             }
@@ -347,19 +338,15 @@
                         currentUser.pictureUrl = profile.pictureUrl || currentUser.pictureUrl;
                         isLiffReady = true;
                     } else {
-                        // 避免無窮迴圈：若未登入，顯示按鈕讓用戶手動點擊登入授權
                         document.getElementById('loadingSpinner').classList.add('hidden');
                         document.getElementById('loadingTitle').textContent = "需要登入 LINE";
                         document.getElementById('loadingDesc').textContent = "請點擊下方按鈕進行驗證授權";
-                        
-                        const errBox = document.getElementById('errorBox');
-                        const errDetail = document.getElementById('errorDetail');
-                        errDetail.innerHTML = `<button onclick="liff.login()" class="w-full bg-[#06C755] text-white font-bold py-2.5 rounded-xl shadow-md cursor-pointer">點擊登入 LINE 帳號</button>`;
-                        errBox.classList.remove('hidden');
+                        document.getElementById('errorBox').classList.remove('hidden');
+                        document.getElementById('errorDetail').innerHTML = `<button onclick="liff.login()" class="w-full bg-[#06C755] text-white font-bold py-2.5 rounded-xl shadow-md cursor-pointer">點擊登入 LINE 帳號</button>`;
                         return;
                     }
                 } catch (err) {
-                    liffErrorDetail = (err.code ? `[代碼 ${err.code}] ` : "") + (err.message || JSON.stringify(err));
+                    liffErrorDetail = err.message || JSON.stringify(err);
                 }
             }
 
@@ -382,33 +369,21 @@
                 document.getElementById('loadingSpinner').classList.add('hidden');
                 document.getElementById('loadingTitle').textContent = "無法辨識 LINE 身分";
                 document.getElementById('loadingDesc').textContent = "請確認您是點擊 LINE 官方專用連結開啟";
-                
-                const errBox = document.getElementById('errorBox');
-                const errDetail = document.getElementById('errorDetail');
-                errDetail.textContent = errorMsg || "LIFF 未能成功取得 Profile 資料。";
-                errBox.classList.remove('hidden');
+                document.getElementById('errorDetail').textContent = errorMsg || "LIFF 未能成功取得 Profile 資料。";
+                document.getElementById('errorBox').classList.remove('hidden');
                 return;
             }
 
             const result = await queryMemberFromBackend(currentUser.userId);
             
-            if (result && (result.status === "timeout" || result.status === "error")) {
-                document.getElementById('loadingSpinner').classList.add('hidden');
-                document.getElementById('loadingTitle').textContent = "連線後台逾時";
-                document.getElementById('loadingDesc').textContent = "伺服器回應較慢，請點擊下方重試";
-                
-                const errBox = document.getElementById('errorBox');
-                const errDetail = document.getElementById('errorDetail');
-                errDetail.textContent = `[${result.status}] ${result.message || '請確認網路是否正常'}`;
-                errBox.classList.remove('hidden');
-                return;
-            }
-
             if (result && result.status === "found") {
                 currentUser.gameNickname = result.gameNickname || "";
                 currentUser.gameClass = result.gameClass || "";
                 currentUser.displayName = result.lineDisplayName || currentUser.displayName;
-                currentUser.allowSearch = (result.allowSearch === true || result.allowSearch === "Y");
+                currentUser.allowSearch = (result.allowSearch === true);
+                currentUser.joinedLineGroup = (result.joinedLineGroup === true);
+                currentUser.joinedDc = (result.joinedDc === true);
+                currentUser.guildRole = result.guildRole || "現任";
                 currentUser.accountStatus = String(result.accountStatus || "").trim();
                 currentUser.isRegistered = true;
             }
@@ -432,18 +407,13 @@
 
         function applyPendingReviewUI() {
             document.getElementById('topBadge').textContent = "資格審核";
-            document.getElementById('topBadge').className = "inline-block bg-amber-100/80 text-amber-800 border border-amber-200 text-xs font-bold px-3.5 py-1 rounded-full mb-3";
             document.getElementById('pageMainTitle').textContent = "入會申請處理中";
             document.getElementById('pageSubTitle').textContent = "幹部正在核對名冊，請稍候";
-
             document.getElementById('pendingNickname').textContent = currentUser.gameNickname || "-";
             document.getElementById('pendingClass').textContent = currentUser.gameClass || "-";
             document.getElementById('pendingLineName').textContent = currentUser.displayName || "-";
             document.getElementById('pendingAllowSearch').textContent = currentUser.allowSearch ? "開啟" : "關閉";
-
-            const pendingCard = document.getElementById('pendingReviewCard');
-            pendingCard.classList.remove('hidden');
-            pendingCard.classList.add('fade-in');
+            document.getElementById('pendingReviewCard').classList.remove('hidden');
         }
 
         function applyEditModeUI() {
@@ -451,18 +421,14 @@
             document.getElementById('pageMainTitle').textContent = "會員資料修改";
             document.getElementById('pageSubTitle').textContent = "記得隨時更新您的遊戲角色資訊喔！";
             
-            document.getElementById('memberDisplayTitle').textContent = currentUser.gameNickname || "已審核成員";
-            document.getElementById('badgeVerified').classList.remove('hidden');
-
             document.getElementById('gameNickname').value = currentUser.gameNickname || "";
             document.getElementById('gameClass').value = currentUser.gameClass || "";
             document.getElementById('manualLineName').value = currentUser.displayName || "";
-            document.getElementById('toggleAllowSearch').checked = currentUser.allowSearch !== false;
+            document.getElementById('toggleAllowSearch').checked = currentUser.allowSearch;
+            document.getElementById('toggleJoinedLine').checked = currentUser.joinedLineGroup;
+            document.getElementById('toggleJoinedDc').checked = currentUser.joinedDc;
 
             document.getElementById('submitBtn').textContent = "儲存修改資料";
-            document.getElementById('successTitle').textContent = "資料修改成功！";
-            document.getElementById('successDesc').textContent = "最新資訊已為您更新完成～";
-
             updateProfileCard();
         }
 
@@ -471,24 +437,21 @@
             document.getElementById('pageMainTitle').textContent = "會員資料填寫綁定";
             document.getElementById('pageSubTitle').textContent = "完成登記後，即可使用公會各項專屬功能";
 
-            document.getElementById('memberDisplayTitle').textContent = "新會員";
-            document.getElementById('badgeVerified').classList.add('hidden');
-            document.getElementById('submitBtn').textContent = "確認送出";
-
             document.getElementById('gameNickname').value = "";
             document.getElementById('gameClass').value = "";
             document.getElementById('manualLineName').value = currentUser.displayName || "";
             document.getElementById('toggleAllowSearch').checked = true;
+            document.getElementById('toggleJoinedLine').checked = false;
+            document.getElementById('toggleJoinedDc').checked = false;
 
-            document.getElementById('successTitle').textContent = "綁定資料已送出";
-            document.getElementById('successDesc').textContent = "審核通過後，將會在 LINE 聊天室通知您";
-
+            document.getElementById('submitBtn').textContent = "確認送出";
             updateProfileCard();
         }
 
         function updateProfileCard() {
-            const displayUid = currentUser.userId.length > 16 ? currentUser.userId.substring(0, 16) + '...' : currentUser.userId;
-            document.getElementById('lineUid').textContent = 'UID: ' + displayUid;
+            document.getElementById('memberDisplayTitle').textContent = currentUser.gameNickname || "新會員";
+            document.getElementById('badgeGuildRole').textContent = currentUser.guildRole || "現任";
+            document.getElementById('lineSubInfo').textContent = currentUser.gameClass ? `職業：${currentUser.gameClass}` : "尚未選擇職業";
             if (currentUser.pictureUrl) {
                 document.getElementById('avatarImg').src = currentUser.pictureUrl;
             }
@@ -506,15 +469,11 @@
             modalConfirmBtn.disabled = true;
 
             try {
-                const response = await fetch(`${BACKEND_API_URL}/api/members/bind`, {
+                await fetch(`${BACKEND_API_URL}/api/members/bind`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(pendingPayload)
                 });
-
-                if (!response.ok) {
-                    throw new Error(`送出失敗，狀態碼: ${response.status}`);
-                }
             } catch (err) {
                 console.error("寫入後台資料庫失敗:", err);
             }
@@ -526,14 +485,13 @@
             currentUser.gameNickname = pendingPayload.gameNickname;
             currentUser.gameClass = pendingPayload.gameClass;
             currentUser.displayName = pendingPayload.lineDisplayName;
-            currentUser.allowSearch = (pendingPayload.allowSearch === "Y");
+            currentUser.allowSearch = pendingPayload.allowSearch;
+            currentUser.joinedLineGroup = pendingPayload.joinedLineGroup;
+            currentUser.joinedDc = pendingPayload.joinedDc;
             currentUser.isRegistered = true;
             
             document.getElementById('resGameNick').textContent = pendingPayload.gameNickname;
             document.getElementById('resGameClass').textContent = pendingPayload.gameClass;
-            document.getElementById('resLineName').textContent = pendingPayload.lineDisplayName;
-            document.getElementById('resAllowSearch').textContent = pendingPayload.allowSearch === "Y" ? "開啟" : "關閉";
-            
             document.getElementById('successModal').classList.remove('hidden');
         }
 
