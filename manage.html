@@ -53,7 +53,7 @@
             <div id="loadingSpinner" class="relative w-16 h-16 mx-auto mb-4">
                 <div class="absolute inset-0 rounded-full border-4 border-sky-200 border-t-sky-500 animate-spin"></div>
                 <div class="w-full h-full rounded-full flex items-center justify-center text-xl">
-                    📋
+                    🛡️
                 </div>
             </div>
             <h3 id="loadingTitle" class="text-sm font-black text-slate-900 mb-1">正在驗證管理員身分...</h3>
@@ -167,7 +167,7 @@
         <p class="text-[11px] text-slate-400 text-center mt-4">&copy; 2026 GuildMaster 幹部後台</p>
     </main>
 
-    <!-- 彈窗：成員 新增/編輯 Modal -->
+    <!-- 彈窗：成員 新增/編輯 Modal (改為並排顯示) -->
     <div id="memberModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
         <div class="bg-white w-full max-w-md rounded-[28px] p-6 border-2 border-sky-200 soft-sky-shadow max-h-[90vh] overflow-y-auto">
             <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
@@ -213,18 +213,19 @@
                     </div>
                 </div>
 
-                <div class="space-y-2 pt-1">
-                    <label class="flex items-center justify-between p-2.5 rounded-2xl bg-[#F8FAFC] border border-sky-100 cursor-pointer">
-                        <span class="text-xs font-black text-slate-800">開放查詢 (Allow Search)</span>
-                        <input type="checkbox" id="formAllowSearch" class="w-5 h-5 accent-sky-500 cursor-pointer" checked>
+                <!-- 三個開關改為並排顯示，且對應 Boolean -->
+                <div class="grid grid-cols-3 gap-2 pt-1">
+                    <label class="flex flex-col items-center justify-center p-2 rounded-xl bg-[#F8FAFC] border border-sky-100 cursor-pointer text-center">
+                        <span class="text-[11px] font-black text-slate-800 mb-1">開放查詢</span>
+                        <input type="checkbox" id="formAllowSearch" class="w-4 h-4 accent-sky-500 cursor-pointer" checked>
                     </label>
-                    <label class="flex items-center justify-between p-2.5 rounded-2xl bg-[#F8FAFC] border border-sky-100 cursor-pointer">
-                        <span class="text-xs font-black text-slate-800">已加入 LINE 群 (Joined LINE)</span>
-                        <input type="checkbox" id="formJoinedLineGroup" class="w-5 h-5 accent-sky-500 cursor-pointer">
+                    <label class="flex flex-col items-center justify-center p-2 rounded-xl bg-[#F8FAFC] border border-sky-100 cursor-pointer text-center">
+                        <span class="text-[11px] font-black text-slate-800 mb-1">已入 LINE 群</span>
+                        <input type="checkbox" id="formJoinedLineGroup" class="w-4 h-4 accent-sky-500 cursor-pointer">
                     </label>
-                    <label class="flex items-center justify-between p-2.5 rounded-2xl bg-[#F8FAFC] border border-sky-100 cursor-pointer">
-                        <span class="text-xs font-black text-slate-800">已加入 Discord (Joined DC)</span>
-                        <input type="checkbox" id="formJoinedDc" class="w-5 h-5 accent-sky-500 cursor-pointer">
+                    <label class="flex flex-col items-center justify-center p-2 rounded-xl bg-[#F8FAFC] border border-sky-100 cursor-pointer text-center">
+                        <span class="text-[11px] font-black text-slate-800 mb-1">已入 DC</span>
+                        <input type="checkbox" id="formJoinedDc" class="w-4 h-4 accent-sky-500 cursor-pointer">
                     </label>
                 </div>
 
@@ -284,7 +285,6 @@
             currentAdminUser.guildRole = String(mInfo.guildRole || "").trim();
             currentAdminUser.accountStatus = String(mInfo.accountStatus || "").trim();
 
-            // 必須同時為「已審核」且身分為「幹部」
             if (currentAdminUser.accountStatus !== "已審核" || currentAdminUser.guildRole !== "幹部") {
                 showAccessDenied("非幹部身分不可使用");
                 return;
@@ -391,8 +391,12 @@
                 const card = document.createElement('div');
                 card.className = "bg-white rounded-2xl p-3.5 border border-sky-100 soft-sky-shadow fade-in text-left";
                 
-                const lineTag = (m.joinedLineGroup === 'Y') ? '<span class="bg-emerald-50 text-emerald-700 text-[9px] font-bold px-1.5 py-0.2 rounded border border-emerald-100">已入LINE群</span>' : '<span class="bg-slate-50 text-slate-400 text-[9px] px-1.5 py-0.2 rounded border border-slate-100">未入LINE群</span>';
-                const dcTag = (m.joinedDc === 'Y') ? '<span class="bg-indigo-50 text-indigo-700 text-[9px] font-bold px-1.5 py-0.2 rounded border border-indigo-100">已入DC</span>' : '<span class="bg-slate-50 text-slate-400 text-[9px] px-1.5 py-0.2 rounded border border-slate-100">未入DC</span>';
+                // 支援 Boolean (true / 'Y' 相容判斷)
+                const isLineTrue = (m.joinedLineGroup === true || m.joinedLineGroup === 'Y' || m.joinedLineGroup === 'true');
+                const isDcTrue = (m.joinedDc === true || m.joinedDc === 'Y' || m.joinedDc === 'true');
+
+                const lineTag = isLineTrue ? '<span class="bg-emerald-50 text-emerald-700 text-[9px] font-bold px-1.5 py-0.2 rounded border border-emerald-100">已入LINE群</span>' : '<span class="bg-slate-50 text-slate-400 text-[9px] px-1.5 py-0.2 rounded border border-slate-100">未入LINE群</span>';
+                const dcTag = isDcTrue ? '<span class="bg-indigo-50 text-indigo-700 text-[9px] font-bold px-1.5 py-0.2 rounded border border-indigo-100">已入DC</span>' : '<span class="bg-slate-50 text-slate-400 text-[9px] px-1.5 py-0.2 rounded border border-slate-100">未入DC</span>';
 
                 card.innerHTML = `
                     <div class="flex items-start justify-between">
@@ -434,13 +438,14 @@
                 document.getElementById('formTeamGroup').value = m.teamGroup || "";
                 document.getElementById('formAccountStatus').value = m.accountStatus;
                 
-                document.getElementById('formAllowSearch').checked = (m.allowSearch === 'Y');
-                document.getElementById('formJoinedLineGroup').checked = (m.joinedLineGroup === 'Y');
-                document.getElementById('formJoinedDc').checked = (m.joinedDc === 'Y');
+                document.getElementById('formAllowSearch').checked = (m.allowSearch === true || m.allowSearch === 'Y' || m.allowSearch === 'true');
+                document.getElementById('formJoinedLineGroup').checked = (m.joinedLineGroup === true || m.joinedLineGroup === 'Y' || m.joinedLineGroup === 'true');
+                document.getElementById('formJoinedDc').checked = (m.joinedDc === true || m.joinedDc === 'Y' || m.joinedDc === 'true');
             }
             document.getElementById('memberModal').classList.remove('hidden');
         }
 
+        // 移除重複驗證，直接送出儲存
         document.getElementById('memberForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const data = {
@@ -451,9 +456,9 @@
                 guildRole: document.getElementById('formGuildRole').value,
                 teamGroup: document.getElementById('formTeamGroup').value.trim(),
                 accountStatus: document.getElementById('formAccountStatus').value,
-                allowSearch: document.getElementById('formAllowSearch').checked ? 'Y' : 'N',
-                joinedLineGroup: document.getElementById('formJoinedLineGroup').checked ? 'Y' : 'N',
-                joinedDc: document.getElementById('formJoinedDc').checked ? 'Y' : 'N'
+                allowSearch: document.getElementById('formAllowSearch').checked,
+                joinedLineGroup: document.getElementById('formJoinedLineGroup').checked,
+                joinedDc: document.getElementById('formJoinedDc').checked
             };
 
             await fetch(`${BACKEND_API_URL}/api/admin/members/save`, {
