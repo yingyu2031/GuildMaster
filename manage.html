@@ -10,6 +10,8 @@
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800;900&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <!-- LIFF SDK -->
+    <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
         body { 
             font-family: 'M PLUS Rounded 1c', 'Noto Sans TC', sans-serif; 
@@ -24,7 +26,6 @@
             from { opacity: 0; transform: translateY(4px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        /* 校正 iOS 日期、時間與下拉選單高度一致 */
         input[type="date"], input[type="time"], select {
             -webkit-appearance: none;
             appearance: none;
@@ -38,7 +39,7 @@
 <body class="bg-[#F0F9FF] text-slate-800 antialiased selection:bg-sky-200 selection:text-sky-900 min-h-screen flex flex-col justify-between py-6 px-3 sm:px-4">
 
     <main class="max-w-lg w-full mx-auto">
-        <!-- 頂部標題區 (置中排版) -->
+        <!-- 頂部標題區 -->
         <div class="text-center mb-5 pt-1">
             <div class="inline-block bg-sky-100 text-sky-800 text-xs font-black px-4 py-1 rounded-full mb-2.5 border border-sky-200/80">
                 幹部專用
@@ -59,13 +60,13 @@
 
             <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2">
-                    <span id="adminNickName" class="text-base font-black text-slate-900 truncate">超級法神</span>
+                    <span id="adminNickName" class="text-base font-black text-slate-900 truncate">讀取中...</span>
                     <span class="bg-sky-100 text-sky-800 text-[11px] font-black px-2 py-0.5 rounded-full border border-sky-200 shrink-0">
                         幹部
                     </span>
                 </div>
                 <div id="adminClass" class="text-xs font-bold text-slate-600 truncate mt-0.5">
-                    超魔導士
+                    身分驗證中
                 </div>
             </div>
         </div>
@@ -104,7 +105,6 @@
                     <button id="subTabRetired" onclick="switchMemberSubTab('retired')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800">退會封存</button>
                 </div>
 
-                <!-- 第一行：搜尋角色與職業篩選 -->
                 <div class="flex gap-2 items-center">
                     <div class="relative flex-1 min-w-0">
                         <input type="text" id="memberSearchInput" oninput="handleMemberSearchInput()" placeholder="搜尋角色或 LINE 暱稱..."
@@ -114,22 +114,20 @@
                     </select>
                 </div>
 
-                <!-- 需求 1：第二行工具列（改為「共 N 名會員」，右側 + 新增會員） -->
                 <div id="activeMemberActionRow" class="hidden flex items-center justify-between px-1">
                     <span id="activeMemberCountText" class="text-xs font-black text-sky-900">共 0 名會員</span>
-                    <button onclick="openMemberModal('create')" class="bg-sky-500 hover:bg-sky-600 active:scale-95 text-white text-xs font-black px-3 py-1.5 rounded-xl shadow-xs transition">
+                    <button onclick="openMemberModal('create')" class="bg-sky-500 hover:bg-sky-600 active:scale-95 text-white text-xs font-black px-3 py-1.5 rounded-xl shadow-xs transition cursor-pointer">
                         + 新增會員
                     </button>
                 </div>
 
-                <!-- 需求 2：團體速查工具列（按鈕改為「+ 新增團體」，樣式高度與其他按鈕一致） -->
                 <div id="groupToolBar" class="hidden space-y-2">
                     <div class="flex items-center justify-between">
                         <div class="flex gap-1 bg-sky-50/80 p-1 rounded-xl border border-sky-100">
                             <button id="groupTabActive" onclick="switchGroupSubTab('active')" class="px-2.5 py-1 text-xs font-black rounded-lg bg-white text-sky-900 shadow-xs">活躍團體</button>
                             <button id="groupTabArchived" onclick="switchGroupSubTab('archived')" class="px-2.5 py-1 text-xs font-bold rounded-lg text-slate-500 hover:text-slate-800">封存團體</button>
                         </div>
-                        <button onclick="openCreateGroupModal()" class="bg-sky-500 hover:bg-sky-600 active:scale-95 text-white text-xs font-black px-3 py-1.5 rounded-xl shadow-xs transition">
+                        <button onclick="openCreateGroupModal()" class="bg-sky-500 hover:bg-sky-600 active:scale-95 text-white text-xs font-black px-3 py-1.5 rounded-xl shadow-xs transition cursor-pointer">
                             + 新增團體
                         </button>
                     </div>
@@ -149,7 +147,6 @@
                     <button id="leaveSubTabList" onclick="switchLeaveSubView('list')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800">全部紀錄列表</button>
                 </div>
 
-                <!-- 視圖 A：排名儀表板 -->
                 <div id="leaveRankView" class="space-y-3">
                     <div class="flex items-center justify-between bg-sky-50/60 rounded-xl p-2 border border-sky-100">
                         <span class="text-xs font-bold text-slate-600">統計維度：</span>
@@ -162,7 +159,6 @@
                     <div id="rankListContainer" class="space-y-2"></div>
                 </div>
 
-                <!-- 視圖 B：今日請假專屬清單 -->
                 <div id="leaveTodayView" class="hidden space-y-3">
                     <div class="flex items-center justify-between px-1">
                         <span class="text-xs font-bold text-slate-500" id="todayDateLabel">今日日期：載入中</span>
@@ -171,7 +167,6 @@
                     <div id="leaveTodayContainer" class="space-y-2.5"></div>
                 </div>
 
-                <!-- 視圖 C：全部請假紀錄列表 -->
                 <div id="leaveListView" class="hidden space-y-3">
                     <div class="space-y-2">
                         <input type="text" id="leaveSearchInput" oninput="renderLeaveList()" placeholder="搜尋角色或活動名稱..."
@@ -183,7 +178,7 @@
                                 <input type="date" id="leaveDateFilter" onchange="renderLeaveList()" 
                                        class="w-full h-full bg-transparent border-0 p-0 text-xs font-bold text-slate-900 focus:outline-none cursor-pointer">
                             </div>
-                            <button onclick="clearLeaveDateFilter()" class="bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold px-3 h-[40px] rounded-xl transition box-border whitespace-nowrap">
+                            <button onclick="clearLeaveDateFilter()" class="bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold px-3 h-[40px] rounded-xl transition box-border whitespace-nowrap cursor-pointer">
                                 清除
                             </button>
                         </div>
@@ -204,7 +199,7 @@
                         <span id="eventCountText" class="text-sky-900 font-black">共 0 場活動</span>
                         <span class="text-slate-400 font-normal">| 點擊檢視名冊</span>
                     </div>
-                    <button onclick="openEventModal('create')" class="bg-sky-500 hover:bg-sky-600 active:scale-95 text-white text-xs font-black px-3 py-1.5 rounded-xl shadow-xs transition">
+                    <button onclick="openEventModal('create')" class="bg-sky-500 hover:bg-sky-600 active:scale-95 text-white text-xs font-black px-3 py-1.5 rounded-xl shadow-xs transition cursor-pointer">
                         + 建立活動
                     </button>
                 </div>
@@ -239,13 +234,13 @@
                                        class="w-full h-[38px] bg-white border border-sky-200 rounded-xl px-2.5 text-xs font-mono font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400 box-border">
                             </div>
                         </div>
-                        <button onclick="saveGroupSettings()" class="w-full bg-white hover:bg-sky-50 text-sky-800 border border-sky-200 text-xs font-bold py-2 rounded-xl transition shadow-xs">
+                        <button onclick="saveGroupSettings()" class="w-full bg-white hover:bg-sky-50 text-sky-800 border border-sky-200 text-xs font-bold py-2 rounded-xl transition shadow-xs cursor-pointer">
                             儲存群組 ID 設定
                         </button>
                     </div>
                 </div>
 
-                <!-- 子視圖 2：推播 (需求 4：維持您調整的用量提醒文案) -->
+                <!-- 子視圖 2：推播 -->
                 <div id="settingViewBroadcast" class="hidden space-y-4 text-left fade-in">
                     <div class="p-3 bg-rose-50 border border-rose-200 rounded-xl text-left">
                         <div class="text-xs font-black text-rose-700 mb-1">LINE 訊息發送額度提醒</div>
@@ -260,7 +255,7 @@
                                 <span class="text-xs font-black text-slate-900">請假項目與超時推播規則</span>
                                 <div class="text-[10px] text-slate-400 font-bold">此處清單將同時作為前台請假單選項</div>
                             </div>
-                            <button onclick="openUrgentRuleModal('create')" class="text-xs font-bold text-sky-600 hover:text-sky-700 bg-sky-50 px-2.5 py-1 rounded-lg border border-sky-200">
+                            <button onclick="openUrgentRuleModal('create')" class="text-xs font-bold text-sky-600 hover:text-sky-700 bg-sky-50 px-2.5 py-1 rounded-lg border border-sky-200 cursor-pointer">
                                 + 新增請假項目
                             </button>
                         </div>
@@ -272,7 +267,7 @@
                     <div class="space-y-2">
                         <div class="flex items-center justify-between">
                             <span class="text-xs font-black text-slate-900">固定與事件推播排程</span>
-                            <button onclick="openBroadcastModal('create')" class="text-xs font-bold text-sky-600 hover:text-sky-700 bg-sky-50 px-2.5 py-1 rounded-lg border border-sky-200">
+                            <button onclick="openBroadcastModal('create')" class="text-xs font-bold text-sky-600 hover:text-sky-700 bg-sky-50 px-2.5 py-1 rounded-lg border border-sky-200 cursor-pointer">
                                 + 新增排程
                             </button>
                         </div>
@@ -289,7 +284,7 @@
                     <div class="flex gap-2 my-2 items-center">
                         <input type="text" id="newClassInput" placeholder="輸入新職業名稱（例：拳聖、槍騎...）"
                                class="flex-1 min-w-0 h-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400 box-border">
-                        <button onclick="addNewCustomClass()" class="shrink-0 whitespace-nowrap bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold px-3.5 h-[40px] rounded-xl shadow-sm transition box-border">
+                        <button onclick="addNewCustomClass()" class="shrink-0 whitespace-nowrap bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold px-3.5 h-[40px] rounded-xl shadow-sm transition box-border cursor-pointer">
                             + 新增職業
                         </button>
                     </div>
@@ -308,7 +303,7 @@
         <div class="bg-white w-full max-w-md rounded-[28px] p-6 border-2 border-sky-200 soft-sky-shadow max-h-[90vh] overflow-y-auto">
             <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
                 <h3 id="memberModalTitle" class="text-base font-black text-slate-900">編輯成員資料</h3>
-                <button onclick="closeModal('memberModal')" class="text-slate-400 hover:text-slate-600 text-sm font-bold">關閉</button>
+                <button onclick="closeModal('memberModal')" class="text-slate-400 hover:text-slate-600 text-sm font-bold cursor-pointer">關閉</button>
             </div>
             <form id="memberForm" class="space-y-3 text-left text-xs font-bold text-slate-700">
                 <input type="hidden" id="formMemberRowIndex">
@@ -374,12 +369,12 @@
                 </div>
 
                 <div class="grid grid-cols-2 gap-3 pt-3">
-                    <button type="button" onclick="closeModal('memberModal')" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 rounded-xl transition">取消</button>
-                    <button type="submit" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-2.5 rounded-xl transition shadow-md shadow-sky-200">儲存變更</button>
+                    <button type="button" onclick="closeModal('memberModal')" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 rounded-xl transition cursor-pointer">取消</button>
+                    <button type="submit" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-2.5 rounded-xl transition shadow-md shadow-sky-200 cursor-pointer">儲存變更</button>
                 </div>
 
                 <div id="deleteMemberBtnWrapper" class="pt-2 border-t border-slate-100">
-                    <button type="button" onclick="deleteCurrentMember()" class="w-full bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold py-2.5 rounded-xl text-xs transition">
+                    <button type="button" onclick="deleteCurrentMember()" class="w-full bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold py-2.5 rounded-xl text-xs transition cursor-pointer">
                         刪除此成員資料
                     </button>
                 </div>
@@ -392,7 +387,7 @@
         <div class="bg-white w-full max-w-md rounded-[28px] p-6 border-2 border-sky-200 soft-sky-shadow max-h-[90vh] overflow-y-auto">
             <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
                 <h3 id="eventModalTitle" class="text-base font-black text-slate-900">建立新活動</h3>
-                <button onclick="closeModal('eventModal')" class="text-slate-400 hover:text-slate-600 text-sm font-bold">關閉</button>
+                <button onclick="closeModal('eventModal')" class="text-slate-400 hover:text-slate-600 text-sm font-bold cursor-pointer">關閉</button>
             </div>
             <form id="eventForm" class="space-y-3 text-left text-xs font-bold text-slate-700">
                 <input type="hidden" id="formEventId">
@@ -407,7 +402,6 @@
                         <input type="date" id="formEventDate" required class="w-full h-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900">
                     </div>
                     <div class="w-full">
-                        <!-- 活動時間 -->
                         <label class="block mb-1 text-slate-800">活動時間 <span class="text-rose-500">*</span></label>
                         <input type="time" id="formEventTime" required class="w-full h-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900">
                     </div>
@@ -455,12 +449,12 @@
                     <textarea id="formEventDesc" rows="2" placeholder="語音集合頻道、攜帶物資說明等..." class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl p-3 text-xs font-bold text-slate-900 resize-none"></textarea>
                 </div>
                 <div class="grid grid-cols-2 gap-3 pt-3">
-                    <button type="button" onclick="closeModal('eventModal')" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 rounded-xl transition">取消</button>
-                    <button type="submit" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-2.5 rounded-xl transition shadow-md shadow-sky-200">儲存活動</button>
+                    <button type="button" onclick="closeModal('eventModal')" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 rounded-xl transition cursor-pointer">取消</button>
+                    <button type="submit" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-2.5 rounded-xl transition shadow-md shadow-sky-200 cursor-pointer">儲存活動</button>
                 </div>
 
                 <div id="deleteEventBtnWrapper" class="pt-2 border-t border-slate-100">
-                    <button type="button" onclick="deleteCurrentEvent()" class="w-full bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold py-2.5 rounded-xl text-xs transition">
+                    <button type="button" onclick="deleteCurrentEvent()" class="w-full bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold py-2.5 rounded-xl text-xs transition cursor-pointer">
                         刪除此活動
                     </button>
                 </div>
@@ -476,10 +470,10 @@
                     <h3 id="attendeesModalTitle" class="text-base font-black text-slate-900">報名名冊</h3>
                     <p id="attendeesModalSub" class="text-[11px] text-slate-500 mt-0.5">名冊明細</p>
                 </div>
-                <button onclick="closeModal('eventAttendeesModal')" class="text-slate-400 hover:text-slate-600 text-sm font-bold">關閉</button>
+                <button onclick="closeModal('eventAttendeesModal')" class="text-slate-400 hover:text-slate-600 text-sm font-bold cursor-pointer">關閉</button>
             </div>
             <div id="attendeesListContainer" class="flex-1 overflow-y-auto space-y-2 pr-1 text-xs"></div>
-            <button onclick="closeModal('eventAttendeesModal')" class="mt-4 w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 rounded-xl text-xs transition">關閉名冊</button>
+            <button onclick="closeModal('eventAttendeesModal')" class="mt-4 w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 rounded-xl text-xs transition cursor-pointer">關閉名冊</button>
         </div>
     </div>
 
@@ -488,7 +482,7 @@
         <div class="bg-white w-full max-w-md rounded-[28px] p-6 border-2 border-sky-200 soft-sky-shadow max-h-[90vh] overflow-y-auto">
             <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
                 <h3 id="broadcastModalTitle" class="text-base font-black text-slate-900">編輯推播項目</h3>
-                <button onclick="closeModal('broadcastModal')" class="text-slate-400 hover:text-slate-600 text-sm font-bold">關閉</button>
+                <button onclick="closeModal('broadcastModal')" class="text-slate-400 hover:text-slate-600 text-sm font-bold cursor-pointer">關閉</button>
             </div>
             <form id="broadcastForm" class="space-y-3 text-left text-xs font-bold text-slate-700">
                 <input type="hidden" id="formBroadcastId">
@@ -542,8 +536,8 @@
                     <textarea id="formBcContent" rows="3" required placeholder="輸入要在 LINE 群組推播的文案..." class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl p-3 text-xs font-bold text-slate-900 resize-none"></textarea>
                 </div>
                 <div class="grid grid-cols-2 gap-3 pt-3">
-                    <button type="button" onclick="closeModal('broadcastModal')" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 rounded-xl transition">取消</button>
-                    <button type="submit" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-2.5 rounded-xl transition shadow-md shadow-sky-200">儲存推播</button>
+                    <button type="button" onclick="closeModal('broadcastModal')" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 rounded-xl transition cursor-pointer">取消</button>
+                    <button type="submit" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-2.5 rounded-xl transition shadow-md shadow-sky-200 cursor-pointer">儲存推播</button>
                 </div>
             </form>
         </div>
@@ -554,7 +548,7 @@
         <div class="bg-white w-full max-w-md rounded-[28px] p-6 border-2 border-sky-200 soft-sky-shadow max-h-[90vh] flex flex-col">
             <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
                 <h3 class="text-base font-black text-slate-900">快速建立團體</h3>
-                <button onclick="closeModal('createGroupModal')" class="text-slate-400 hover:text-slate-600 text-sm font-bold">關閉</button>
+                <button onclick="closeModal('createGroupModal')" class="text-slate-400 hover:text-slate-600 text-sm font-bold cursor-pointer">關閉</button>
             </div>
             <form id="createGroupForm" class="flex-1 flex flex-col space-y-3 text-left text-xs font-bold text-slate-700 overflow-hidden">
                 <div>
@@ -566,8 +560,8 @@
                     <div id="groupCandidateList" class="flex-1 overflow-y-auto space-y-1.5 pr-1 border border-sky-100 rounded-xl p-2 bg-[#F8FAFC]"></div>
                 </div>
                 <div class="grid grid-cols-2 gap-3 pt-2">
-                    <button type="button" onclick="closeModal('createGroupModal')" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 rounded-xl transition">取消</button>
-                    <button type="submit" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-2.5 rounded-xl transition shadow-md shadow-sky-200">確認加入</button>
+                    <button type="button" onclick="closeModal('createGroupModal')" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 rounded-xl transition cursor-pointer">取消</button>
+                    <button type="submit" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-2.5 rounded-xl transition shadow-md shadow-sky-200 cursor-pointer">確認加入</button>
                 </div>
             </form>
         </div>
@@ -578,7 +572,7 @@
         <div class="bg-white w-full max-w-md rounded-[28px] p-6 border-2 border-sky-200 soft-sky-shadow max-h-[90vh] overflow-y-auto">
             <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
                 <h3 id="urgentRuleModalTitle" class="text-base font-black text-slate-900">設定請假項目</h3>
-                <button onclick="closeModal('urgentRuleModal')" class="text-slate-400 hover:text-slate-600 text-sm font-bold">關閉</button>
+                <button onclick="closeModal('urgentRuleModal')" class="text-slate-400 hover:text-slate-600 text-sm font-bold cursor-pointer">關閉</button>
             </div>
             <form id="urgentRuleForm" class="space-y-3 text-left text-xs font-bold text-slate-700">
                 <input type="hidden" id="formUrgentRuleIndex">
@@ -613,14 +607,17 @@
                 </div>
 
                 <div class="grid grid-cols-2 gap-3 pt-3">
-                    <button type="button" onclick="closeModal('urgentRuleModal')" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 rounded-xl transition">取消</button>
-                    <button type="submit" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-2.5 rounded-xl transition shadow-md shadow-sky-200">確認儲存</button>
+                    <button type="button" onclick="closeModal('urgentRuleModal')" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 rounded-xl transition cursor-pointer">取消</button>
+                    <button type="submit" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-2.5 rounded-xl transition shadow-md shadow-sky-200 cursor-pointer">確認儲存</button>
                 </div>
             </form>
         </div>
     </div>
 
     <script>
+        const MY_LIFF_ID = "2011659633-OPPcInzb";
+        const BACKEND_API_URL = "https://guildmaster.zeabur.app";
+
         let customClassList = [
             "超魔導士", "學者（智者）", "神射手", "搞笑藝人（詩人）", 
             "冷豔舞姬（舞孃）", "騎士領主", "聖殿十字軍", "十字刺客", 
@@ -628,98 +625,19 @@
         ];
 
         let currentAdminUser = {
-            lineUserId: "U1001",
-            gameNickname: "超級法神",
-            gameClass: "超魔導士",
-            guildRole: "幹部"
+            lineUserId: "",
+            gameNickname: "載入中...",
+            gameClass: "",
+            guildRole: "幹部",
+            pictureUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&h=120&q=80"
         };
 
-        let membersData = [
-            { rowIndex: 2, lineUserId: "U2b228d4c5915", gameNickname: "克蘿伊", gameClass: "冷豔舞姬（舞孃）", lineDisplayName: "Chloe", allowSearch: "Y", accountStatus: "待審核", updateTime: "2026-09-19 22:55:01", guildRole: "退會", teamGroup: "媽咪團" },
-            { rowIndex: 3, lineUserId: "U1001", gameNickname: "超級法神", gameClass: "超魔導士", lineDisplayName: "123", allowSearch: "Y", accountStatus: "已審核", updateTime: "2026-09-18 10:00:00", guildRole: "幹部", teamGroup: "媽咪團" },
-            { rowIndex: 4, lineUserId: "U1002", gameNickname: "暗夜殺手", gameClass: "十字刺客", lineDisplayName: "QQQ", allowSearch: "N", accountStatus: "已審核", updateTime: "2026-09-18 11:30:00", guildRole: "現任", teamGroup: "一線主力" },
-            { rowIndex: 5, lineUserId: "U1003", gameNickname: "舞力全開", gameClass: "冷豔舞姬（舞孃）", lineDisplayName: "ABC", allowSearch: "Y", accountStatus: "已審核", updateTime: "2026-09-18 15:20:00", guildRole: "現任", teamGroup: "媽咪團" },
-            { rowIndex: 6, lineUserId: "U1005", gameNickname: "鐵拳無敵", gameClass: "武術宗師", lineDisplayName: "Tom", allowSearch: "Y", accountStatus: "待審核", updateTime: "2026-09-19 09:15:00", guildRole: "現任", teamGroup: "" }
-        ];
-
-        let auditLogsData = [
-            { updateTime: "2026-09-19 22:55:01", lineUserId: "U2b228d4c5915", field: "退會重新登記", oldValue: "退會", newValue: "現任：克蘿伊 (冷豔舞姬（舞孃）)" },
-            { updateTime: "2026-09-19 19:24:09", lineUserId: "U2b228d4c5915", field: "退會重新登記", oldValue: "退會", newValue: "現任：克蘿伊 (超魔導士)" },
-            { updateTime: "2026-09-18 21:46:20", lineUserId: "U2b228d4c5915", field: "遊戲職業", oldValue: "神工匠", newValue: "神射手" },
-            { updateTime: "2026-09-18 21:27:14", lineUserId: "U2b228d4c5915", field: "遊戲暱稱", oldValue: "辣妹", newValue: "甜心妹妹" },
-            { updateTime: "2026-09-18 17:35:55", lineUserId: "U2b228d4c5915", field: "提供查詢", oldValue: "Y", newValue: "N" },
-            { updateTime: "2026-09-18 17:27:45", lineUserId: "U2b228d4c5915", field: "新會員註冊", oldValue: "-", newValue: "克蘿伊 (冷豔舞姬（舞孃）)" }
-        ];
-
-        let leavesData = [
-            { id: "L000", gameNickname: "超級法神", gameClass: "超魔導士", event: "週日大型 GVG 決戰要塞", date: "2026-09-20", submitTime: "2026-09-20 01:10", reason: "臨時輪夜班無法出席", isUrgent: true, operator: "本人" },
-            { id: "L000B", gameNickname: "舞力全開", gameClass: "冷豔舞姬（舞孃）", event: "週日大型 GVG 決戰要塞", date: "2026-09-20", submitTime: "2026-09-20 02:05", reason: "手機送修無法上線", isUrgent: true, operator: "由 超級法神 代理" },
-            { id: "L001", gameNickname: "暗夜殺手", gameClass: "十字刺客", event: "公會GVG聯賽", date: "2026-09-19", submitTime: "2026-09-19 20:15", reason: "加班無奈", isUrgent: true, operator: "本人" },
-            { id: "L002", gameNickname: "暗夜殺手", gameClass: "十字刺客", event: "週常公會副本", date: "2026-09-12", submitTime: "2026-09-11 14:20", reason: "朋友聚會", isUrgent: false, operator: "本人" },
-            { id: "L003", gameNickname: "暗夜殺手", gameClass: "十字刺客", event: "公會團隊戰", date: "2026-08-20", submitTime: "2026-08-20 18:40", reason: "身體不適", isUrgent: true, operator: "本人" },
-            { id: "L004", gameNickname: "超級法神", gameClass: "超魔導士", event: "公會GVG聯賽", date: "2026-09-19", submitTime: "2026-09-17 09:30", reason: "家庭旅遊出國", isUrgent: false, operator: "本人" },
-            { id: "L005", gameNickname: "舞力全開", gameClass: "冷豔舞姬（舞孃）", event: "公會團隊戰", date: "2026-09-05", submitTime: "2026-09-05 20:05", reason: "臨時有事", isUrgent: true, operator: "由 超級法神 代理" },
-            { id: "L006", gameNickname: "鐵拳無敵", gameClass: "武術宗師", event: "公會GVG聯賽", date: "2026-09-02", submitTime: "2026-09-02 20:30", reason: "網路維護中", isUrgent: true, operator: "本人" }
-        ];
-
-        let eventsData = [
-            {
-                id: "EVT01",
-                title: "週日大型 GVG 決戰要塞",
-                date: "2026-09-20",
-                time: "20:00",
-                signupStart: "2026-09-15 12:00",
-                signupEnd: "2026-09-20 19:30",
-                maxLimit: 24,
-                status: "報名中",
-                isArchived: false,
-                desc: "請於 19:50 前進入 DC 語音頻道集合，聽從指揮分配攻防組別。",
-                attendees: [
-                    { gameNickname: "超級法神", gameClass: "超魔導士", time: "09-18 12:30" },
-                    { gameNickname: "舞力全開", gameClass: "冷豔舞姬（舞孃）", time: "09-18 14:10" }
-                ]
-            },
-            {
-                id: "EVT02",
-                title: "每週公會副本快速全通團",
-                date: "2026-09-22",
-                time: "21:00",
-                signupStart: "2026-09-16 00:00",
-                signupEnd: "2026-09-22 20:00",
-                maxLimit: 12,
-                status: "報名中",
-                isArchived: false,
-                desc: "協助公會新成員與戰力提升，輕鬆通關獲取獎勵。",
-                attendees: [
-                    { gameNickname: "暗夜殺手", gameClass: "十字刺客", time: "09-19 10:00" }
-                ]
-            },
-            {
-                id: "EVT00_OLD",
-                title: "上週跨服要塞演習戰",
-                date: "2026-09-13",
-                time: "20:00",
-                signupStart: "2026-09-08 12:00",
-                signupEnd: "2026-09-13 19:00",
-                maxLimit: 24,
-                status: "已結束",
-                isArchived: true,
-                desc: "已順利打完結算！",
-                attendees: []
-            }
-        ];
-
-        let urgentLeaveRules = [
-            { event: "公會GVG聯賽", latestTime: "20:00", enabled: true, cycle: "2;4" },
-            { event: "週常公會副本", latestTime: "20:00", enabled: false, cycle: "6" }
-        ];
-
-        let broadcastSchedules = [
-            { id: "BC01", item: "新人入會", freq: "Always", cycle: "Join", time: "", content: "熱烈歡迎新夥伴加入公會！請先詳閱記事本規範並綁定資料喔～", active: true },
-            { id: "BC02", item: "聯賽開始", freq: "Weekly", cycle: "2;4", time: "20:00", content: "聯賽準備開始，請全體成員進 DC 語音就位！", active: true },
-            { id: "BC03", item: "提醒請假", freq: "Weekly", cycle: "2;4", time: "18:00", content: "今日有聯賽，有事不能參加請提前於 20:00 前至系統請假完成！", active: true }
-        ];
-
+        let membersData = [];
+        let auditLogsData = [];
+        let leavesData = [];
+        let eventsData = [];
+        let urgentLeaveRules = [];
+        let broadcastSchedules = [];
         let manuallyArchivedGroups = [];
 
         let currentMainSection = "members";
@@ -733,19 +651,99 @@
 
         const TODAY_STR = new Date().toISOString().split('T')[0];
 
-        window.addEventListener("DOMContentLoaded", () => {
-            renderAdminIdentity();
+        window.addEventListener("DOMContentLoaded", async () => {
+            localStorage.clear();
+            sessionStorage.clear();
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const queryUid = urlParams.get('uid') || urlParams.get('userId');
+
+            let isLiffReady = false;
+
+            if (MY_LIFF_ID && typeof liff !== 'undefined') {
+                try {
+                    await liff.init({ liffId: MY_LIFF_ID });
+                    if (liff.isLoggedIn()) {
+                        const profile = await liff.getProfile();
+                        currentAdminUser.lineUserId = profile.userId;
+                        currentAdminUser.gameNickname = profile.displayName;
+                        currentAdminUser.pictureUrl = profile.pictureUrl || currentAdminUser.pictureUrl;
+                        isLiffReady = true;
+                    } else {
+                        liff.login();
+                        return;
+                    }
+                } catch (err) {
+                    console.error("LIFF 初始化失敗:", err);
+                }
+            }
+
+            if (!isLiffReady && queryUid) {
+                currentAdminUser.lineUserId = queryUid;
+            }
+
+            if (!currentAdminUser.lineUserId) {
+                currentAdminUser.lineUserId = "U_TEST_ADMIN"; // 預設防呆
+            }
+
+            // 從後台 API 載入所有真實資料
+            await fetchBackendData();
+
             loadGroupSettings();
             syncAllClassDropdowns();
             renderCustomClassManager();
+            renderAdminIdentity();
             updateMemberCounts();
             updateTodayLeaveBadge();
             renderMembersList();
         });
 
+        async function fetchBackendData() {
+            try {
+                // 1. 取得會員名冊
+                const resMembers = await fetch(`${BACKEND_API_URL}/api/admin/members`);
+                if (resMembers.ok) {
+                    const data = await resMembers.json();
+                    if (data.status === "success") {
+                        membersData = data.members;
+                        // 比對目前登入的管理員身分
+                        const me = membersData.find(m => m.lineUserId === currentAdminUser.lineUserId);
+                        if (me) {
+                            currentAdminUser.gameNickname = me.gameNickname;
+                            currentAdminUser.gameClass = me.gameClass;
+                            currentAdminUser.guildRole = me.guildRole;
+                        }
+                    }
+                }
+
+                // 2. 取得活動列表
+                const resEvents = await fetch(`${BACKEND_API_URL}/api/admin/events`);
+                if (resEvents.ok) {
+                    const data = await resEvents.json();
+                    if (data.status === "success") {
+                        eventsData = data.events;
+                    }
+                }
+
+                // 3. 取得請假紀錄
+                const resLeaves = await fetch(`${BACKEND_API_URL}/api/admin/leaves`);
+                if (resLeaves.ok) {
+                    const data = await resLeaves.json();
+                    if (data.status === "success") {
+                        leavesData = data.leaves;
+                    }
+                }
+            } catch (err) {
+                console.error("向後台抓取資料失敗:", err);
+            }
+        }
+
         function renderAdminIdentity() {
             document.getElementById('adminNickName').textContent = currentAdminUser.gameNickname;
-            document.getElementById('adminClass').textContent = currentAdminUser.gameClass;
+            document.getElementById('adminClass').textContent = currentAdminUser.gameClass || "幹部 / 管理員";
+            if (currentAdminUser.pictureUrl) {
+                document.getElementById('adminAvatar').src = currentAdminUser.pictureUrl;
+            }
         }
 
         function syncAllClassDropdowns() {
@@ -786,7 +784,7 @@
                 badge.className = "inline-flex items-center gap-1.5 bg-white border border-sky-200 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-800 shadow-xs";
                 badge.innerHTML = `
                     <span>${cls}</span>
-                    <button onclick="removeCustomClass(${idx})" class="text-slate-400 hover:text-rose-600 text-sm font-bold">×</button>
+                    <button onclick="removeCustomClass(${idx})" class="text-slate-400 hover:text-rose-600 text-sm font-bold cursor-pointer">×</button>
                 `;
                 container.appendChild(badge);
             });
@@ -850,11 +848,11 @@
 
             Object.keys(tabs).forEach(k => {
                 if (k === section) {
-                    tabs[k].className = "bg-white text-sky-900 font-black px-3.5 py-2.5 rounded-t-xl text-xs flex items-center gap-1 transition-all relative top-[1px] shadow-sm whitespace-nowrap";
+                    tabs[k].className = "bg-white text-sky-900 font-black px-3.5 py-2.5 rounded-t-xl text-xs flex items-center gap-1 transition-all relative top-[1px] shadow-sm whitespace-nowrap cursor-pointer";
                     sections[k].classList.remove('hidden');
                     sections[k].classList.add('fade-in');
                 } else {
-                    tabs[k].className = "text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl transition-all whitespace-nowrap flex items-center gap-1";
+                    tabs[k].className = "text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl transition-all whitespace-nowrap flex items-center gap-1 cursor-pointer";
                     sections[k].classList.add('hidden');
                 }
             });
@@ -879,10 +877,10 @@
 
             Object.keys(btns).forEach(k => {
                 if (k === tab) {
-                    btns[k].className = "py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black";
+                    btns[k].className = "py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black cursor-pointer";
                     views[k].classList.remove('hidden');
                 } else {
-                    btns[k].className = "py-1.5 rounded-lg text-slate-500 hover:text-slate-800";
+                    btns[k].className = "py-1.5 rounded-lg text-slate-500 hover:text-slate-800 cursor-pointer";
                     views[k].classList.add('hidden');
                 }
             });
@@ -905,8 +903,8 @@
             };
             Object.keys(btns).forEach(k => {
                 btns[k].className = (k === tab) 
-                    ? "py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black" 
-                    : "py-1.5 rounded-lg text-slate-500 hover:text-slate-800";
+                    ? "py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black cursor-pointer" 
+                    : "py-1.5 rounded-lg text-slate-500 hover:text-slate-800 cursor-pointer";
             });
 
             const groupToolBar = document.getElementById('groupToolBar');
@@ -933,11 +931,11 @@
             const tabArch = document.getElementById('groupTabArchived');
 
             if (subTab === 'active') {
-                tabAct.className = "px-2.5 py-1 text-xs font-black rounded-lg bg-white text-sky-900 shadow-xs";
-                tabArch.className = "px-2.5 py-1 text-xs font-bold rounded-lg text-slate-500 hover:text-slate-800";
+                tabAct.className = "px-2.5 py-1 text-xs font-black rounded-lg bg-white text-sky-900 shadow-xs cursor-pointer";
+                tabArch.className = "px-2.5 py-1 text-xs font-bold rounded-lg text-slate-500 hover:text-slate-800 cursor-pointer";
             } else {
-                tabArch.className = "px-2.5 py-1 text-xs font-black rounded-lg bg-white text-sky-900 shadow-xs";
-                tabAct.className = "px-2.5 py-1 text-xs font-bold rounded-lg text-slate-500 hover:text-slate-800";
+                tabArch.className = "px-2.5 py-1 text-xs font-black rounded-lg bg-white text-sky-900 shadow-xs cursor-pointer";
+                tabAct.className = "px-2.5 py-1 text-xs font-bold rounded-lg text-slate-500 hover:text-slate-800 cursor-pointer";
             }
             renderGroupOverview();
         }
@@ -960,7 +958,6 @@
                 badge.classList.add('hidden');
             }
 
-            // 需求 1：修正文字為「共 N 名會員」
             const activeTotal = membersData.filter(m => m.accountStatus === "已審核" && m.guildRole !== "退會").length;
             document.getElementById('activeMemberCountText').textContent = `共 ${activeTotal} 名會員`;
         }
@@ -985,7 +982,6 @@
                 return matchKey && matchClass;
             });
 
-            // 需求 1：修正文字為「共 N 名會員」
             if (currentMemberSubTab === 'active') {
                 document.getElementById('activeMemberCountText').textContent = `共 ${list.length} 名會員`;
             }
@@ -1006,11 +1002,11 @@
                                 <h3 class="text-sm font-black text-slate-900 mt-1">${m.gameNickname}</h3>
                                 <p class="text-xs font-bold text-slate-500">${m.gameClass} · LINE: ${m.lineDisplayName}</p>
                             </div>
-                            <span class="text-[10px] text-slate-400 font-mono">${m.updateTime.split(' ')[0]}</span>
+                            <span class="text-[10px] text-slate-400 font-mono">${m.updateTime ? m.updateTime.split(' ')[0] : ''}</span>
                         </div>
                         <div class="flex items-center gap-2 pt-2.5 border-t border-slate-100 mt-2.5">
-                            <button onclick="approveMember(${m.rowIndex})" class="flex-1 bg-sky-500 hover:bg-sky-600 text-white font-bold text-xs py-1.5 rounded-xl transition">核准入會</button>
-                            <button onclick="openMemberModal('edit', ${m.rowIndex})" class="px-3 bg-sky-50 text-sky-800 border border-sky-200 font-bold text-xs py-1.5 rounded-xl">編輯</button>
+                            <button onclick="approveMember('${m.lineUserId}')" class="flex-1 bg-sky-500 hover:bg-sky-600 text-white font-bold text-xs py-1.5 rounded-xl transition cursor-pointer">核准入會</button>
+                            <button onclick="openMemberModal('edit', '${m.lineUserId}')" class="px-3 bg-sky-50 text-sky-800 border border-sky-200 font-bold text-xs py-1.5 rounded-xl cursor-pointer">編輯</button>
                         </div>
                     `;
                 } else {
@@ -1026,8 +1022,8 @@
                                 <div class="text-xs text-slate-500 font-bold mt-0.5">${m.gameClass} · LINE: ${m.lineDisplayName}</div>
                             </div>
                             <div class="flex items-center gap-1">
-                                <button onclick="openMemberModal('edit', ${m.rowIndex})" class="bg-sky-50 text-sky-800 border border-sky-200 text-xs font-bold px-2 py-1 rounded-lg">編輯</button>
-                                ${!isRetired ? `<button onclick="markAsRetired(${m.rowIndex})" class="bg-rose-50 text-rose-700 border border-rose-200 text-xs font-bold px-2 py-1 rounded-lg">退會</button>` : ''}
+                                <button onclick="openMemberModal('edit', '${m.lineUserId}')" class="bg-sky-50 text-sky-800 border border-sky-200 text-xs font-bold px-2 py-1 rounded-lg cursor-pointer">編輯</button>
+                                ${!isRetired ? `<button onclick="markAsRetired('${m.lineUserId}')" class="bg-rose-50 text-rose-700 border border-rose-200 text-xs font-bold px-2 py-1 rounded-lg cursor-pointer">退會</button>` : ''}
                             </div>
                         </div>
                     `;
@@ -1083,11 +1079,11 @@
                         </div>
                         <div>
                             ${isArchived ? `
-                                <button onclick="unarchiveGroup('${gName}')" class="text-xs font-bold text-sky-600 hover:text-sky-700 bg-sky-50 border border-sky-200 px-2 py-1 rounded-lg transition">
+                                <button onclick="unarchiveGroup('${gName}')" class="text-xs font-bold text-sky-600 hover:text-sky-700 bg-sky-50 border border-sky-200 px-2 py-1 rounded-lg transition cursor-pointer">
                                     解除封存
                                 </button>
                             ` : `
-                                <button onclick="archiveGroup('${gName}')" class="text-xs font-bold text-slate-500 hover:text-slate-700 bg-slate-50 border border-slate-200 px-2 py-1 rounded-lg transition">
+                                <button onclick="archiveGroup('${gName}')" class="text-xs font-bold text-slate-500 hover:text-slate-700 bg-slate-50 border border-slate-200 px-2 py-1 rounded-lg transition cursor-pointer">
                                     封存團體
                                 </button>
                             `}
@@ -1147,7 +1143,7 @@
                 label.className = "flex items-center justify-between p-2 rounded-lg bg-white border border-slate-100 hover:bg-sky-50/50 cursor-pointer";
                 label.innerHTML = `
                     <div class="flex items-center gap-2">
-                        <input type="checkbox" name="groupMemberPick" value="${m.rowIndex}" class="w-4 h-4 accent-sky-500">
+                        <input type="checkbox" name="groupMemberPick" value="${m.lineUserId}" class="w-4 h-4 accent-sky-500">
                         <span class="text-xs font-black text-slate-800">${m.gameNickname}</span>
                         <span class="text-[10px] text-slate-400">(${m.gameClass})</span>
                     </div>
@@ -1169,12 +1165,11 @@
                 return;
             }
 
-            const targetRowIndexes = checkedBoxes.map(cb => parseInt(cb.value));
+            const targetUids = checkedBoxes.map(cb => cb.value);
 
             membersData.forEach(m => {
-                if (targetRowIndexes.includes(m.rowIndex)) {
+                if (targetUids.includes(m.lineUserId)) {
                     m.teamGroup = groupName;
-                    m.updateTime = new Date().toISOString().replace('T', ' ').substring(0, 19);
                 }
             });
 
@@ -1184,26 +1179,44 @@
             renderGroupOverview();
         });
 
-        function approveMember(rowIndex) {
-            const m = membersData.find(x => x.rowIndex === rowIndex);
+        async function approveMember(lineUserId) {
+            const m = membersData.find(x => x.lineUserId === lineUserId);
             if (m && confirm(`確定核准【${m.gameNickname}】入會？`)) {
-                m.accountStatus = "已審核";
-                m.guildRole = "現任";
-                updateMemberCounts();
-                renderMembersList();
+                try {
+                    await fetch(`${BACKEND_API_URL}/api/admin/members/status`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ lineUserId, accountStatus: '已審核', guildRole: '現任' })
+                    });
+                    m.accountStatus = "已審核";
+                    m.guildRole = "現任";
+                    updateMemberCounts();
+                    renderMembersList();
+                } catch (err) {
+                    alert("更新狀態失敗");
+                }
             }
         }
 
-        function markAsRetired(rowIndex) {
-            const m = membersData.find(x => x.rowIndex === rowIndex);
+        async function markAsRetired(lineUserId) {
+            const m = membersData.find(x => x.lineUserId === lineUserId);
             if (m && confirm(`確定將【${m.gameNickname}】設為退會？`)) {
-                m.guildRole = "退會";
-                updateMemberCounts();
-                renderMembersList();
+                try {
+                    await fetch(`${BACKEND_API_URL}/api/admin/members/status`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ lineUserId, accountStatus: '已審核', guildRole: '退會' })
+                    });
+                    m.guildRole = "退會";
+                    updateMemberCounts();
+                    renderMembersList();
+                } catch (err) {
+                    alert("更新狀態失敗");
+                }
             }
         }
 
-        function openMemberModal(mode, rowIndex = null) {
+        function openMemberModal(mode, lineUserId = null) {
             const modal = document.getElementById('memberModal');
             document.getElementById('memberForm').reset();
             syncAllClassDropdowns();
@@ -1225,110 +1238,79 @@
                 deleteMemberWrapper.classList.add('hidden');
             } else {
                 document.getElementById('memberModalTitle').textContent = "編輯成員資料";
-                const m = membersData.find(x => x.rowIndex === rowIndex);
+                const m = membersData.find(x => x.lineUserId === lineUserId);
                 if (!m) return;
-                document.getElementById('formMemberRowIndex').value = m.rowIndex;
-                document.getElementById('formMemberUid').value = m.lineUserId || "";
+                document.getElementById('formMemberUid').value = m.lineUserId;
                 document.getElementById('formGameNick').value = m.gameNickname;
                 document.getElementById('formGameClass').value = m.gameClass;
-                document.getElementById('formLineName').value = m.lineDisplayName;
+                document.getElementById('formLineName').value = m.lineDisplayName || "";
                 document.getElementById('formGuildRole').value = m.guildRole || "現任";
                 document.getElementById('formTeamGroup').value = m.teamGroup || "";
                 document.getElementById('formAccountStatus').value = m.accountStatus;
                 document.getElementById('formAllowSearch').checked = (m.allowSearch === "Y" || m.allowSearch === true);
 
-                auditSection.classList.remove('hidden');
+                auditSection.classList.add('hidden'); // 資料庫暫無歷史歷程記錄時可隱藏
                 deleteMemberWrapper.classList.remove('hidden');
-
-                const memberLogs = auditLogsData.filter(log => log.lineUserId === m.lineUserId);
-                auditCountText.textContent = `共 ${memberLogs.length} 筆紀錄`;
-
-                if (memberLogs.length === 0) {
-                    auditContainer.innerHTML = `<div class="text-center py-2 text-slate-400 font-normal">查無此成員之歷史修改紀錄</div>`;
-                } else {
-                    memberLogs.forEach(log => {
-                        const item = document.createElement('div');
-                        item.className = "p-2 rounded-lg bg-white border border-slate-100 flex flex-col gap-0.5";
-                        item.innerHTML = `
-                            <div class="flex items-center justify-between text-slate-400 font-mono text-[10px]">
-                                <span class="font-bold text-sky-700 bg-sky-50 px-1 rounded">${log.field}</span>
-                                <span>${log.updateTime}</span>
-                            </div>
-                            <div class="flex items-center gap-1.5 text-slate-700 mt-0.5">
-                                <span class="line-through text-slate-400">${log.oldValue || '-'}</span>
-                                <span class="text-sky-500">➜</span>
-                                <span class="font-bold text-slate-900">${log.newValue}</span>
-                            </div>
-                        `;
-                        auditContainer.appendChild(item);
-                    });
-                }
             }
             modal.classList.remove('hidden');
         }
 
-        function deleteCurrentMember() {
-            const rIndex = parseInt(document.getElementById('formMemberRowIndex').value);
-            const target = membersData.find(x => x.rowIndex === rIndex);
+        async function deleteCurrentMember() {
+            const lineUserId = document.getElementById('formMemberUid').value;
+            const target = membersData.find(x => x.lineUserId === lineUserId);
             if (!target) return;
 
             if (confirm(`確定要將成員【${target.gameNickname}】從資料庫中徹底刪除嗎？\n此動作無法復原！`)) {
-                membersData = membersData.filter(x => x.rowIndex !== rIndex);
-                closeModal('memberModal');
-                updateMemberCounts();
-                if (currentMemberSubTab === 'groups') renderGroupOverview();
-                else renderMembersList();
+                try {
+                    await fetch(`${BACKEND_API_URL}/api/admin/members/${lineUserId}`, { method: 'DELETE' });
+                    membersData = membersData.filter(x => x.lineUserId !== lineUserId);
+                    closeModal('memberModal');
+                    updateMemberCounts();
+                    if (currentMemberSubTab === 'groups') renderGroupOverview();
+                    else renderMembersList();
+                } catch (err) {
+                    alert("刪除失敗");
+                }
             }
         }
 
-        document.getElementById('memberForm').addEventListener('submit', (e) => {
+        document.getElementById('memberForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const rIndex = document.getElementById('formMemberRowIndex').value;
+            const lineUserId = document.getElementById('formMemberUid').value;
             const allowSearchVal = document.getElementById('formAllowSearch').checked ? "Y" : "N";
 
             const data = {
+                lineUserId: lineUserId || ("U_" + Date.now()),
                 gameNickname: document.getElementById('formGameNick').value.trim(),
                 gameClass: document.getElementById('formGameClass').value,
                 lineDisplayName: document.getElementById('formLineName').value.trim(),
                 guildRole: document.getElementById('formGuildRole').value,
                 teamGroup: document.getElementById('formTeamGroup').value.trim(),
                 accountStatus: document.getElementById('formAccountStatus').value,
-                allowSearch: allowSearchVal,
-                updateTime: new Date().toISOString().replace('T', ' ').substring(0, 19)
+                allowSearch: allowSearchVal
             };
 
-            if (rIndex) {
-                const target = membersData.find(x => x.rowIndex === parseInt(rIndex));
-                if (target) {
-                    if (target.gameClass !== data.gameClass) {
-                        auditLogsData.unshift({
-                            updateTime: data.updateTime,
-                            lineUserId: target.lineUserId,
-                            field: "遊戲職業",
-                            oldValue: target.gameClass,
-                            newValue: data.gameClass
-                        });
-                    }
-                    if (target.allowSearch !== data.allowSearch) {
-                        auditLogsData.unshift({
-                            updateTime: data.updateTime,
-                            lineUserId: target.lineUserId,
-                            field: "提供查詢",
-                            oldValue: target.allowSearch,
-                            newValue: data.allowSearch
-                        });
-                    }
-                    Object.assign(target, data);
+            try {
+                await fetch(`${BACKEND_API_URL}/api/admin/members/save`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                if (lineUserId) {
+                    const target = membersData.find(x => x.lineUserId === lineUserId);
+                    if (target) Object.assign(target, data);
+                } else {
+                    membersData.unshift(data);
                 }
-            } else {
-                data.rowIndex = Date.now();
-                data.lineUserId = "U_" + Math.floor(Math.random()*10000);
-                membersData.unshift(data);
+
+                closeModal('memberModal');
+                updateMemberCounts();
+                if (currentMemberSubTab === 'groups') renderGroupOverview();
+                else renderMembersList();
+            } catch (err) {
+                alert("儲存成員失敗");
             }
-            closeModal('memberModal');
-            updateMemberCounts();
-            if (currentMemberSubTab === 'groups') renderGroupOverview();
-            else renderMembersList();
         });
 
         function updateTodayLeaveBadge() {
@@ -1361,20 +1343,20 @@
             const listView = document.getElementById('leaveListView');
 
             [tabRank, tabToday, tabList].forEach(t => {
-                t.className = "py-1.5 rounded-lg text-slate-500 hover:text-slate-800 flex items-center justify-center gap-1";
+                t.className = "py-1.5 rounded-lg text-slate-500 hover:text-slate-800 flex items-center justify-center gap-1 cursor-pointer";
             });
             [rankView, todayView, listView].forEach(v => v.classList.add('hidden'));
 
             if (view === 'rank') {
-                tabRank.className = "py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black flex items-center justify-center gap-1";
+                tabRank.className = "py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black flex items-center justify-center gap-1 cursor-pointer";
                 rankView.classList.remove('hidden');
                 renderLeaveRank();
             } else if (view === 'today') {
-                tabToday.className = "py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black flex items-center justify-center gap-1";
+                tabToday.className = "py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black flex items-center justify-center gap-1 cursor-pointer";
                 todayView.classList.remove('hidden');
                 renderTodayLeaveList();
             } else {
-                tabList.className = "py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black flex items-center justify-center gap-1";
+                tabList.className = "py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black flex items-center justify-center gap-1 cursor-pointer";
                 listView.classList.remove('hidden');
                 renderLeaveList();
             }
@@ -1389,8 +1371,8 @@
             };
             Object.keys(btns).forEach(k => {
                 btns[k].className = (k === type) 
-                    ? "px-2.5 py-1 text-xs font-black rounded-lg bg-sky-500 text-white shadow-xs" 
-                    : "px-2.5 py-1 text-xs font-bold rounded-lg bg-white text-slate-600 border border-sky-100";
+                    ? "px-2.5 py-1 text-xs font-black rounded-lg bg-sky-500 text-white shadow-xs cursor-pointer" 
+                    : "px-2.5 py-1 text-xs font-bold rounded-lg bg-white text-slate-600 border border-sky-100 cursor-pointer";
             });
             renderLeaveRank();
         }
@@ -1414,15 +1396,15 @@
                 if (!stats[nick]) {
                     stats[nick] = {
                         gameNickname: nick,
-                        gameClass: item.gameClass,
+                        gameClass: item.gameClass || '',
                         totalLeaves: 0,
                         monthLeaves: 0,
                         urgentLeaves: 0
                     };
                 }
                 stats[nick].totalLeaves += 1;
-                if (item.date.startsWith(currentYearMonth)) stats[nick].monthLeaves += 1;
-                if (item.isUrgent) stats[nick].urgentLeaves += 1;
+                if (item.date && item.date.startsWith(currentYearMonth)) stats[nick].monthLeaves += 1;
+                if (item.isUrgent === true || item.isUrgent === 'Y' || item.isUrgent === 'true') stats[nick].urgentLeaves += 1;
             });
 
             let rankArray = Object.values(stats);
@@ -1491,14 +1473,15 @@
             }
 
             todayList.forEach(l => {
+                const isUrg = (l.isUrgent === true || l.isUrgent === 'Y' || l.isUrgent === 'true');
                 const card = document.createElement('div');
                 card.className = "bg-white rounded-2xl p-3.5 border border-sky-100 text-left soft-sky-shadow fade-in space-y-1.5";
                 card.innerHTML = `
                     <div class="flex items-center justify-between">
                         <div class="flex items-center gap-1.5">
                             <span class="text-xs font-black text-slate-900">${l.gameNickname}</span>
-                            <span class="text-[10px] text-slate-400">(${l.gameClass})</span>
-                            ${l.isUrgent ? `<span class="bg-rose-50 text-rose-700 text-[9px] font-black px-1.5 py-0.2 rounded border border-rose-100">臨時請假</span>` : ''}
+                            <span class="text-[10px] text-slate-400">(${l.gameClass || ''})</span>
+                            ${isUrg ? `<span class="bg-rose-50 text-rose-700 text-[9px] font-black px-1.5 py-0.2 rounded border border-rose-100">臨時請假</span>` : ''}
                         </div>
                         <span class="text-[10px] font-mono text-sky-800 bg-sky-50 px-2 py-0.5 rounded font-bold">今日活動</span>
                     </div>
@@ -1507,7 +1490,7 @@
                         事由：${l.reason}
                     </div>
                     <div class="flex items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-slate-50">
-                        <span>由 ${l.operator} 登記</span>
+                        <span>由 ${l.operatorName || l.operator || '本人'} 登記</span>
                         <span class="font-mono">填單時間：${l.submitTime || l.date}</span>
                     </div>
                 `;
@@ -1542,13 +1525,14 @@
             }
 
             list.forEach(l => {
+                const isUrg = (l.isUrgent === true || l.isUrgent === 'Y' || l.isUrgent === 'true');
                 const card = document.createElement('div');
                 card.className = "bg-white rounded-2xl p-3.5 border border-sky-100 text-left soft-sky-shadow fade-in space-y-1.5";
                 card.innerHTML = `
                     <div class="flex items-center justify-between">
                         <div class="flex items-center gap-1.5">
                             <span class="text-xs font-black text-slate-900">${l.gameNickname}</span>
-                            ${l.isUrgent ? `<span class="bg-rose-50 text-rose-700 text-[9px] font-black px-1.5 py-0.2 rounded border border-rose-100">臨時請假</span>` : ''}
+                            ${isUrg ? `<span class="bg-rose-50 text-rose-700 text-[9px] font-black px-1.5 py-0.2 rounded border border-rose-100">臨時請假</span>` : ''}
                         </div>
                         <span class="text-xs font-bold text-sky-800 font-mono">請假日期：${l.date}</span>
                     </div>
@@ -1557,7 +1541,7 @@
                         理由：${l.reason}
                     </div>
                     <div class="flex items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-slate-50">
-                        <span>由 ${l.operator} 登記</span>
+                        <span>由 ${l.operatorName || l.operator || '本人'} 登記</span>
                         <span class="font-mono">填單時間：${l.submitTime || l.date}</span>
                     </div>
                 `;
@@ -1571,11 +1555,11 @@
             const tabArch = document.getElementById('eventSubTabArchived');
 
             if (tab === 'active') {
-                tabAct.className = "py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black";
-                tabArch.className = "py-1.5 rounded-lg text-slate-500 hover:text-slate-800";
+                tabAct.className = "py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black cursor-pointer";
+                tabArch.className = "py-1.5 rounded-lg text-slate-500 hover:text-slate-800 cursor-pointer";
             } else {
-                tabArch.className = "py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black";
-                tabAct.className = "py-1.5 rounded-lg text-slate-500 hover:text-slate-800";
+                tabArch.className = "py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black cursor-pointer";
+                tabAct.className = "py-1.5 rounded-lg text-slate-500 hover:text-slate-800 cursor-pointer";
             }
             renderEventsList();
         }
@@ -1605,7 +1589,8 @@
             }
 
             list.forEach(evt => {
-                const attendeesCount = evt.attendees.length;
+                const attendees = evt.attendees || [];
+                const attendeesCount = attendees.length;
                 const limitText = evt.maxLimit ? `${attendeesCount} / ${evt.maxLimit} 人` : `${attendeesCount} 人 (無上限)`;
                 const percent = evt.maxLimit ? Math.min(100, Math.round((attendeesCount / evt.maxLimit) * 100)) : 100;
 
@@ -1621,19 +1606,18 @@
                         <div>
                             <span class="text-[10px] font-black px-2 py-0.5 rounded ${statusBadgeClass}">${evt.status}</span>
                             <h3 class="text-base font-black text-slate-900 mt-1">${evt.title}</h3>
-                            <!-- 需求 3：改為 時間：XX:XX -->
                             <div class="text-xs text-slate-500 font-bold mt-0.5">日期：${evt.date} · 時間：${evt.time}</div>
                         </div>
                         <div class="flex items-center gap-1.5">
-                            <button onclick="openEventModal('edit', '${evt.id}')" class="bg-sky-50 text-sky-800 border border-sky-200 text-xs font-bold px-3 py-1.5 rounded-xl hover:bg-sky-100 transition">
+                            <button onclick="openEventModal('edit', '${evt.id}')" class="bg-sky-50 text-sky-800 border border-sky-200 text-xs font-bold px-3 py-1.5 rounded-xl hover:bg-sky-100 transition cursor-pointer">
                                 編輯
                             </button>
                             ${evt.isArchived ? `
-                                <button onclick="unarchiveEvent('${evt.id}')" class="bg-sky-50 text-sky-700 border border-sky-200 text-xs font-bold px-3 py-1.5 rounded-xl hover:bg-sky-100 transition">
+                                <button onclick="unarchiveEvent('${evt.id}')" class="bg-sky-50 text-sky-700 border border-sky-200 text-xs font-bold px-3 py-1.5 rounded-xl hover:bg-sky-100 transition cursor-pointer">
                                     解封
                                 </button>
                             ` : `
-                                <button onclick="archiveEvent('${evt.id}')" class="bg-slate-50 text-slate-600 border border-slate-200 text-xs font-bold px-3 py-1.5 rounded-xl hover:bg-slate-100 transition">
+                                <button onclick="archiveEvent('${evt.id}')" class="bg-slate-50 text-slate-600 border border-slate-200 text-xs font-bold px-3 py-1.5 rounded-xl hover:bg-slate-100 transition cursor-pointer">
                                     封存
                                 </button>
                             `}
@@ -1657,7 +1641,7 @@
                         </div>
                     </div>
 
-                    <button onclick="viewAttendees('${evt.id}')" class="w-full bg-sky-50 hover:bg-sky-100 text-sky-900 border border-sky-200 font-bold text-xs py-2 rounded-xl transition">
+                    <button onclick="viewAttendees('${evt.id}')" class="w-full bg-sky-50 hover:bg-sky-100 text-sky-900 border border-sky-200 font-bold text-xs py-2 rounded-xl transition cursor-pointer">
                         查看已報名成員 (${attendeesCount})
                     </button>
                 `;
@@ -1729,19 +1713,24 @@
             modal.classList.remove('hidden');
         }
 
-        function deleteCurrentEvent() {
+        async function deleteCurrentEvent() {
             const eventId = document.getElementById('formEventId').value;
             const evt = eventsData.find(e => e.id === eventId);
             if (!evt) return;
 
             if (confirm(`確定要刪除活動【${evt.title}】嗎？此動作無法復原！`)) {
-                eventsData = eventsData.filter(e => e.id !== eventId);
-                closeModal('eventModal');
-                renderEventsList();
+                try {
+                    await fetch(`${BACKEND_API_URL}/api/admin/events/${eventId}`, { method: 'DELETE' });
+                    eventsData = eventsData.filter(e => e.id !== eventId);
+                    closeModal('eventModal');
+                    renderEventsList();
+                } catch (err) {
+                    alert("刪除活動失敗");
+                }
             }
         }
 
-        document.getElementById('eventForm').addEventListener('submit', (e) => {
+        document.getElementById('eventForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const eId = document.getElementById('formEventId').value;
             
@@ -1750,27 +1739,56 @@
             const eventDateVal = document.getElementById('formEventDate').value;
 
             const data = {
+                id: eId || ("EVT" + Date.now()),
                 title: document.getElementById('formEventTitle').value.trim(),
                 date: eventDateVal,
                 time: document.getElementById('formEventTime').value,
                 signupStart: signupStartVal,
                 signupEnd: signupEndVal,
-                maxLimit: parseInt(document.getElementById('formEventMaxLimit').value) || null,
+                maxLimit: parseInt(document.getElementById('formEventMaxLimit').value) || 0,
                 status: document.getElementById('formEventStatus').value,
-                desc: document.getElementById('formEventDesc').value.trim()
+                description: document.getElementById('formEventDesc').value.trim()
             };
 
-            if (eId) {
-                const target = eventsData.find(e => e.id === eId);
-                if (target) Object.assign(target, data);
-            } else {
-                data.id = "EVT" + Date.now();
-                data.attendees = [];
-                data.isArchived = (eventDateVal < TODAY_STR);
-                eventsData.unshift(data);
+            try {
+                await fetch(`${BACKEND_API_URL}/api/admin/events/save`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                if (eId) {
+                    const target = eventsData.find(e => e.id === eId);
+                    if (target) {
+                        target.title = data.title;
+                        target.date = data.date;
+                        target.time = data.time;
+                        target.signupStart = data.signupStart;
+                        target.signupEnd = data.signupEnd;
+                        target.maxLimit = data.maxLimit;
+                        target.status = data.status;
+                        target.desc = data.description;
+                    }
+                } else {
+                    eventsData.unshift({
+                        id: data.id,
+                        title: data.title,
+                        date: data.date,
+                        time: data.time,
+                        signupStart: data.signupStart,
+                        signupEnd: data.signupEnd,
+                        maxLimit: data.maxLimit,
+                        status: data.status,
+                        desc: data.description,
+                        isArchived: (eventDateVal < TODAY_STR),
+                        attendees: []
+                    });
+                }
+                closeModal('eventModal');
+                renderEventsList();
+            } catch (err) {
+                alert("儲存活動失敗");
             }
-            closeModal('eventModal');
-            renderEventsList();
         });
 
         function viewAttendees(eventId) {
@@ -1778,16 +1796,17 @@
             const evt = eventsData.find(e => e.id === eventId);
             if (!evt) return;
 
+            const attendees = evt.attendees || [];
             document.getElementById('attendeesModalTitle').textContent = evt.title;
-            document.getElementById('attendeesModalSub').textContent = `共 ${evt.attendees.length} 人報名 · 活動時間 ${evt.date} ${evt.time}`;
+            document.getElementById('attendeesModalSub').textContent = `共 ${attendees.length} 人報名 · 活動時間 ${evt.date} ${evt.time}`;
 
             const container = document.getElementById('attendeesListContainer');
             container.innerHTML = "";
 
-            if (evt.attendees.length === 0) {
+            if (attendees.length === 0) {
                 container.innerHTML = `<div class="py-8 text-center text-xs text-slate-400 font-bold">目前尚無人報名</div>`;
             } else {
-                evt.attendees.forEach((a, i) => {
+                attendees.forEach((a, i) => {
                     const row = document.createElement('div');
                     row.className = "flex items-center justify-between p-2.5 rounded-xl bg-[#F8FAFC] border border-sky-100";
                     row.innerHTML = `
@@ -1795,10 +1814,10 @@
                             <span class="w-5 h-5 bg-sky-100 text-sky-800 rounded-full flex items-center justify-center font-bold text-[10px]">${i+1}</span>
                             <div>
                                 <div class="font-black text-slate-800">${a.gameNickname}</div>
-                                <div class="text-[10px] text-slate-400 font-bold">${a.gameClass} · ${a.time}</div>
+                                <div class="text-[10px] text-slate-400 font-bold">${a.gameClass || ''} · ${a.time || ''}</div>
                             </div>
                         </div>
-                        <button onclick="removeAttendee('${a.gameNickname}')" class="text-xs font-bold text-rose-600 hover:text-rose-700 bg-rose-50 border border-rose-200 px-2 py-1 rounded-lg transition">
+                        <button onclick="removeAttendee('${a.gameNickname}')" class="text-xs font-bold text-rose-600 hover:text-rose-700 bg-rose-50 border border-rose-200 px-2 py-1 rounded-lg transition cursor-pointer">
                             移除
                         </button>
                     `;
@@ -1814,7 +1833,7 @@
             if (!evt) return;
 
             if (confirm(`確定要將【${nick}】從本活動報名名單中移除嗎？`)) {
-                evt.attendees = evt.attendees.filter(a => a.gameNickname !== nick);
+                evt.attendees = (evt.attendees || []).filter(a => a.gameNickname !== nick);
                 viewAttendees(currentViewingEventId);
                 renderEventsList();
             }
@@ -1835,7 +1854,7 @@
                         <div class="text-[11px] text-slate-500 font-bold">最晚截止：<span class="font-mono text-sky-700">${rule.latestTime}</span>${cycleText}</div>
                     </div>
                     <div class="flex items-center gap-2">
-                        <button onclick="openUrgentRuleModal('edit', ${idx})" class="text-xs text-sky-700 hover:text-sky-800 font-bold">編輯</button>
+                        <button onclick="openUrgentRuleModal('edit', ${idx})" class="text-xs text-sky-700 hover:text-sky-800 font-bold cursor-pointer">編輯</button>
                         <span class="text-slate-300">|</span>
                         <input type="checkbox" ${rule.enabled ? 'checked' : ''} onchange="toggleUrgentRule(${idx})" class="w-4 h-4 accent-sky-500 cursor-pointer">
                     </div>
@@ -1857,7 +1876,7 @@
                             <span class="text-[10px] text-slate-400 font-mono">${bc.time ? bc.time : '即時觸發'}</span>
                         </div>
                         <div class="flex items-center gap-1.5">
-                            <button onclick="openBroadcastModal('edit', '${bc.id}')" class="text-xs text-sky-700 hover:text-sky-800 font-bold">編輯</button>
+                            <button onclick="openBroadcastModal('edit', '${bc.id}')" class="text-xs text-sky-700 hover:text-sky-800 font-bold cursor-pointer">編輯</button>
                             <span class="text-slate-300">|</span>
                             <input type="checkbox" ${bc.active ? 'checked' : ''} onchange="toggleScheduleActive(${idx})" class="w-4 h-4 accent-sky-500 cursor-pointer">
                         </div>
@@ -1874,7 +1893,7 @@
         function formatCycleText(bc) {
             if (bc.freq === 'Daily') return '每日固定時間';
             if (bc.freq === 'Always') return '成員加入大群 (Join)';
-            return `星期 ${bc.cycle.replace(/;/g, '、')}`;
+            return `星期 ${bc.cycle ? bc.cycle.replace(/;/g, '、') : ''}`;
         }
 
         function toggleUrgentRule(idx) {
