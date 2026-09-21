@@ -49,7 +49,7 @@
             <div id="loadingSpinner" class="relative w-16 h-16 mx-auto mb-4">
                 <div class="absolute inset-0 rounded-full border-4 border-amber-200 border-t-amber-500 animate-spin"></div>
                 <div class="w-full h-full rounded-full flex items-center justify-center text-xl">
-                    📋
+                    🦊
                 </div>
             </div>
             <h3 id="loadingTitle" class="text-sm font-black text-amber-950 mb-1">正在連線會員資料...</h3>
@@ -104,7 +104,8 @@
             
             <div id="lineProfileCard" class="bg-[#FFF9EE] rounded-2xl p-3.5 border border-amber-200/80 mb-6 flex items-center gap-3">
                 <div class="relative">
-                    <img id="avatarImg" src="https://api.dicebear.com/7.x/bottts/svg?seed=member" alt="LINE Avatar" class="w-12 h-12 rounded-full border-2 border-white shadow-sm object-cover bg-amber-100">
+                    <!-- 預設頭貼改為可愛小狐狸 (DiceBear avataaars/bottts 或 預設小狐狸圖片) -->
+                    <img id="avatarImg" src="https://api.dicebear.com/7.x/avataaars/svg?seed=LuckyFox" alt="Avatar" class="w-12 h-12 rounded-full border-2 border-white shadow-sm object-cover bg-amber-100">
                     <span class="absolute -bottom-1 -right-1 bg-[#06C755] text-white text-[9px] font-black px-1.5 py-0.2 rounded-full border border-white">LINE</span>
                 </div>
                 <div class="flex-1 min-w-0 text-left">
@@ -112,7 +113,6 @@
                         <span id="memberDisplayTitle" class="font-black text-base text-amber-950 truncate">新會員</span>
                         <span id="badgeGuildRole" class="hidden text-[10px] font-bold px-2 py-0.5 rounded-full">-</span>
                     </div>
-                    <!-- 這裡改成直接顯示遊戲職業，不帶「職業：」標題 -->
                     <div class="text-[11px] text-amber-800/70 font-bold truncate mt-0.5" id="memberDisplayClass">尚未選擇職業</div>
                 </div>
             </div>
@@ -264,7 +264,7 @@
         let currentUser = {
             userId: "",
             displayName: "",
-            pictureUrl: "https://api.dicebear.com/7.x/bottts/svg?seed=member",
+            pictureUrl: "https://api.dicebear.com/7.x/bottts/svg?seed=foxy", // 預設可愛小狐狸機器人/頭貼
             gameNickname: "",
             gameClass: "",
             allowSearch: true,
@@ -344,7 +344,10 @@
                         const profile = await liff.getProfile();
                         currentUser.userId = profile.userId;
                         currentUser.displayName = profile.displayName;
-                        currentUser.pictureUrl = profile.pictureUrl || currentUser.pictureUrl;
+                        // 若 profile.pictureUrl 存在則使用 LINE 頭貼，否則使用預設小狐狸
+                        if (profile.pictureUrl) {
+                            currentUser.pictureUrl = profile.pictureUrl;
+                        }
                         isLiffReady = true;
                     } else {
                         document.getElementById('loadingSpinner').classList.add('hidden');
@@ -449,7 +452,6 @@
             document.getElementById('memberDisplayTitle').textContent = currentUser.gameNickname || "已審核成員";
             document.getElementById('memberDisplayClass').textContent = currentUser.gameClass || "尚未選擇職業";
             
-            // 遵從邏輯：幹部藍色、現任綠色、退會灰色
             const badge = document.getElementById('badgeGuildRole');
             badge.textContent = currentUser.guildRole;
             badge.classList.remove('hidden');
@@ -470,6 +472,8 @@
             document.getElementById('submitBtn').textContent = "儲存修改資料";
             document.getElementById('successTitle').textContent = "資料修改成功！";
             document.getElementById('successDesc').textContent = "最新資訊已為您更新完成～";
+
+            updateProfileCard();
         }
 
         function applyNewMemberUI() {
@@ -489,6 +493,14 @@
 
             document.getElementById('successTitle').textContent = "綁定資料已送出";
             document.getElementById('successDesc').textContent = "審核通過後，將會在 LINE 聊天室通知您";
+
+            updateProfileCard();
+        }
+
+        function updateProfileCard() {
+            if (currentUser.pictureUrl) {
+                document.getElementById('avatarImg').src = currentUser.pictureUrl;
+            }
         }
 
         function closeConfirmModal() {
