@@ -196,11 +196,11 @@ input[type="date"], input[type="time"], select {
                 </div>
             </div>
 
-            <!-- 開關選項：開放查詢置頂，已加入LINE與已加入DC並列在下 (Y/N 字串) -->
+            <!-- 開關選項：開放查詢置頂，已加入LINE與已加入DC並列在下 -->
             <div class="space-y-2 pt-1">
                 <label class="flex items-center justify-between p-3 rounded-2xl bg-[#F8FAFC] border border-sky-100 cursor-pointer hover:bg-sky-50/50 transition">
                     <div>
-                        <div class="text-xs font-black text-slate-800">開放查詢 (Allow Search)</div>
+                        <div class="text-xs font-black text-slate-800">開放查詢</div>
                         <div class="text-[10px] text-slate-400 font-normal mt-0.5">是否允許其他會員查詢角色與 LINE 資訊</div>
                     </div>
                     <input type="checkbox" id="formAllowSearch" class="w-5 h-5 accent-sky-500 cursor-pointer" checked>
@@ -223,7 +223,7 @@ input[type="date"], input[type="time"], select {
             </div>
 
             <div id="deleteMemberBtnWrapper" class="pt-2 border-t border-slate-100">
-                <button type="button" onclick="deleteCurrentMember()" class="w-full bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold py-2.5 rounded-xl text-xs transition cursor-pointer">
+                <button type="button" onclick="promptDeleteMember()" class="w-full bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold py-2.5 rounded-xl text-xs transition cursor-pointer">
                     刪除此成員資料
                 </button>
             </div>
@@ -267,6 +267,54 @@ input[type="date"], input[type="time"], select {
         <div class="grid grid-cols-2 gap-2">
             <button onclick="closeModal('approveConfirmModal')" class="bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold py-2.5 rounded-xl transition cursor-pointer">取消</button>
             <button onclick="executeApproveMember()" class="bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold py-2.5 rounded-xl transition shadow-md cursor-pointer">確認核准</button>
+        </div>
+    </div>
+</div>
+
+<!-- 彈窗 4：退會確認 Modal -->
+<div id="retireConfirmModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
+    <div class="bg-white w-full max-w-xs rounded-[28px] p-6 border-2 border-rose-200 soft-sky-shadow text-center">
+        <div class="w-12 h-12 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-3 text-xl border border-rose-200">
+            ⚠️
+        </div>
+        <h3 class="text-base font-black text-slate-900 mb-1">確認設為退會？</h3>
+        <p id="retireConfirmText" class="text-xs text-slate-500 mb-5">將把此成員身分更新為退會狀態</p>
+        <input type="hidden" id="retireTargetUid">
+        <div class="grid grid-cols-2 gap-2">
+            <button onclick="closeModal('retireConfirmModal')" class="bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold py-2.5 rounded-xl transition cursor-pointer">取消</button>
+            <button onclick="executeRetireMember()" class="bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold py-2.5 rounded-xl transition shadow-md cursor-pointer">確認退會</button>
+        </div>
+    </div>
+</div>
+
+<!-- 彈窗 5：刪除會員確認 Modal -->
+<div id="deleteMemberConfirmModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
+    <div class="bg-white w-full max-w-xs rounded-[28px] p-6 border-2 border-rose-200 soft-sky-shadow text-center">
+        <div class="w-12 h-12 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-3 text-xl border border-rose-200">
+            🗑️
+        </div>
+        <h3 class="text-base font-black text-slate-900 mb-1">確認刪除會員？</h3>
+        <p id="deleteMemberConfirmText" class="text-xs text-slate-500 mb-5">確定要將此成員從資料庫中刪除嗎？</p>
+        <input type="hidden" id="deleteMemberTargetUid">
+        <div class="grid grid-cols-2 gap-2">
+            <button onclick="closeModal('deleteMemberConfirmModal')" class="bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold py-2.5 rounded-xl transition cursor-pointer">取消</button>
+            <button onclick="executeDeleteMember()" class="bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold py-2.5 rounded-xl transition shadow-md cursor-pointer">確認刪除</button>
+        </div>
+    </div>
+</div>
+
+<!-- 彈窗 6：封存團體確認 Modal -->
+<div id="archiveGroupConfirmModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
+    <div class="bg-white w-full max-w-xs rounded-[28px] p-6 border-2 border-amber-200 soft-sky-shadow text-center">
+        <div class="w-12 h-12 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-3 text-xl border border-amber-200">
+            📦
+        </div>
+        <h3 class="text-base font-black text-slate-900 mb-1">確認封存團體？</h3>
+        <p id="archiveGroupConfirmText" class="text-xs text-slate-500 mb-5">將此團體移至封存區</p>
+        <input type="hidden" id="archiveGroupTargetName">
+        <div class="grid grid-cols-2 gap-2">
+            <button onclick="closeModal('archiveGroupConfirmModal')" class="bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold py-2.5 rounded-xl transition cursor-pointer">取消</button>
+            <button onclick="executeArchiveGroup()" class="bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold py-2.5 rounded-xl transition shadow-md cursor-pointer">確認封存</button>
         </div>
     </div>
 </div>
@@ -427,7 +475,6 @@ input[type="date"], input[type="time"], select {
             if (role === '幹部') roleBadgeClass = "bg-sky-100 text-sky-800";
             if (role === '退會') roleBadgeClass = "bg-slate-100 text-slate-600";
 
-            // 已加入 LINE 群與 DC 標籤
             const lineTag = (m.joinedLineGroup === 'Y') ? '<span class="bg-emerald-50 text-emerald-700 text-[9px] font-bold px-1.5 py-0.2 rounded border border-emerald-100">已入LINE群</span>' : '<span class="bg-slate-50 text-slate-400 text-[9px] px-1.5 py-0.2 rounded border border-slate-100">未入LINE群</span>';
             const dcTag = (m.joinedDc === 'Y') ? '<span class="bg-indigo-50 text-indigo-700 text-[9px] font-bold px-1.5 py-0.2 rounded border border-indigo-100">已入DC</span>' : '<span class="bg-slate-50 text-slate-400 text-[9px] px-1.5 py-0.2 rounded border border-slate-100">未入DC</span>';
 
@@ -461,7 +508,7 @@ input[type="date"], input[type="time"], select {
                         </div>
                         <div class="flex items-center gap-1">
                             <button onclick="openMemberModal('edit', '${m.lineUserId}')" class="bg-sky-50 text-sky-800 border border-sky-200 text-xs font-bold px-2 py-1 rounded-lg cursor-pointer">編輯</button>
-                            ${!isRetired ? `<button onclick="markAsRetired('${m.lineUserId}')" class="bg-rose-50 text-rose-700 border border-rose-200 text-xs font-bold px-2 py-1 rounded-lg cursor-pointer">退會</button>` : ''}
+                            ${!isRetired ? `<button onclick="promptRetireMember('${m.lineUserId}', '${m.gameNickname}')" class="bg-rose-50 text-rose-700 border border-rose-200 text-xs font-bold px-2 py-1 rounded-lg cursor-pointer">退會</button>` : ''}
                         </div>
                     </div>
                 `;
@@ -470,7 +517,7 @@ input[type="date"], input[type="time"], select {
         });
     }
 
-    // 核准確認彈窗機制
+    // 1. 核准確認彈窗
     function promptApproveMember(lineUserId, nickname) {
         document.getElementById('approveTargetUid').value = lineUserId;
         document.getElementById('approveConfirmText').textContent = `將核准【${nickname}】加入公會並設為現任成員`;
@@ -490,17 +537,49 @@ input[type="date"], input[type="time"], select {
         renderMembersList();
     }
 
-    async function markAsRetired(lineUserId) {
+    // 2. 退會確認彈窗
+    function promptRetireMember(lineUserId, nickname) {
+        document.getElementById('retireTargetUid').value = lineUserId;
+        document.getElementById('retireConfirmText').textContent = `確定要將【${nickname}】設為退會狀態嗎？`;
+        document.getElementById('retireConfirmModal').classList.remove('hidden');
+    }
+
+    async function executeRetireMember() {
+        const lineUserId = document.getElementById('retireTargetUid').value;
+        if (!lineUserId) return;
         await fetch(`${BACKEND_API_URL}/api/admin/members/status`, {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ lineUserId, accountStatus: '已審核', guildRole: '退會' })
         });
+        closeModal('retireConfirmModal');
         await fetchAllBackendData();
         updateMemberCounts();
         renderMembersList();
     }
 
-    // 團體速查完整渲染與互動邏輯
+    // 3. 刪除會員確認彈窗
+    function promptDeleteMember() {
+        const lineUserId = document.getElementById('formMemberUid').value;
+        const target = membersData.find(x => x.lineUserId === lineUserId);
+        if (!target) return;
+        document.getElementById('deleteMemberTargetUid').value = lineUserId;
+        document.getElementById('deleteMemberConfirmText').textContent = `確定要將成員【${target.gameNickname}】從資料庫中刪除嗎？`;
+        document.getElementById('deleteMemberConfirmModal').classList.remove('hidden');
+    }
+
+    async function executeDeleteMember() {
+        const lineUserId = document.getElementById('deleteMemberTargetUid').value;
+        if (!lineUserId) return;
+        await fetch(`${BACKEND_API_URL}/api/admin/members/${lineUserId}`, { method: 'DELETE' });
+        closeModal('deleteMemberConfirmModal');
+        closeModal('memberModal');
+        await fetchAllBackendData();
+        updateMemberCounts();
+        if (currentMemberSubTab === 'groups') renderGroupOverview();
+        else renderMembersList();
+    }
+
+    // 團體速查完整渲染與互動
     function renderGroupOverview() {
         const container = document.getElementById('memberListContainer');
         container.innerHTML = "";
@@ -545,7 +624,7 @@ input[type="date"], input[type="time"], select {
                         ${isArchived ? `
                             <button onclick="unarchiveGroup('${gName}')" class="text-xs font-bold text-sky-600 hover:text-sky-700 bg-sky-50 border border-sky-200 px-2 py-1 rounded-lg transition cursor-pointer">解除封存</button>
                         ` : `
-                            <button onclick="archiveGroup('${gName}')" class="text-xs font-bold text-slate-500 hover:text-slate-700 bg-slate-50 border border-slate-200 px-2 py-1 rounded-lg transition cursor-pointer">封存團體</button>
+                            <button onclick="promptArchiveGroup('${gName}')" class="text-xs font-bold text-slate-500 hover:text-slate-700 bg-slate-50 border border-slate-200 px-2 py-1 rounded-lg transition cursor-pointer">封存團體</button>
                         `}
                     </div>
                 </div>
@@ -573,11 +652,19 @@ input[type="date"], input[type="time"], select {
         }
     }
 
-    function archiveGroup(groupName) {
-        if (confirm(`確定要將【${groupName}】移至封存區嗎？`)) {
-            if (!manuallyArchivedGroups.includes(groupName)) manuallyArchivedGroups.push(groupName);
-            renderGroupOverview();
-        }
+    // 4. 封存團體確認彈窗
+    function promptArchiveGroup(groupName) {
+        document.getElementById('archiveGroupTargetName').value = groupName;
+        document.getElementById('archiveGroupConfirmText').textContent = `確定要將【${groupName}】移至封存區嗎？`;
+        document.getElementById('archiveGroupConfirmModal').classList.remove('hidden');
+    }
+
+    function executeArchiveGroup() {
+        const groupName = document.getElementById('archiveGroupTargetName').value;
+        if (!groupName) return;
+        if (!manuallyArchivedGroups.includes(groupName)) manuallyArchivedGroups.push(groupName);
+        closeModal('archiveGroupConfirmModal');
+        renderGroupOverview();
     }
 
     function unarchiveGroup(groupName) {
@@ -661,21 +748,6 @@ input[type="date"], input[type="time"], select {
             document.getElementById('deleteMemberBtnWrapper').classList.remove('hidden');
         }
         document.getElementById('memberModal').classList.remove('hidden');
-    }
-
-    async function deleteCurrentMember() {
-        const lineUserId = document.getElementById('formMemberUid').value;
-        const target = membersData.find(x => x.lineUserId === lineUserId);
-        if (!target) return;
-
-        if (confirm(`確定要將成員【${target.gameNickname}】從資料庫中刪除嗎？`)) {
-            await fetch(`${BACKEND_API_URL}/api/admin/members/${lineUserId}`, { method: 'DELETE' });
-            closeModal('memberModal');
-            await fetchAllBackendData();
-            updateMemberCounts();
-            if (currentMemberSubTab === 'groups') renderGroupOverview();
-            else renderMembersList();
-        }
     }
 
     // 儲存變更直接寫入資料庫
