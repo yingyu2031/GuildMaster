@@ -105,7 +105,7 @@ input[type="date"], input[type="time"], select {
                 <button id="subTabRetired" onclick="switchMemberSubTab('retired')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800 cursor-pointer">退會封存</button>
             </div>
 
-            <!-- 第一行：搜尋角色與職業篩選 -->
+            <!-- 搜尋角色與職業篩選 -->
             <div class="flex gap-2 items-center">
                 <div class="relative flex-1 min-w-0">
                     <input type="text" id="memberSearchInput" oninput="handleMemberSearchInput()" placeholder="搜尋角色或 LINE 暱稱..."
@@ -138,11 +138,36 @@ input[type="date"], input[type="time"], select {
         </section>
 
         <!-- 區塊 2：請假紀錄 -->
-        <section id="sectionLeaves" class="hidden space-y-4"></section>
+        <section id="sectionLeaves" class="hidden space-y-3">
+            <div class="flex items-center justify-between px-1">
+                <h3 class="text-xs font-black text-slate-800">會員請假紀錄總覽</h3>
+                <span id="leaveCountText" class="text-xs font-bold text-slate-500">共 0 筆</span>
+            </div>
+            <div id="leavesListContainer" class="space-y-3 min-h-[220px]"></div>
+        </section>
+
         <!-- 區塊 3：活動列表 -->
-        <section id="sectionEvents" class="hidden space-y-4"></section>
+        <section id="sectionEvents" class="hidden space-y-3">
+            <div class="flex items-center justify-between px-1">
+                <h3 class="text-xs font-black text-slate-800">公會活動管理</h3>
+                <button onclick="openEventModal('create')" class="bg-sky-500 hover:bg-sky-600 active:scale-95 text-white text-xs font-black px-3 py-1.5 rounded-xl shadow-xs transition cursor-pointer">
+                    + 新增活動
+                </button>
+            </div>
+            <div id="eventsListContainer" class="space-y-3 min-h-[220px]"></div>
+        </section>
+
         <!-- 區塊 4：其他設定 -->
-        <section id="sectionSettings" class="hidden space-y-4"></section>
+        <section id="sectionSettings" class="hidden space-y-4 text-left">
+            <div class="bg-[#F8FAFC] border border-sky-100 rounded-2xl p-4 space-y-3">
+                <h3 class="text-xs font-black text-slate-900">系統公告與參數設定</h3>
+                <p class="text-xs text-slate-500 leading-relaxed">在此可管理公會相關布告欄、系統基本設定或查看健康狀態。</p>
+                <div class="pt-2 border-t border-slate-200/60 flex items-center justify-between text-xs">
+                    <span class="font-bold text-slate-700">資料庫連線狀態</span>
+                    <span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-black">正常運行中</span>
+                </div>
+            </div>
+        </section>
 
     </div>
 
@@ -327,7 +352,7 @@ input[type="date"], input[type="time"], select {
     ];
 
     let currentAdminUser = { lineUserId: "", gameNickname: "", gameClass: "", guildRole: "", accountStatus: "" };
-    let membersData = [], manuallyArchivedGroups = [];
+    let membersData = [], leavesData = [], eventsData = [], manuallyArchivedGroups = [];
     let currentMainSection = "members", currentMemberSubTab = "pending", currentGroupSubTab = "active";
 
     window.addEventListener("DOMContentLoaded", async () => {
@@ -370,12 +395,20 @@ input[type="date"], input[type="time"], select {
         await fetchAllBackendData();
         updateMemberCounts();
         renderMembersList();
+        renderLeavesList();
+        renderEventsList();
     });
 
     async function fetchAllBackendData() {
         try {
-            const res = await fetch(`${BACKEND_API_URL}/api/admin/members`);
-            if (res.ok) { const d = await res.json(); if (d.status === "success") membersData = d.members; }
+            const [mRes, lRes, eRes] = await Promise.all([
+                fetch(`${BACKEND_API_URL}/api/admin/members`),
+                fetch(`${BACKEND_API_URL}/api/admin/leaves`),
+                fetch(`${BACKEND_API_URL}/api/admin/events`)
+            ]);
+            if (mRes.ok) { const d = await mRes.json(); if (d.status === "success") membersData = d.members; }
+            if (lRes.ok) { const d = await lRes.json(); if (d.status === "success") leavesData = d.leaves; }
+            if (eRes.ok) { const d = await eRes.json(); if (d.status === "success") eventsData = d.events; }
         } catch (err) { console.error(err); }
     }
 
@@ -436,6 +469,11 @@ input[type="date"], input[type="time"], select {
         const badge = document.getElementById('badgePendingCount');
         if (pendingCount > 0) { badge.textContent = pendingCount; badge.classList.remove('hidden'); } else { badge.classList.add('hidden'); }
         document.getElementById('activeMemberCountText').textContent = `共 ${membersData.filter(m => m.accountStatus === "已審核" && m.guildRole !== "退會").length} 名會員`;
+        
+        const todayStr = new Date().toISOString().split('T')[0];
+        const todayLeaves = leavesData.filter(l => l.date === todayStr).length;
+        const leaveBadge = document.getElementById('badgeMainTodayLeave');
+        if (todayLeaves > 0) { leaveBadge.textContent = todayLeaves; leaveBadge.classList.remove('hidden'); } else { leaveBadge.classList.add('hidden'); }
     }
 
     function renderMembersList() {
@@ -510,6 +548,51 @@ input[type="date"], input[type="time"], select {
                     </div>
                 `;
             }
+            container.appendChild(card);
+        });
+    }
+
+    function renderLeavesList() {
+        const container = document.getElementById('leavesListContainer');
+        container.innerHTML = "";
+        document.getElementById('leaveCountText').textContent = `共 ${leavesData.length} 筆`;
+        if (leavesData.length === 0) {
+            container.innerHTML = `<div class="bg-[#F8FAFC] rounded-2xl p-6 text-center text-xs text-slate-400 font-bold border border-sky-100">目前尚無請假紀錄</div>`;
+            return;
+        }
+        leavesData.forEach(l => {
+            const card = document.createElement('div');
+            card.className = "bg-white rounded-2xl p-3.5 border border-sky-100 soft-sky-shadow text-left space-y-1.5";
+            card.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-black text-slate-900">${l.gameNickname} (${l.gameClass || '-'})</span>
+                    <span class="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-bold">${l.date}</span>
+                </div>
+                <div class="text-xs text-slate-600 font-medium">請假活動：<span class="font-bold text-slate-800">${l.event}</span></div>
+                <div class="text-xs text-slate-600 font-medium bg-[#F8FAFC] p-2 rounded-xl border border-slate-100">原因：${l.reason}</div>
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    function renderEventsList() {
+        const container = document.getElementById('eventsListContainer');
+        container.innerHTML = "";
+        if (eventsData.length === 0) {
+            container.innerHTML = `<div class="bg-[#F8FAFC] rounded-2xl p-6 text-center text-xs text-slate-400 font-bold border border-sky-100">目前尚無活動清單</div>`;
+            return;
+        }
+        eventsData.forEach(e => {
+            const card = document.createElement('div');
+            card.className = "bg-white rounded-2xl p-3.5 border border-sky-100 soft-sky-shadow text-left space-y-1";
+            card.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xs font-black text-slate-900">${e.title}</h3>
+                    <span class="text-[10px] bg-sky-100 text-sky-800 px-2 py-0.5 rounded font-bold">${e.status}</span>
+                </div>
+                <div class="text-[11px] text-slate-500 font-bold">時間：${e.date} ${e.time}</div>
+                ${e.desc ? `<div class="text-[11px] text-slate-600 mt-1">${e.desc}</div>` : ''}
+            `;
             container.appendChild(card);
         });
     }
@@ -659,7 +742,6 @@ input[type="date"], input[type="time"], select {
         renderGroupOverview();
     }
 
-    // 解除團體封鎖直接執行，不需要確認視窗
     function unarchiveGroup(groupName) {
         manuallyArchivedGroups = manuallyArchivedGroups.filter(g => g !== groupName);
         renderGroupOverview();
