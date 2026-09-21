@@ -96,7 +96,7 @@ input[type="date"], input[type="time"], select {
     <!-- 主體內容卡片 -->
     <div class="bg-white rounded-b-2xl p-4 sm:p-5 border-2 border-t-0 border-sky-200/80 soft-sky-shadow mb-6">
 
-        <!-- 區塊 1：會員名冊 (完整保留) -->
+        <!-- 區塊 1：會員名冊 (完整保留不更動) -->
         <section id="sectionMembers" class="space-y-4">
             <div class="grid grid-cols-4 gap-1 p-1 bg-sky-50 rounded-xl border border-sky-100 text-xs font-bold">
                 <button id="subTabPending" onclick="switchMemberSubTab('pending')" class="py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black cursor-pointer">待審核</button>
@@ -243,7 +243,7 @@ input[type="date"], input[type="time"], select {
                 </div>
             </div>
 
-            <!-- 子視圖 2：推播 (包含正常運作的新增請假項目 Modal 觸發) -->
+            <!-- 子視圖 2：推播 (含新增請假項目與編輯、刪除) -->
             <div id="settingViewBroadcast" class="hidden space-y-4 text-left fade-in">
                 <div class="p-3 bg-rose-50 border border-rose-200 rounded-xl text-left">
                     <div class="text-xs font-black text-rose-700 mb-1">LINE 訊息發送額度提醒</div>
@@ -289,33 +289,37 @@ input[type="date"], input[type="time"], select {
     <p class="text-[11px] text-slate-400 text-center">&copy; 2026 GuildMaster 幹部後台</p>
 </main>
 
-<!-- 彈窗：新增請假項目 Modal -->
+<!-- 彈窗：新增/編輯請假項目 Modal (週期為選取式、最晚送單時間改為直接文字打) -->
 <div id="urgentRuleModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
     <div class="bg-white w-full max-w-md rounded-[28px] p-6 border-2 border-sky-200 soft-sky-shadow max-h-[90vh] overflow-y-auto">
         <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
-            <h3 class="text-base font-black text-slate-900">新增請假項目與規則</h3>
+            <h3 id="urgentRuleModalTitle" class="text-base font-black text-slate-900">新增請假項目與規則</h3>
             <button onclick="closeModal('urgentRuleModal')" class="text-slate-400 hover:text-slate-600 text-sm font-bold cursor-pointer">關閉</button>
         </div>
         <form id="urgentRuleForm" class="space-y-3 text-left text-xs font-bold text-slate-700">
+            <input type="hidden" id="ruleOriginalEventName">
             <div>
                 <label class="block mb-1 text-slate-800">活動名稱 <span class="text-rose-500">*</span></label>
                 <input type="text" id="ruleEventName" required placeholder="例如：公會戰 (GvG)" class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
             </div>
             <div>
-                <label class="block mb-1 text-slate-800">最晚請假時間 (超過此時間算臨時請假) <span class="text-rose-500">*</span></label>
-                <input type="time" id="ruleLatestTime" required class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
+                <label class="block mb-1 text-slate-800">最晚請假時間 (直接輸入，例如 21:00) <span class="text-rose-500">*</span></label>
+                <input type="text" id="ruleLatestTime" required placeholder="例如：21:00" class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
             </div>
             <div>
-                <label class="block mb-1 text-slate-800">週期（可複選星期）</label>
-                <div class="grid grid-cols-4 gap-1.5 pt-1">
-                    <label class="flex items-center gap-1 bg-[#F8FAFC] p-2 rounded-xl border border-sky-100 cursor-pointer text-xs"><input type="checkbox" name="ruleCycle" value="週一"> 週一</label>
-                    <label class="flex items-center gap-1 bg-[#F8FAFC] p-2 rounded-xl border border-sky-100 cursor-pointer text-xs"><input type="checkbox" name="ruleCycle" value="週二"> 週二</label>
-                    <label class="flex items-center gap-1 bg-[#F8FAFC] p-2 rounded-xl border border-sky-100 cursor-pointer text-xs"><input type="checkbox" name="ruleCycle" value="週三"> 週三</label>
-                    <label class="flex items-center gap-1 bg-[#F8FAFC] p-2 rounded-xl border border-sky-100 cursor-pointer text-xs"><input type="checkbox" name="ruleCycle" value="週四"> 週四</label>
-                    <label class="flex items-center gap-1 bg-[#F8FAFC] p-2 rounded-xl border border-sky-100 cursor-pointer text-xs"><input type="checkbox" name="ruleCycle" value="週五"> 週五</label>
-                    <label class="flex items-center gap-1 bg-[#F8FAFC] p-2 rounded-xl border border-sky-100 cursor-pointer text-xs"><input type="checkbox" name="ruleCycle" value="週六"> 週六</label>
-                    <label class="flex items-center gap-1 bg-[#F8FAFC] p-2 rounded-xl border border-sky-100 cursor-pointer text-xs"><input type="checkbox" name="ruleCycle" value="週日"> 週日</label>
-                </div>
+                <label class="block mb-1 text-slate-800">週期（選擇星期）</label>
+                <select id="ruleCycleSelect" class="w-full h-[40px] leading-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900 cursor-pointer">
+                    <option value="">請選擇週期</option>
+                    <option value="週一">週一</option>
+                    <option value="週二">週二</option>
+                    <option value="週三">週三</option>
+                    <option value="週四">週四</option>
+                    <option value="週五">週五</option>
+                    <option value="週六">週六</option>
+                    <option value="週日">週日</option>
+                    <option value="週二、週四">週二、週四</option>
+                    <option value="每日">每日</option>
+                </select>
             </div>
             <div class="pt-2">
                 <label class="flex items-center justify-between p-3 rounded-2xl bg-[#F8FAFC] border border-sky-100 cursor-pointer">
@@ -419,7 +423,7 @@ input[type="date"], input[type="time"], select {
     </div>
 </div>
 
-<!-- 彈窗：確認對話框 (無符號) -->
+<!-- 確認對話框 (無符號) -->
 <div id="approveConfirmModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
     <div class="bg-white w-full max-w-xs rounded-[28px] p-6 border-2 border-sky-200 soft-sky-shadow text-center">
         <h3 class="text-base font-black text-slate-900 mb-1 mt-2">確認核准入會？</h3>
@@ -727,17 +731,13 @@ input[type="date"], input[type="time"], select {
             const currentYearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
             leavesData.forEach(l => {
-                // 維度篩選
                 if (currentLeaveMetric === 'month' && (!l.date || !l.date.startsWith(currentYearMonth))) return;
                 
-                // 臨時請假判定：根據該活動設定的最晚請假時間來判定送單是否超時
                 const rule = leaveRulesData.find(r => r.event === l.event);
                 let isUrgent = l.isUrgent;
                 if (rule && rule.latestTime && l.submitTime) {
                     const submitTimeStr = String(l.submitTime).split('T')[1] ? String(l.submitTime).split('T')[1].substring(0, 5) : "";
-                    if (submitTimeStr && submitTimeStr > rule.latestTime) {
-                        isUrgent = true;
-                    }
+                    if (submitTimeStr && submitTimeStr > rule.latestTime) isUrgent = true;
                 }
 
                 if (currentLeaveMetric === 'urgent' && !isUrgent) return;
@@ -748,7 +748,11 @@ input[type="date"], input[type="time"], select {
                 if (isUrgent) counts[key].urgentCount++;
             });
 
-            let rankList = Object.values(counts).sort((a, b) => b.totalCount - a.totalCount);
+            let rankList = Object.values(counts).sort((a, b) => {
+                if (currentLeaveMetric === 'urgent') return b.urgentCount - a.urgentCount;
+                return b.totalCount - a.totalCount;
+            });
+
             if (rankList.length === 0) {
                 container.innerHTML = `<div class="bg-[#F8FAFC] rounded-2xl p-6 text-center text-xs text-slate-400 font-bold border border-sky-100">目前尚無符合條件的請假排名統計</div>`;
                 return;
@@ -808,11 +812,9 @@ input[type="date"], input[type="time"], select {
                 card.innerHTML = `
                     <div class="flex items-center justify-between">
                         <span class="text-xs font-black text-slate-900">${l.gameNickname} (${l.gameClass || '-'})</span>
-                        <div class="flex items-center gap-1.5">
-                            ${isUrgent ? '<span class="text-[10px] bg-rose-100 text-rose-700 px-2 py-0.5 rounded font-bold">臨時請假</span>' : ''}
-                            <span class="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-bold">填單：${l.submitTime ? l.submitTime.replace('T', ' ').substring(0, 16) : '-'}</span>
-                        </div>
+                        <span class="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-bold">填單：${l.submitTime ? l.submitTime.replace('T', ' ').substring(0, 16) : '-'}</span>
                     </div>
+                    ${isUrgent ? '<div><span class="text-[10px] bg-rose-100 text-rose-700 px-2 py-0.5 rounded font-bold inline-block">臨時請假</span></div>' : ''}
                     <div class="text-xs text-slate-600 font-medium">請假活動：<span class="font-bold text-slate-800">${l.event}</span></div>
                     <div class="text-xs text-slate-600 font-medium bg-[#F8FAFC] p-2 rounded-xl border border-slate-100">原因：${l.reason}</div>
                 `;
@@ -853,11 +855,9 @@ input[type="date"], input[type="time"], select {
             card.innerHTML = `
                 <div class="flex items-center justify-between">
                     <span class="text-xs font-black text-slate-900">${l.gameNickname} (${l.gameClass || '-'})</span>
-                    <div class="flex items-center gap-1.5">
-                        ${isUrgent ? '<span class="text-[10px] bg-rose-100 text-rose-700 px-2 py-0.5 rounded font-bold">臨時請假</span>' : ''}
-                        <span class="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-bold">填單：${l.submitTime ? l.submitTime.replace('T', ' ').substring(0, 16) : '-'}</span>
-                    </div>
+                    <span class="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-bold">填單：${l.submitTime ? l.submitTime.replace('T', ' ').substring(0, 16) : '-'}</span>
                 </div>
+                ${isUrgent ? '<div><span class="text-[10px] bg-rose-100 text-rose-700 px-2 py-0.5 rounded font-bold inline-block">臨時請假</span></div>' : ''}
                 <div class="text-xs text-slate-600 font-medium">請假活動：<span class="font-bold text-slate-800">${l.event}</span></div>
                 <div class="text-xs text-slate-600 font-medium bg-[#F8FAFC] p-2 rounded-xl border border-slate-100">原因：${l.reason}</div>
             `;
@@ -894,35 +894,61 @@ input[type="date"], input[type="time"], select {
                     <div class="font-black text-slate-900">${r.event}</div>
                     <div class="text-[11px] text-slate-500 font-bold mt-0.5">最晚請假：${r.latestTime} | 週期：${r.cycle || '無指定'}</div>
                 </div>
-                <span class="text-[10px] px-2 py-0.5 rounded-full font-bold ${r.enabled === 1 ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'}">
-                    ${r.enabled === 1 ? '啟用中' : '停用'}
-                </span>
+                <div class="flex items-center gap-2">
+                    <span class="text-[10px] px-2 py-0.5 rounded-full font-bold ${r.enabled === 1 ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'}">
+                        ${r.enabled === 1 ? '啟用中' : '停用'}
+                    </span>
+                    <button onclick="openUrgentRuleModal('edit', '${r.event}', '${r.latestTime}', '${r.cycle || ''}', ${r.enabled})" class="bg-sky-50 text-sky-800 border border-sky-200 px-2.5 py-1 rounded-lg font-bold cursor-pointer">編輯</button>
+                    <button onclick="deleteUrgentRule('${r.event}')" class="bg-rose-50 text-rose-700 border border-rose-200 px-2.5 py-1 rounded-lg font-bold cursor-pointer">刪除</button>
+                </div>
             `;
             container.appendChild(card);
         });
     }
 
-    function openUrgentRuleModal(mode) {
+    function openUrgentRuleModal(mode, event = '', latestTime = '', cycle = '', enabled = 1) {
         document.getElementById('urgentRuleForm').reset();
+        if (mode === 'edit') {
+            document.getElementById('urgentRuleModalTitle').textContent = "編輯請假項目與規則";
+            document.getElementById('ruleOriginalEventName').value = event;
+            document.getElementById('ruleEventName').value = event;
+            document.getElementById('ruleLatestTime').value = latestTime;
+            document.getElementById('ruleCycleSelect').value = cycle;
+            document.getElementById('ruleEnabled').checked = (enabled === 1);
+        } else {
+            document.getElementById('urgentRuleModalTitle').textContent = "新增請假項目與規則";
+            document.getElementById('ruleOriginalEventName').value = "";
+            document.getElementById('ruleEnabled').checked = true;
+        }
         document.getElementById('urgentRuleModal').classList.remove('hidden');
     }
 
     document.getElementById('urgentRuleForm').addEventListener('submit', async (e) => {
         e.preventDefault();
+        const originalEvent = document.getElementById('ruleOriginalEventName').value;
         const eventName = document.getElementById('ruleEventName').value.trim();
-        const latestTime = document.getElementById('ruleLatestTime').value;
+        const latestTime = document.getElementById('ruleLatestTime').value.trim();
         const enabled = document.getElementById('ruleEnabled').checked ? 1 : 0;
-        const cycles = Array.from(document.querySelectorAll('input[name="ruleCycle"]:checked')).map(cb => cb.value).join(', ');
+        const cycle = document.getElementById('ruleCycleSelect').value;
 
         try {
             await fetch(`${BACKEND_API_URL}/api/admin/leave-rules/save`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ event: eventName, latestTime, cycle: cycles, enabled })
+                body: JSON.stringify({ originalEvent, event: eventName, latestTime, cycle, enabled })
             });
             closeModal('urgentRuleModal');
             await renderUrgentRules();
         } catch (err) { alert("儲存失敗"); }
     });
+
+    async function deleteUrgentRule(eventName) {
+        if (confirm(`確定要刪除請假項目【${eventName}】嗎？`)) {
+            try {
+                await fetch(`${BACKEND_API_URL}/api/admin/leave-rules/${encodeURIComponent(eventName)}`, { method: 'DELETE' });
+                await renderUrgentRules();
+            } catch (err) { alert("刪除失敗"); }
+        }
+    }
 
     function renderEventsList() {
         const container = document.getElementById('eventListContainer');
