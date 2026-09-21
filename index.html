@@ -112,7 +112,8 @@
                         <span id="memberDisplayTitle" class="font-black text-base text-amber-950 truncate">新會員</span>
                         <span id="badgeGuildRole" class="hidden text-[10px] font-bold px-2 py-0.5 rounded-full">-</span>
                     </div>
-                    <div class="text-[11px] text-amber-800/60 font-mono truncate mt-0.5" id="lineUid">UID: 讀取中...</div>
+                    <!-- 這裡改成直接顯示遊戲職業，不帶「職業：」標題 -->
+                    <div class="text-[11px] text-amber-800/70 font-bold truncate mt-0.5" id="memberDisplayClass">尚未選擇職業</div>
                 </div>
             </div>
 
@@ -130,8 +131,8 @@
                         遊戲職業 <span class="text-rose-500">*</span>
                     </label>
                     <div class="relative">
-                        <select id="gameClass" required 
-                                class="w-full bg-[#FFFDF9] border border-amber-200 rounded-2xl px-4 py-3 text-sm font-bold text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition appearance-none">
+                        <select id="gameClass" required onchange="updateCardClassPreview(this.value)"
+                                class="w-full bg-[#FFFDF9] border border-amber-200 rounded-2xl px-4 py-3 text-sm font-bold text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition appearance-none cursor-pointer">
                             <option value="" disabled selected>請選擇職業</option>
                             <optgroup label="劍士系">
                                 <option value="騎士領主">騎士領主</option>
@@ -274,6 +275,10 @@
 
         let pendingPayload = null;
 
+        function updateCardClassPreview(val) {
+            document.getElementById('memberDisplayClass').textContent = val || "尚未選擇職業";
+        }
+
         async function queryMemberFromBackend(uid) {
             try {
                 const controller = new AbortController();
@@ -399,7 +404,7 @@
                 currentUser.gameNickname = result.gameNickname || "";
                 currentUser.gameClass = result.gameClass || "";
                 currentUser.displayName = result.lineDisplayName || currentUser.displayName;
-                currentUser.allowSearch = (result.allowSearch === true || result.allowSearch === "Y");
+                currentUser.allowSearch = (result.allowSearch === true || result.allowSearch === "Y" || result.allowSearch === "true");
                 currentUser.accountStatus = String(result.accountStatus || "").trim();
                 currentUser.guildRole = String(result.guildRole || "現任").trim();
                 currentUser.isRegistered = true;
@@ -442,6 +447,7 @@
             document.getElementById('pageSubTitle').textContent = "記得隨時更新您的遊戲角色資訊喔！";
             
             document.getElementById('memberDisplayTitle').textContent = currentUser.gameNickname || "已審核成員";
+            document.getElementById('memberDisplayClass').textContent = currentUser.gameClass || "尚未選擇職業";
             
             // 遵從邏輯：幹部藍色、現任綠色、退會灰色
             const badge = document.getElementById('badgeGuildRole');
@@ -464,8 +470,6 @@
             document.getElementById('submitBtn').textContent = "儲存修改資料";
             document.getElementById('successTitle').textContent = "資料修改成功！";
             document.getElementById('successDesc').textContent = "最新資訊已為您更新完成～";
-
-            updateProfileCard();
         }
 
         function applyNewMemberUI() {
@@ -474,6 +478,7 @@
             document.getElementById('pageSubTitle').textContent = "完成登記後，即可使用公會各項專屬功能";
 
             document.getElementById('memberDisplayTitle').textContent = "新會員";
+            document.getElementById('memberDisplayClass').textContent = "尚未選擇職業";
             document.getElementById('badgeGuildRole').classList.add('hidden');
             document.getElementById('submitBtn').textContent = "確認送出";
 
@@ -484,16 +489,6 @@
 
             document.getElementById('successTitle').textContent = "綁定資料已送出";
             document.getElementById('successDesc').textContent = "審核通過後，將會在 LINE 聊天室通知您";
-
-            updateProfileCard();
-        }
-
-        function updateProfileCard() {
-            const displayUid = currentUser.userId.length > 16 ? currentUser.userId.substring(0, 16) + '...' : currentUser.userId;
-            document.getElementById('lineUid').textContent = 'UID: ' + displayUid;
-            if (currentUser.pictureUrl) {
-                document.getElementById('avatarImg').src = currentUser.pictureUrl;
-            }
         }
 
         function closeConfirmModal() {
@@ -530,7 +525,7 @@
             document.getElementById('resGameNick').textContent = pendingPayload.gameNickname;
             document.getElementById('resGameClass').textContent = pendingPayload.gameClass;
             document.getElementById('resLineName').textContent = pendingPayload.lineDisplayName;
-            document.getElementById('resAllowSearch').textContent = pendingPayload.allowSearch;
+            document.getElementById('resAllowSearch').textContent = pendingPayload.allowSearch === "Y" ? "開啟" : "關閉";
             
             document.getElementById('successModal').classList.remove('hidden');
         }
