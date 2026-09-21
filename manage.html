@@ -34,6 +34,14 @@ input[type="date"], input[type="time"], select {
  line-height: 40px;
  box-sizing: border-box;
 }
+/* 滾輪式時間選擇器隱藏滾動條但保持滾動 */
+.wheel-container::-webkit-scrollbar {
+ display: none;
+}
+.wheel-container {
+ -ms-overflow-style: none;
+ scrollbar-width: none;
+}
 </style>
 </head>
 <body class="bg-[#F0F9FF] text-slate-800 antialiased selection:bg-sky-200 selection:text-sky-900 min-h-screen flex flex-col justify-between py-6 px-3 sm:px-4">
@@ -405,7 +413,7 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  <input type="text" id="newGroupNameInput" required placeholder="例如：狂暴推王團、親友組" class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
  </div>
  <div class="flex-1 flex flex-col min-h-0">
- <label class="block mb-1 text-slate-800">選擇納入成員（可多選）</label>
+ <label class="block mb-1 text-slate-800">選擇納入成員（可多選，僅列出未分組成員）</label>
  <div id="groupCandidateList" class="flex-1 overflow-y-auto space-y-1.5 pr-1 border border-sky-100 rounded-xl p-2 bg-[#F8FAFC]"></div>
  </div>
  <div class="grid grid-cols-2 gap-3 pt-2">
@@ -566,7 +574,7 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  </div>
 </div>
 
-<!-- 彈窗 6：請假項目編輯 Modal -->
+<!-- 彈窗 6：請假項目編輯 Modal（含滑輪式時間選擇器） -->
 <div id="urgentRuleModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
  <div class="bg-white w-full max-w-md rounded-[28px] p-6 border-2 border-sky-200 soft-sky-shadow max-h-[90vh] overflow-y-auto text-left">
  <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
@@ -583,7 +591,11 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  <div class="grid grid-cols-2 gap-3 items-center">
  <div>
  <label class="block mb-1 text-slate-800">最晚請假截止時間 <span class="text-rose-500">*</span></label>
- <input type="text" id="ruleLatestTime" required placeholder="20:00" class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-sky-400">
+ <div onclick="openTimeWheelPicker()" class="w-full h-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 flex items-center justify-between cursor-pointer font-bold text-slate-900">
+ <span id="ruleLatestTimeDisplay">20:00</span>
+ <span class="text-slate-400 text-[10px]">▼</span>
+ </div>
+ <input type="hidden" id="ruleLatestTime" required value="20:00">
  </div>
  <div class="pt-5">
  <label class="flex items-center gap-2 cursor-pointer bg-[#F8FAFC] p-2.5 rounded-xl border border-sky-100">
@@ -615,7 +627,32 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  </div>
 </div>
 
-<!-- 彈窗 7：核准入會確認 Modal -->
+<!-- 滑輪式時間選擇器內嵌彈窗 (模仿截圖 6) -->
+<div id="timeWheelModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 fade-in">
+ <div class="bg-white w-full max-w-sm rounded-t-[28px] sm:rounded-[28px] p-6 border-2 border-sky-200 soft-sky-shadow text-center">
+ <h3 class="text-sm font-black text-slate-900 mb-3">選擇最晚截止時間</h3>
+ <div class="grid grid-cols-2 gap-4 my-4 bg-[#F8FAFC] p-3 rounded-2xl border border-sky-100">
+ <div>
+ <label class="block text-[10px] text-slate-400 font-bold mb-1">小時 (Hour)</label>
+ <select id="wheelHourSelect" class="w-full h-[40px] bg-white border border-sky-200 rounded-xl text-center text-sm font-black text-slate-900 cursor-pointer">
+ <!-- 00-23 -->
+ </select>
+ </div>
+ <div>
+ <label class="block text-[10px] text-slate-400 font-bold mb-1">分鐘 (Minute)</label>
+ <select id="wheelMinuteSelect" class="w-full h-[40px] bg-white border border-sky-200 rounded-xl text-center text-sm font-black text-slate-900 cursor-pointer">
+ <!-- 00-59 -->
+ </select>
+ </div>
+ </div>
+ <div class="grid grid-cols-2 gap-2 pt-2">
+ <button type="button" onclick="closeModal('timeWheelModal')" class="bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold py-2.5 rounded-xl transition cursor-pointer">取消</button>
+ <button type="button" onclick="confirmTimeWheel()" class="bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold py-2.5 rounded-xl transition shadow-md cursor-pointer">完成</button>
+ </div>
+ </div>
+</div>
+
+<!-- 統一風格彈窗：確認核准入會 Modal -->
 <div id="approveConfirmModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
  <div class="bg-white w-full max-w-xs rounded-[28px] p-6 border-2 border-sky-200 soft-sky-shadow text-center">
  <h3 class="text-base font-black text-slate-900 mb-1 mt-2">確認核准入會？</h3>
@@ -628,7 +665,7 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  </div>
 </div>
 
-<!-- 彈窗 8：退會確認 Modal -->
+<!-- 統一風格彈窗：確認退會 Modal -->
 <div id="retireConfirmModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
  <div class="bg-white w-full max-w-xs rounded-[28px] p-6 border-2 border-rose-200 soft-sky-shadow text-center">
  <h3 class="text-base font-black text-slate-900 mb-1 mt-2">確認設為退會？</h3>
@@ -641,7 +678,7 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  </div>
 </div>
 
-<!-- 彈窗 9：刪除會員確認 Modal -->
+<!-- 統一風格彈窗：確認刪除會員 Modal -->
 <div id="deleteMemberConfirmModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
  <div class="bg-white w-full max-w-xs rounded-[28px] p-6 border-2 border-rose-200 soft-sky-shadow text-center">
  <h3 class="text-base font-black text-slate-900 mb-1 mt-2">確認刪除會員？</h3>
@@ -654,7 +691,7 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  </div>
 </div>
 
-<!-- 彈窗 10：封存團體確認 Modal -->
+<!-- 統一風格彈窗：確認封存團體 Modal -->
 <div id="archiveGroupConfirmModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
  <div class="bg-white w-full max-w-xs rounded-[28px] p-6 border-2 border-amber-200 soft-sky-shadow text-center">
  <h3 class="text-base font-black text-slate-900 mb-1 mt-2">確認封存團體？</h3>
@@ -667,7 +704,7 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  </div>
 </div>
 
-<!-- 彈窗 11：編輯職業名稱 Modal -->
+<!-- 統一風格彈窗：編輯/刪除職業確認 Modal -->
 <div id="editClassModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
  <div class="bg-white w-full max-w-xs rounded-[28px] p-6 border-2 border-sky-200 soft-sky-shadow text-center">
  <h3 class="text-base font-black text-slate-900 mb-1 mt-2">修改職業名稱</h3>
@@ -677,6 +714,19 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  <div class="grid grid-cols-2 gap-2">
  <button onclick="closeModal('editClassModal')" class="bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold py-2.5 rounded-xl transition cursor-pointer">取消</button>
  <button onclick="executeEditClass()" class="bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold py-2.5 rounded-xl transition shadow-md cursor-pointer">確認修改</button>
+ </div>
+ </div>
+</div>
+
+<!-- 統一風格彈窗：刪除職業確認 Modal -->
+<div id="deleteClassConfirmModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
+ <div class="bg-white w-full max-w-xs rounded-[28px] p-6 border-2 border-rose-200 soft-sky-shadow text-center">
+ <h3 class="text-base font-black text-slate-900 mb-1 mt-2">確認移除職業？</h3>
+ <p id="deleteClassConfirmText" class="text-xs text-slate-500 mb-5">確定要移除此職業選項嗎？</p>
+ <input type="hidden" id="deleteClassTargetIndex">
+ <div class="grid grid-cols-2 gap-2">
+ <button onclick="closeModal('deleteClassConfirmModal')" class="bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold py-2.5 rounded-xl transition cursor-pointer">取消</button>
+ <button onclick="executeDeleteClass()" class="bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold py-2.5 rounded-xl transition shadow-md cursor-pointer">確認移除</button>
  </div>
  </div>
 </div>
@@ -741,6 +791,7 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  loadGroupSettings();
  syncAllClassDropdowns();
  renderCustomClassManager();
+ initTimeWheelSelects();
  await fetchAllBackendData();
  updateMemberCounts();
  renderMembersList();
@@ -1213,21 +1264,17 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  function archiveEvent(id) {
  const evt = eventsData.find(e => e.id === id);
  if (!evt) return;
- if (confirm(`確定要手動封存活動【${evt.title}】嗎？`)) {
  evt.isArchived = true;
  evt.status = "已結束";
  renderEventsList();
- }
  }
 
  function unarchiveEvent(id) {
  const evt = eventsData.find(e => e.id === id);
  if (!evt) return;
- if (confirm(`確定要將活動【${evt.title}】移回進行中嗎？`)) {
  evt.isArchived = false;
  if (evt.status === "已結束") evt.status = "報名中";
  renderEventsList();
- }
  }
 
  function openEventModal(mode, eventId = null) {
@@ -1278,12 +1325,9 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  const eventId = document.getElementById('formEventId').value;
  const evt = eventsData.find(e => e.id === eventId);
  if (!evt) return;
-
- if (confirm(`確定要刪除活動【${evt.title}】嗎？此動作無法復原！`)) {
  eventsData = eventsData.filter(e => e.id !== eventId);
  closeModal('eventModal');
  renderEventsList();
- }
  }
 
  document.getElementById('eventForm').addEventListener('submit', (e) => {
@@ -1357,12 +1401,9 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  if (!currentViewingEventId) return;
  const evt = eventsData.find(e => e.id === currentViewingEventId);
  if (!evt) return;
-
- if (confirm(`確定要將【${nick}】從本活動報名名單中移除嗎？`)) {
  evt.attendees = evt.attendees.filter(a => a.gameNickname !== nick);
  viewAttendees(currentViewingEventId);
  renderEventsList();
- }
  }
 
  // 其他設定相關邏輯
@@ -1429,7 +1470,7 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  badge.className = "inline-flex items-center gap-1.5 bg-white border border-sky-200 px-3.5 py-2 rounded-xl text-xs font-bold text-slate-800 shadow-xs hover:border-sky-400 transition";
  badge.innerHTML = `
  <span onclick="openEditClassModal('${cls}')" class="cursor-pointer" title="點擊修改名稱">${cls}</span>
- <button onclick="removeCustomClass(${idx})" class="text-slate-400 hover:text-rose-600 text-sm font-bold cursor-pointer ml-1">×</button>
+ <button onclick="promptDeleteClass(${idx})" class="text-slate-400 hover:text-rose-600 text-sm font-bold cursor-pointer ml-1">×</button>
  `;
  container.appendChild(badge);
  });
@@ -1459,7 +1500,6 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  customClassList[index] = newName;
  }
 
- // 同步更新已載入會員名冊中符合該舊職業的成員資料，並透過 API 儲存
  for (let m of membersData) {
  if (m.gameClass === oldName) {
  m.gameClass = newName;
@@ -1485,6 +1525,22 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  renderMembersList();
  }
 
+ function promptDeleteClass(idx) {
+ document.getElementById('deleteClassTargetIndex').value = idx;
+ document.getElementById('deleteClassConfirmText').textContent = `確定要移除職業選項【${customClassList[idx]}】嗎？`;
+ document.getElementById('deleteClassConfirmModal').classList.remove('hidden');
+ }
+
+ function executeDeleteClass() {
+ const idx = parseInt(document.getElementById('deleteClassTargetIndex').value);
+ if (isNaN(idx)) return;
+ const target = customClassList[idx];
+ customClassList.splice(idx, 1);
+ closeModal('deleteClassConfirmModal');
+ renderCustomClassManager();
+ syncAllClassDropdowns();
+ }
+
  function addNewCustomClass() {
  const input = document.getElementById('newClassInput');
  const val = input.value.trim();
@@ -1497,15 +1553,6 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  input.value = "";
  renderCustomClassManager();
  syncAllClassDropdowns();
- }
-
- function removeCustomClass(idx) {
- const target = customClassList[idx];
- if (confirm(`確定要移除職業選項【${target}】嗎？`)) {
- customClassList.splice(idx, 1);
- renderCustomClassManager();
- syncAllClassDropdowns();
- }
  }
 
  function renderBroadcastSection() {
@@ -1674,7 +1721,7 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  renderBroadcastSection();
  });
 
- // 請假項目規則 Modal 互動
+ // 請假項目規則 Modal 互動與滑輪式時間選擇器
  async function renderUrgentRules() {
  try {
  const res = await fetch(`${BACKEND_API_URL}/api/admin/leave-rules`);
@@ -1700,6 +1747,43 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  } catch (err) { alert("更新狀態失敗"); }
  }
 
+ function initTimeWheelSelects() {
+ const hSelect = document.getElementById('wheelHourSelect');
+ const mSelect = document.getElementById('wheelMinuteSelect');
+ if (!hSelect || !mSelect) return;
+
+ hSelect.innerHTML = "";
+ mSelect.innerHTML = "";
+
+ for (let i = 0; i < 24; i++) {
+ const hs = String(i).padStart(2, '0');
+ hSelect.innerHTML += `<option value="${hs}">${hs}</option>`;
+ }
+ for (let i = 0; i < 60; i++) {
+ const ms = String(i).padStart(2, '0');
+ mSelect.innerHTML += `<option value="${ms}">${ms}</option>`;
+ }
+ }
+
+ function openTimeWheelPicker() {
+ const currentVal = document.getElementById('ruleLatestTime').value || "20:00";
+ const parts = currentVal.split(':');
+ if (parts.length === 2) {
+ document.getElementById('wheelHourSelect').value = parts[0];
+ document.getElementById('wheelMinuteSelect').value = parts[1];
+ }
+ document.getElementById('timeWheelModal').classList.remove('hidden');
+ }
+
+ function confirmTimeWheel() {
+ const h = document.getElementById('wheelHourSelect').value;
+ const m = document.getElementById('wheelMinuteSelect').value;
+ const finalTime = `${h}:${m}`;
+ document.getElementById('ruleLatestTime').value = finalTime;
+ document.getElementById('ruleLatestTimeDisplay').textContent = finalTime;
+ closeModal('timeWheelModal');
+ }
+
  function openUrgentRuleModal(mode, event = '', latestTime = '', cycle = '', enabled = 1) {
  document.getElementById('urgentRuleForm').reset();
  selectedCycleDays = [];
@@ -1708,7 +1792,8 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  document.getElementById('urgentRuleModalTitle').textContent = "編輯請假項目與時間";
  document.getElementById('ruleOriginalEventName').value = event;
  document.getElementById('ruleEventName').value = event;
- document.getElementById('ruleLatestTime').value = latestTime;
+ document.getElementById('ruleLatestTime').value = latestTime || "20:00";
+ document.getElementById('ruleLatestTimeDisplay').textContent = latestTime || "20:00";
  document.getElementById('ruleEnabled').checked = (enabled === 1);
  if (cycle) {
  selectedCycleDays = cycle.split(',').map(s => s.trim().replace('週', ''));
@@ -1717,6 +1802,7 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  document.getElementById('urgentRuleModalTitle').textContent = "新增請假項目與時間";
  document.getElementById('ruleOriginalEventName').value = "";
  document.getElementById('ruleLatestTime').value = "20:00";
+ document.getElementById('ruleLatestTimeDisplay').textContent = "20:00";
  document.getElementById('ruleEnabled').checked = true;
  selectedCycleDays = [];
  }
@@ -1918,7 +2004,16 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  function openCreateGroupModal() {
  const container = document.getElementById('groupCandidateList');
  container.innerHTML = "";
- const activeMembers = membersData.filter(m => m.accountStatus === "已審核" && m.guildRole !== "退會");
+ // 篩選掉已經有團體的名單（僅列出 teamGroup 為空或未設定的現任已審核成員）
+ const activeMembers = membersData.filter(m => m.accountStatus === "已審核" && m.guildRole !== "退會" && (!m.teamGroup || m.teamGroup.trim() === ""));
+ 
+ if (activeMembers.length === 0) {
+ container.innerHTML = `<div class="py-4 text-center text-xs text-slate-400 font-bold">目前沒有無團體的可用成員</div>`;
+ document.getElementById('newGroupNameInput').value = "";
+ document.getElementById('createGroupModal').classList.remove('hidden');
+ return;
+ }
+
  activeMembers.forEach(m => {
  const label = document.createElement('label');
  label.className = "flex items-center justify-between p-2 rounded-lg bg-white border border-slate-100 hover:bg-sky-50/50 cursor-pointer";
@@ -1928,7 +2023,7 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  <span class="text-xs font-black text-slate-800">${m.gameNickname}</span>
  <span class="text-[10px] text-slate-400">(${m.gameClass})</span>
  </div>
- <span class="text-[10px] font-bold text-slate-400">${m.teamGroup ? m.teamGroup : '未分組'}</span>
+ <span class="text-[10px] font-bold text-slate-400">未分組</span>
  `;
  container.appendChild(label);
  });
