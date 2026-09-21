@@ -149,7 +149,7 @@ input[type="date"], input[type="time"], select {
     <p class="text-[11px] text-slate-400 text-center">&copy; 2026 GuildMaster 幹部後台</p>
 </main>
 
-<!-- 彈窗 1：成員 新增/編輯 Modal (包含開放查詢與異動歷程) -->
+<!-- 彈窗 1：成員 新增/編輯 Modal -->
 <div id="memberModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
     <div class="bg-white w-full max-w-md rounded-[28px] p-6 border-2 border-sky-200 soft-sky-shadow max-h-[90vh] overflow-y-auto">
         <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
@@ -196,14 +196,14 @@ input[type="date"], input[type="time"], select {
                 </div>
             </div>
 
-            <!-- 開關選項：開放查詢，已加入LINE與已加入DC並列在下 -->
+            <!-- 開關選項：開放查詢 (唯讀反灰)，已加入LINE與已加入DC並列在下 -->
             <div class="space-y-2 pt-1">
-                <label class="flex items-center justify-between p-3 rounded-2xl bg-[#F8FAFC] border border-sky-100 cursor-pointer hover:bg-sky-50/50 transition">
+                <label class="flex items-center justify-between p-3 rounded-2xl bg-slate-100 border border-slate-200 opacity-80 cursor-not-allowed">
                     <div>
-                        <div class="text-xs font-black text-slate-800">開放查詢</div>
+                        <div class="text-xs font-black text-slate-600">開放查詢 <span class="text-[10px] font-normal text-slate-400">(會員自行設定)</span></div>
                         <div class="text-[10px] text-slate-400 font-normal mt-0.5">是否允許其他會員查詢角色與 LINE 資訊</div>
                     </div>
-                    <input type="checkbox" id="formAllowSearch" class="w-5 h-5 accent-sky-500 cursor-pointer" checked>
+                    <input type="checkbox" id="formAllowSearch" disabled class="w-5 h-5 accent-sky-500 cursor-not-allowed">
                 </label>
                 <div class="grid grid-cols-2 gap-2">
                     <label class="flex items-center justify-between p-2.5 rounded-xl bg-[#F8FAFC] border border-sky-100 cursor-pointer">
@@ -217,10 +217,10 @@ input[type="date"], input[type="time"], select {
                 </div>
             </div>
 
-            <!-- 還原：資料異動歷程明細區塊 -->
+            <!-- 資料異動歷程明細 -->
             <div id="auditLogSection" class="pt-2">
                 <div class="flex items-center justify-between mb-1.5">
-                    <span class="text-xs font-black text-slate-800">資料異動歷程明細 (member_audit_logs)</span>
+                    <span class="text-xs font-black text-slate-800">資料異動歷程明細</span>
                     <span id="auditLogCount" class="text-[10px] text-slate-400">共 0 筆紀錄</span>
                 </div>
                 <div id="auditLogContainer" class="space-y-1.5 max-h-36 overflow-y-auto p-2 bg-[#F8FAFC] border border-sky-100 rounded-xl text-[11px]"></div>
@@ -264,13 +264,10 @@ input[type="date"], input[type="time"], select {
     </div>
 </div>
 
-<!-- 彈窗 3：核准入會確認 Modal -->
+<!-- 彈窗 3：核准入會確認 Modal (無符號) -->
 <div id="approveConfirmModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
     <div class="bg-white w-full max-w-xs rounded-[28px] p-6 border-2 border-sky-200 soft-sky-shadow text-center">
-        <div class="w-12 h-12 bg-sky-50 rounded-full flex items-center justify-center mx-auto mb-3 text-xl border border-sky-200">
-            ✅
-        </div>
-        <h3 class="text-base font-black text-slate-900 mb-1">確認核准入會？</h3>
+        <h3 class="text-base font-black text-slate-900 mb-1 mt-2">確認核准入會？</h3>
         <p id="approveConfirmText" class="text-xs text-slate-500 mb-5">將核准此成員加入公會並設為現任成員</p>
         <input type="hidden" id="approveTargetUid">
         <div class="grid grid-cols-2 gap-2">
@@ -280,13 +277,10 @@ input[type="date"], input[type="time"], select {
     </div>
 </div>
 
-<!-- 彈窗 4：退會確認 Modal -->
+<!-- 彈窗 4：退會確認 Modal (無符號) -->
 <div id="retireConfirmModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
     <div class="bg-white w-full max-w-xs rounded-[28px] p-6 border-2 border-rose-200 soft-sky-shadow text-center">
-        <div class="w-12 h-12 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-3 text-xl border border-rose-200">
-            ⚠️
-        </div>
-        <h3 class="text-base font-black text-slate-900 mb-1">確認設為退會？</h3>
+        <h3 class="text-base font-black text-slate-900 mb-1 mt-2">確認設為退會？</h3>
         <p id="retireConfirmText" class="text-xs text-slate-500 mb-5">將把此成員身分更新為退會狀態</p>
         <input type="hidden" id="retireTargetUid">
         <div class="grid grid-cols-2 gap-2">
@@ -296,13 +290,10 @@ input[type="date"], input[type="time"], select {
     </div>
 </div>
 
-<!-- 彈窗 5：刪除會員確認 Modal -->
+<!-- 彈窗 5：刪除會員確認 Modal (無符號) -->
 <div id="deleteMemberConfirmModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
     <div class="bg-white w-full max-w-xs rounded-[28px] p-6 border-2 border-rose-200 soft-sky-shadow text-center">
-        <div class="w-12 h-12 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-3 text-xl border border-rose-200">
-            🗑️
-        </div>
-        <h3 class="text-base font-black text-slate-900 mb-1">確認刪除會員？</h3>
+        <h3 class="text-base font-black text-slate-900 mb-1 mt-2">確認刪除會員？</h3>
         <p id="deleteMemberConfirmText" class="text-xs text-slate-500 mb-5">確定要將此成員從資料庫中刪除嗎？</p>
         <input type="hidden" id="deleteMemberTargetUid">
         <div class="grid grid-cols-2 gap-2">
@@ -312,13 +303,10 @@ input[type="date"], input[type="time"], select {
     </div>
 </div>
 
-<!-- 彈窗 6：封存團體確認 Modal -->
+<!-- 彈窗 6：封存團體確認 Modal (無符號) -->
 <div id="archiveGroupConfirmModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
     <div class="bg-white w-full max-w-xs rounded-[28px] p-6 border-2 border-amber-200 soft-sky-shadow text-center">
-        <div class="w-12 h-12 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-3 text-xl border border-amber-200">
-            📦
-        </div>
-        <h3 class="text-base font-black text-slate-900 mb-1">確認封存團體？</h3>
+        <h3 class="text-base font-black text-slate-900 mb-1 mt-2">確認封存團體？</h3>
         <p id="archiveGroupConfirmText" class="text-xs text-slate-500 mb-5">將此團體移至封存區</p>
         <input type="hidden" id="archiveGroupTargetName">
         <div class="grid grid-cols-2 gap-2">
@@ -671,11 +659,10 @@ input[type="date"], input[type="time"], select {
         renderGroupOverview();
     }
 
+    // 解除團體封鎖直接執行，不需要確認視窗
     function unarchiveGroup(groupName) {
-        if (confirm(`確定將【${groupName}】恢復為活躍團體嗎？`)) {
-            manuallyArchivedGroups = manuallyArchivedGroups.filter(g => g !== groupName);
-            renderGroupOverview();
-        }
+        manuallyArchivedGroups = manuallyArchivedGroups.filter(g => g !== groupName);
+        renderGroupOverview();
     }
 
     function openCreateGroupModal() {
@@ -712,7 +699,7 @@ input[type="date"], input[type="time"], select {
                 m.teamGroup = groupName;
                 await fetch(`${BACKEND_API_URL}/api/admin/members/save`, {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ ...m, allowSearch: m.allowSearch || 'N', joinedLineGroup: m.joinedLineGroup || 'N', joinedDc: m.joinedDc || 'N' })
+                    body: JSON.stringify({ ...m, joinedLineGroup: m.joinedLineGroup || 'N', joinedDc: m.joinedDc || 'N' })
                 });
             }
         }
@@ -758,7 +745,6 @@ input[type="date"], input[type="time"], select {
             auditSection.classList.remove('hidden');
             document.getElementById('deleteMemberBtnWrapper').classList.remove('hidden');
 
-            // 取得對應的異動歷程 (`member_audit_logs`)
             try {
                 const logRes = await fetch(`${BACKEND_API_URL}/api/admin/members/logs/${encodeURIComponent(lineUserId)}`);
                 if (logRes.ok) {
@@ -804,7 +790,6 @@ input[type="date"], input[type="time"], select {
             guildRole: document.getElementById('formGuildRole').value,
             teamGroup: document.getElementById('formTeamGroup').value.trim(),
             accountStatus: document.getElementById('formAccountStatus').value,
-            allowSearch: document.getElementById('formAllowSearch').checked ? 'Y' : 'N',
             joinedLineGroup: document.getElementById('formJoinedLineGroup').checked ? 'Y' : 'N',
             joinedDc: document.getElementById('formJoinedDc').checked ? 'Y' : 'N'
         };
