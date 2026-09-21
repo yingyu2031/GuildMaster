@@ -34,14 +34,6 @@ input[type="date"], input[type="time"], select {
  line-height: 40px;
  box-sizing: border-box;
 }
-/* 滾輪式時間選擇器隱藏滾動條但保持滾動 */
-.wheel-container::-webkit-scrollbar {
- display: none;
-}
-.wheel-container {
- -ms-overflow-style: none;
- scrollbar-width: none;
-}
 </style>
 </head>
 <body class="bg-[#F0F9FF] text-slate-800 antialiased selection:bg-sky-200 selection:text-sky-900 min-h-screen flex flex-col justify-between py-6 px-3 sm:px-4">
@@ -627,7 +619,7 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  </div>
 </div>
 
-<!-- 滑輪式時間選擇器內嵌彈窗 (模仿截圖 6) -->
+<!-- 滑輪式時間選擇器內嵌彈窗 -->
 <div id="timeWheelModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 fade-in">
  <div class="bg-white w-full max-w-sm rounded-t-[28px] sm:rounded-[28px] p-6 border-2 border-sky-200 soft-sky-shadow text-center">
  <h3 class="text-sm font-black text-slate-900 mb-3">選擇最晚截止時間</h3>
@@ -635,13 +627,11 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  <div>
  <label class="block text-[10px] text-slate-400 font-bold mb-1">小時 (Hour)</label>
  <select id="wheelHourSelect" class="w-full h-[40px] bg-white border border-sky-200 rounded-xl text-center text-sm font-black text-slate-900 cursor-pointer">
- <!-- 00-23 -->
  </select>
  </div>
  <div>
  <label class="block text-[10px] text-slate-400 font-bold mb-1">分鐘 (Minute)</label>
  <select id="wheelMinuteSelect" class="w-full h-[40px] bg-white border border-sky-200 rounded-xl text-center text-sm font-black text-slate-900 cursor-pointer">
- <!-- 00-59 -->
  </select>
  </div>
  </div>
@@ -704,7 +694,7 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  </div>
 </div>
 
-<!-- 統一風格彈窗：編輯/刪除職業確認 Modal -->
+<!-- 統一風格彈窗：編輯職業名稱 Modal -->
 <div id="editClassModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
  <div class="bg-white w-full max-w-xs rounded-[28px] p-6 border-2 border-sky-200 soft-sky-shadow text-center">
  <h3 class="text-base font-black text-slate-900 mb-1 mt-2">修改職業名稱</h3>
@@ -1567,10 +1557,10 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  item.innerHTML = `
  <div>
  <div class="font-black text-slate-900">${r.event}</div>
- <div class="text-[11px] text-slate-500 font-bold">最晚截止：<span class="font-mono text-sky-700">${r.latestTime}</span>${cycleText}</div>
+ <div class="text-[11px] text-slate-500 font-bold">最晚截止：<span class="font-mono text-sky-700">${r.latestTime || r.time || '20:00'}</span>${cycleText}</div>
  </div>
  <div class="flex items-center gap-2">
- <button onclick="openUrgentRuleModal('edit', '${r.event}', '${r.latestTime}', '${r.cycle || ''}', ${r.enabled})" class="text-xs text-sky-700 hover:text-sky-800 font-bold cursor-pointer">編輯</button>
+ <button onclick="openUrgentRuleModal('edit', '${r.event}', '${r.latestTime || r.time || '20:00'}', '${r.cycle || ''}', ${r.enabled})" class="text-xs text-sky-700 hover:text-sky-800 font-bold cursor-pointer">編輯</button>
  <span class="text-slate-300">|</span>
  <input type="checkbox" ${r.enabled === 1 ? 'checked' : ''} onchange="toggleRuleEnabled('${r.event}', this.checked)" class="w-4 h-4 accent-sky-500 cursor-pointer">
  </div>
@@ -1738,10 +1728,11 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  async function toggleRuleEnabled(eventName, isEnabled) {
  const rule = leaveRulesData.find(r => r.event === eventName);
  if (!rule) return;
+ const timeVal = rule.latestTime || rule.time || "20:00";
  try {
  await fetch(`${BACKEND_API_URL}/api/admin/leave-rules/save`, {
  method: 'POST', headers: { 'Content-Type': 'application/json' },
- body: JSON.stringify({ originalEvent: eventName, event: eventName, latestTime: rule.latestTime, cycle: rule.cycle, enabled: isEnabled ? 1 : 0 })
+ body: JSON.stringify({ originalEvent: eventName, event: eventName, latestTime: timeVal, cycle: rule.cycle, enabled: isEnabled ? 1 : 0 })
  });
  await renderUrgentRules();
  } catch (err) { alert("更新狀態失敗"); }
@@ -1788,12 +1779,13 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  document.getElementById('urgentRuleForm').reset();
  selectedCycleDays = [];
  
+ const resolvedTime = latestTime || "20:00";
  if (mode === 'edit') {
  document.getElementById('urgentRuleModalTitle').textContent = "編輯請假項目與時間";
  document.getElementById('ruleOriginalEventName').value = event;
  document.getElementById('ruleEventName').value = event;
- document.getElementById('ruleLatestTime').value = latestTime || "20:00";
- document.getElementById('ruleLatestTimeDisplay').textContent = latestTime || "20:00";
+ document.getElementById('ruleLatestTime').value = resolvedTime;
+ document.getElementById('ruleLatestTimeDisplay').textContent = resolvedTime;
  document.getElementById('ruleEnabled').checked = (enabled === 1);
  if (cycle) {
  selectedCycleDays = cycle.split(',').map(s => s.trim().replace('週', ''));
@@ -2004,7 +1996,6 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  function openCreateGroupModal() {
  const container = document.getElementById('groupCandidateList');
  container.innerHTML = "";
- // 篩選掉已經有團體的名單（僅列出 teamGroup 為空或未設定的現任已審核成員）
  const activeMembers = membersData.filter(m => m.accountStatus === "已審核" && m.guildRole !== "退會" && (!m.teamGroup || m.teamGroup.trim() === ""));
  
  if (activeMembers.length === 0) {
