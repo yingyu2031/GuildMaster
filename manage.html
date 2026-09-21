@@ -96,7 +96,7 @@ input[type="date"], input[type="time"], select {
     <!-- 主體內容卡片 -->
     <div class="bg-white rounded-b-2xl p-4 sm:p-5 border-2 border-t-0 border-sky-200/80 soft-sky-shadow mb-6">
 
-        <!-- 區塊 1：會員名冊 -->
+        <!-- 區塊 1：會員名冊 (完整保留您的設定與互動) -->
         <section id="sectionMembers" class="space-y-4">
             <div class="grid grid-cols-4 gap-1 p-1 bg-sky-50 rounded-xl border border-sky-100 text-xs font-bold">
                 <button id="subTabPending" onclick="switchMemberSubTab('pending')" class="py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black cursor-pointer">待審核</button>
@@ -105,7 +105,6 @@ input[type="date"], input[type="time"], select {
                 <button id="subTabRetired" onclick="switchMemberSubTab('retired')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800 cursor-pointer">退會封存</button>
             </div>
 
-            <!-- 搜尋角色與職業篩選 -->
             <div class="flex gap-2 items-center">
                 <div class="relative flex-1 min-w-0">
                     <input type="text" id="memberSearchInput" oninput="handleMemberSearchInput()" placeholder="搜尋角色或 LINE 暱稱..."
@@ -137,34 +136,162 @@ input[type="date"], input[type="time"], select {
             <div id="memberListContainer" class="space-y-3 min-h-[260px]"></div>
         </section>
 
-        <!-- 區塊 2：請假紀錄 -->
-        <section id="sectionLeaves" class="hidden space-y-3">
-            <div class="flex items-center justify-between px-1">
-                <h3 class="text-xs font-black text-slate-800">會員請假紀錄總覽</h3>
-                <span id="leaveCountText" class="text-xs font-bold text-slate-500">共 0 筆</span>
+        <!-- 區塊 2：請假紀錄（完整還原三子頁籤與排名儀表板） -->
+        <section id="sectionLeaves" class="hidden space-y-4 text-left">
+            <div class="grid grid-cols-3 gap-1 p-1 bg-sky-50 rounded-xl border border-sky-100 text-[11px] font-bold">
+                <button id="leaveSubTabRank" onclick="switchLeaveSubView('rank')" class="py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black cursor-pointer">排名統計</button>
+                <button id="leaveSubTabToday" onclick="switchLeaveSubView('today')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800 flex items-center justify-center gap-1 cursor-pointer">
+                    <span>今日請假</span>
+                    <span id="badgeTodayLeaveCount" class="bg-rose-500 text-white text-[10px] px-1.5 py-0.2 rounded-full hidden">0</span>
+                </button>
+                <button id="leaveSubTabList" onclick="switchLeaveSubView('list')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800 cursor-pointer">全部紀錄列表</button>
             </div>
-            <div id="leavesListContainer" class="space-y-3 min-h-[220px]"></div>
+
+            <!-- 視圖 A：排名儀表板 -->
+            <div id="leaveRankView" class="space-y-3">
+                <div class="flex items-center justify-between bg-sky-50/60 rounded-xl p-2 border border-sky-100">
+                    <span class="text-xs font-bold text-slate-600">統計維度：</span>
+                    <div class="flex gap-1">
+                        <button id="rankFilterAll" onclick="setRankType('all')" class="px-2.5 py-1 text-xs font-black rounded-lg bg-sky-500 text-white shadow-xs cursor-pointer">全部累積</button>
+                        <button id="rankFilterMonth" onclick="setRankType('month')" class="px-2.5 py-1 text-xs font-bold rounded-lg bg-white text-slate-600 border border-sky-100 cursor-pointer">當月統計</button>
+                        <button id="rankFilterUrgent" onclick="setRankType('urgent')" class="px-2.5 py-1 text-xs font-bold rounded-lg bg-white text-slate-600 border border-sky-100 cursor-pointer">臨時請假</button>
+                    </div>
+                </div>
+                <div id="rankListContainer" class="space-y-2"></div>
+            </div>
+
+            <!-- 視圖 B：今日請假專屬清單 -->
+            <div id="leaveTodayView" class="hidden space-y-3">
+                <div class="flex items-center justify-between px-1">
+                    <span class="text-xs font-bold text-slate-500" id="todayDateLabel">今日日期：載入中</span>
+                    <span class="text-xs font-black text-sky-900" id="todayLeaveSummaryText">共 0 人請假</span>
+                </div>
+                <div id="leaveTodayContainer" class="space-y-2.5"></div>
+            </div>
+
+            <!-- 視圖 C：全部請假紀錄列表 -->
+            <div id="leaveListView" class="hidden space-y-3">
+                <div class="space-y-2">
+                    <input type="text" id="leaveSearchInput" oninput="renderLeaveList()" placeholder="搜尋角色或活動名稱..."
+                           class="w-full h-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:bg-white transition box-border">
+                    
+                    <div class="flex items-center gap-1.5">
+                        <div class="flex-1 flex items-center bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 h-[40px] focus-within:ring-2 focus-within:ring-sky-400 focus-within:bg-white transition box-border">
+                            <span class="text-slate-400 text-xs font-bold whitespace-nowrap mr-1 select-none">搜尋請假日期：</span>
+                            <input type="date" id="leaveDateFilter" onchange="renderLeaveList()" 
+                                   class="w-full h-full bg-transparent border-0 p-0 text-xs font-bold text-slate-900 focus:outline-none cursor-pointer">
+                        </div>
+                        <button onclick="clearLeaveDateFilter()" class="bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold px-3 h-[40px] rounded-xl transition box-border whitespace-nowrap cursor-pointer">
+                            清除
+                        </button>
+                    </div>
+                </div>
+                <div id="leaveHistoryContainer" class="space-y-2.5"></div>
+            </div>
         </section>
 
         <!-- 區塊 3：活動列表 -->
-        <section id="sectionEvents" class="hidden space-y-3">
-            <div class="flex items-center justify-between px-1">
-                <h3 class="text-xs font-black text-slate-800">公會活動管理</h3>
+        <section id="sectionEvents" class="hidden space-y-4 text-left">
+            <div class="grid grid-cols-2 gap-1 p-1 bg-sky-50 rounded-xl border border-sky-100 text-xs font-bold">
+                <button id="eventSubTabActive" onclick="switchEventSubTab('active')" class="py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black cursor-pointer">進行中活動</button>
+                <button id="eventSubTabArchived" onclick="switchEventSubTab('archived')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800 cursor-pointer">封存活動 (已結束)</button>
+            </div>
+
+            <div class="flex items-center justify-between text-xs font-bold px-1">
+                <div class="flex items-center gap-2">
+                    <span id="eventCountText" class="text-sky-900 font-black">共 0 場活動</span>
+                    <span class="text-slate-400 font-normal">| 點擊檢視名冊</span>
+                </div>
                 <button onclick="openEventModal('create')" class="bg-sky-500 hover:bg-sky-600 active:scale-95 text-white text-xs font-black px-3 py-1.5 rounded-xl shadow-xs transition cursor-pointer">
-                    + 新增活動
+                    + 建立活動
                 </button>
             </div>
-            <div id="eventsListContainer" class="space-y-3 min-h-[220px]"></div>
+            <div id="eventListContainer" class="space-y-3"></div>
         </section>
 
         <!-- 區塊 4：其他設定 -->
         <section id="sectionSettings" class="hidden space-y-4 text-left">
-            <div class="bg-[#F8FAFC] border border-sky-100 rounded-2xl p-4 space-y-3">
-                <h3 class="text-xs font-black text-slate-900">系統公告與參數設定</h3>
-                <p class="text-xs text-slate-500 leading-relaxed">在此可管理公會相關布告欄、系統基本設定或查看健康狀態。</p>
-                <div class="pt-2 border-t border-slate-200/60 flex items-center justify-between text-xs">
-                    <span class="font-bold text-slate-700">資料庫連線狀態</span>
-                    <span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-black">正常運行中</span>
+            <div class="grid grid-cols-3 gap-1 p-1 bg-sky-50 rounded-xl border border-sky-100 text-xs font-bold">
+                <button id="subTabSettingLine" onclick="switchSettingSubTab('line')" class="py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black cursor-pointer">LINE群</button>
+                <button id="subTabSettingBroadcast" onclick="switchSettingSubTab('broadcast')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800 cursor-pointer">推播</button>
+                <button id="subTabSettingClasses" onclick="switchSettingSubTab('classes')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800 cursor-pointer">職業</button>
+            </div>
+
+            <!-- 子視圖 1：LINE群 -->
+            <div id="settingViewLine" class="space-y-3 text-left fade-in">
+                <div class="bg-[#F8FAFC] rounded-2xl p-4 border border-sky-100">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-black text-slate-900">LINE 推播群組 ID 設定</span>
+                        <span id="groupIdSaveMsg" class="text-[10px] text-emerald-600 font-bold hidden">已儲存完成</span>
+                    </div>
+                    <p class="text-[11px] text-slate-500 mb-3">設定推播目標群組識別碼，供系統判定發送至公會大群或幹部專用群組。</p>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-3">
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-600 mb-1">公會大群組 ID</label>
+                            <input type="text" id="guildGroupIdInput" placeholder="例如：C1234567890abcdef..."
+                                   class="w-full h-[38px] bg-white border border-sky-200 rounded-xl px-2.5 text-xs font-mono font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400 box-border">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-600 mb-1">幹部專用群組 ID</label>
+                            <input type="text" id="adminGroupIdInput" placeholder="例如：C0987654321fedcba..."
+                                   class="w-full h-[38px] bg-white border border-sky-200 rounded-xl px-2.5 text-xs font-mono font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400 box-border">
+                        </div>
+                    </div>
+                    <button onclick="saveGroupSettings()" class="w-full bg-white hover:bg-sky-50 text-sky-800 border border-sky-200 text-xs font-bold py-2 rounded-xl transition shadow-xs cursor-pointer">
+                        儲存群組 ID 設定
+                    </button>
+                </div>
+            </div>
+
+            <!-- 子視圖 2：推播 -->
+            <div id="settingViewBroadcast" class="hidden space-y-4 text-left fade-in">
+                <div class="p-3 bg-rose-50 border border-rose-200 rounded-xl text-left">
+                    <div class="text-xs font-black text-rose-700 mb-1">LINE 訊息發送額度提醒</div>
+                    <p class="text-[11px] text-rose-600 leading-relaxed font-bold">
+                        目前 LINE 官方帳號免費訊息額度為每月 200 則。若推播頻率較高或群組人數多導致用量超過 200 則，請務必自行至 LINE Official Account Manager 後台升級輕量/中量方案，避免訊息遭系統中斷。
+                    </p>
+                </div>
+
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <span class="text-xs font-black text-slate-900">請假項目與超時推播規則</span>
+                            <div class="text-[10px] text-slate-400 font-bold">此處清單將同時作為前台請假單選項</div>
+                        </div>
+                        <button onclick="openUrgentRuleModal('create')" class="text-xs font-bold text-sky-600 hover:text-sky-700 bg-sky-50 px-2.5 py-1 rounded-lg border border-sky-200 cursor-pointer">
+                            + 新增請假項目
+                        </button>
+                    </div>
+                    <div id="urgentRuleContainer" class="space-y-2"></div>
+                </div>
+
+                <div class="border-t border-slate-100 pt-2"></div>
+
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-black text-slate-900">固定與事件推播排程</span>
+                        <button onclick="openBroadcastModal('create')" class="text-xs font-bold text-sky-600 hover:text-sky-700 bg-sky-50 px-2.5 py-1 rounded-lg border border-sky-200 cursor-pointer">
+                            + 新增排程
+                        </button>
+                    </div>
+                    <div id="scheduleBroadcastContainer" class="space-y-2"></div>
+                </div>
+            </div>
+
+            <!-- 子視圖 3：職業 -->
+            <div id="settingViewClasses" class="hidden space-y-3 text-left fade-in">
+                <div>
+                    <h3 class="text-sm font-black text-slate-900">遊戲職業選單設定</h3>
+                    <p class="text-[11px] text-slate-500 mt-0.5">自訂當前手遊的職業項目，全系統表單與篩選將即時連動套用。</p>
+                </div>
+                <div class="flex gap-2 my-2 items-center">
+                    <input type="text" id="newClassInput" placeholder="輸入新職業名稱（例：拳聖、槍騎...）"
+                           class="flex-1 min-w-0 h-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400 box-border">
+                    <button onclick="addNewCustomClass()" class="shrink-0 whitespace-nowrap bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold px-3.5 h-[40px] rounded-xl shadow-sm transition box-border cursor-pointer">
+                        + 新增職業
+                    </button>
+                </div>
+                <div id="classListContainer" class="flex flex-wrap gap-2 p-3 bg-[#F8FAFC] border border-sky-100 rounded-2xl min-h-[100px]">
                 </div>
             </div>
         </section>
@@ -354,6 +481,7 @@ input[type="date"], input[type="time"], select {
     let currentAdminUser = { lineUserId: "", gameNickname: "", gameClass: "", guildRole: "", accountStatus: "" };
     let membersData = [], leavesData = [], eventsData = [], manuallyArchivedGroups = [];
     let currentMainSection = "members", currentMemberSubTab = "pending", currentGroupSubTab = "active";
+    let currentLeaveSubTab = "rank", currentLeaveMetric = "all";
 
     window.addEventListener("DOMContentLoaded", async () => {
         const urlParams = new URLSearchParams(window.location.search);
@@ -395,8 +523,9 @@ input[type="date"], input[type="time"], select {
         await fetchAllBackendData();
         updateMemberCounts();
         renderMembersList();
-        renderLeavesList();
+        renderLeavesContent();
         renderEventsList();
+        loadSettingsData();
     });
 
     async function fetchAllBackendData() {
@@ -409,6 +538,20 @@ input[type="date"], input[type="time"], select {
             if (mRes.ok) { const d = await mRes.json(); if (d.status === "success") membersData = d.members; }
             if (lRes.ok) { const d = await lRes.json(); if (d.status === "success") leavesData = d.leaves; }
             if (eRes.ok) { const d = await eRes.json(); if (d.status === "success") eventsData = d.events; }
+        } catch (err) { console.error(err); }
+    }
+
+    async function loadSettingsData() {
+        try {
+            const res = await fetch(`${BACKEND_API_URL}/api/admin/configs`);
+            if (res.ok) {
+                const data = await res.json();
+                if (data.status === "success" && data.configs) {
+                    if (data.configs.guild_group_id) document.getElementById('guildGroupIdInput').value = data.configs.guild_group_id;
+                    if (data.configs.admin_group_id) document.getElementById('adminGroupIdInput').value = data.configs.admin_group_id;
+                }
+            }
+            renderCustomClasses();
         } catch (err) { console.error(err); }
     }
 
@@ -438,6 +581,7 @@ input[type="date"], input[type="time"], select {
                     : "text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl transition-all whitespace-nowrap flex items-center gap-1 cursor-pointer";
             }
         });
+        if (section === 'leaves') renderLeavesContent();
     }
 
     function switchMemberSubTab(tab) {
@@ -450,6 +594,33 @@ input[type="date"], input[type="time"], select {
 
         if (tab === 'groups') renderGroupOverview();
         else renderMembersList();
+    }
+
+    function switchLeaveSubView(subView) {
+        currentLeaveSubTab = subView;
+        document.getElementById('leaveSubTabRank').className = (subView === 'rank') ? "py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black cursor-pointer" : "py-1.5 rounded-lg text-slate-500 hover:text-slate-800 cursor-pointer";
+        document.getElementById('leaveSubTabToday').className = (subView === 'today') ? "py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black flex items-center justify-center gap-1 cursor-pointer" : "py-1.5 rounded-lg text-slate-500 hover:text-slate-800 flex items-center justify-center gap-1 cursor-pointer";
+        document.getElementById('leaveSubTabList').className = (subView === 'list') ? "py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black cursor-pointer" : "py-1.5 rounded-lg text-slate-500 hover:text-slate-800 cursor-pointer";
+
+        document.getElementById('leaveRankView').classList.toggle('hidden', subView !== 'rank');
+        document.getElementById('leaveTodayView').classList.toggle('hidden', subView !== 'today');
+        document.getElementById('leaveListView').classList.toggle('hidden', subView !== 'list');
+        renderLeavesContent();
+    }
+
+    function setRankType(type) {
+        currentLeaveMetric = type;
+        ['all', 'month', 'urgent'].forEach(k => {
+            document.getElementById('rankFilter' + k.charAt(0).toUpperCase() + k.slice(1)).className = (k === type) ? "px-2.5 py-1 text-xs font-black rounded-lg bg-sky-500 text-white shadow-xs cursor-pointer" : "px-2.5 py-1 text-xs font-bold rounded-lg bg-white text-slate-600 border border-sky-100 cursor-pointer";
+        });
+        renderLeavesContent();
+    }
+
+    function switchSettingSubTab(subTab) {
+        ['line', 'broadcast', 'classes'].forEach(k => {
+            document.getElementById('settingView' + k.charAt(0).toUpperCase() + k.slice(1)).classList.toggle('hidden', k !== subTab);
+            document.getElementById('subTabSetting' + k.charAt(0).toUpperCase() + k.slice(1)).className = (k === subTab) ? "py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black cursor-pointer" : "py-1.5 rounded-lg text-slate-500 hover:text-slate-800 cursor-pointer";
+        });
     }
 
     function switchGroupSubTab(subTab) {
@@ -473,7 +644,14 @@ input[type="date"], input[type="time"], select {
         const todayStr = new Date().toISOString().split('T')[0];
         const todayLeaves = leavesData.filter(l => l.date === todayStr).length;
         const leaveBadge = document.getElementById('badgeMainTodayLeave');
-        if (todayLeaves > 0) { leaveBadge.textContent = todayLeaves; leaveBadge.classList.remove('hidden'); } else { leaveBadge.classList.add('hidden'); }
+        const todayCountBadge = document.getElementById('badgeTodayLeaveCount');
+        if (todayLeaves > 0) {
+            leaveBadge.textContent = todayLeaves; leaveBadge.classList.remove('hidden');
+            todayCountBadge.textContent = todayLeaves; todayCountBadge.classList.remove('hidden');
+        } else {
+            leaveBadge.classList.add('hidden');
+            todayCountBadge.classList.add('hidden');
+        }
     }
 
     function renderMembersList() {
@@ -552,17 +730,106 @@ input[type="date"], input[type="time"], select {
         });
     }
 
-    function renderLeavesList() {
-        const container = document.getElementById('leavesListContainer');
+    function renderLeavesContent() {
+        if (currentLeaveSubTab === 'rank') {
+            const container = document.getElementById('rankListContainer');
+            container.innerHTML = "";
+            const counts = {};
+            const now = new Date();
+            const currentYearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+            leavesData.forEach(l => {
+                if (currentLeaveMetric === 'month' && (!l.date || !l.date.startsWith(currentYearMonth))) return;
+                if (currentLeaveMetric === 'urgent' && !l.isUrgent) return;
+
+                const key = l.gameNickname;
+                if (!counts[key]) counts[key] = { nickname: l.gameNickname, gameClass: l.gameClass || '-', urgentCount: 0, totalCount: 0 };
+                counts[key].totalCount++;
+                if (l.isUrgent) counts[key].urgentCount++;
+            });
+
+            let rankList = Object.values(counts).sort((a, b) => b.totalCount - a.totalCount);
+            if (rankList.length === 0) {
+                container.innerHTML = `<div class="bg-[#F8FAFC] rounded-2xl p-6 text-center text-xs text-slate-400 font-bold border border-sky-100">目前尚無符合條件的請假排名統計</div>`;
+                return;
+            }
+
+            rankList.forEach((item, index) => {
+                const card = document.createElement('div');
+                card.className = "bg-white rounded-2xl p-3.5 border border-sky-100 soft-sky-shadow flex items-center justify-between text-left fade-in";
+                card.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <div class="w-7 h-7 rounded-full bg-sky-100 text-sky-800 font-black text-xs flex items-center justify-center shrink-0 border border-sky-200">
+                            ${index + 1}
+                        </div>
+                        <div>
+                            <h3 class="text-xs font-black text-slate-900">${item.nickname}</h3>
+                            <p class="text-[10px] text-slate-500 font-bold">${item.gameClass}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-4 text-right">
+                        <div>
+                            <div class="text-[10px] text-slate-400">臨時請假</div>
+                            <div class="text-xs font-black text-rose-600">${item.urgentCount} 次</div>
+                        </div>
+                        <div>
+                            <div class="text-[10px] text-slate-400">總缺勤</div>
+                            <div class="text-xs font-black text-slate-900">${item.totalCount} 次</div>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        } else if (currentLeaveSubTab === 'today') {
+            const todayStr = new Date().toISOString().split('T')[0];
+            document.getElementById('todayDateLabel').textContent = `今日日期：${todayStr}`;
+            const todayList = leavesData.filter(l => l.date === todayStr);
+            document.getElementById('todayLeaveSummaryText').textContent = `共 ${todayList.length} 人請假`;
+
+            const container = document.getElementById('leaveTodayContainer');
+            container.innerHTML = "";
+            if (todayList.length === 0) {
+                container.innerHTML = `<div class="bg-[#F8FAFC] rounded-2xl p-6 text-center text-xs text-slate-400 font-bold border border-sky-100">今日尚無成員請假</div>`;
+                return;
+            }
+            todayList.forEach(l => {
+                const card = document.createElement('div');
+                card.className = "bg-white rounded-2xl p-3.5 border border-sky-100 soft-sky-shadow text-left space-y-1.5 fade-in";
+                card.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-black text-slate-900">${l.gameNickname} (${l.gameClass || '-'})</span>
+                        <span class="text-[10px] bg-rose-100 text-rose-700 px-2 py-0.5 rounded font-bold">今日請假</span>
+                    </div>
+                    <div class="text-xs text-slate-600 font-medium">請假活動：<span class="font-bold text-slate-800">${l.event}</span></div>
+                    <div class="text-xs text-slate-600 font-medium bg-[#F8FAFC] p-2 rounded-xl border border-slate-100">原因：${l.reason}</div>
+                `;
+                container.appendChild(card);
+            });
+        } else {
+            renderLeaveList();
+        }
+    }
+
+    function renderLeaveList() {
+        const container = document.getElementById('leaveHistoryContainer');
         container.innerHTML = "";
-        document.getElementById('leaveCountText').textContent = `共 ${leavesData.length} 筆`;
-        if (leavesData.length === 0) {
-            container.innerHTML = `<div class="bg-[#F8FAFC] rounded-2xl p-6 text-center text-xs text-slate-400 font-bold border border-sky-100">目前尚無請假紀錄</div>`;
+        const keyword = document.getElementById('leaveSearchInput').value.trim().toLowerCase();
+        const dateFilter = document.getElementById('leaveDateFilter').value;
+
+        let list = leavesData.filter(l => {
+            const matchKey = (l.gameNickname && l.gameNickname.toLowerCase().includes(keyword)) || (l.event && l.event.toLowerCase().includes(keyword)) || (l.reason && l.reason.toLowerCase().includes(keyword));
+            const matchDate = !dateFilter || l.date === dateFilter;
+            return matchKey && matchDate;
+        });
+
+        if (list.length === 0) {
+            container.innerHTML = `<div class="bg-[#F8FAFC] rounded-2xl p-6 text-center text-xs text-slate-400 font-bold border border-sky-100">查無相符的請假紀錄</div>`;
             return;
         }
-        leavesData.forEach(l => {
+
+        list.forEach(l => {
             const card = document.createElement('div');
-            card.className = "bg-white rounded-2xl p-3.5 border border-sky-100 soft-sky-shadow text-left space-y-1.5";
+            card.className = "bg-white rounded-2xl p-3.5 border border-sky-100 soft-sky-shadow text-left space-y-1.5 fade-in";
             card.innerHTML = `
                 <div class="flex items-center justify-between">
                     <span class="text-xs font-black text-slate-900">${l.gameNickname} (${l.gameClass || '-'})</span>
@@ -575,16 +842,22 @@ input[type="date"], input[type="time"], select {
         });
     }
 
+    function clearLeaveDateFilter() {
+        document.getElementById('leaveDateFilter').value = "";
+        renderLeaveList();
+    }
+
     function renderEventsList() {
-        const container = document.getElementById('eventsListContainer');
+        const container = document.getElementById('eventListContainer');
         container.innerHTML = "";
+        document.getElementById('eventCountText').textContent = `共 ${eventsData.length} 場活動`;
         if (eventsData.length === 0) {
             container.innerHTML = `<div class="bg-[#F8FAFC] rounded-2xl p-6 text-center text-xs text-slate-400 font-bold border border-sky-100">目前尚無活動清單</div>`;
             return;
         }
         eventsData.forEach(e => {
             const card = document.createElement('div');
-            card.className = "bg-white rounded-2xl p-3.5 border border-sky-100 soft-sky-shadow text-left space-y-1";
+            card.className = "bg-white rounded-2xl p-3.5 border border-sky-100 soft-sky-shadow text-left space-y-1 fade-in";
             card.innerHTML = `
                 <div class="flex items-center justify-between">
                     <h3 class="text-xs font-black text-slate-900">${e.title}</h3>
@@ -595,6 +868,43 @@ input[type="date"], input[type="time"], select {
             `;
             container.appendChild(card);
         });
+    }
+
+    async function saveGroupSettings() {
+        const guildId = document.getElementById('guildGroupIdInput').value.trim();
+        const adminId = document.getElementById('adminGroupIdInput').value.trim();
+        try {
+            await Promise.all([
+                fetch(`${BACKEND_API_URL}/api/admin/configs`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ configKey: 'guild_group_id', configValue: guildId }) }),
+                fetch(`${BACKEND_API_URL}/api/admin/configs`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ configKey: 'admin_group_id', configValue: adminId }) })
+            ]);
+            const msg = document.getElementById('groupIdSaveMsg');
+            msg.classList.remove('hidden');
+            setTimeout(() => msg.classList.add('hidden'), 2500);
+        } catch (err) { alert("儲存失敗"); }
+    }
+
+    function renderCustomClasses() {
+        const container = document.getElementById('classListContainer');
+        container.innerHTML = "";
+        customClassList.forEach(cls => {
+            const tag = document.createElement('span');
+            tag.className = "bg-white border border-sky-200 text-sky-900 text-xs font-bold px-3 py-1.5 rounded-xl shadow-xs flex items-center gap-2";
+            tag.innerHTML = `<span>${cls}</span>`;
+            container.appendChild(tag);
+        });
+    }
+
+    function addNewCustomClass() {
+        const input = document.getElementById('newClassInput');
+        const val = input.value.trim();
+        if (!val) return;
+        if (!customClassList.includes(val)) {
+            customClassList.push(val);
+            input.value = "";
+            renderCustomClasses();
+            syncAllClassDropdowns();
+        }
     }
 
     function promptApproveMember(lineUserId, nickname) {
@@ -890,6 +1200,10 @@ input[type="date"], input[type="time"], select {
             alert("儲存失敗");
         }
     });
+
+    function openEventModal(mode) {
+        alert("新增活動功能建置中");
+    }
 
     function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
     function closeLiffWindow() { if (typeof liff !== 'undefined' && liff.closeWindow) liff.closeWindow(); }
