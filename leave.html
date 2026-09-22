@@ -165,7 +165,7 @@
                            class="w-full h-[46px] box-border bg-[#FFFDF9] border border-amber-200 rounded-2xl px-4 text-sm font-bold text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition">
                 </div>
 
-                <!-- 請假活動 -->
+                <!-- 請假活動 (動態抓取 leave_rules) -->
                 <div>
                     <label class="block text-xs font-bold text-amber-900 mb-1.5">
                         請假活動 <span class="text-rose-500">*</span>
@@ -173,12 +173,7 @@
                     <div class="relative">
                         <select id="leaveEvent" required 
                                 class="w-full h-[46px] box-border bg-[#FFFDF9] border border-amber-200 rounded-2xl px-4 text-sm font-bold text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition appearance-none cursor-pointer">
-                            <option value="" disabled selected>請選擇活動</option>
-                            <option value="公會GVG聯賽">公會GVG聯賽</option>
-                            <option value="週常公會副本">週常公會副本</option>
-                            <option value="公會團隊戰">公會團隊戰</option>
-                            <option value="全體公會聚會">全體公會聚會</option>
-                            <option value="其他活動">其他活動</option>
+                            <option value="" disabled selected>載入中...</option>
                         </select>
                         <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-xs text-amber-700">▼</div>
                     </div>
@@ -235,7 +230,7 @@
                     ✓
                 </div>
                 <h3 class="text-lg font-black text-amber-950 mb-1">請假申請已登記</h3>
-                <p class="text-xs text-amber-900/70 max-w-[240px] leading-relaxed mb-5">請假資料已成功寫入後台伺服器，幹部將進行核對。</p>
+                <p id="successSubText" class="text-xs text-amber-900/70 max-w-[240px] leading-relaxed mb-5">請假資料已成功寫入後台伺服器，幹部將進行核對。</p>
                 
                 <button onclick="closeLiffWindow()" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-sm font-bold py-3.5 rounded-2xl shadow-md transition cursor-pointer">
                     關閉回到 LINE
@@ -269,6 +264,7 @@
         };
 
         let availableMembers = [];
+        let leaveRulesMap = {}; // 儲存請假規則 (活動名稱對應 latest_time)
         let isMembersLoading = true;
 
         async function queryMemberFromBackend(uid) {
@@ -435,7 +431,33 @@
             formCard.classList.remove('hidden');
             formCard.classList.add('fade-in');
 
+            loadLeaveRules();
             loadAvailableMembers();
+        }
+
+        // 1. 從後端撈取 leave_rules 渲染活動選單
+        async function loadLeaveRules() {
+            try {
+                const response = await fetch(`${BACKEND_API_URL}/api/admin/leave-rules`);
+                const result = await response.json();
+                const selectEl = document.getElementById('leaveEvent');
+                selectEl.innerHTML = '<option value="" disabled selected>請選擇活動</option>';
+
+                if (result.status === "success" && result.rules) {
+                    result.rules.forEach(rule => {
+                        // 僅顯示啟用的規則 (enabled === 1 或 true)
+                        if (rule.enabled === 1 || rule.enabled === true) {
+                            leaveRulesMap[rule.event] = rule.latest_time; // 記錄截止時間
+                            const opt = document.createElement('option');
+                            opt.value = rule.event;
+                            opt.textContent = rule.event;
+                            selectEl.appendChild(opt);
+                        }
+                    });
+                }
+            } catch (err) {
+                console.error("載入請假規則失敗:", err);
+            }
         }
 
         function resetToSelf() {
@@ -490,27 +512,34 @@
             document.getElementById('memberSelectModal').classList.add('hidden');
         }
 
+        // 3. 檢查代請假資格：現任、已審核、開啟查詢 (allowSearch === 'Y')
         function renderMemberList(list) {
             const container = document.getElementById('memberListContainer');
             container.innerHTML = "";
 
-            const otherMembers = (list || []).filter(m => {
+            const eligibleMembers = (list || []).filter(m => {
                 const isSameUid = m.lineUserId && currentUser.userId && (m.lineUserId === currentUser.userId);
                 const isSameNick = m.gameNickname && currentUser.gameNickname && (m.gameNickname === currentUser.gameNickname);
-                return !isSameUid && !isSameNick;
+                
+                // 排除本人外，必須符合：現任、已審核、開啟查詢
+                const isCurrent = (m.guildRole === '現任');
+                const isApproved = (m.accountStatus === '已審核');
+                const isAllowSearch = (m.allowSearch === 'Y');
+
+                return !isSameUid && !isSameNick && isCurrent && isApproved && isAllowSearch;
             });
 
-            if (otherMembers.length === 0) {
+            if (eligibleMembers.length === 0) {
                 container.innerHTML = `
                     <div class="py-8 text-center">
                         <div class="text-2xl mb-1">🍃</div>
-                        <div class="text-xs font-bold text-amber-900/60">無其他可代申請之成員</div>
+                        <div class="text-xs font-bold text-amber-900/60">無符合條件（現任、已審核、開啟查詢）之其他成員</div>
                     </div>
                 `;
                 return;
             }
 
-            otherMembers.forEach(m => {
+            eligibleMembers.forEach(m => {
                 const item = document.createElement('div');
                 item.className = "flex items-center justify-between p-3 rounded-2xl bg-[#FFFDF9] border border-amber-200/70 hover:bg-amber-100/50 cursor-pointer transition";
                 item.innerHTML = `
@@ -527,10 +556,14 @@
 
         function handleMemberFilter() {
             const val = document.getElementById('memberSearchInput').value.trim().toLowerCase();
-            const filtered = availableMembers.filter(m => 
-                (m.gameNickname && m.gameNickname.toLowerCase().indexOf(val) !== -1) ||
-                (m.lineDisplayName && m.lineDisplayName.toLowerCase().indexOf(val) !== -1)
-            );
+            const filtered = availableMembers.filter(m => {
+                const isCurrent = (m.guildRole === '現任');
+                const isApproved = (m.accountStatus === '已審核');
+                const isAllowSearch = (m.allowSearch === 'Y');
+                const matchText = (m.gameNickname && m.gameNickname.toLowerCase().indexOf(val) !== -1) ||
+                                  (m.lineDisplayName && m.lineDisplayName.toLowerCase().indexOf(val) !== -1);
+                return isCurrent && isApproved && isAllowSearch && matchText;
+            });
             renderMemberList(filtered);
         }
 
@@ -555,6 +588,7 @@
             closeMemberModal();
         }
 
+        // 2. 檢查填單時間是否晚於請假當天的 latest_time 標記為臨時請假
         document.getElementById('leaveForm').addEventListener('submit', async (e) => {
             e.preventDefault();
 
@@ -562,14 +596,37 @@
             submitBtn.textContent = "傳送中...";
             submitBtn.disabled = true;
 
+            const leaveDateVal = document.getElementById('leaveDate').value; // 格式: YYYY-MM-DD
+            const leaveEventVal = document.getElementById('leaveEvent').value;
+            
+            let isUrgent = "N";
+            const latestTimeStr = leaveRulesMap[leaveEventVal]; // 例如 "2026-09-22 18:00" 或 "18:00"
+
+            if (latestTimeStr) {
+                const now = new Date();
+                let deadline;
+                
+                // 若規則有包含完整日期或僅有時間
+                if (latestTimeStr.includes(" ")) {
+                    deadline = new Date(latestTimeStr);
+                } else {
+                    deadline = new Date(`${leaveDateVal}T${latestTimeStr}:00`);
+                }
+
+                if (now > deadline) {
+                    isUrgent = "Y"; // 超過截止時間，標記為臨時請假
+                }
+            }
+
             const payload = {
-                leaveDate: document.getElementById('leaveDate').value,
-                leaveEvent: document.getElementById('leaveEvent').value,
+                leaveDate: leaveDateVal,
+                leaveEvent: leaveEventVal,
                 targetUid: targetMember.userId,
                 gameNickname: targetMember.gameNickname,
                 gameClass: targetMember.gameClass,
                 leaveReason: document.getElementById('leaveReason').value.trim(),
                 note: document.getElementById('leaveNote').value.trim(),
+                isUrgent: isUrgent, // 傳遞臨時請假標記
                 operatorUid: currentUser.userId,
                 operatorName: currentUser.gameNickname || currentUser.displayName
             };
@@ -586,6 +643,14 @@
 
             submitBtn.textContent = "確認送出請假單";
             submitBtn.disabled = false;
+            
+            // 提示訊息根據是否為臨時請假做動態顯示
+            if (isUrgent === "Y") {
+                document.getElementById('successSubText').textContent = "偵測到已超過截止時間，系統已自動幫您標記為【臨時請假】！";
+            } else {
+                document.getElementById('successSubText').textContent = "請假資料已成功寫入後台伺服器，幹部將進行核對。";
+            }
+
             document.getElementById('successModal').classList.remove('hidden');
         });
 
