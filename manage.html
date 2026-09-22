@@ -794,35 +794,22 @@ try {
   const res = await fetch(`${BACKEND_API_URL}/api/members/${encodeURIComponent(currentAdminUser.lineUserId)}`);
   const data = await res.json();
   
-  console.log("後端回傳的驗證資料：", data);
+  // 彈出對話框讓你直接在手機上看到後端回傳了什麼
+  alert(`後端回傳檢查：\nstatus: ${data.status}\nrole: ${data.guild_role}\naccountStatus: ${data.account_status}\nmyUid: ${currentAdminUser.lineUserId}`);
 
-  try {
-  const res = await fetch(`${BACKEND_API_URL}/api/members/${encodeURIComponent(currentAdminUser.lineUserId)}`);
-  const data = await res.json();
-  
-  // 把它們印出來看
-  console.log("後端回傳資料:", data);
-  console.log("目前我的 UID:", currentAdminUser.lineUserId);
-
-  if (data.status !== "found") {
-    alert(`登入失敗：資料庫找不到此 UID (${currentAdminUser.lineUserId})`);
-    return;
-  }
-  if (data.account_status !== "已審核") {
-    alert(`登入失敗：帳號狀態是「${data.account_status}」，必須為「已審核」`);
-    return;
-  }
-  if (String(data.guild_role || "").trim() !== "幹部") {
-    alert(`登入失敗：公會身分是「${data.guild_role}」，必須為「幹部」`);
+  if (data.status !== "found" || data.account_status !== "已審核" || String(data.guild_role || "").trim() !== "幹部") {
+    alert(`身分驗證未通過！\n你目前的職稱是：[${data.guild_role}]\n狀態是：[${data.account_status}]`);
+    if (typeof liff !== 'undefined' && liff.closeWindow) liff.closeWindow();
     return;
   }
   
   currentAdminUser.gameNickname = data.game_nickname || data.gameNickname;
   currentAdminUser.gameClass = data.game_class || data.gameClass;
 } catch (err) {
-  alert("連線伺服器發生錯誤：" + err.message);
+  alert("連線後端伺服器發生錯誤：" + err.message);
   return;
 }
+
 
  await loadCustomClasses(); // 確保先從 API 取得職業清單
  renderAdminIdentity();
