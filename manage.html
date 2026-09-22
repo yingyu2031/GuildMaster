@@ -60,7 +60,7 @@ input[type="date"], input[type="time"], select {
  <div class="bg-white border-2 border-sky-200/80 rounded-2xl p-3.5 mb-5 flex items-center gap-3.5 soft-sky-shadow text-left">
  <div class="relative shrink-0">
  <img id="adminAvatar" src="https://static.line-scdn.net/li-profile-resource/public/default_profile.png" 
-alt="Avatar" class="w-12 h-12 rounded-full object-cover border-2 border-white shadow-xs bg-sky-100">
+ alt="Avatar" class="w-12 h-12 rounded-full object-cover border-2 border-white shadow-xs bg-sky-100">
  <span class="absolute -bottom-1 -right-1 bg-[#06C755] text-white text-[9px] font-black px-1 py-0.2 rounded-full border border-white leading-tight">
  LINE
  </span>
@@ -82,21 +82,21 @@ alt="Avatar" class="w-12 h-12 rounded-full object-cover border-2 border-white sh
  <!-- 4 大主頁籤列 -->
  <div class="bg-sky-500 rounded-t-2xl px-2 pt-3 flex items-end gap-1 select-none overflow-x-auto">
  <button id="mainTabMembers" onclick="switchMainSection('members')" 
-class="bg-white text-sky-900 font-black px-3.5 py-2.5 rounded-t-xl text-xs flex items-center gap-1 transition-all relative top-[1px] shadow-sm whitespace-nowrap cursor-pointer">
+ class="bg-white text-sky-900 font-black px-3.5 py-2.5 rounded-t-xl text-xs flex items-center gap-1 transition-all relative top-[1px] shadow-sm whitespace-nowrap cursor-pointer">
  <span>會員名冊</span>
  <span id="badgePendingCount" class="bg-rose-500 text-white text-[10px] px-1.5 py-0.2 rounded-full hidden">0</span>
  </button>
  <button id="mainTabLeaves" onclick="switchMainSection('leaves')" 
-class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl transition-all whitespace-nowrap flex items-center gap-1 cursor-pointer">
+ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl transition-all whitespace-nowrap flex items-center gap-1 cursor-pointer">
  <span>請假紀錄</span>
  <span id="badgeMainTodayLeave" class="bg-rose-500 text-white text-[10px] px-1.5 py-0.2 rounded-full hidden">0</span>
  </button>
  <button id="mainTabEvents" onclick="switchMainSection('events')" 
-class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl transition-all whitespace-nowrap cursor-pointer">
+ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl transition-all whitespace-nowrap cursor-pointer">
  <span>活動列表</span>
  </button>
  <button id="mainTabSettings" onclick="switchMainSection('settings')" 
-class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl transition-all whitespace-nowrap cursor-pointer">
+ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl transition-all whitespace-nowrap cursor-pointer">
  <span>其他設定</span>
  </button>
  </div>
@@ -745,20 +745,19 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  const MY_LIFF_ID = "2011659633-9Km5nhzg";
  const BACKEND_API_URL = "https://guildmaster.zeabur.app";
 
-let customClassList = []; // 改由 API 動態載入
+ let customClassList = []; // 改由 API 動態載入
 
-  // 載入職業清單 API
-  async function loadCustomClasses() {
-    try {
-      const res = await fetch(`${BACKEND_API_URL}/api/admin/classes`);
-      const data = await res.json();
-      if (data.status === "success" && data.classes) {
-        customClassList = data.classes;
-      }
-    } catch (err) {
-      console.error("載入職業清單失敗:", err);
-    }
-  }
+ async function loadCustomClasses() {
+ try {
+ const res = await fetch(`${BACKEND_API_URL}/api/admin/classes`);
+ const data = await res.json();
+ if (data.status === "success" && data.classes) {
+ customClassList = data.classes;
+ }
+ } catch (err) {
+ console.error("載入職業清單失敗:", err);
+ }
+ }
 
  let currentAdminUser = { lineUserId: "", gameNickname: "", gameClass: "", guildRole: "", accountStatus: "" };
  let membersData = [], leavesData = [], leaveRulesData = [], eventsData = [], broadcastSchedules = [], manuallyArchivedGroups = [];
@@ -787,41 +786,40 @@ let customClassList = []; // 改由 API 動態載入
  } else { liff.login(); return; }
  } catch (err) { console.error(err); }
  }
-if (!isLiffReady && queryUid) currentAdminUser.lineUserId = queryUid;
+
+ if (!isLiffReady && queryUid) currentAdminUser.lineUserId = queryUid;
  if (!currentAdminUser.lineUserId) { alert("非幹部身分不可使用"); return; }
 
  try {
-        const res = await fetch(`${BACKEND_API_URL}/api/members/${encodeURIComponent(currentAdminUser.lineUserId)}`);
-        const data = await res.json();
-        
-        // 已修正：將 camelCase 改為資料庫實際回傳的 snake_case 欄位
-        if (data.status !== "found" || data.account_status !== "已審核" || String(data.guild_role || "").trim() !== "幹部") {
-            alert("非幹部身分不可使用");
-            if (typeof liff !== 'undefined' && liff.closeWindow) liff.closeWindow();
-            return;
-        }
-        
-        currentAdminUser.gameNickname = data.game_nickname || data.gameNickname;
-        currentAdminUser.gameClass = data.game_class || data.gameClass;
-    } catch (err) {
-        alert("非幹部身分不可使用");
-        return;
-    }
-
-    await loadCustomClasses(); // 確保先取得職業資料
-    renderAdminIdentity();
-    loadGroupSettings();
-    syncAllClassDropdowns();
-    renderCustomClassManager();
-    initTimeWheelSelects();
-    await fetchAllBackendData();
-    updateMemberCounts();
-    renderMembersList();
-    renderLeavesContent();
-    renderUrgentRules();
-  });
-
+ const res = await fetch(`${BACKEND_API_URL}/api/members/${encodeURIComponent(currentAdminUser.lineUserId)}`);
+ const data = await res.json();
  
+ if (data.status !== "found" || data.account_status !== "已審核" || String(data.guild_role || "").trim() !== "幹部") {
+ alert("非幹部身分不可使用");
+ if (typeof liff !== 'undefined' && liff.closeWindow) liff.closeWindow();
+ return;
+ }
+ 
+ currentAdminUser.gameNickname = data.game_nickname || data.gameNickname;
+ currentAdminUser.gameClass = data.game_class || data.gameClass;
+ } catch (err) {
+ alert("非幹部身分不可使用");
+ return;
+ }
+
+ await loadCustomClasses(); // 確保先從 API 取得職業清單
+ renderAdminIdentity();
+ loadGroupSettings();
+ syncAllClassDropdowns();
+ renderCustomClassManager();
+ initTimeWheelSelects();
+ await fetchAllBackendData();
+ updateMemberCounts();
+ renderMembersList();
+ renderLeavesContent();
+ renderUrgentRules();
+ });
+
  async function fetchAllBackendData() {
  try {
  const [mRes, lRes, rRes, eRes, bRes] = await Promise.all([
@@ -1266,7 +1264,7 @@ if (!isLiffReady && queryUid) currentAdminUser.lineUserId = queryUid;
  <div>報名開放：${evt.signupStart || '無限制'}</div>
  <div>報名截止：${evt.signupEnd || '活動開始前'}</div>
  </div>
- <p class="text-xs text-slate-600 bg-[#F8FAFC] p-2.5 rounded-xl border border-slate-100 leading-relaxed">${evt.desc || '無備註'}</p>
+ <p class="text-xs text-slate-600 bg-[#F8FAFC] p-2.5 rounded-xl border border-sky-100 leading-relaxed">${evt.desc || '無備註'}</p>
  <div>
  <div class="flex justify-between text-xs font-bold mb-1">
  <span class="text-slate-500">報名進度</span>
@@ -1505,95 +1503,43 @@ if (!isLiffReady && queryUid) currentAdminUser.lineUserId = queryUid;
  document.getElementById('editClassModal').classList.remove('hidden');
  }
 
-async function executeEditClass() {
-    const oldName = document.getElementById('editClassOldName').value;
-    const newName = document.getElementById('editClassNewInput').value.trim();
-    
-    if (!newName) {
-      alert("職業名稱不能為空！");
-      return;
-    }
-    if (customClassList.includes(newName) && newName !== oldName) {
-      alert("此職業名稱已存在！");
-      return;
-    }
+ async function executeEditClass() {
+ const oldName = document.getElementById('editClassOldName').value;
+ const newName = document.getElementById('editClassNewInput').value.trim();
+ 
+ if (!newName) {
+ alert("職業名稱不能為空！");
+ return;
+ }
+ if (customClassList.includes(newName) && newName !== oldName) {
+ alert("此職業名稱已存在！");
+ return;
+ }
 
-    try {
-      const res = await fetch(`${BACKEND_API_URL}/api/admin/classes/rename`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ oldName, newName })
-      });
-      const result = await res.json();
-      if (result.status !== "success") {
-        alert("更新失敗：" + result.message);
-        return;
-      }
-    } catch (err) 
-      console.error(err);
-      alert("網路異常，更新失敗");
-      return;
-    }
+ try {
+ const res = await fetch(`${BACKEND_API_URL}/api/admin/classes/rename`, {
+ method: 'POST',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify({ oldName, newName })
+ });
+ const result = await res.json();
+ if (result.status !== "success") {
+ alert("更新失敗：" + result.message);
+ return;
+ }
+ } catch (err) {
+ console.error(err);
+ alert("網路異常，更新失敗");
+ return;
+ }
 
-    await loadCustomClasses();
-    closeModal('editClassModal');
-    renderCustomClassManager();
-    syncAllClassDropdowns();
-    renderMembersList();
-    await fetchAllBackendData();
-  }
-
-  function promptDeleteClass(idx) {
-    document.getElementById('deleteClassTargetIndex').value = idx;
-    document.getElementById('deleteClassConfirmText').textContent = `確定要移除職業選項【${customClassList[idx]}】嗎？`;
-    document.getElementById('deleteClassConfirmModal').classList.remove('hidden');
-  }
-
-  async function executeDeleteClass() {
-    const idx = parseInt(document.getElementById('deleteClassTargetIndex').value);
-    if (isNaN(idx)) return;
-    const targetClass = customClassList[idx];
-
-    try {
-      await fetch(`${BACKEND_API_URL}/api/admin/classes/delete`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ className: targetClass })
-      });
-    } catch (err) {
-      console.error(err);
-    }
-
-    await loadCustomClasses();
-    closeModal('deleteClassConfirmModal');
-    renderCustomClassManager();
-    syncAllClassDropdowns();
-  }
-
-  async function addNewCustomClass() {
-    const input = document.getElementById('newClassInput');
-    const val = input.value.trim();
-    if (!val) return;
-    if (customClassList.includes(val)) {
-      alert("此職業名稱已存在！");
-      return;
-    }
-
-    try {
-      await fetch(`${BACKEND_API_URL}/api/admin/classes/add`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ className: val })
-      });
-    } catch (err) {
-      console.error(err);
-    }
-
-    input.value = "";
-    await loadCustomClasses();
-    renderCustomClassManager();
-    syncAllClassDropdowns();
-  }
+ await loadCustomClasses();
+ closeModal('editClassModal');
+ renderCustomClassManager();
+ syncAllClassDropdowns();
+ renderMembersList();
+ await fetchAllBackendData();
+ }
 
  function promptDeleteClass(idx) {
  document.getElementById('deleteClassTargetIndex').value = idx;
@@ -1601,17 +1547,28 @@ async function executeEditClass() {
  document.getElementById('deleteClassConfirmModal').classList.remove('hidden');
  }
 
- function executeDeleteClass() {
+ async function executeDeleteClass() {
  const idx = parseInt(document.getElementById('deleteClassTargetIndex').value);
  if (isNaN(idx)) return;
- const target = customClassList[idx];
- customClassList.splice(idx, 1);
+ const targetClass = customClassList[idx];
+
+ try {
+ await fetch(`${BACKEND_API_URL}/api/admin/classes/delete`, {
+ method: 'POST',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify({ className: targetClass })
+ });
+ } catch (err) {
+ console.error(err);
+ }
+
+ await loadCustomClasses();
  closeModal('deleteClassConfirmModal');
  renderCustomClassManager();
  syncAllClassDropdowns();
  }
 
- function addNewCustomClass() {
+ async function addNewCustomClass() {
  const input = document.getElementById('newClassInput');
  const val = input.value.trim();
  if (!val) return;
@@ -1619,8 +1576,19 @@ async function executeEditClass() {
  alert("此職業名稱已存在！");
  return;
  }
- customClassList.push(val);
+
+ try {
+ await fetch(`${BACKEND_API_URL}/api/admin/classes/add`, {
+ method: 'POST',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify({ className: val })
+ });
+ } catch (err) {
+ console.error(err);
+ }
+
  input.value = "";
+ await loadCustomClasses();
  renderCustomClassManager();
  syncAllClassDropdowns();
  }
