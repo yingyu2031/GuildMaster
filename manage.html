@@ -34,6 +34,14 @@ input[type="date"], input[type="time"], select {
  line-height: 40px;
  box-sizing: border-box;
 }
+/* 強制滾輪式時間選擇器的選項文字置中 */
+#wheelHourSelect, #wheelMinuteSelect {
+ text-align-last: center;
+ text-align: center;
+}
+#wheelHourSelect option, #wheelMinuteSelect option {
+ text-align: center;
+}
 </style>
 </head>
 <body class="bg-[#F0F9FF] text-slate-800 antialiased selection:bg-sky-200 selection:text-sky-900 min-h-screen flex flex-col justify-between py-6 px-3 sm:px-4">
@@ -570,7 +578,7 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  </div>
 </div>
 
-<!-- 彈窗 6：請假項目編輯 Modal（含備註說明，無超時推播勾選框） -->
+<!-- 彈窗 6：請假項目編輯 Modal（含溫和說明的最晚截止時間） -->
 <div id="urgentRuleModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
  <div class="bg-white w-full max-w-md rounded-[28px] p-6 border-2 border-sky-200 soft-sky-shadow max-h-[90vh] overflow-y-auto text-left">
  <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
@@ -591,7 +599,7 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  <span class="text-slate-400 text-[10px]">▼</span>
  </div>
  <input type="hidden" id="ruleLatestTime" required value="20:00">
- <p class="text-[10px] text-slate-400 font-bold mt-1 leading-tight">（不會擋會員請假，但會註記為臨時請假，且會及時通知）</p>
+ <p class="text-[10px] text-slate-400 font-bold mt-1 leading-tight">（不會擋會員請假，但會註記為臨時請假，且可設定即時推播）</p>
  </div>
 
  <div>
@@ -1096,7 +1104,7 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  </div>
  </div>
  <div class="text-xs text-slate-600 font-medium">活動：<span class="font-bold text-slate-800">${l.event}</span></div>
- <div class="text-xs text-slate-600 font-medium bg-[#F8FAFC] p-2 rounded-xl border border-sky-100">${l.reason}</div>
+ <div class="text-xs text-slate-600 font-medium bg-[#F8FAFC] p-2 rounded-xl border border-slate-100">${l.reason}</div>
  <div class="flex items-center justify-between text-[10px] text-slate-400 pt-1">
  <span>填單時間：${submitTimeFormatted}</span>
  <span class="text-right">由 ${l.operator_name || '本人'} 登記</span>
@@ -1151,7 +1159,7 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  </div>
  </div>
  <div class="text-xs text-slate-600 font-medium">活動：<span class="font-bold text-slate-800">${l.event}</span></div>
- <div class="text-xs text-slate-600 font-medium bg-[#F8FAFC] p-2 rounded-xl border border-sky-100">${l.reason}</div>
+ <div class="text-xs text-slate-600 font-medium bg-[#F8FAFC] p-2 rounded-xl border border-slate-100">${l.reason}</div>
  <div class="flex items-center justify-between text-[10px] text-slate-400 pt-1">
  <span>填單時間：${submitTimeFormatted}</span>
  <span class="text-right">由 ${l.operator_name || '本人'} 登記</span>
@@ -1615,7 +1623,7 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
 
  function promptToggleRule(eventName, checkboxEl) {
  const targetState = checkboxEl.checked ? 1 : 0;
- checkboxEl.checked = !targetState; // 先恢復狀態，確認後再變更
+ checkboxEl.checked = !targetState; // 先恢復原狀態，等彈窗確認
 
  document.getElementById('toggleRuleName').value = eventName;
  document.getElementById('toggleRuleTargetState').value = targetState;
