@@ -806,7 +806,7 @@ try {
   currentAdminUser.gameClass = data.game_class || data.gameClass;
 
   // 關鍵：這幾行一定要執行，畫面才會把頭像跟暱稱顯示出來！
-  await loadCustomClasses();
+
   renderAdminIdentity();
   loadGroupSettings();
   syncAllClassDropdowns();
