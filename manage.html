@@ -346,7 +346,7 @@ input[type="date"], input[type="time"], select {
  <div class="grid grid-cols-2 gap-3">
  <div>
  <label class="block mb-1 text-slate-800">團體</label>
- <input type="text" id="formTeamGroup" placeholder="例如：媽咪團、一線主力" class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
+ <input type="text" id="formTeamGroup" placeholder="例如：冠廷家族" class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
  </div>
  <div>
  <label class="block mb-1 text-slate-800">審核狀態</label>
@@ -796,27 +796,32 @@ try {
   
   console.log("後端回傳的驗證資料：", data);
 
-  // 加上你的 UID 強制白名單
-  const isMyUid = (currentAdminUser.lineUserId === "U2b228d4c591535f6cdbb37a3e3f69952");
+  try {
+  const res = await fetch(`${BACKEND_API_URL}/api/members/${encodeURIComponent(currentAdminUser.lineUserId)}`);
+  const data = await res.json();
+  
+  // 把它們印出來看
+  console.log("後端回傳資料:", data);
+  console.log("目前我的 UID:", currentAdminUser.lineUserId);
 
-  if (!isMyUid && (data.status !== "found" || (data.account_status !== "已審核" && data.accountStatus !== "已審核"))) {
-    alert("非幹部身分不可使用");
-    if (typeof liff !== 'undefined' && liff.closeWindow) liff.closeWindow();
+  if (data.status !== "found") {
+    alert(`登入失敗：資料庫找不到此 UID (${currentAdminUser.lineUserId})`);
+    return;
+  }
+  if (data.account_status !== "已審核") {
+    alert(`登入失敗：帳號狀態是「${data.account_status}」，必須為「已審核」`);
+    return;
+  }
+  if (String(data.guild_role || "").trim() !== "幹部") {
+    alert(`登入失敗：公會身分是「${data.guild_role}」，必須為「幹部」`);
     return;
   }
   
-  // 設定暱稱與職業
-  currentAdminUser.gameNickname = data.game_nickname || data.gameNickname || "管理員";
-  currentAdminUser.gameClass = data.game_class || data.gameClass || "幹部";
+  currentAdminUser.gameNickname = data.game_nickname || data.gameNickname;
+  currentAdminUser.gameClass = data.game_class || data.gameClass;
 } catch (err) {
-  console.error("驗證發生錯誤：", err);
-  // 如果是你的 UID 發生網路或解析錯誤，強制放行
-  if (currentAdminUser.lineUserId !== "U2b228d4c591535f6cdbb37a3e3f69952") {
-    alert("非幹部身分不可使用");
-    return;
-  }
-  currentAdminUser.gameNickname = "管理員";
-  currentAdminUser.gameClass = "幹部";
+  alert("連線伺服器發生錯誤：" + err.message);
+  return;
 }
 
  await loadCustomClasses(); // 確保先從 API 取得職業清單
