@@ -132,33 +132,7 @@
                     <div class="relative">
                         <select id="gameClass" required onchange="updateCardClassPreview(this.value)"
                                 class="w-full bg-[#FFFDF9] border border-amber-200 rounded-2xl px-4 py-3 text-sm font-bold text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition appearance-none cursor-pointer">
-                            <option value="" disabled selected>請選擇職業</option>
-                            <optgroup label="劍士系">
-                                <option value="騎士領主">騎士領主</option>
-                                <option value="聖殿十字軍">聖殿十字軍</option>
-                            </optgroup>
-                            <optgroup label="魔法師系">
-                                <option value="超魔導士">超魔導士</option>
-                                <option value="學者（智者）">學者（智者）</option>
-                            </optgroup>
-                            <optgroup label="弓箭手系">
-                                <option value="神射手">神射手</option>
-                                <option value="搞笑藝人（詩人）">搞笑藝人（詩人）</option>
-                                <option value="冷豔舞姬（舞孃）">冷豔舞姬（舞孃）</option>
-                            </optgroup>
-                            <optgroup label="盜賊系">
-                                <option value="十字刺客">十字刺客</option>
-                                <option value="神行（神偷）">神行（神偷）</option>
-                            </optgroup>
-                            <optgroup label="服事系">
-                                <option value="神官（大主教）">神官（大主教）</option>
-                                <option value="武術宗師">武術宗師</option>
-                            </optgroup>
-                            <optgroup label="商人系">
-                                <option value="神工匠">神工匠</option>
-                                <option value="創造者（鍊金術士）">創造者（鍊金術士）</option>
-                            </optgroup>
-                            <option value="其他">其他</option>
+                            <option value="" disabled selected>載入職業清單中...</option>
                         </select>
                         <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-xs text-amber-700">▼</div>
                     </div>
@@ -278,6 +252,27 @@
             document.getElementById('memberDisplayClass').textContent = val || "尚未選擇職業";
         }
 
+        // 動態從後端載入遊戲職業清單
+        async function loadGameClasses() {
+            try {
+                const response = await fetch(`${BACKEND_API_URL}/api/admin/classes`);
+                const result = await response.json();
+                const selectEl = document.getElementById('gameClass');
+                selectEl.innerHTML = '<option value="" disabled selected>請選擇職業</option>';
+
+                if (result.status === "success" && result.classes) {
+                    result.classes.forEach(className => {
+                        const opt = document.createElement('option');
+                        opt.value = className;
+                        opt.textContent = className;
+                        selectEl.appendChild(opt);
+                    });
+                }
+            } catch (err) {
+                console.error("載入職業清單失敗:", err);
+            }
+        }
+
         async function queryMemberFromBackend(uid) {
             try {
                 const controller = new AbortController();
@@ -298,6 +293,9 @@
         }
 
         async function initApp() {
+            // 先載入職業清單下拉選單
+            await loadGameClasses();
+
             const bindForm = document.getElementById('bindForm');
             if (bindForm) {
                 bindForm.addEventListener('submit', function(e) {
