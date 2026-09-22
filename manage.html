@@ -745,11 +745,20 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  const MY_LIFF_ID = "2011659633-9Km5nhzg";
  const BACKEND_API_URL = "https://guildmaster.zeabur.app";
 
- let customClassList = [
- "超魔導士", "學者（智者）", "神射手", "搞笑藝人（詩人）", 
- "冷豔舞姬（舞孃）", "騎士領主", "聖殿十字軍", "十字刺客", 
- "神行（神偷）", "神官（大主教）", "武術宗師", "神工匠", "創造者（鍊金術士）"
- ];
+let customClassList = []; // 改由 API 動態載入
+
+  // 載入職業清單 API
+  async function loadCustomClasses() {
+    try {
+      const res = await fetch(`${BACKEND_API_URL}/api/admin/classes`);
+      const data = await res.json();
+      if (data.status === "success" && data.classes) {
+        customClassList = data.classes;
+      }
+    } catch (err) {
+      console.error("載入職業清單失敗:", err);
+    }
+  }
 
  let currentAdminUser = { lineUserId: "", gameNickname: "", gameClass: "", guildRole: "", accountStatus: "" };
  let membersData = [], leavesData = [], leaveRulesData = [], eventsData = [], broadcastSchedules = [], manuallyArchivedGroups = [];
@@ -778,37 +787,41 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  } else { liff.login(); return; }
  } catch (err) { console.error(err); }
  }
-
- if (!isLiffReady && queryUid) currentAdminUser.lineUserId = queryUid;
+if (!isLiffReady && queryUid) currentAdminUser.lineUserId = queryUid;
  if (!currentAdminUser.lineUserId) { alert("非幹部身分不可使用"); return; }
 
  try {
- const res = await fetch(`${BACKEND_API_URL}/api/members/${encodeURIComponent(currentAdminUser.lineUserId)}`);
- const data = await res.json();
- if (data.status !== "found" || data.accountStatus !== "已審核" || String(data.guildRole || "").trim() !== "幹部") {
- alert("非幹部身分不可使用");
- if (typeof liff !== 'undefined' && liff.closeWindow) liff.closeWindow();
- return;
- }
- currentAdminUser.gameNickname = data.gameNickname;
- currentAdminUser.gameClass = data.gameClass;
- } catch (err) {
- alert("非幹部身分不可使用");
- return;
- }
+        const res = await fetch(`${BACKEND_API_URL}/api/members/${encodeURIComponent(currentAdminUser.lineUserId)}`);
+        const data = await res.json();
+        
+        // 已修正：將 camelCase 改為資料庫實際回傳的 snake_case 欄位
+        if (data.status !== "found" || data.account_status !== "已審核" || String(data.guild_role || "").trim() !== "幹部") {
+            alert("非幹部身分不可使用");
+            if (typeof liff !== 'undefined' && liff.closeWindow) liff.closeWindow();
+            return;
+        }
+        
+        currentAdminUser.gameNickname = data.game_nickname || data.gameNickname;
+        currentAdminUser.gameClass = data.game_class || data.gameClass;
+    } catch (err) {
+        alert("非幹部身分不可使用");
+        return;
+    }
 
- renderAdminIdentity();
- loadGroupSettings();
- syncAllClassDropdowns();
- renderCustomClassManager();
- initTimeWheelSelects();
- await fetchAllBackendData();
- updateMemberCounts();
- renderMembersList();
- renderLeavesContent();
- renderUrgentRules();
- });
+    await loadCustomClasses(); // 確保先取得職業資料
+    renderAdminIdentity();
+    loadGroupSettings();
+    syncAllClassDropdowns();
+    renderCustomClassManager();
+    initTimeWheelSelects();
+    await fetchAllBackendData();
+    updateMemberCounts();
+    renderMembersList();
+    renderLeavesContent();
+    renderUrgentRules();
+  });
 
+ 
  async function fetchAllBackendData() {
  try {
  const [mRes, lRes, rRes, eRes, bRes] = await Promise.all([
@@ -1492,48 +1505,95 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  document.getElementById('editClassModal').classList.remove('hidden');
  }
 
- async function executeEditClass() {
- const oldName = document.getElementById('editClassOldName').value;
- const newName = document.getElementById('editClassNewInput').value.trim();
- 
- if (!newName) {
- alert("職業名稱不能為空！");
- return;
- }
- if (customClassList.includes(newName) && newName !== oldName) {
- alert("此職業名稱已存在！");
- return;
- }
+async function executeEditClass() {
+    const oldName = document.getElementById('editClassOldName').value;
+    const newName = document.getElementById('editClassNewInput').value.trim();
+    
+    if (!newName) {
+      alert("職業名稱不能為空！");
+      return;
+    }
+    if (customClassList.includes(newName) && newName !== oldName) {
+      alert("此職業名稱已存在！");
+      return;
+    }
 
- const index = customClassList.indexOf(oldName);
- if (index !== -1) {
- customClassList[index] = newName;
- }
+    try {
+      const res = await fetch(`${BACKEND_API_URL}/api/admin/classes/rename`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ oldName, newName })
+      });
+      const result = await res.json();
+      if (result.status !== "success") {
+        alert("更新失敗：" + result.message);
+        return;
+      }
+    } catch (err) 
+      console.error(err);
+      alert("網路異常，更新失敗");
+      return;
+    }
 
- for (let m of membersData) {
- if (m.gameClass === oldName) {
- m.gameClass = newName;
- try {
- await fetch(`${BACKEND_API_URL}/api/admin/members/save`, {
- method: 'POST',
- headers: { 'Content-Type': 'application/json' },
- body: JSON.stringify({
- ...m,
- joinedLineGroup: m.joinedLineGroup || 'N',
- joinedDc: m.joinedDc || 'N'
- })
- });
- } catch (err) {
- console.error("同步更新會員職業失敗", err);
- }
- }
- }
+    await loadCustomClasses();
+    closeModal('editClassModal');
+    renderCustomClassManager();
+    syncAllClassDropdowns();
+    renderMembersList();
+    await fetchAllBackendData();
+  }
 
- closeModal('editClassModal');
- renderCustomClassManager();
- syncAllClassDropdowns();
- renderMembersList();
- }
+  function promptDeleteClass(idx) {
+    document.getElementById('deleteClassTargetIndex').value = idx;
+    document.getElementById('deleteClassConfirmText').textContent = `確定要移除職業選項【${customClassList[idx]}】嗎？`;
+    document.getElementById('deleteClassConfirmModal').classList.remove('hidden');
+  }
+
+  async function executeDeleteClass() {
+    const idx = parseInt(document.getElementById('deleteClassTargetIndex').value);
+    if (isNaN(idx)) return;
+    const targetClass = customClassList[idx];
+
+    try {
+      await fetch(`${BACKEND_API_URL}/api/admin/classes/delete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ className: targetClass })
+      });
+    } catch (err) {
+      console.error(err);
+    }
+
+    await loadCustomClasses();
+    closeModal('deleteClassConfirmModal');
+    renderCustomClassManager();
+    syncAllClassDropdowns();
+  }
+
+  async function addNewCustomClass() {
+    const input = document.getElementById('newClassInput');
+    const val = input.value.trim();
+    if (!val) return;
+    if (customClassList.includes(val)) {
+      alert("此職業名稱已存在！");
+      return;
+    }
+
+    try {
+      await fetch(`${BACKEND_API_URL}/api/admin/classes/add`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ className: val })
+      });
+    } catch (err) {
+      console.error(err);
+    }
+
+    input.value = "";
+    await loadCustomClasses();
+    renderCustomClassManager();
+    syncAllClassDropdowns();
+  }
 
  function promptDeleteClass(idx) {
  document.getElementById('deleteClassTargetIndex').value = idx;
