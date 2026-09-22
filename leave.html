@@ -228,13 +228,10 @@
         <p class="text-[11px] text-amber-800/40 text-center mt-6">&copy; 2026 GuildMaster</p>
     </main>
 
-    <!-- 統一風格彈窗 1：送出成功視窗 Modal -->
+    <!-- 統一風格彈窗 1：送出成功視窗 Modal (已移除符號) -->
     <div id="successModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
         <div class="bg-white w-full max-w-xs rounded-[28px] p-6 border-2 border-amber-200 soft-card-shadow text-center">
-            <div class="w-12 h-12 bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-full flex items-center justify-center text-xl mx-auto mb-3 shadow-xs">
-                ✓
-            </div>
-            <h3 class="text-base font-black text-amber-950 mb-1">請假申請已登記</h3>
+            <h3 class="text-base font-black text-amber-950 mb-1 mt-1">請假申請已登記</h3>
             <p id="successSubText" class="text-xs text-amber-900/70 leading-relaxed mb-5">請假資料已成功寫入後台伺服器，幹部將進行核對。</p>
             
             <button onclick="closeLiffWindow()" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-xs font-bold py-3 rounded-xl shadow-md transition cursor-pointer">
@@ -243,13 +240,10 @@
         </div>
     </div>
 
-    <!-- 統一風格彈窗 2：重複請假警告 Modal (取代內建 alert) -->
+    <!-- 統一風格彈窗 2：重複請假警告 Modal (已移除符號) -->
     <div id="warningModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
         <div class="bg-white w-full max-w-xs rounded-[28px] p-6 border-2 border-amber-200 soft-card-shadow text-center">
-            <div class="w-12 h-12 bg-amber-50 text-amber-600 border border-amber-200 rounded-full flex items-center justify-center text-xl mx-auto mb-3 shadow-xs">
-                ⚠️
-            </div>
-            <h3 class="text-base font-black text-amber-950 mb-1">重複請假提醒</h3>
+            <h3 class="text-base font-black text-amber-950 mb-1 mt-1">重複請假提醒</h3>
             <p id="warningText" class="text-xs text-amber-900/70 leading-relaxed mb-5">-</p>
             
             <button onclick="closeWarningModal()" class="w-full bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold py-3 rounded-xl shadow-md transition cursor-pointer">
@@ -624,7 +618,7 @@
 
                 if (checkData.status === "exists") {
                     const targetName = targetMember.gameNickname || currentUser.gameNickname;
-                    document.getElementById('warningText').textContent = `${targetName} 在 ${leaveDateVal} 當天已經登記過 ${leaveEventVal} 的請假了！`;
+                    document.getElementById('warningText').textContent = `角色「${targetName}」在 ${leaveDateVal} 當天已經登記過「${leaveEventVal}」的請假了，無法重複送出！`;
                     document.getElementById('warningModal').classList.remove('hidden');
                     submitBtn.textContent = "確認送出請假單";
                     submitBtn.disabled = false;
