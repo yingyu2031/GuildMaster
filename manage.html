@@ -794,9 +794,9 @@ try {
   const res = await fetch(`${BACKEND_API_URL}/api/members/${encodeURIComponent(currentAdminUser.lineUserId)}`);
   const data = await res.json();
   
-  console.log("後端回傳的驗證資料：", data); // 可以在 F12 主控台看到實際回傳內容
+  console.log("後端回傳的驗證資料：", data);
 
-  // 加上你的 UID 強制白名單，或者放寬條件
+  // 加上你的 UID 強制白名單
   const isMyUid = (currentAdminUser.lineUserId === "U2b228d4c591535f6cdbb37a3e3f69952");
 
   if (!isMyUid && (data.status !== "found" || (data.account_status !== "已審核" && data.accountStatus !== "已審核"))) {
@@ -805,22 +805,19 @@ try {
     return;
   }
   
-  // 如果是你的 UID，就算欄位抓錯也能順利給予預設名稱進入
+  // 設定暱稱與職業
   currentAdminUser.gameNickname = data.game_nickname || data.gameNickname || "管理員";
   currentAdminUser.gameClass = data.game_class || data.gameClass || "幹部";
 } catch (err) {
   console.error("驗證發生錯誤：", err);
-  // 如果是你的 UID 發生網路或解析錯誤，也強制放行讓你進得去
+  // 如果是你的 UID 發生網路或解析錯誤，強制放行
   if (currentAdminUser.lineUserId !== "U2b228d4c591535f6cdbb37a3e3f69952") {
     alert("非幹部身分不可使用");
     return;
   }
   currentAdminUser.gameNickname = "管理員";
   currentAdminUser.gameClass = "幹部";
- } catch (err) {
- alert("非幹部身分不可使用");
- return;
- }
+}
 
  await loadCustomClasses(); // 確保先從 API 取得職業清單
  renderAdminIdentity();
