@@ -543,8 +543,7 @@
             if (eligibleMembers.length === 0) {
                 container.innerHTML = `
                     <div class="py-8 text-center">
-                        <div class="text-2xl mb-1">🍃</div>
-                        <div class="text-xs font-bold text-amber-900/60">無符合條件（現任、已審核、開啟查詢）之其他成員</div>
+                        <div class="text-xs font-bold text-amber-900/60">無符合條件（開啟查詢）之其他成員</div>
                     </div>
                 `;
                 return;
@@ -618,7 +617,7 @@
 
                 if (checkData.status === "exists") {
                     const targetName = targetMember.gameNickname || currentUser.gameNickname;
-                    document.getElementById('warningText').textContent = `角色「${targetName}」在 ${leaveDateVal} 當天已經登記過「${leaveEventVal}」的請假了，無法重複送出！`;
+                    document.getElementById('warningText').textContent = `${targetName} 在 ${leaveDateVal} 當天已經登記過 ${leaveEventVal} 的請假了！`;
                     document.getElementById('warningModal').classList.remove('hidden');
                     submitBtn.textContent = "確認送出請假單";
                     submitBtn.disabled = false;
