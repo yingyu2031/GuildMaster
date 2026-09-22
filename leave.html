@@ -624,7 +624,7 @@
 
                 if (checkData.status === "exists") {
                     const targetName = targetMember.gameNickname || currentUser.gameNickname;
-                    document.getElementById('warningText').textContent = `${targetName} 在 ${leaveDateVal} 當天已經登記過 {leaveEventVal} 的請假了，無法重複送出！`;
+                    document.getElementById('warningText').textContent = `${targetName} 在 ${leaveDateVal} 當天已經登記過 ${leaveEventVal} 的請假了！`;
                     document.getElementById('warningModal').classList.remove('hidden');
                     submitBtn.textContent = "確認送出請假單";
                     submitBtn.disabled = false;
