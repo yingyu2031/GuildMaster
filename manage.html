@@ -529,7 +529,11 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  </div>
  <div>
  <label class="block mb-1 text-slate-800">推播時間</label>
- <input type="time" id="formBcTime" class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900">
+ <div onclick="openTimeWheelPicker('bc')" class="w-full h-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 flex items-center justify-between cursor-pointer font-bold text-slate-900">
+ <span id="formBcTimeDisplay">20:00</span>
+ <span class="text-slate-400 text-[10px]">▼</span>
+ </div>
+ <input type="hidden" id="formBcTime" value="20:00">
  </div>
  </div>
  <div>
@@ -566,7 +570,7 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  </div>
 </div>
 
-<!-- 彈窗 6：請假項目編輯 Modal（含滑輪式時間選擇器） -->
+<!-- 彈窗 6：請假項目編輯 Modal（含備註說明，無超時推播勾選框） -->
 <div id="urgentRuleModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
  <div class="bg-white w-full max-w-md rounded-[28px] p-6 border-2 border-sky-200 soft-sky-shadow max-h-[90vh] overflow-y-auto text-left">
  <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
@@ -580,21 +584,14 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  <input type="text" id="ruleEventName" required placeholder="例如：公會GVG聯賽" class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-sky-400">
  </div>
  
- <div class="grid grid-cols-2 gap-3 items-center">
  <div>
  <label class="block mb-1 text-slate-800">最晚請假截止時間 <span class="text-rose-500">*</span></label>
- <div onclick="openTimeWheelPicker()" class="w-full h-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 flex items-center justify-between cursor-pointer font-bold text-slate-900">
+ <div onclick="openTimeWheelPicker('rule')" class="w-full h-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 flex items-center justify-between cursor-pointer font-bold text-slate-900">
  <span id="ruleLatestTimeDisplay">20:00</span>
  <span class="text-slate-400 text-[10px]">▼</span>
  </div>
  <input type="hidden" id="ruleLatestTime" required value="20:00">
- </div>
- <div class="pt-5">
- <label class="flex items-center gap-2 cursor-pointer bg-[#F8FAFC] p-2.5 rounded-xl border border-sky-100">
- <input type="checkbox" id="ruleEnabled" class="w-4 h-4 accent-sky-500 cursor-pointer" checked>
- <span class="text-[11px] font-black text-slate-800">啟用超時推播</span>
- </label>
- </div>
+ <p class="text-[10px] text-slate-400 font-bold mt-1 leading-tight">（不會擋會員請假，但會註記為臨時請假，且會及時通知）</p>
  </div>
 
  <div>
@@ -619,10 +616,10 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  </div>
 </div>
 
-<!-- 滑輪式時間選擇器內嵌彈窗 -->
+<!-- 滑輪式時間選擇器內嵌彈窗（數字置中） -->
 <div id="timeWheelModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 fade-in">
  <div class="bg-white w-full max-w-sm rounded-t-[28px] sm:rounded-[28px] p-6 border-2 border-sky-200 soft-sky-shadow text-center">
- <h3 class="text-sm font-black text-slate-900 mb-3">選擇最晚截止時間</h3>
+ <h3 class="text-sm font-black text-slate-900 mb-3">選擇時間</h3>
  <div class="grid grid-cols-2 gap-4 my-4 bg-[#F8FAFC] p-3 rounded-2xl border border-sky-100">
  <div>
  <label class="block text-[10px] text-slate-400 font-bold mb-1">小時 (Hour)</label>
@@ -721,6 +718,20 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  </div>
 </div>
 
+<!-- 統一風格彈窗：推播狀態切換確認 Modal -->
+<div id="toggleRuleConfirmModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
+ <div class="bg-white w-full max-w-xs rounded-[28px] p-6 border-2 border-sky-200 soft-sky-shadow text-center">
+ <h3 class="text-base font-black text-slate-900 mb-1 mt-2">確認變更推播狀態？</h3>
+ <p id="toggleRuleConfirmText" class="text-xs text-slate-500 mb-5">確定要切換此項目的超時推播狀態嗎？</p>
+ <input type="hidden" id="toggleRuleName">
+ <input type="hidden" id="toggleRuleTargetState">
+ <div class="grid grid-cols-2 gap-2">
+ <button onclick="cancelToggleRule()" class="bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold py-2.5 rounded-xl transition cursor-pointer">取消</button>
+ <button onclick="executeToggleRule()" class="bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold py-2.5 rounded-xl transition shadow-md cursor-pointer">確認變更</button>
+ </div>
+ </div>
+</div>
+
 
 <script>
  const MY_LIFF_ID = "2011659633-9Km5nhzg";
@@ -739,6 +750,7 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  let currentEventSubTab = "active", currentSettingSubTab = "line";
  let currentViewingEventId = null;
  let selectedCycleDays = [];
+ let activeTimeWheelTarget = null; // 'rule' 或 'bc'
 
  const TODAY_STR = new Date().toISOString().split('T')[0];
 
@@ -1084,7 +1096,7 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  </div>
  </div>
  <div class="text-xs text-slate-600 font-medium">活動：<span class="font-bold text-slate-800">${l.event}</span></div>
- <div class="text-xs text-slate-600 font-medium bg-[#F8FAFC] p-2 rounded-xl border border-slate-100">理由：${l.reason}</div>
+ <div class="text-xs text-slate-600 font-medium bg-[#F8FAFC] p-2 rounded-xl border border-sky-100">${l.reason}</div>
  <div class="flex items-center justify-between text-[10px] text-slate-400 pt-1">
  <span>填單時間：${submitTimeFormatted}</span>
  <span class="text-right">由 ${l.operator_name || '本人'} 登記</span>
@@ -1139,7 +1151,7 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  </div>
  </div>
  <div class="text-xs text-slate-600 font-medium">活動：<span class="font-bold text-slate-800">${l.event}</span></div>
- <div class="text-xs text-slate-600 font-medium bg-[#F8FAFC] p-2 rounded-xl border border-slate-100">理由：${l.reason}</div>
+ <div class="text-xs text-slate-600 font-medium bg-[#F8FAFC] p-2 rounded-xl border border-sky-100">${l.reason}</div>
  <div class="flex items-center justify-between text-[10px] text-slate-400 pt-1">
  <span>填單時間：${submitTimeFormatted}</span>
  <span class="text-right">由 ${l.operator_name || '本人'} 登記</span>
@@ -1562,7 +1574,7 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  <div class="flex items-center gap-2">
  <button onclick="openUrgentRuleModal('edit', '${r.event}', '${r.latestTime || r.time || '20:00'}', '${r.cycle || ''}', ${r.enabled})" class="text-xs text-sky-700 hover:text-sky-800 font-bold cursor-pointer">編輯</button>
  <span class="text-slate-300">|</span>
- <input type="checkbox" ${r.enabled === 1 ? 'checked' : ''} onchange="toggleRuleEnabled('${r.event}', this.checked)" class="w-4 h-4 accent-sky-500 cursor-pointer">
+ <input type="checkbox" ${r.enabled === 1 ? 'checked' : ''} onchange="promptToggleRule('${r.event}', this)" class="w-4 h-4 accent-sky-500 cursor-pointer">
  </div>
  `;
  urgentContainer.appendChild(item);
@@ -1601,6 +1613,38 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  });
  }
 
+ function promptToggleRule(eventName, checkboxEl) {
+ const targetState = checkboxEl.checked ? 1 : 0;
+ checkboxEl.checked = !targetState; // 先恢復狀態，確認後再變更
+
+ document.getElementById('toggleRuleName').value = eventName;
+ document.getElementById('toggleRuleTargetState').value = targetState;
+ document.getElementById('toggleRuleConfirmText').textContent = `確定要將【${eventName}】的超時推播狀態改為 ${targetState === 1 ? '開啟' : '關閉'} 嗎？`;
+ document.getElementById('toggleRuleConfirmModal').classList.remove('hidden');
+ }
+
+ function cancelToggleRule() {
+ closeModal('toggleRuleConfirmModal');
+ renderBroadcastSection();
+ }
+
+ async function executeToggleRule() {
+ const eventName = document.getElementById('toggleRuleName').value;
+ const targetState = parseInt(document.getElementById('toggleRuleTargetState').value);
+ closeModal('toggleRuleConfirmModal');
+
+ const rule = leaveRulesData.find(r => r.event === eventName);
+ if (!rule) return;
+ const timeVal = rule.latestTime || rule.time || "20:00";
+ try {
+ await fetch(`${BACKEND_API_URL}/api/admin/leave-rules/save`, {
+ method: 'POST', headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify({ originalEvent: eventName, event: eventName, latestTime: timeVal, cycle: rule.cycle, enabled: targetState })
+ });
+ await renderUrgentRules();
+ } catch (err) { alert("更新狀態失敗"); }
+ }
+
  function formatCycleText(bc) {
  if (bc.freq === 'Daily') return '每日固定時間';
  if (bc.freq === 'Always') return '成員加入大群 (Join)';
@@ -1622,6 +1666,7 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  document.getElementById('formBroadcastId').value = "";
  document.getElementById('formBcFreq').value = "Weekly";
  document.getElementById('formBcTime').value = "20:00";
+ document.getElementById('formBcTimeDisplay').textContent = "20:00";
  } else {
  document.getElementById('broadcastModalTitle').textContent = "編輯推播排程";
  const bc = broadcastSchedules.find(x => x.id === id);
@@ -1629,7 +1674,8 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  document.getElementById('formBroadcastId').value = bc.id;
  document.getElementById('formBcTitle').value = bc.item;
  document.getElementById('formBcFreq').value = bc.freq;
- document.getElementById('formBcTime').value = bc.time || "";
+ document.getElementById('formBcTime').value = bc.time || "20:00";
+ document.getElementById('formBcTimeDisplay').textContent = bc.time || "20:00";
  document.getElementById('formBcContent').value = bc.content;
 
  if (bc.freq === 'Weekly' && bc.cycle) {
@@ -1649,7 +1695,7 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  const boxAlways = document.getElementById('freqBoxAlways');
  const boxWeekly = document.getElementById('freqBoxWeekly');
  const boxDaily = document.getElementById('freqBoxDaily');
- const timeInput = document.getElementById('formBcTime');
+ const timeDisplayBox = document.getElementById('formBcTimeDisplay').closest('div');
 
  boxAlways.classList.add('hidden');
  boxWeekly.classList.add('hidden');
@@ -1657,17 +1703,16 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
 
  if (freq === 'Always') {
  boxAlways.classList.remove('hidden');
- timeInput.value = "";
- timeInput.disabled = true;
- timeInput.classList.add('bg-slate-100', 'cursor-not-allowed');
+ timeDisplayBox.style.opacity = "0.5";
+ timeDisplayBox.style.pointerEvents = "none";
  } else if (freq === 'Weekly') {
  boxWeekly.classList.remove('hidden');
- timeInput.disabled = false;
- timeInput.classList.remove('bg-slate-100', 'cursor-not-allowed');
+ timeDisplayBox.style.opacity = "1";
+ timeDisplayBox.style.pointerEvents = "auto";
  } else if (freq === 'Daily') {
  boxDaily.classList.remove('hidden');
- timeInput.disabled = false;
- timeInput.classList.remove('bg-slate-100', 'cursor-not-allowed');
+ timeDisplayBox.style.opacity = "1";
+ timeDisplayBox.style.pointerEvents = "auto";
  }
  }
 
@@ -1725,19 +1770,6 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  }
  }
 
- async function toggleRuleEnabled(eventName, isEnabled) {
- const rule = leaveRulesData.find(r => r.event === eventName);
- if (!rule) return;
- const timeVal = rule.latestTime || rule.time || "20:00";
- try {
- await fetch(`${BACKEND_API_URL}/api/admin/leave-rules/save`, {
- method: 'POST', headers: { 'Content-Type': 'application/json' },
- body: JSON.stringify({ originalEvent: eventName, event: eventName, latestTime: timeVal, cycle: rule.cycle, enabled: isEnabled ? 1 : 0 })
- });
- await renderUrgentRules();
- } catch (err) { alert("更新狀態失敗"); }
- }
-
  function initTimeWheelSelects() {
  const hSelect = document.getElementById('wheelHourSelect');
  const mSelect = document.getElementById('wheelMinuteSelect');
@@ -1756,8 +1788,10 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  }
  }
 
- function openTimeWheelPicker() {
- const currentVal = document.getElementById('ruleLatestTime').value || "20:00";
+ function openTimeWheelPicker(targetType) {
+ activeTimeWheelTarget = targetType; // 'rule' 或 'bc'
+ const inputId = targetType === 'rule' ? 'ruleLatestTime' : 'formBcTime';
+ const currentVal = document.getElementById(inputId).value || "20:00";
  const parts = currentVal.split(':');
  if (parts.length === 2) {
  document.getElementById('wheelHourSelect').value = parts[0];
@@ -1770,8 +1804,14 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  const h = document.getElementById('wheelHourSelect').value;
  const m = document.getElementById('wheelMinuteSelect').value;
  const finalTime = `${h}:${m}`;
+
+ if (activeTimeWheelTarget === 'rule') {
  document.getElementById('ruleLatestTime').value = finalTime;
  document.getElementById('ruleLatestTimeDisplay').textContent = finalTime;
+ } else if (activeTimeWheelTarget === 'bc') {
+ document.getElementById('formBcTime').value = finalTime;
+ document.getElementById('formBcTimeDisplay').textContent = finalTime;
+ }
  closeModal('timeWheelModal');
  }
 
@@ -1780,13 +1820,14 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  selectedCycleDays = [];
  
  const resolvedTime = latestTime || "20:00";
+ window.currentEditingRuleEnabled = enabled; // 暫存原本的啟用狀態
+
  if (mode === 'edit') {
  document.getElementById('urgentRuleModalTitle').textContent = "編輯請假項目與時間";
  document.getElementById('ruleOriginalEventName').value = event;
  document.getElementById('ruleEventName').value = event;
  document.getElementById('ruleLatestTime').value = resolvedTime;
  document.getElementById('ruleLatestTimeDisplay').textContent = resolvedTime;
- document.getElementById('ruleEnabled').checked = (enabled === 1);
  if (cycle) {
  selectedCycleDays = cycle.split(',').map(s => s.trim().replace('週', ''));
  }
@@ -1795,7 +1836,7 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  document.getElementById('ruleOriginalEventName').value = "";
  document.getElementById('ruleLatestTime').value = "20:00";
  document.getElementById('ruleLatestTimeDisplay').textContent = "20:00";
- document.getElementById('ruleEnabled').checked = true;
+ window.currentEditingRuleEnabled = 1; // 預設新建時啟用
  selectedCycleDays = [];
  }
  updateCycleButtonsUI();
@@ -1829,7 +1870,7 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  const originalEvent = document.getElementById('ruleOriginalEventName').value;
  const eventName = document.getElementById('ruleEventName').value.trim();
  const latestTime = document.getElementById('ruleLatestTime').value.trim();
- const enabled = document.getElementById('ruleEnabled').checked ? 1 : 0;
+ const enabled = window.currentEditingRuleEnabled !== undefined ? window.currentEditingRuleEnabled : 1;
  const cycle = document.getElementById('ruleCycleValue').value;
 
  try {
