@@ -1529,7 +1529,7 @@ async function executeEditClass() {
         alert("更新失敗：" + result.message);
         return;
       }
-    } const (err) {
+    } catch (err) 
       console.error(err);
       alert("網路異常，更新失敗");
       return;
@@ -1540,7 +1540,7 @@ async function executeEditClass() {
     renderCustomClassManager();
     syncAllClassDropdowns();
     renderMembersList();
-    await fetchAllBackendData(); // 重新整理會員名冊以同步更新後的職業名稱
+    await fetchAllBackendData();
   }
 
   function promptDeleteClass(idx) {
