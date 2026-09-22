@@ -203,7 +203,7 @@
                 </button>
             </form>
 
-            <!-- 彈窗：選擇代請假會員 (保留原本的內嵌彈窗結構) -->
+            <!-- 彈窗：選擇代請假會員 (保留原本結構與位置) -->
             <div id="memberSelectModal" class="hidden absolute inset-0 bg-stone-900/40 backdrop-blur-sm rounded-[32px] p-5 flex flex-col z-30">
                 <div class="bg-white rounded-3xl p-5 w-full flex-1 flex flex-col border-2 border-amber-200 shadow-2xl overflow-hidden">
                     <div class="flex items-center justify-between pb-3 border-b border-amber-100">
@@ -228,7 +228,7 @@
         <p class="text-[11px] text-amber-800/40 text-center mt-6">&copy; 2026 GuildMaster</p>
     </main>
 
-    <!-- 統一風格彈窗：送出成功視窗 Modal -->
+    <!-- 統一風格彈窗 1：送出成功視窗 Modal -->
     <div id="successModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
         <div class="bg-white w-full max-w-xs rounded-[28px] p-6 border-2 border-amber-200 soft-card-shadow text-center">
             <div class="w-12 h-12 bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-full flex items-center justify-center text-xl mx-auto mb-3 shadow-xs">
@@ -239,6 +239,21 @@
             
             <button onclick="closeLiffWindow()" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-xs font-bold py-3 rounded-xl shadow-md transition cursor-pointer">
                 關閉回到 LINE
+            </button>
+        </div>
+    </div>
+
+    <!-- 統一風格彈窗 2：重複請假警告 Modal (取代內建 alert) -->
+    <div id="warningModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
+        <div class="bg-white w-full max-w-xs rounded-[28px] p-6 border-2 border-amber-200 soft-card-shadow text-center">
+            <div class="w-12 h-12 bg-amber-50 text-amber-600 border border-amber-200 rounded-full flex items-center justify-center text-xl mx-auto mb-3 shadow-xs">
+                ⚠️
+            </div>
+            <h3 class="text-base font-black text-amber-950 mb-1">重複請假提醒</h3>
+            <p id="warningText" class="text-xs text-amber-900/70 leading-relaxed mb-5">-</p>
+            
+            <button onclick="closeWarningModal()" class="w-full bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold py-3 rounded-xl shadow-md transition cursor-pointer">
+                我知道了
             </button>
         </div>
     </div>
@@ -512,6 +527,10 @@
             document.getElementById('memberSelectModal').classList.add('hidden');
         }
 
+        function closeWarningModal() {
+            document.getElementById('warningModal').classList.add('hidden');
+        }
+
         function renderMemberList(list) {
             const container = document.getElementById('memberListContainer');
             container.innerHTML = "";
@@ -604,7 +623,9 @@
                 const checkData = await checkRes.json();
 
                 if (checkData.status === "exists") {
-                    alert(`${targetMember.gameNickname || currentUser.gameNickname} 在 ${leaveDateVal} 當天已經登記過 ${leaveEventVal} 的請假了！`);
+                    const targetName = targetMember.gameNickname || currentUser.gameNickname;
+                    document.getElementById('warningText').textContent = `${targetName} 在 ${leaveDateVal} 當天已經登記過 {leaveEventVal} 的請假了，無法重複送出！`;
+                    document.getElementById('warningModal').classList.remove('hidden');
                     submitBtn.textContent = "確認送出請假單";
                     submitBtn.disabled = false;
                     return; 
@@ -649,7 +670,8 @@
                 const postResult = await postRes.json();
 
                 if (postResult.status === "error") {
-                    alert("送出失敗：" + (postResult.message || "已有重複紀錄"));
+                    document.getElementById('warningText').textContent = "送出失敗：" + (postResult.message || "已有重複紀錄");
+                    document.getElementById('warningModal').classList.remove('hidden');
                     submitBtn.textContent = "確認送出請假單";
                     submitBtn.disabled = false;
                     return;
@@ -665,7 +687,8 @@
 
             } catch (err) {
                 console.error("提交失敗:", err);
-                alert("網路異常或伺服器忙碌中，請稍後再試");
+                document.getElementById('warningText').textContent = "網路異常或伺服器忙碌中，請稍後再試";
+                document.getElementById('warningModal').classList.remove('hidden');
                 submitBtn.textContent = "確認送出請假單";
                 submitBtn.disabled = false;
             }
