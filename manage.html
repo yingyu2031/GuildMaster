@@ -782,23 +782,20 @@ class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl 
  if (!isLiffReady && queryUid) currentAdminUser.lineUserId = queryUid;
  if (!currentAdminUser.lineUserId) { alert("非幹部身分不可使用"); return; }
 
-try {
-        const res = await fetch(`${BACKEND_API_URL}/api/members/${encodeURIComponent(currentAdminUser.lineUserId)}`);
-        const data = await res.json();
-        
-        // 修正這裡：將 camelCase 改為資料庫實際回傳的 snake_case 欄位
-        if (data.status !== "found" || data.account_status !== "已審核" || String(data.guild_role || "").trim() !== "幹部") {
-            alert("非幹部身分不可使用");
-            if (typeof liff !== 'undefined' && liff.closeWindow) liff.closeWindow();
-            return;
-        }
-        
-        currentAdminUser.gameNickname = data.game_nickname || data.gameNickname;
-        currentAdminUser.gameClass = data.game_class || data.gameClass;
-    } catch (err) {
-        alert("非幹部身分不可使用");
-        return;
-    }
+ try {
+ const res = await fetch(`${BACKEND_API_URL}/api/members/${encodeURIComponent(currentAdminUser.lineUserId)}`);
+ const data = await res.json();
+ if (data.status !== "found" || data.accountStatus !== "已審核" || String(data.guildRole || "").trim() !== "幹部") {
+ alert("非幹部身分不可使用");
+ if (typeof liff !== 'undefined' && liff.closeWindow) liff.closeWindow();
+ return;
+ }
+ currentAdminUser.gameNickname = data.gameNickname;
+ currentAdminUser.gameClass = data.gameClass;
+ } catch (err) {
+ alert("非幹部身分不可使用");
+ return;
+ }
 
  renderAdminIdentity();
  loadGroupSettings();
