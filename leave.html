@@ -35,7 +35,7 @@
 </head>
 <body class="bg-[#FFFDF9] text-amber-950 antialiased selection:bg-amber-200 selection:text-amber-900 min-h-screen flex flex-col justify-between py-8 px-4">
 
-    <main class="max-w-md w-full mx-auto">
+    <main class="max-w-md w-full mx-auto relative">
         <!-- 頂部標題區 -->
         <div class="text-center mb-6">
             <div id="topBadge" class="inline-block bg-amber-100/80 text-amber-800 border border-amber-200 text-xs font-bold px-3.5 py-1 rounded-full mb-3">
@@ -203,7 +203,7 @@
                 </button>
             </form>
 
-            <!-- 彈窗：選擇代請假會員 -->
+            <!-- 彈窗：選擇代請假會員 (保留原本的內嵌彈窗結構) -->
             <div id="memberSelectModal" class="hidden absolute inset-0 bg-stone-900/40 backdrop-blur-sm rounded-[32px] p-5 flex flex-col z-30">
                 <div class="bg-white rounded-3xl p-5 w-full flex-1 flex flex-col border-2 border-amber-200 shadow-2xl overflow-hidden">
                     <div class="flex items-center justify-between pb-3 border-b border-amber-100">
@@ -223,23 +223,25 @@
                     </button>
                 </div>
             </div>
-
-            <!-- 彈窗：送出成功視窗 -->
-            <div id="successModal" class="hidden absolute inset-0 bg-white/95 backdrop-blur-sm rounded-[32px] p-6 flex flex-col items-center justify-center text-center z-40">
-                <div class="w-14 h-14 bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-full flex items-center justify-center text-2xl mb-3">
-                    ✓
-                </div>
-                <h3 class="text-lg font-black text-amber-950 mb-1">請假申請已登記</h3>
-                <p id="successSubText" class="text-xs text-amber-900/70 max-w-[240px] leading-relaxed mb-5">請假資料已成功寫入後台伺服器，幹部將進行核對。</p>
-                
-                <button onclick="closeLiffWindow()" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-sm font-bold py-3.5 rounded-2xl shadow-md transition cursor-pointer">
-                    關閉回到 LINE
-                </button>
-            </div>
         </div>
 
         <p class="text-[11px] text-amber-800/40 text-center mt-6">&copy; 2026 GuildMaster</p>
     </main>
+
+    <!-- 統一風格彈窗：送出成功視窗 Modal -->
+    <div id="successModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
+        <div class="bg-white w-full max-w-xs rounded-[28px] p-6 border-2 border-amber-200 soft-card-shadow text-center">
+            <div class="w-12 h-12 bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-full flex items-center justify-center text-xl mx-auto mb-3 shadow-xs">
+                ✓
+            </div>
+            <h3 class="text-base font-black text-amber-950 mb-1">請假申請已登記</h3>
+            <p id="successSubText" class="text-xs text-amber-900/70 leading-relaxed mb-5">請假資料已成功寫入後台伺服器，幹部將進行核對。</p>
+            
+            <button onclick="closeLiffWindow()" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-xs font-bold py-3 rounded-xl shadow-md transition cursor-pointer">
+                關閉回到 LINE
+            </button>
+        </div>
+    </div>
 
     <script>
         const MY_LIFF_ID = "2011659633-fh6nsVNN";
@@ -264,7 +266,7 @@
         };
 
         let availableMembers = [];
-        let leaveRulesMap = {}; // 儲存請假規則 (活動名稱對應 latest_time)
+        let leaveRulesMap = {}; 
         let isMembersLoading = true;
 
         async function queryMemberFromBackend(uid) {
@@ -435,7 +437,6 @@
             loadAvailableMembers();
         }
 
-        // 1. 從後端撈取 leave_rules 渲染活動選單
         async function loadLeaveRules() {
             try {
                 const response = await fetch(`${BACKEND_API_URL}/api/admin/leave-rules`);
@@ -445,9 +446,8 @@
 
                 if (result.status === "success" && result.rules) {
                     result.rules.forEach(rule => {
-                        // 僅顯示啟用的規則 (enabled === 1 或 true)
                         if (rule.enabled === 1 || rule.enabled === true) {
-                            leaveRulesMap[rule.event] = rule.latest_time; // 記錄截止時間
+                            leaveRulesMap[rule.event] = rule.latest_time; 
                             const opt = document.createElement('option');
                             opt.value = rule.event;
                             opt.textContent = rule.event;
@@ -512,7 +512,6 @@
             document.getElementById('memberSelectModal').classList.add('hidden');
         }
 
-        // 3. 檢查代請假資格：現任、已審核、開啟查詢 (allowSearch === 'Y')
         function renderMemberList(list) {
             const container = document.getElementById('memberListContainer');
             container.innerHTML = "";
@@ -521,7 +520,6 @@
                 const isSameUid = m.lineUserId && currentUser.userId && (m.lineUserId === currentUser.userId);
                 const isSameNick = m.gameNickname && currentUser.gameNickname && (m.gameNickname === currentUser.gameNickname);
                 
-                // 排除本人外，必須符合：現任、已審核、開啟查詢
                 const isCurrent = (m.guildRole === '現任');
                 const isApproved = (m.accountStatus === '已審核');
                 const isAllowSearch = (m.allowSearch === 'Y');
@@ -588,36 +586,30 @@
             closeMemberModal();
         }
 
-        // 2. 檢查填單時間是否晚於請假當天的 latest_time 標記為臨時請假
-     document.getElementById('leaveForm').addEventListener('submit', async (e) => {
+        document.getElementById('leaveForm').addEventListener('submit', async (e) => {
             e.preventDefault();
 
             const submitBtn = document.getElementById('submitBtn');
-            
-            // 如果按鈕已經被鎖定，直接中斷，防止手殘連點
             if (submitBtn.disabled) return;
 
             const leaveDateVal = document.getElementById('leaveDate').value;
             const leaveEventVal = document.getElementById('leaveEvent').value;
             const checkUid = targetMember.userId || currentUser.userId;
 
-            // 立即鎖定按鈕，防止連續點擊
             submitBtn.textContent = "檢查重複請假中...";
             submitBtn.disabled = true;
 
             try {
-                // 1. 先檢查同天同一活動是否已經請過假
                 const checkRes = await fetch(`${BACKEND_API_URL}/api/leaves/check?targetUid=${encodeURIComponent(checkUid)}&leaveDate=${encodeURIComponent(leaveDateVal)}&leaveEvent=${encodeURIComponent(leaveEventVal)}`);
                 const checkData = await checkRes.json();
 
                 if (checkData.status === "exists") {
-                    alert(`${targetMember.gameNickname || currentUser.gameNickname} 在 ${leaveDateVal} 當天已經登記過「${leaveEventVal}」的請假了！`);
+                    alert(`${targetMember.gameNickname || currentUser.gameNickname} 在 ${leaveDateVal} 當天已經登記過 ${leaveEventVal} 的請假了！`);
                     submitBtn.textContent = "確認送出請假單";
-                    submitBtn.disabled = false; // 恢復按鈕
+                    submitBtn.disabled = false;
                     return; 
                 }
 
-                // 2. 進行臨時請假判定
                 submitBtn.textContent = "傳送中...";
                 let isUrgent = "N";
                 const latestTimeStr = leaveRulesMap[leaveEventVal]; 
