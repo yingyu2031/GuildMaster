@@ -20,10 +20,10 @@
             box-shadow: 0 20px 40px -12px rgba(217, 119, 6, 0.12), 0 4px 12px -2px rgba(0, 0, 0, 0.04);
         }
         .fade-in {
-            animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            animation: fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(6px); }
+            from { opacity: 0; transform: translateY(8px); }
             to { opacity: 1; transform: translateY(0); }
         }
         input[type="date"] {
@@ -44,14 +44,14 @@
             <h1 id="pageMainTitle" class="text-2xl font-black text-amber-950">
                 活動請假申請
             </h1>
-            <p id="pageSubTitle" class="text-xs text-amber-900/70 mt-1.5 leading-relaxed px-4">
-                正在連線核對會員資料...
+            <p id="pageSubTitle" class="text-xs text-amber-900/60 mt-1.5 leading-relaxed">
+                正在連線核對資料...
             </p>
         </div>
 
-        <!-- 狀態 1：讀取中與逾時異常卡片 -->
+        <!-- 狀態 1：預覽讀取畫面 -->
         <div id="loadingCard" class="bg-white rounded-[32px] p-8 border-2 border-amber-200/80 soft-card-shadow text-center">
-            <div id="loadingSpinner" class="relative w-14 h-14 mx-auto mb-4">
+            <div id="loadingSpinner" class="relative w-16 h-16 mx-auto mb-4">
                 <div class="absolute inset-0 rounded-full border-4 border-amber-200 border-t-amber-500 animate-spin"></div>
                 <div class="w-full h-full rounded-full flex items-center justify-center text-xl">
                     📋
@@ -61,15 +61,15 @@
             <p id="loadingDesc" class="text-xs text-amber-800/60">正在確認會員身分，請稍候</p>
             
             <div id="errorBox" class="hidden mt-4 text-left">
-                <div class="text-xs font-bold text-rose-700 mb-1">偵測到連線異常：</div>
+                <div class="text-xs font-bold text-rose-700 mb-1">提示與操作：</div>
                 <div id="errorDetail" class="text-[11px] text-rose-600 bg-rose-50 border border-rose-200 p-3 rounded-xl font-mono break-all leading-relaxed"></div>
-                <button onclick="location.reload()" class="w-full mt-3 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold py-2.5 rounded-xl shadow-md transition">
+                <button onclick="closeLiffWindow()" class="w-full mt-3 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold py-2.5 rounded-xl shadow-md transition cursor-pointer">
                 關閉視窗重新載入
                 </button>
             </div>
         </div>
 
-        <!-- 狀態 2：審核中專屬阻擋卡片 -->
+        <!-- 狀態 2：審核中專屬卡片 -->
         <div id="pendingReviewCard" class="hidden bg-white rounded-[32px] p-6 sm:p-7 border-2 border-amber-200/80 soft-card-shadow text-center relative">
             <div class="w-14 h-14 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-3 border-2 border-amber-200 text-2xl">
                 ⏳
@@ -93,12 +93,12 @@
                 </div>
             </div>
 
-            <button onclick="closeLiffWindow()" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold py-3.5 rounded-2xl text-sm shadow-md shadow-amber-300/40 transition">
+            <button onclick="closeLiffWindow()" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold py-3.5 rounded-2xl text-sm shadow-md shadow-amber-300/40 transition cursor-pointer">
                 稍後再回來確認
             </button>
         </div>
 
-        <!-- 狀態 3：退會狀態專屬阻擋卡片 -->
+        <!-- 狀態 3：退會狀態專屬卡片 -->
         <div id="rejectedCard" class="hidden bg-white rounded-[32px] p-6 sm:p-7 border-2 border-rose-200 soft-card-shadow text-center relative">
             <div class="w-14 h-14 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-3 border-2 border-rose-200 text-2xl text-rose-500">
                 🚫
@@ -108,7 +108,7 @@
                 系統紀錄您目前為退會狀態，無法使用公會活動請假系統。如有疑問請向公會幹部反映。
             </p>
 
-            <button onclick="closeLiffWindow()" class="w-full bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold py-3.5 rounded-2xl text-sm transition">
+            <button onclick="closeLiffWindow()" class="w-full bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold py-3.5 rounded-2xl text-sm transition cursor-pointer">
                 關閉視窗
             </button>
         </div>
@@ -123,19 +123,19 @@
                 請先填寫公會會員資料並通過審核，才能進行活動請假喔！
             </p>
 
-            <button onclick="closeLiffWindow()" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold py-3.5 rounded-2xl text-sm shadow-md transition">
-                返回進行登記
+            <button onclick="closeLiffWindow()" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold py-3.5 rounded-2xl text-sm shadow-md transition cursor-pointer">
+                關閉視窗
             </button>
         </div>
 
         <!-- 狀態 5：已審核會員請假表單卡片 -->
-        <div id="leaveFormCard" class="hidden bg-white rounded-[32px] p-6 sm:p-7 border-2 border-amber-200/80 soft-card-shadow relative fade-in">
+        <div id="leaveFormCard" class="hidden bg-white rounded-[32px] p-6 sm:p-7 border-2 border-amber-200/80 soft-card-shadow relative">
             
             <!-- 請假人員資訊列 -->
             <div class="bg-[#FFF9EE] rounded-2xl p-4 border border-amber-200/80 mb-5">
                 <div class="flex items-center justify-between mb-2">
                     <span class="text-xs font-bold text-amber-800/80">請假對象資訊</span>
-                    <button type="button" onclick="openMemberModal()" class="text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white px-3 py-1 rounded-xl shadow-sm transition">
+                    <button type="button" onclick="openMemberModal()" class="text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white px-3 py-1 rounded-xl shadow-sm transition cursor-pointer">
                         幫他人請假
                     </button>
                 </div>
@@ -172,7 +172,7 @@
                     </label>
                     <div class="relative">
                         <select id="leaveEvent" required 
-                                class="w-full h-[46px] box-border bg-[#FFFDF9] border border-amber-200 rounded-2xl px-4 text-sm font-bold text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition appearance-none">
+                                class="w-full h-[46px] box-border bg-[#FFFDF9] border border-amber-200 rounded-2xl px-4 text-sm font-bold text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition appearance-none cursor-pointer">
                             <option value="" disabled selected>請選擇活動</option>
                             <option value="公會GVG聯賽">公會GVG聯賽</option>
                             <option value="週常公會副本">週常公會副本</option>
@@ -209,11 +209,11 @@
             </form>
 
             <!-- 彈窗：選擇代請假會員 -->
-            <div id="memberSelectModal" class="hidden absolute inset-0 bg-stone-900/40 backdrop-blur-sm rounded-[32px] p-5 flex flex-col z-30 fade-in">
+            <div id="memberSelectModal" class="hidden absolute inset-0 bg-stone-900/40 backdrop-blur-sm rounded-[32px] p-5 flex flex-col z-30">
                 <div class="bg-white rounded-3xl p-5 w-full flex-1 flex flex-col border-2 border-amber-200 shadow-2xl overflow-hidden">
                     <div class="flex items-center justify-between pb-3 border-b border-amber-100">
                         <h3 class="text-sm font-black text-amber-950">選擇代請假成員</h3>
-                        <button onclick="closeMemberModal()" class="text-stone-400 hover:text-stone-600 text-sm font-bold">✕</button>
+                        <button onclick="closeMemberModal()" class="text-stone-400 hover:text-stone-600 text-sm font-bold cursor-pointer">✕</button>
                     </div>
 
                     <div class="my-3">
@@ -221,17 +221,16 @@
                                class="w-full bg-[#FFFDF9] border border-amber-200 rounded-xl px-3 py-2 text-xs font-bold text-amber-950 placeholder:text-amber-800/30 focus:outline-none focus:ring-2 focus:ring-amber-400">
                     </div>
 
-                    <!-- 成員名單列表與載入緩衝區 -->
                     <div id="memberListContainer" class="flex-1 overflow-y-auto space-y-2 pr-1 text-left text-xs"></div>
 
-                    <button onclick="resetToSelf()" class="mt-3 w-full bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold py-2 rounded-xl text-xs transition">
+                    <button onclick="resetToSelf()" class="mt-3 w-full bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold py-2 rounded-xl text-xs transition cursor-pointer">
                         重設為本人請假
                     </button>
                 </div>
             </div>
 
             <!-- 彈窗：送出成功視窗 -->
-            <div id="successModal" class="hidden absolute inset-0 bg-white/95 backdrop-blur-sm rounded-[32px] p-6 flex flex-col items-center justify-center text-center z-40 fade-in">
+            <div id="successModal" class="hidden absolute inset-0 bg-white/95 backdrop-blur-sm rounded-[32px] p-6 flex flex-col items-center justify-center text-center z-40">
                 <div class="w-14 h-14 bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-full flex items-center justify-center text-2xl mb-3">
                     ✓
                 </div>
@@ -249,16 +248,16 @@
 
     <script>
         const MY_LIFF_ID = "2011659633-fh6nsVNN";
-        // 若前後端同源部署可改用相对路径 ""，此處保留彈性對應你的 server.js 根網址
-        const API_BASE_URL = ""; 
+        const BACKEND_API_URL = "https://guildmaster.zeabur.app";
 
-        let currentSelf = {
+        let currentUser = {
             userId: "",
             displayName: "",
             pictureUrl: "",
             gameNickname: "",
             gameClass: "",
             accountStatus: "",
+            guildRole: "現任",
             isRegistered: false
         };
 
@@ -272,7 +271,26 @@
         let availableMembers = [];
         let isMembersLoading = true;
 
-        window.addEventListener("DOMContentLoaded", async () => {
+        async function queryMemberFromBackend(uid) {
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+                const response = await fetch(`${BACKEND_API_URL}/api/members/${encodeURIComponent(uid)}`, {
+                    method: 'GET',
+                    headers: { 'Accept': 'application/json' },
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+
+                if (!response.ok) return { status: "error" };
+                return await response.json();
+            } catch (err) {
+                return { status: "error" };
+            }
+        }
+
+        async function initApp() {
             document.getElementById('leaveDate').value = new Date().toISOString().split('T')[0];
 
             const urlParams = new URLSearchParams(window.location.search);
@@ -287,77 +305,87 @@
                     await liff.init({ liffId: MY_LIFF_ID });
                     if (liff.isLoggedIn()) {
                         const profile = await liff.getProfile();
-                        currentSelf.userId = profile.userId;
-                        currentSelf.displayName = profile.displayName;
-                        currentSelf.pictureUrl = profile.pictureUrl || "";
+                        currentUser.userId = profile.userId;
+                        currentUser.displayName = profile.displayName;
+                        currentUser.pictureUrl = profile.pictureUrl || "";
                         isLiffReady = true;
                     } else {
-                        liff.login();
+                        document.getElementById('loadingSpinner').classList.add('hidden');
+                        document.getElementById('loadingTitle').textContent = "需要登入 LINE";
+                        document.getElementById('loadingDesc').textContent = "請點擊下方按鈕進行驗證授權";
+                        const errBox = document.getElementById('errorBox');
+                        const errDetail = document.getElementById('errorDetail');
+                        errDetail.innerHTML = `<button onclick="liff.login()" class="w-full bg-[#06C755] text-white font-bold py-2.5 rounded-xl shadow-md cursor-pointer">點擊登入 LINE 帳號</button>`;
+                        errBox.classList.remove('hidden');
                         return;
                     }
                 } catch (err) {
-                    liffErrorDetail = (err.code ? `[代碼 ${err.code}] ` : "") + (err.message || JSON.stringify(err));
+                    liffErrorDetail = err.message || JSON.stringify(err);
                 }
             }
 
             if (!isLiffReady && queryUid) {
-                currentSelf.userId = queryUid;
-                if (queryName) currentSelf.displayName = decodeURIComponent(queryName);
+                currentUser.userId = queryUid;
+                if (queryName) currentUser.displayName = decodeURIComponent(queryName);
             }
 
-            await verifyAndDisplayLeaveView(liffErrorDetail);
-        });
+            await verifyAndDisplayView(liffErrorDetail);
+        }
 
-        async function verifyAndDisplayLeaveView(errorMsg) {
-            if (!currentSelf.userId) {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initApp);
+        } else {
+            initApp();
+        }
+
+        async function verifyAndDisplayView(errorMsg) {
+            if (!currentUser.userId) {
                 document.getElementById('loadingSpinner').classList.add('hidden');
                 document.getElementById('loadingTitle').textContent = "無法辨識 LINE 身分";
                 document.getElementById('loadingDesc').textContent = "請確認您是點擊 LINE 官方專用連結開啟";
-                
                 const errBox = document.getElementById('errorBox');
                 const errDetail = document.getElementById('errorDetail');
-                errDetail.textContent = errorMsg || "LIFF 未能成功取得 Profile 資料。";
+                errDetail.textContent = errorMsg || "LIFF 未能取得 Profile。";
                 errBox.classList.remove('hidden');
                 return;
             }
 
-            try {
-                // 對應 server.js: app.get('/api/members/:uid', ...)
-                const response = await fetch(`${API_BASE_URL}/api/members/${currentSelf.userId}`);
-                const result = await response.json();
-
-                document.getElementById('loadingCard').classList.add('hidden');
-
-                if (result.status === "found") {
-                    currentSelf.gameNickname = String(result.gameNickname || "").trim();
-                    currentSelf.gameClass = String(result.gameClass || "").trim();
-                    currentSelf.displayName = String(result.lineDisplayName || currentSelf.displayName || "").trim();
-                    
-                    const accountStatus = String(result.accountStatus || "").trim();
-                    const guildRole = String(result.guildRole || "").trim();
-                    const isRetired = accountStatus.includes("退會") || guildRole.includes("退會");
-
-                    if (isRetired) {
-                        applyRejectedUI();
-                    } else if (accountStatus.includes("待審")) {
-                        applyPendingReviewUI();
-                    } else if (accountStatus === "已審核") {
-                        applyLeaveFormUI();
-                    } else {
-                        applyUnregisteredUI();
-                    }
-                } else {
-                    applyUnregisteredUI();
-                }
-            } catch (err) {
+            const result = await queryMemberFromBackend(currentUser.userId);
+            
+            if (result && (result.status === "timeout" || result.status === "error")) {
                 document.getElementById('loadingSpinner').classList.add('hidden');
-                document.getElementById('loadingTitle').textContent = "連線伺服器失敗";
-                document.getElementById('loadingDesc').textContent = "無法取得後台資料，請檢查網路連線";
-                
+                document.getElementById('loadingTitle').textContent = "連線後台逾時";
+                document.getElementById('loadingDesc').textContent = "伺服器回應較慢，請點擊下方重試";
                 const errBox = document.getElementById('errorBox');
                 const errDetail = document.getElementById('errorDetail');
-                errDetail.textContent = err.message || "未知網路錯誤";
+                errDetail.textContent = "請確認網路是否正常";
                 errBox.classList.remove('hidden');
+                return;
+            }
+
+            if (result && result.status === "found") {
+                currentUser.gameNickname = result.gameNickname || "";
+                currentUser.gameClass = result.gameClass || "";
+                currentUser.displayName = result.lineDisplayName || currentUser.displayName;
+                currentUser.accountStatus = String(result.accountStatus || "").trim();
+                currentUser.guildRole = String(result.guildRole || "現任").trim();
+                currentUser.isRegistered = true;
+            }
+
+            document.getElementById('loadingCard').classList.add('hidden');
+
+            const isRetired = currentUser.guildRole.includes("退會");
+
+            if (!currentUser.isRegistered) {
+                applyUnregisteredUI();
+            } else if (isRetired) {
+                applyRejectedUI();
+            } else if (currentUser.accountStatus.includes("待審")) {
+                applyPendingReviewUI();
+            } else if (currentUser.accountStatus === "已審核") {
+                applyLeaveFormUI();
+            } else {
+                applyUnregisteredUI();
             }
         }
 
@@ -366,9 +394,9 @@
             document.getElementById('pageMainTitle').textContent = "入會申請處理中";
             document.getElementById('pageSubTitle').textContent = "幹部正在核對名冊，目前無法請假";
 
-            document.getElementById('pendingNickname').textContent = currentSelf.gameNickname || "-";
-            document.getElementById('pendingClass').textContent = currentSelf.gameClass || "-";
-            document.getElementById('pendingLineName').textContent = currentSelf.displayName || "-";
+            document.getElementById('pendingNickname').textContent = currentUser.gameNickname || "-";
+            document.getElementById('pendingClass').textContent = currentUser.gameClass || "-";
+            document.getElementById('pendingLineName').textContent = currentUser.displayName || "-";
 
             const pendingCard = document.getElementById('pendingReviewCard');
             pendingCard.classList.remove('hidden');
@@ -411,9 +439,9 @@
         }
 
         function resetToSelf() {
-            targetMember.userId = currentSelf.userId;
-            targetMember.gameNickname = currentSelf.gameNickname || "本人";
-            targetMember.gameClass = currentSelf.gameClass || "未登記職業";
+            targetMember.userId = currentUser.userId;
+            targetMember.gameNickname = currentUser.gameNickname || "本人";
+            targetMember.gameClass = currentUser.gameClass || "未登記職業";
             targetMember.isProxy = false;
 
             document.getElementById('targetNickText').textContent = targetMember.gameNickname;
@@ -425,8 +453,7 @@
         async function loadAvailableMembers() {
             isMembersLoading = true;
             try {
-                // 對應 server.js: app.get('/api/admin/members', ...)
-                const response = await fetch(`${API_BASE_URL}/api/admin/members`);
+                const response = await fetch(`${BACKEND_API_URL}/api/admin/members`);
                 const result = await response.json();
                 if (result.status === "success" && result.members) {
                     availableMembers = result.members;
@@ -468,8 +495,8 @@
             container.innerHTML = "";
 
             const otherMembers = (list || []).filter(m => {
-                const isSameUid = m.lineUserId && currentSelf.userId && (m.lineUserId === currentSelf.userId);
-                const isSameNick = m.gameNickname && currentSelf.gameNickname && (m.gameNickname === currentSelf.gameNickname);
+                const isSameUid = m.lineUserId && currentUser.userId && (m.lineUserId === currentUser.userId);
+                const isSameNick = m.gameNickname && currentUser.gameNickname && (m.gameNickname === currentUser.gameNickname);
                 return !isSameUid && !isSameNick;
             });
 
@@ -512,15 +539,15 @@
             targetMember.gameNickname = m.gameNickname;
             targetMember.gameClass = m.gameClass;
 
-            const isSelf = (targetMember.userId && targetMember.userId === currentSelf.userId) || 
-                          (targetMember.gameNickname && targetMember.gameNickname === currentSelf.gameNickname);
+            const isSelf = (targetMember.userId && targetMember.userId === currentUser.userId) || 
+                          (targetMember.gameNickname && targetMember.gameNickname === currentUser.gameNickname);
 
             if (isSelf) {
                 targetMember.isProxy = false;
                 document.getElementById('operatorText').textContent = "本人申請";
             } else {
                 targetMember.isProxy = true;
-                document.getElementById('operatorText').textContent = `由 ${currentSelf.gameNickname || currentSelf.displayName} 代理申請`;
+                document.getElementById('operatorText').textContent = `由 ${currentUser.gameNickname || currentUser.displayName} 代理申請`;
             }
 
             document.getElementById('targetNickText').textContent = targetMember.gameNickname;
@@ -543,13 +570,12 @@
                 gameClass: targetMember.gameClass,
                 leaveReason: document.getElementById('leaveReason').value.trim(),
                 note: document.getElementById('leaveNote').value.trim(),
-                operatorUid: currentSelf.userId,
-                operatorName: currentSelf.gameNickname || currentSelf.displayName
+                operatorUid: currentUser.userId,
+                operatorName: currentUser.gameNickname || currentUser.displayName
             };
 
             try {
-                // 建議後端對應新增一個 app.post('/api/leaves', ...) 路由來接收此處送出的請假資料
-                await fetch(`${API_BASE_URL}/api/leaves`, {
+                await fetch(`${BACKEND_API_URL}/api/leaves`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(payload)
