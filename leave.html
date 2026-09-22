@@ -589,85 +589,94 @@
         }
 
         // 2. 檢查填單時間是否晚於請假當天的 latest_time 標記為臨時請假
-       document.getElementById('leaveForm').addEventListener('submit', async (e) => {
+     document.getElementById('leaveForm').addEventListener('submit', async (e) => {
             e.preventDefault();
 
             const submitBtn = document.getElementById('submitBtn');
-            const leaveDateVal = document.getElementById('leaveDate').value; // 格式: YYYY-MM-DD
-            const leaveEventVal = document.getElementById('leaveEvent').value;
+            
+            // 如果按鈕已經被鎖定，直接中斷，防止手殘連點
+            if (submitBtn.disabled) return;
 
-            // 1. 先檢查同天同一活動是否已經請過假
+            const leaveDateVal = document.getElementById('leaveDate').value;
+            const leaveEventVal = document.getElementById('leaveEvent').value;
+            const checkUid = targetMember.userId || currentUser.userId;
+
+            // 立即鎖定按鈕，防止連續點擊
             submitBtn.textContent = "檢查重複請假中...";
             submitBtn.disabled = true;
 
             try {
-                const checkRes = await fetch(`${BACKEND_API_URL}/api/leaves/check?targetUid=${encodeURIComponent(targetMember.userId)}&leaveDate=${encodeURIComponent(leaveDateVal)}&leaveEvent=${encodeURIComponent(leaveEventVal)}`);
+                // 1. 先檢查同天同一活動是否已經請過假
+                const checkRes = await fetch(`${BACKEND_API_URL}/api/leaves/check?targetUid=${encodeURIComponent(checkUid)}&leaveDate=${encodeURIComponent(leaveDateVal)}&leaveEvent=${encodeURIComponent(leaveEventVal)}`);
                 const checkData = await checkRes.json();
 
                 if (checkData.status === "exists") {
-                    alert(`${targetMember.gameNickname} 在 ${leaveDateVal} 當天已經登記過「${leaveEventVal}」的請假了！`);
+                    alert(`${targetMember.gameNickname || currentUser.gameNickname} 在 ${leaveDateVal} 當天已經登記過「${leaveEventVal}」的請假了！`);
                     submitBtn.textContent = "確認送出請假單";
-                    submitBtn.disabled = false;
-                    return; // 擋下不繼續送出
-                }
-            } catch (err) {
-                console.error("檢查重複請假失敗:", err);
-            }
-
-            // 2. 進行原本的臨時請假判定與送出流程
-            submitBtn.textContent = "傳送中...";
-
-            let isUrgent = "N";
-            const latestTimeStr = leaveRulesMap[leaveEventVal]; 
-
-            if (latestTimeStr) {
-                const now = new Date();
-                let deadline;
-                
-                if (latestTimeStr.includes(" ")) {
-                    deadline = new Date(latestTimeStr);
-                } else {
-                    deadline = new Date(`${leaveDateVal}T${latestTimeStr}:00`);
+                    submitBtn.disabled = false; // 恢復按鈕
+                    return; 
                 }
 
-                if (now > deadline) {
-                    isUrgent = "Y"; 
+                // 2. 進行臨時請假判定
+                submitBtn.textContent = "傳送中...";
+                let isUrgent = "N";
+                const latestTimeStr = leaveRulesMap[leaveEventVal]; 
+
+                if (latestTimeStr) {
+                    const now = new Date();
+                    let deadline;
+                    if (latestTimeStr.includes(" ")) {
+                        deadline = new Date(latestTimeStr);
+                    } else {
+                        deadline = new Date(`${leaveDateVal}T${latestTimeStr}:00`);
+                    }
+                    if (now > deadline) {
+                        isUrgent = "Y"; 
+                    }
                 }
-            }
 
-            const payload = {
-                leaveDate: leaveDateVal,
-                leaveEvent: leaveEventVal,
-                targetUid: targetMember.userId,
-                gameNickname: targetMember.gameNickname,
-                gameClass: targetMember.gameClass,
-                leaveReason: document.getElementById('leaveReason').value.trim(),
-                note: document.getElementById('leaveNote').value.trim(),
-                isUrgent: isUrgent,
-                operatorUid: currentUser.userId,
-                operatorName: currentUser.gameNickname || currentUser.displayName
-            };
+                const payload = {
+                    leaveDate: leaveDateVal,
+                    leaveEvent: leaveEventVal,
+                    targetUid: checkUid,
+                    gameNickname: targetMember.gameNickname || currentUser.gameNickname,
+                    gameClass: targetMember.gameClass || currentUser.gameClass,
+                    leaveReason: document.getElementById('leaveReason').value.trim(),
+                    note: document.getElementById('leaveNote').value.trim(),
+                    isUrgent: isUrgent,
+                    operatorUid: currentUser.userId,
+                    operatorName: currentUser.gameNickname || currentUser.displayName
+                };
 
-            try {
-                await fetch(`${BACKEND_API_URL}/api/leaves`, {
+                const postRes = await fetch(`${BACKEND_API_URL}/api/leaves`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(payload)
                 });
+
+                const postResult = await postRes.json();
+
+                if (postResult.status === "error") {
+                    alert("送出失敗：" + (postResult.message || "已有重複紀錄"));
+                    submitBtn.textContent = "確認送出請假單";
+                    submitBtn.disabled = false;
+                    return;
+                }
+
+                if (isUrgent === "Y") {
+                    document.getElementById('successSubText').textContent = "偵測到超過截止時間，系統標記為【臨時請假】，下回記得早點送單喔！";
+                } else {
+                    document.getElementById('successSubText').textContent = "請假資料已送出，感謝您的配合。";
+                }
+
+                document.getElementById('successModal').classList.remove('hidden');
+
             } catch (err) {
                 console.error("提交失敗:", err);
+                alert("網路異常或伺服器忙碌中，請稍後再試");
+                submitBtn.textContent = "確認送出請假單";
+                submitBtn.disabled = false;
             }
-
-            submitBtn.textContent = "確認送出請假單";
-            submitBtn.disabled = false;
-            
-            if (isUrgent === "Y") {
-                document.getElementById('successSubText').textContent = "偵測到超過截止時間，系統標記為【臨時請假】，下回記得早點送單喔！";
-            } else {
-                document.getElementById('successSubText').textContent = "請假資料已送出，感謝您的配合。";
-            }
-
-            document.getElementById('successModal').classList.remove('hidden');
         });
 
         function closeLiffWindow() {
