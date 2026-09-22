@@ -770,42 +770,46 @@ input[type="date"], input[type="time"], select {
 
  const TODAY_STR = new Date().toISOString().split('T')[0];
 
- window.addEventListener("DOMContentLoaded", async () => {
- const urlParams = new URLSearchParams(window.location.search);
- const queryUid = urlParams.get('uid') || urlParams.get('userId');
- let isLiffReady = false;
+window.addEventListener("DOMContentLoaded", async () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const queryUid = urlParams.get('uid') || urlParams.get('userId');
+  let isLiffReady = false;
 
- if (MY_LIFF_ID && typeof liff !== 'undefined') {
- try {
- await liff.init({ liffId: MY_LIFF_ID });
- if (liff.isLoggedIn()) {
- const profile = await liff.getProfile();
- currentAdminUser.lineUserId = profile.userId;
- currentAdminUser.pictureUrl = profile.pictureUrl || "";
- isLiffReady = true;
- } else { liff.login(); return; }
- } catch (err) { console.error(err); }
- }
+  if (MY_LIFF_ID && typeof liff !== 'undefined') {
+    try {
+      await liff.init({ liffId: MY_LIFF_ID });
+      if (liff.isLoggedIn()) {
+        const profile = await liff.getProfile();
+        currentAdminUser.lineUserId = profile.userId;
+        currentAdminUser.pictureUrl = profile.pictureUrl || "";
+        isLiffReady = true;
+      } else { liff.login(); return; }
+    } catch (err) { console.error(err); }
+  }
 
- if (!isLiffReady && queryUid) currentAdminUser.lineUserId = queryUid;
- if (!currentAdminUser.lineUserId) { alert("非幹部身分不可使用"); return; }
+  if (!isLiffReady && queryUid) currentAdminUser.lineUserId = queryUid;
+  if (!currentAdminUser.lineUserId) { alert("非幹部身分不可使用"); return; }
 
-try {
-  const res = await fetch(`${BACKEND_API_URL}/api/members/${encodeURIComponent(currentAdminUser.lineUserId)}`);
-  const data = await res.json();
-  
-  // 嚴格比對身分
-  if (data.status !== "found" || data.account_status !== "已審核" || String(data.guild_role || "").trim() !== "幹部") {
+  try {
+    const res = await fetch(`${BACKEND_API_URL}/api/members/${encodeURIComponent(currentAdminUser.lineUserId)}`);
+    const data = await res.json();
+    
+    // 這裡維持原本你正常的驗證
+    if (data.status !== "found" || data.account_status !== "已審核" || String(data.guild_role || "").trim() !== "幹部") {
+      alert("非幹部身分不可使用");
+      if (typeof liff !== 'undefined' && liff.closeWindow) liff.closeWindow();
+      return;
+    }
+    
+    currentAdminUser.gameNickname = data.game_nickname || data.gameNickname;
+    currentAdminUser.gameClass = data.game_class || data.gameClass;
+  } catch (err) {
     alert("非幹部身分不可使用");
-    if (typeof liff !== 'undefined' && liff.closeWindow) liff.closeWindow();
     return;
   }
-  
-  // 成功抓取資料，賦值給全域變數
-  currentAdminUser.gameNickname = data.game_nickname || data.gameNickname;
-  currentAdminUser.gameClass = data.game_class || data.gameClass;
 
-  // 關鍵：這幾行一定要執行，畫面才會把頭像跟暱稱顯示出來！
+  // 👉 這裡可以安全地使用 await，因為外層 window.addEventListener 已經是 async 了
+  await loadCustomClasses(); 
 
   renderAdminIdentity();
   loadGroupSettings();
@@ -817,11 +821,8 @@ try {
   renderMembersList();
   renderLeavesContent();
   renderUrgentRules();
+});
 
-} catch (err) {
-  alert("初始化發生錯誤：" + err.message);
-  console.error(err);
-}
 
 
  async function fetchAllBackendData() {
