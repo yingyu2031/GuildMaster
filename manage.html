@@ -752,7 +752,8 @@ window.addEventListener("DOMContentLoaded", async () => {
   const queryUid = urlParams.get('uid') || urlParams.get('userId');
   let isLiffReady = false;
 
-  if (MY_LIFF_ID && typeof liff !== 'undefined') {
+  // 檢查是否有設定 MY_LIFF_ID
+  if (typeof MY_LIFF_ID !== 'undefined' && MY_LIFF_ID && typeof liff !== 'undefined') {
     try {
       await liff.init({ liffId: MY_LIFF_ID });
       if (liff.isLoggedIn()) {
@@ -765,17 +766,20 @@ window.addEventListener("DOMContentLoaded", async () => {
         return; 
       }
     } catch (err) { 
-      console.error(err); 
+      console.error("LIFF 初始化失敗:", err); 
     }
   }
 
-  if (!isLiffReady && queryUid) currentAdminUser.lineUserId = queryUid;
+  if (!isLiffReady && queryUid) {
+    currentAdminUser.lineUserId = queryUid;
+  }
 
-  // 如果在瀏覽器開且沒帶 uid，直接在彈窗顯示錯誤，不卡讀取
+  // 如果還是沒有 UID
   if (!currentAdminUser.lineUserId) {
-    document.getElementById('authMessagetextContent = "⚠️ 找不到使用者 UID，請透過 LINE 官方選單進入。";
+    document.getElementById('authMessage').textContent = "偵測不到使用者身分，請確認是否透過 LINE 官方管道進入。";
     document.getElementById('authMessage').className = "text-xs font-bold text-rose-500";
     document.getElementById('authModalNickname').textContent = "未登入";
+    document.getElementById('authModalClass').textContent = "缺少 UID 參數";
     return;
   }
 
@@ -801,10 +805,10 @@ window.addEventListener("DOMContentLoaded", async () => {
       document.getElementById('authMessage').textContent = "⚠️ 權限不足：您不是本公會幹部，無法進入後台。";
       document.getElementById('authMessage').className = "text-xs font-bold text-rose-500";
       document.getElementById('authModalRoleBadge').className = "text-[10px] bg-rose-100 text-rose-600 px-2 py-0.5 rounded-full font-bold";
-      return; // 停在彈窗，不顯示進入按鈕
+      return; 
     }
     
-    // 驗證成功
+    // 驗證成功是幹部
     currentAdminUser.gameNickname = data.game_nickname || data.gameNickname;
     currentAdminUser.gameClass = data.game_class || data.gameClass;
 
@@ -819,11 +823,18 @@ window.addEventListener("DOMContentLoaded", async () => {
   }
 });
 
-// 點擊進入後台
+// 確保這個函式在全域，HTML 才點得到
+function closeWindow() {
+  if (typeof liff !== 'undefined' && liff.closeWindow) {
+    liff.closeWindow();
+  } else {
+    window.close();
+  }
+}
+
+// 點擊進入後台的按鈕觸發
 async function closeAuthModal() {
   document.getElementById('authModal').classList.add('hidden');
-
-  // 開始載入後台所有資料與畫面
   await loadCustomClasses(); 
   loadGroupSettings();
   syncAllClassDropdowns();
@@ -834,14 +845,6 @@ async function closeAuthModal() {
   renderMembersList();
   renderLeavesContent();
   renderUrgentRules();
-}
-
-function closeWindow() {
-  if (typeof liff !== 'undefined' && liff.closeWindow) {
-    liff.closeWindow();
-  } else {
-    window.close();
-  }
 }
 
 
