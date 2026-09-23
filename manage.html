@@ -809,8 +809,9 @@ try {
   alert("非幹部身分不可使用");
   return;
 }
+});
 
-
+  await loadCustomClasses();
   renderAdminIdentity();
   loadGroupSettings();
   syncAllClassDropdowns();
@@ -821,9 +822,6 @@ try {
   renderMembersList();
   renderLeavesContent();
   renderUrgentRules();
-});
-
-
 
  async function fetchAllBackendData() {
  try {
