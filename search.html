@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-   <title>GuildMaster - 會員名冊查詢</title>
+    <title>GuildMaster - 會員名冊查詢</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800;900&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
@@ -35,33 +35,27 @@
                 會員公開資料查詢
             </h1>
             <p class="text-xs text-amber-900/60 mt-1.5 leading-relaxed">
-                輸入「遊戲角色暱稱」或「LINE 暱稱」進行模糊搜尋
+                輸入「遊戲角色暱稱」或「LINE 暱稱」進行即時過濾搜尋
             </p>
         </div>
 
-        <!-- 搜尋列卡片 -->
+        <!-- 搜尋列卡片 (改為即時輸入搜尋 oninput) -->
         <div class="bg-white rounded-[28px] p-2.5 border-2 border-amber-200/80 soft-card-shadow mb-6">
-            <form id="searchForm" class="flex items-center gap-2">
+            <div class="flex items-center gap-2">
                 <div class="relative flex-1">
-                    <input type="text" id="searchInput" required placeholder="輸入欲查詢的暱稱關鍵字..." 
+                    <input type="text" id="searchInput" oninput="handleSearch()" placeholder="輸入角色或 LINE 暱稱搜尋..." 
                            class="w-full bg-[#FFFDF9] border border-amber-200/80 rounded-2xl pl-4 pr-3 py-3 text-sm font-bold text-amber-950 placeholder:text-amber-800/35 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition">
                 </div>
-                <button type="submit" id="searchBtn" title="開始搜尋"
-                        class="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold p-3 rounded-2xl shadow-md shadow-amber-300/40 transition active:scale-95 flex items-center justify-center cursor-pointer">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                    </svg>
-                </button>
-            </form>
+            </div>
         </div>
 
-        <!-- 狀態 1：查詢中 (Spinner) -->
-        <div id="loadingStatus" class="hidden bg-white rounded-[32px] p-8 border-2 border-amber-200/80 soft-card-shadow text-center fade-in mb-6">
+        <!-- 狀態 1：載入中 (Spinner) -->
+        <div id="loadingStatus" class="bg-white rounded-[32px] p-8 border-2 border-amber-200/80 soft-card-shadow text-center fade-in mb-6">
             <div class="relative w-12 h-12 mx-auto mb-3">
                 <div class="absolute inset-0 rounded-full border-4 border-amber-200 border-t-amber-500 animate-spin"></div>
                 <div class="w-full h-full rounded-full flex items-center justify-center text-base">🔍</div>
             </div>
-            <p class="text-xs font-bold text-amber-900/80">名冊資料檢索中...</p>
+            <p class="text-xs font-bold text-amber-900/80">名冊資料載入中...</p>
         </div>
 
         <!-- 狀態 2：查無資料 -->
@@ -71,7 +65,7 @@
             </div>
             <h3 class="text-sm font-black text-amber-950 mb-1">查無會員資料</h3>
             <p class="text-xs text-amber-800/60 leading-relaxed">
-                未找到相符會員，或該會員設定為「未開放查詢」與「審核中」。
+                未找到相符會員，或該會員設定為「未開放查詢」。
             </p>
         </div>
 
@@ -85,50 +79,61 @@
         // API 部署網址
         const API_URL = "https://script.google.com/macros/s/AKfycbxIRwxVfiCxwKwBi4MTz3C4mzBLg-76SCnp301IGb1_Pdlbi2bdOtOZK3bdXY0TeInTyg/exec";
 
-        // 使用標準 Fetch API 進行後端查詢
-        async function searchSheetByApi(keyword) {
+        // 全域儲存所有會員資料
+        let allMembers = [];
+
+        // 頁面載入時先取得全部資料
+        async function fetchAllMembers() {
+            const loadingBox = document.getElementById('loadingStatus');
             try {
-                const response = await fetch(`${API_URL}?action=search&q=${encodeURIComponent(keyword)}`, {
+                const response = await fetch(`${API_URL}?action=search&q=`, {
                     method: "GET",
                     redirect: "follow"
                 });
-                
-                if (!response.ok) {
-                    throw new Error("網路連線異常");
-                }
-                
+                if (!response.ok) throw new Error("網路異常");
                 const result = await response.json();
-                return result;
+                allMembers = (result && result.data) ? result.data : [];
             } catch (error) {
-                console.error("API 查詢失敗:", error);
-                return { status: "error", data: [] };
+                console.error("載入會員名冊失敗:", error);
+                allMembers = [];
+            } finally {
+                loadingBox.classList.add('hidden');
+                // 預設載入後直接渲染全部或保持空白（這裡預設顯示全部或提示搜尋）
+                renderMembers(allMembers);
             }
         }
 
-        document.getElementById('searchForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const keyword = document.getElementById('searchInput').value.trim();
-            if (!keyword) return;
+        // 即時過濾搜尋邏輯
+        function handleSearch() {
+            const keyword = document.getElementById('searchInput').value.trim().toLowerCase();
+            
+            if (!keyword) {
+                renderMembers(allMembers);
+                return;
+            }
 
-            const loadingBox = document.getElementById('loadingStatus');
-            const emptyBox = document.getElementById('emptyStatus');
+            const filtered = allMembers.filter(m => {
+                const gameNick = (m.gameNickname || "").toLowerCase();
+                const lineName = (m.lineDisplayName || "").toLowerCase();
+                return gameNick.includes(keyword) || lineName.includes(keyword);
+            });
+
+            renderMembers(filtered);
+        }
+
+        // 渲染畫面清單
+        function renderMembers(members) {
             const resultBox = document.getElementById('resultContainer');
-
-            loadingBox.classList.remove('hidden');
-            emptyBox.classList.add('hidden');
+            const emptyBox = document.getElementById('emptyStatus');
             resultBox.innerHTML = "";
-
-            const res = await searchSheetByApi(keyword);
-            loadingBox.classList.add('hidden');
-
-            const members = (res && res.data) ? res.data : [];
 
             if (members.length === 0) {
                 emptyBox.classList.remove('hidden');
                 return;
+            } else {
+                emptyBox.classList.add('hidden');
             }
 
-            // 渲染：遊戲暱稱、遊戲職業、LINE 暱稱
             members.forEach(m => {
                 const card = document.createElement('div');
                 card.className = "bg-white rounded-[32px] p-6 border-2 border-amber-200/80 soft-card-shadow fade-in";
@@ -152,7 +157,10 @@
                 `;
                 resultBox.appendChild(card);
             });
-        });
+        }
+
+        // 網頁一開好就自動抓取資料
+        window.addEventListener('DOMContentLoaded', fetchAllMembers);
     </script>
 </body>
 </html>
