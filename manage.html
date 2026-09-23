@@ -787,12 +787,19 @@ window.addEventListener("DOMContentLoaded", async () => {
     const res = await fetch(`${BACKEND_API_URL}/api/members/${encodeURIComponent(currentAdminUser.lineUserId)}`);
     const data = await res.json();
     
-    // 設定頭貼
-    if (currentAdminUser.pictureUrl) {
-      document.getElementById('authModalAvatar').src = currentAdminUser.pictureUrl;
-      document.getElementById('authModalAvatar').classList.remove('hidden');
-      document.getElementById('authModalAvatarPlaceholder').classList.add('hidden');
-    }
+// 設定頭貼：有抓到就用使用者的，沒抓到就自動帶入 LINE 官方預設大頭貼
+const userAvatarUrl = currentAdminUser.pictureUrl || "https://static.line-scdn.net/li-profile-resource/public/default_profile.png";
+
+const avatarImg = document.getElementById('authModalAvatar');
+const avatarPlaceholder = document.getElementById('authModalAvatarPlaceholder');
+
+if (avatarImg) {
+  avatarImg.src = userAvatarUrl;
+  avatarImg.classList.remove('hidden');
+  if (avatarPlaceholder) {
+    avatarPlaceholder.classList.add('hidden');
+  }
+}
 
     document.getElementById('authModalNickname').textContent = data.game_nickname || data.gameNickname || "未註冊成員";
     document.getElementById('authModalClass').textContent = data.game_class || data.gameClass || "尚未設定職業";
