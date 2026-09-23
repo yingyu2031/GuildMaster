@@ -30,7 +30,7 @@
 </head>
 <body class="bg-[#FFFDF9] text-amber-950 antialiased selection:bg-amber-200 selection:text-amber-900 min-h-screen flex flex-col justify-between py-8 px-4">
 
-    <main class="max-w-md w-full mx-auto">
+    <main class="max-w-md w-full mx-auto relative">
         <!-- 頂部標題區 -->
         <div class="text-center mb-6">
             <div id="topBadge" class="inline-block bg-amber-100/80 text-amber-800 border border-amber-200 text-xs font-bold px-3.5 py-1 rounded-full mb-3">
@@ -40,37 +40,37 @@
                 會員公開資料查詢
             </h1>
             <p id="pageSubTitle" class="text-xs text-amber-900/60 mt-1.5 leading-relaxed">
-                正在連線核對身分權限...
+                正在連線核對資料...
             </p>
         </div>
 
-        <!-- 狀態 1：驗證與載入讀取畫面 -->
-        <div id="loadingCard" class="bg-white rounded-[32px] p-8 border-2 border-amber-200/80 soft-card-shadow text-center mb-6">
+        <!-- 狀態 1：預覽讀取畫面 -->
+        <div id="loadingCard" class="bg-white rounded-[32px] p-8 border-2 border-amber-200/80 soft-card-shadow text-center">
             <div id="loadingSpinner" class="relative w-16 h-16 mx-auto mb-4">
                 <div class="absolute inset-0 rounded-full border-4 border-amber-200 border-t-amber-500 animate-spin"></div>
                 <div class="w-full h-full rounded-full flex items-center justify-center text-xl">
                     🔍
                 </div>
             </div>
-            <h3 id="loadingTitle" class="text-sm font-black text-amber-950 mb-1">正在連線驗證身分...</h3>
-            <p id="loadingDesc" class="text-xs text-amber-800/60">請稍候，正在確認您的公會會員資格</p>
+            <h3 id="loadingTitle" class="text-sm font-black text-amber-950 mb-1">正在連線會員資料...</h3>
+            <p id="loadingDesc" class="text-xs text-amber-800/60">正在確認會員身分，請稍候</p>
             
             <div id="errorBox" class="hidden mt-4 text-left">
                 <div class="text-xs font-bold text-rose-700 mb-1">提示與操作：</div>
                 <div id="errorDetail" class="text-[11px] text-rose-600 bg-rose-50 border border-rose-200 p-3 rounded-xl font-mono break-all leading-relaxed"></div>
                 <button onclick="closeLiffWindow()" class="w-full mt-3 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold py-2.5 rounded-xl shadow-md transition cursor-pointer">
-                    關閉視窗
+                關閉視窗重新載入
                 </button>
             </div>
         </div>
 
-        <!-- 狀態 2：審核中專屬提示卡片 (若狀態為「待審核」時顯示) -->
-        <div id="pendingReviewCard" class="hidden bg-white rounded-[32px] p-6 sm:p-7 border-2 border-amber-200/80 soft-card-shadow text-center relative mb-6">
+        <!-- 狀態 2：審核中專屬卡片 -->
+        <div id="pendingReviewCard" class="hidden bg-white rounded-[32px] p-6 sm:p-7 border-2 border-amber-200/80 soft-card-shadow text-center relative">
             <div class="w-14 h-14 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-3 border-2 border-amber-200 text-2xl">
                 ⏳
             </div>
             <p class="text-xs text-amber-900/70 leading-relaxed mb-5">
-                您的入會申請正在審核中，通過後即可解鎖會員名冊查詢功能。
+                您的會員資料尚在審核階段，目前無法使用會員名冊查詢功能。<br>待幹部審核通過後即可正常使用！
             </p>
 
             <div class="bg-[#FFFDF9] rounded-2xl p-4 border border-amber-200/80 text-left text-sm space-y-2 mb-6 text-amber-950 shadow-inner">
@@ -93,7 +93,22 @@
             </button>
         </div>
 
-        <!-- 狀態 3：主要查詢主體 (通過驗證且為「已審核」時顯示) -->
+        <!-- 狀態 3：未登記或已退會成員卡片 (合而為一) -->
+        <div id="unregisteredCard" class="hidden bg-white rounded-[32px] p-6 sm:p-7 border-2 border-amber-200/80 soft-card-shadow text-center relative">
+            <div class="w-14 h-14 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-3 border-2 border-amber-200 text-2xl">
+                📝
+            </div>
+            <h3 class="text-base font-black text-amber-950 mb-1">尚未完成會員登記</h3>
+            <p class="text-xs text-amber-900/70 leading-relaxed mb-5">
+                請先填寫公會會員資料並通過審核，才能進行會員名冊查詢喔！
+            </p>
+
+            <button onclick="closeLiffWindow()" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold py-3.5 rounded-2xl text-sm shadow-md transition cursor-pointer">
+                關閉視窗
+            </button>
+        </div>
+
+        <!-- 狀態 4：主要查詢主體 (審核通過且正常成員顯示) -->
         <div id="searchMainContent" class="hidden space-y-4">
             
             <!-- 會員身分小卡 -->
@@ -169,7 +184,6 @@
             isRegistered: false
         };
 
-        // 初始化 LIFF 與後端身分確認
         async function initApp() {
             const urlParams = new URLSearchParams(window.location.search);
             const queryUid = urlParams.get('uid') || urlParams.get('userId');
@@ -216,7 +230,6 @@
             initApp();
         }
 
-        // 向後端確認身分狀態並做分支處理
         async function verifyAndDisplayView(errorMsg) {
             if (!currentUser.userId) {
                 document.getElementById('loadingSpinner').classList.add('hidden');
@@ -250,25 +263,29 @@
                 console.error("驗證身分發生錯誤:", err);
             }
 
-            // 隱藏讀取動畫卡片
+            // 隱藏載入畫面
             document.getElementById('loadingCard').classList.add('hidden');
 
-            // 根據審核狀態顯示不同介面
-            if (currentUser.isRegistered && currentUser.accountStatus === "待審核") {
-                // 狀態 A：待審核中 -> 顯示專屬提示卡片
+            // 狀態判斷：只要是「未登記」或是「guildRole 為退會」，都導向未登記卡片
+            if (!currentUser.isRegistered || currentUser.guildRole === "退會") {
+                document.getElementById('topBadge').textContent = "身分未定";
+                document.getElementById('pageMainTitle').textContent = "尚未完成會員登記";
+                document.getElementById('pageSubTitle').textContent = "請先完成綁定";
+                document.getElementById('unregisteredCard').classList.remove('hidden');
+                document.getElementById('unregisteredCard').classList.add('fade-in');
+            } else if (currentUser.accountStatus === "待審核") {
                 document.getElementById('topBadge').textContent = "資格審核";
                 document.getElementById('pageMainTitle').textContent = "入會申請審核中";
-                document.getElementById('pageSubTitle').textContent = "資料已送出，請等候幹部審核通過";
+                document.getElementById('pageSubTitle').textContent = "資料已送出，請等候審核";
 
                 document.getElementById('pendingNickname').textContent = currentUser.gameNickname || "-";
                 document.getElementById('pendingClass').textContent = currentUser.gameClass || "-";
                 document.getElementById('pendingLineName').textContent = currentUser.displayName || "-";
 
-                const pendingCard = document.getElementById('pendingReviewCard');
-                pendingCard.classList.remove('hidden');
-                pendingCard.classList.add('fade-in');
+                document.getElementById('pendingReviewCard').classList.remove('hidden');
+                document.getElementById('pendingReviewCard').classList.add('fade-in');
             } else {
-                // 狀態 B：已審核通過（或未註冊訪客，視需求而定） -> 顯示查詢主畫面
+                // 正常已審核通過 -> 顯示查詢主畫面
                 document.getElementById('topBadge').textContent = "公會名冊";
                 document.getElementById('pageMainTitle').textContent = "會員公開資料查詢";
                 document.getElementById('pageSubTitle').textContent = "輸入「遊戲角色暱稱」或「LINE 暱稱」進行關鍵字搜尋";
@@ -277,28 +294,24 @@
                 searchMainContent.classList.remove('hidden');
                 searchMainContent.classList.add('fade-in');
 
-                // 渲染頂部個人身分卡片資訊
-                document.getElementById('authMemberNick').textContent = currentUser.isRegistered ? currentUser.gameNickname : (currentUser.displayName || "訪客");
-                document.getElementById('authMemberClass').textContent = currentUser.isRegistered ? currentUser.gameClass : "尚未完成綁定";
+                document.getElementById('authMemberNick').textContent = currentUser.gameNickname;
+                document.getElementById('authMemberClass').textContent = currentUser.gameClass;
                 
                 if (currentUser.pictureUrl) {
                     document.getElementById('avatarImg').src = currentUser.pictureUrl;
                 }
 
-                if (currentUser.isRegistered) {
-                    const badge = document.getElementById('authMemberRole');
-                    badge.textContent = currentUser.guildRole;
-                    badge.classList.remove('hidden');
-                    if (currentUser.guildRole === '幹部') {
-                        badge.className = "text-[10px] bg-sky-100 text-sky-800 font-bold px-2 py-0.5 rounded-full border border-sky-200";
-                    } else {
-                        badge.className = "text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full border border-emerald-200";
-                    }
+                const badge = document.getElementById('authMemberRole');
+                badge.textContent = currentUser.guildRole;
+                badge.classList.remove('hidden');
+                if (currentUser.guildRole === '幹部') {
+                    badge.className = "text-[10px] bg-sky-100 text-sky-800 font-bold px-2 py-0.5 rounded-full border border-sky-200";
+                } else {
+                    badge.className = "text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full border border-emerald-200";
                 }
             }
         }
 
-        // 搜尋會員 API 請求
         async function searchMembers(keyword) {
             try {
                 const response = await fetch(`${BACKEND_API_URL}/api/members/search?q=${encodeURIComponent(keyword)}`, {
@@ -314,7 +327,6 @@
             }
         }
 
-        // 搜尋表單送出事件
         document.getElementById('searchForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const keyword = document.getElementById('searchInput').value.trim();
@@ -336,7 +348,6 @@
                 return;
             }
 
-            // 動態渲染搜尋結果
             members.forEach(m => {
                 const card = document.createElement('div');
                 card.className = "bg-white rounded-[28px] p-5 border-2 border-amber-200/80 soft-card-shadow fade-in";
