@@ -56,29 +56,6 @@ input[type="date"], input[type="time"], select {
  <p class="text-[13px] font-bold text-slate-500">公會事務、成員審核與活動出勤統整</p>
  </div>
 
- <!-- 幹部登入小卡 -->
- <div class="bg-white border-2 border-sky-200/80 rounded-2xl p-3.5 mb-5 flex items-center gap-3.5 soft-sky-shadow text-left">
- <div class="relative shrink-0">
- <img id="adminAvatar" src="https://static.line-scdn.net/li-profile-resource/public/default_profile.png" 
- alt="Avatar" class="w-12 h-12 rounded-full object-cover border-2 border-white shadow-xs bg-sky-100">
- <span class="absolute -bottom-1 -right-1 bg-[#06C755] text-white text-[9px] font-black px-1 py-0.2 rounded-full border border-white leading-tight">
- LINE
- </span>
- </div>
-
- <div class="flex-1 min-w-0">
- <div class="flex items-center gap-2">
- <span id="adminNickName" class="text-base font-black text-slate-900 truncate">讀取中...</span>
- <span class="bg-sky-100 text-sky-800 text-[11px] font-black px-2 py-0.5 rounded-full border border-sky-200 shrink-0">
- 幹部
- </span>
- </div>
- <div id="adminClass" class="text-xs font-bold text-slate-600 truncate mt-0.5">
- 身分驗證中
- </div>
- </div>
- </div>
-
  <!-- 4 大主頁籤列 -->
 <div class="bg-sky-500 rounded-t-2xl px-2 pt-3 grid grid-cols-4 gap-1 select-none">
   <button id="mainTabMembers" onclick="switchMainSection('members')" 
@@ -2261,5 +2238,47 @@ input[type="date"], input[type="time"], select {
 
  function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
 </script>
+
+<!-- 全螢幕身分登入/驗證彈窗 -->
+<div id="authModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+  <div class="bg-white w-full max-w-sm rounded-[32px] p-6 border-2 border-sky-200 shadow-2xl text-center space-y-4 animate-fade-in">
+    
+    <!-- 頂部標題與裝飾 -->
+    <div class="inline-block bg-sky-100 text-sky-700 text-[11px] font-black px-3 py-1 rounded-full">
+      GuildMaster 安全認證
+    </div>
+    <h3 class="text-lg font-black text-slate-900">幹部管理中心</h3>
+
+    <!-- 個人資訊小卡 (從主畫面移過來的) -->
+    <div class="bg-[#F8FAFC] border border-sky-100 rounded-2xl p-4 flex items-center gap-3 text-left">
+      <img id="authModalAvatar" src="" class="w-12 h-12 rounded-full object-cover border-2 border-sky-400 bg-slate-200" alt="頭貼">
+      <div class="min-w-0 flex-1">
+        <div class="flex items-center gap-1.5">
+          <span id="authModalNickname" class="text-sm font-black text-slate-900 truncate">讀取中...</span>
+          <span id="authModalRoleBadge" class="text-[10px] bg-sky-100 text-sky-700 px-2 py-0.5 rounded-full font-bold">檢查中</span>
+        </div>
+        <p id="authModalClass" class="text-xs text-slate-500 mt-0.5 truncate">-</p>
+      </div>
+    </div>
+
+    <!-- 驗證結果與按鈕區 -->
+    <div id="authActionArea" class="space-y-2 pt-2">
+      <!-- 狀態訊息 -->
+      <p id="authMessage" class="text-xs font-bold text-slate-600">正在確認您的幹部身分...</p>
+      
+      <!-- 進入按鈕 (預設隱藏，確認是幹部才顯示) -->
+      <button id="enterAdminBtn" onclick="closeAuthModal()" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-black py-3 rounded-2xl shadow-md transition cursor-pointer hidden">
+        進入管理中心
+      </button>
+      
+      <!-- 拒絕/關閉按鈕 -->
+      <button id="exitWindowBtn" onclick="closeWindow()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 rounded-2xl transition cursor-pointer">
+        關閉頁面
+      </button>
+    </div>
+
+  </div>
+</div>
+
 </body>
 </html>
