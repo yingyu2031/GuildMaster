@@ -3,10 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <title>GuildMaster - 會員名冊查詢</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800;900&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <!-- LIFF SDK -->
+    <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
         body { 
             font-family: 'M PLUS Rounded 1c', 'Noto Sans TC', sans-serif; 
@@ -15,10 +20,10 @@
             box-shadow: 0 20px 40px -12px rgba(217, 119, 6, 0.12), 0 4px 12px -2px rgba(0, 0, 0, 0.04);
         }
         .fade-in {
-            animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            animation: fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(6px); }
+            from { opacity: 0; transform: translateY(8px); }
             to { opacity: 1; transform: translateY(0); }
         }
     </style>
@@ -28,66 +33,223 @@
     <main class="max-w-md w-full mx-auto">
         <!-- 頂部標題區 -->
         <div class="text-center mb-6">
-            <div class="inline-block bg-amber-100/80 text-amber-800 border border-amber-200 text-xs font-bold px-3.5 py-1 rounded-full mb-3">
-                公會名冊
+            <div id="topBadge" class="inline-block bg-amber-100/80 text-amber-800 border border-amber-200 text-xs font-bold px-3.5 py-1 rounded-full mb-3">
+                身分確認中
             </div>
             <h1 class="text-2xl font-black text-amber-950">
                 會員公開資料查詢
             </h1>
-            <p class="text-xs text-amber-900/60 mt-1.5 leading-relaxed">
-                輸入「遊戲角色暱稱」或「LINE 暱稱」進行關鍵字搜尋
+            <p id="pageSubTitle" class="text-xs text-amber-900/60 mt-1.5 leading-relaxed">
+                正在連線核對身分權限...
             </p>
         </div>
 
-        <!-- 搜尋列卡片 -->
-        <div class="bg-white rounded-[28px] p-2.5 border-2 border-amber-200/80 soft-card-shadow mb-6">
-            <form id="searchForm" class="flex items-center gap-2">
-                <div class="relative flex-1">
-                    <input type="text" id="searchInput" required placeholder="輸入遊戲角色或 LINE 暱稱..." 
-                           class="w-full bg-[#FFFDF9] border border-amber-200/80 rounded-2xl pl-4 pr-3 py-3 text-sm font-bold text-amber-950 placeholder:text-amber-800/35 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition">
-                </div>
-                <button type="submit" id="searchBtn" title="開始搜尋"
-                        class="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold p-3 rounded-2xl shadow-md shadow-amber-300/40 transition active:scale-95 flex items-center justify-center cursor-pointer">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                    </svg>
-                </button>
-            </form>
-        </div>
-
-        <!-- 狀態 1：查詢中 (Spinner) -->
-        <div id="loadingStatus" class="hidden bg-white rounded-[32px] p-8 border-2 border-amber-200/80 soft-card-shadow text-center fade-in mb-6">
-            <div class="relative w-12 h-12 mx-auto mb-3">
+        <!-- 狀態 1：驗證與載入讀取畫面 -->
+        <div id="loadingCard" class="bg-white rounded-[32px] p-8 border-2 border-amber-200/80 soft-card-shadow text-center mb-6">
+            <div id="loadingSpinner" class="relative w-16 h-16 mx-auto mb-4">
                 <div class="absolute inset-0 rounded-full border-4 border-amber-200 border-t-amber-500 animate-spin"></div>
-                <div class="w-full h-full rounded-full flex items-center justify-center text-base">🔍</div>
+                <div class="w-full h-full rounded-full flex items-center justify-center text-xl">
+                    🔍
+                </div>
             </div>
-            <p class="text-xs font-bold text-amber-900/80">名冊資料檢索中...</p>
+            <h3 id="loadingTitle" class="text-sm font-black text-amber-950 mb-1">正在連線驗證身分...</h3>
+            <p id="loadingDesc" class="text-xs text-amber-800/60">請稍候，正在確認您的公會會員資格</p>
+            
+            <div id="errorBox" class="hidden mt-4 text-left">
+                <div class="text-xs font-bold text-rose-700 mb-1">提示與操作：</div>
+                <div id="errorDetail" class="text-[11px] text-rose-600 bg-rose-50 border border-rose-200 p-3 rounded-xl font-mono break-all leading-relaxed"></div>
+                <button onclick="closeLiffWindow()" class="w-full mt-3 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold py-2.5 rounded-xl shadow-md transition cursor-pointer">
+                    關閉視窗
+                </button>
+            </div>
         </div>
 
-        <!-- 狀態 2：查無資料 -->
-        <div id="emptyStatus" class="hidden bg-white rounded-[32px] p-8 border-2 border-amber-200/80 soft-card-shadow text-center fade-in mb-6">
-            <div class="w-14 h-14 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-3 border border-amber-200 text-2xl">
-                🍃
+        <!-- 狀態 2：主要查詢主體 (通過驗證後顯示) -->
+        <div id="searchMainContent" class="hidden space-y-4">
+            
+            <!-- 會員身分小卡 -->
+            <div class="bg-white rounded-2xl p-3.5 border border-amber-200/80 soft-card-shadow flex items-center gap-3">
+                <div class="relative shrink-0">
+                    <img id="avatarImg" src="https://yingyu2031.github.io/GuildMaster/IMG_9732.png" alt="Avatar" class="w-11 h-11 rounded-full border-2 border-white shadow-sm object-cover bg-amber-100">
+                    <span class="absolute -bottom-1 -right-1 bg-[#06C755] text-white text-[9px] font-black px-1.5 py-0.2 rounded-full border border-white">LINE</span>
+                </div>
+                <div class="flex-1 min-w-0 text-left">
+                    <div class="flex items-center gap-1.5">
+                        <span id="authMemberNick" class="font-black text-sm text-amber-950 truncate">驗證中...</span>
+                        <span id="authMemberRole" class="hidden text-[10px] font-bold px-2 py-0.5 rounded-full">-</span>
+                    </div>
+                    <div class="text-[11px] text-amber-800/70 font-bold truncate mt-0.5" id="authMemberClass">-</div>
+                </div>
             </div>
-            <h3 class="text-sm font-black text-amber-950 mb-1">查無會員資料</h3>
-            <p class="text-xs text-amber-800/60 leading-relaxed">
-                未找到相符會員，或該會員設定為「未開放查詢」與「審核中」。
-            </p>
-        </div>
 
-        <!-- 狀態 3：搜尋結果列表 -->
-        <div id="resultContainer" class="space-y-4"></div>
+            <!-- 搜尋列卡片 -->
+            <div class="bg-white rounded-[28px] p-2.5 border-2 border-amber-200/80 soft-card-shadow">
+                <form id="searchForm" class="flex items-center gap-2">
+                    <div class="relative flex-1">
+                        <input type="text" id="searchInput" required placeholder="輸入遊戲角色或 LINE 暱稱..." 
+                               class="w-full bg-[#FFFDF9] border border-amber-200/80 rounded-2xl pl-4 pr-3 py-3 text-sm font-bold text-amber-950 placeholder:text-amber-800/35 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition">
+                    </div>
+                    <button type="submit" id="searchBtn" title="開始搜尋"
+                            class="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold p-3 rounded-2xl shadow-md shadow-amber-300/40 transition active:scale-95 flex items-center justify-center cursor-pointer">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                    </button>
+                </form>
+            </div>
+
+            <!-- 搜尋中狀態 (Spinner) -->
+            <div id="searchLoadingStatus" class="hidden bg-white rounded-[32px] p-6 border-2 border-amber-200/80 soft-card-shadow text-center fade-in">
+                <div class="relative w-10 h-10 mx-auto mb-2">
+                    <div class="absolute inset-0 rounded-full border-3 border-amber-200 border-t-amber-500 animate-spin"></div>
+                </div>
+                <p class="text-xs font-bold text-amber-900/80">名冊資料檢索中...</p>
+            </div>
+
+            <!-- 查無資料狀態 -->
+            <div id="emptyStatus" class="hidden bg-white rounded-[32px] p-6 border-2 border-amber-200/80 soft-card-shadow text-center fade-in">
+                <div class="w-12 h-12 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-2 border border-amber-200 text-xl">
+                    🍃
+                </div>
+                <h3 class="text-xs font-black text-amber-950 mb-1">查無會員資料</h3>
+                <p class="text-[11px] text-amber-800/60 leading-relaxed">
+                    未找到相符會員，或該會員設定為「未開放查詢」與「審核中」。
+                </p>
+            </div>
+
+            <!-- 搜尋結果列表 -->
+            <div id="resultContainer" class="space-y-3"></div>
+
+        </div>
 
         <p class="text-[11px] text-amber-800/40 text-center mt-6">&copy; 2026 GuildMaster</p>
     </main>
 
     <script>
-        // 若前端與 Node.js 後端部署在同一個網址，此處可留空 ''
-       const MY_LIFF_ID = "2011659633-XUHrG3ge";
-        const API_URL = "https://guildmaster.zeabur.app";
+        const MY_LIFF_ID = "2011659633-XUHrG3ge";
+        const BACKEND_API_URL = "https://guildmaster.zeabur.app";
+
+        let currentUser = {
+            userId: "",
+            displayName: "",
+            pictureUrl: "",
+            gameNickname: "",
+            gameClass: "",
+            accountStatus: "",
+            guildRole: "現任",
+            isRegistered: false
+        };
+
+        // 初始化 LIFF 與後端身分確認
+        async function initApp() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const queryUid = urlParams.get('uid') || urlParams.get('userId');
+            const queryName = urlParams.get('name') || urlParams.get('displayName');
+
+            let isLiffReady = false;
+            let liffErrorDetail = "";
+
+            if (MY_LIFF_ID && typeof liff !== 'undefined') {
+                try {
+                    await liff.init({ liffId: MY_LIFF_ID });
+                    if (liff.isLoggedIn()) {
+                        const profile = await liff.getProfile();
+                        currentUser.userId = profile.userId;
+                        currentUser.displayName = profile.displayName;
+                        currentUser.pictureUrl = profile.pictureUrl || "";
+                        isLiffReady = true;
+                    } else {
+                        document.getElementById('loadingSpinner').classList.add('hidden');
+                        document.getElementById('loadingTitle').textContent = "需要登入 LINE";
+                        document.getElementById('loadingDesc').textContent = "請點擊下方按鈕進行驗證授權";
+                        const errBox = document.getElementById('errorBox');
+                        const errDetail = document.getElementById('errorDetail');
+                        errDetail.innerHTML = `<button onclick="liff.login()" class="w-full bg-[#06C755] text-white font-bold py-2.5 rounded-xl shadow-md cursor-pointer">點擊登入 LINE 帳號</button>`;
+                        errBox.classList.remove('hidden');
+                        return;
+                    }
+                } catch (err) {
+                    liffErrorDetail = err.message || JSON.stringify(err);
+                }
+            }
+
+            if (!isLiffReady && queryUid) {
+                currentUser.userId = queryUid;
+                if (queryName) currentUser.displayName = decodeURIComponent(queryName);
+            }
+
+            await verifyAndDisplayView(liffErrorDetail);
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initApp);
+        } else {
+            initApp();
+        }
+
+        // 向後端確認身分狀態
+        async function verifyAndDisplayView(errorMsg) {
+            if (!currentUser.userId) {
+                document.getElementById('loadingSpinner').classList.add('hidden');
+                document.getElementById('loadingTitle').textContent = "無法辨識 LINE 身分";
+                document.getElementById('loadingDesc').textContent = "請確認您是點擊 LINE 官方專用連結開啟";
+                const errBox = document.getElementById('errorBox');
+                const errDetail = document.getElementById('errorDetail');
+                errDetail.textContent = errorMsg || "LIFF 未能取得 Profile。";
+                errBox.classList.remove('hidden');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${BACKEND_API_URL}/api/members/${encodeURIComponent(currentUser.userId)}`, {
+                    method: 'GET',
+                    headers: { 'Accept': 'application/json' }
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result && result.status === "found") {
+                        currentUser.gameNickname = result.gameNickname || "";
+                        currentUser.gameClass = result.gameClass || "";
+                        currentUser.displayName = result.lineDisplayName || currentUser.displayName;
+                        currentUser.accountStatus = String(result.accountStatus || "").trim();
+                        currentUser.guildRole = String(result.guildRole || "現任").trim();
+                        currentUser.isRegistered = true;
+                    }
+                }
+            } catch (err) {
+                console.error("驗證身分發生錯誤:", err);
+            }
+
+            // 隱藏載入畫面，展開查詢主介面
+            document.getElementById('loadingCard').classList.add('hidden');
+            document.getElementById('searchMainContent').classList.remove('hidden');
+            document.getElementById('searchMainContent').classList.add('fade-in');
+
+            // 渲染頂部個人身分卡片資訊
+            document.getElementById('authMemberNick').textContent = currentUser.isRegistered ? currentUser.gameNickname : (currentUser.displayName || "訪客");
+            document.getElementById('authMemberClass').textContent = currentUser.isRegistered ? currentUser.gameClass : "尚未完成綁定";
+            
+            if (currentUser.pictureUrl) {
+                document.getElementById('avatarImg').src = currentUser.pictureUrl;
+            }
+
+            if (currentUser.isRegistered) {
+                const badge = document.getElementById('authMemberRole');
+                badge.textContent = currentUser.guildRole;
+                badge.classList.remove('hidden');
+                if (currentUser.guildRole === '幹部') {
+                    badge.className = "text-[10px] bg-sky-100 text-sky-800 font-bold px-2 py-0.5 rounded-full border border-sky-200";
+                } else {
+                    badge.className = "text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full border border-emerald-200";
+                }
+            }
+        }
+
+        // 搜尋會員 API 請求
         async function searchMembers(keyword) {
             try {
-                const response = await fetch(`${API_URL}/api/members/search?q=${encodeURIComponent(keyword)}`, {
+                const response = await fetch(`${BACKEND_API_URL}/api/members/search?q=${encodeURIComponent(keyword)}`, {
                     method: "GET",
                     redirect: "follow"
                 });
@@ -100,44 +262,45 @@
             }
         }
 
+        // 綁定表單送出事件
         document.getElementById('searchForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const keyword = document.getElementById('searchInput').value.trim();
             if (!keyword) return;
 
-            const loadingBox = document.getElementById('loadingStatus');
+            const searchLoadingStatus = document.getElementById('searchLoadingStatus');
             const emptyBox = document.getElementById('emptyStatus');
             const resultBox = document.getElementById('resultContainer');
 
-            // 顯示載入動畫、清空舊結果
-            loadingBox.classList.remove('hidden');
+            searchLoadingStatus.classList.remove('hidden');
             emptyBox.classList.add('hidden');
             resultBox.innerHTML = "";
 
             const members = await searchMembers(keyword);
-            loadingBox.classList.add('hidden');
+            searchLoadingStatus.classList.add('hidden');
 
             if (members.length === 0) {
                 emptyBox.classList.remove('hidden');
                 return;
             }
 
-            // 動態渲染搜尋結果卡片
+            // 動態渲染搜尋結果
             members.forEach(m => {
                 const card = document.createElement('div');
-                card.className = "bg-white rounded-[32px] p-6 border-2 border-amber-200/80 soft-card-shadow fade-in";
+                card.className = "bg-white rounded-[28px] p-5 border-2 border-amber-200/80 soft-card-shadow fade-in";
 
                 card.innerHTML = `
-                    <div class="flex items-center gap-2 pb-3 border-b border-amber-100 mb-4">
-                        <span class="text-base font-black text-amber-950">${m.gameNickname || "冒險者"}</span>
+                    <div class="flex items-center gap-2 pb-2.5 border-b border-amber-100 mb-3">
+                        <span class="text-sm font-black text-amber-950">${m.gameNickname || "冒險者"}</span>
                     </div>
-                    <div class="bg-[#FFFDF9] rounded-2xl p-4 border border-amber-200/70 text-sm space-y-2.5 text-amber-950">
+
+                    <div class="bg-[#FFFDF9] rounded-2xl p-3.5 border border-amber-200/70 text-xs space-y-2 text-amber-950">
                         <div class="flex items-center justify-between">
-                            <span class="text-amber-800/80 font-bold text-xs">遊戲職業</span>
+                            <span class="text-amber-800/80 font-bold">遊戲職業</span>
                             <span class="font-extrabold text-amber-950">${m.gameClass || "未登記"}</span>
                         </div>
                         <div class="flex items-center justify-between">
-                            <span class="text-amber-800/80 font-bold text-xs">LINE 暱稱</span>
+                            <span class="text-amber-800/80 font-bold">LINE 暱稱</span>
                             <span class="font-bold text-amber-950">${m.lineDisplayName || "-"}</span>
                         </div>
                     </div>
@@ -145,6 +308,14 @@
                 resultBox.appendChild(card);
             });
         });
+
+        function closeLiffWindow() {
+            if (typeof liff !== 'undefined' && liff.closeWindow) {
+                liff.closeWindow();
+            } else {
+                alert("請關閉此瀏覽器視窗");
+            }
+        }
     </script>
 </body>
 </html>
