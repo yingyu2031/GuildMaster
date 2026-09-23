@@ -36,7 +36,7 @@
             <div id="topBadge" class="inline-block bg-amber-100/80 text-amber-800 border border-amber-200 text-xs font-bold px-3.5 py-1 rounded-full mb-3">
                 身分確認中
             </div>
-            <h1 class="text-2xl font-black text-amber-950">
+            <h1 id="pageMainTitle" class="text-2xl font-black text-amber-950">
                 會員公開資料查詢
             </h1>
             <p id="pageSubTitle" class="text-xs text-amber-900/60 mt-1.5 leading-relaxed">
@@ -64,7 +64,36 @@
             </div>
         </div>
 
-        <!-- 狀態 2：主要查詢主體 (通過驗證後顯示) -->
+        <!-- 狀態 2：審核中專屬提示卡片 (若狀態為「待審核」時顯示) -->
+        <div id="pendingReviewCard" class="hidden bg-white rounded-[32px] p-6 sm:p-7 border-2 border-amber-200/80 soft-card-shadow text-center relative mb-6">
+            <div class="w-14 h-14 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-3 border-2 border-amber-200 text-2xl">
+                ⏳
+            </div>
+            <p class="text-xs text-amber-900/70 leading-relaxed mb-5">
+                您的入會申請正在審核中，通過後即可解鎖會員名冊查詢功能。
+            </p>
+
+            <div class="bg-[#FFFDF9] rounded-2xl p-4 border border-amber-200/80 text-left text-sm space-y-2 mb-6 text-amber-950 shadow-inner">
+                <div class="flex items-center justify-between">
+                    <span class="text-amber-800/80 font-bold">遊戲暱稱：</span>
+                    <span id="pendingNickname" class="font-bold text-amber-950">-</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-amber-800/80 font-bold">遊戲職業：</span>
+                    <span id="pendingClass" class="font-bold text-amber-950">-</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-amber-800/80 font-bold">LINE 暱稱：</span>
+                    <span id="pendingLineName" class="font-bold text-amber-950">-</span>
+                </div>
+            </div>
+
+            <button onclick="closeLiffWindow()" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold py-3.5 rounded-2xl text-sm shadow-md shadow-amber-300/40 transition cursor-pointer">
+                關閉回到聊天室
+            </button>
+        </div>
+
+        <!-- 狀態 3：主要查詢主體 (通過驗證且為「已審核」時顯示) -->
         <div id="searchMainContent" class="hidden space-y-4">
             
             <!-- 會員身分小卡 -->
@@ -187,7 +216,7 @@
             initApp();
         }
 
-        // 向後端確認身分狀態
+        // 向後端確認身分狀態並做分支處理
         async function verifyAndDisplayView(errorMsg) {
             if (!currentUser.userId) {
                 document.getElementById('loadingSpinner').classList.add('hidden');
@@ -221,27 +250,50 @@
                 console.error("驗證身分發生錯誤:", err);
             }
 
-            // 隱藏載入畫面，展開查詢主介面
+            // 隱藏讀取動畫卡片
             document.getElementById('loadingCard').classList.add('hidden');
-            document.getElementById('searchMainContent').classList.remove('hidden');
-            document.getElementById('searchMainContent').classList.add('fade-in');
 
-            // 渲染頂部個人身分卡片資訊
-            document.getElementById('authMemberNick').textContent = currentUser.isRegistered ? currentUser.gameNickname : (currentUser.displayName || "訪客");
-            document.getElementById('authMemberClass').textContent = currentUser.isRegistered ? currentUser.gameClass : "尚未完成綁定";
-            
-            if (currentUser.pictureUrl) {
-                document.getElementById('avatarImg').src = currentUser.pictureUrl;
-            }
+            // 根據審核狀態顯示不同介面
+            if (currentUser.isRegistered && currentUser.accountStatus === "待審核") {
+                // 狀態 A：待審核中 -> 顯示專屬提示卡片
+                document.getElementById('topBadge').textContent = "資格審核";
+                document.getElementById('pageMainTitle').textContent = "入會申請審核中";
+                document.getElementById('pageSubTitle').textContent = "資料已送出，請等候幹部審核通過";
 
-            if (currentUser.isRegistered) {
-                const badge = document.getElementById('authMemberRole');
-                badge.textContent = currentUser.guildRole;
-                badge.classList.remove('hidden');
-                if (currentUser.guildRole === '幹部') {
-                    badge.className = "text-[10px] bg-sky-100 text-sky-800 font-bold px-2 py-0.5 rounded-full border border-sky-200";
-                } else {
-                    badge.className = "text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full border border-emerald-200";
+                document.getElementById('pendingNickname').textContent = currentUser.gameNickname || "-";
+                document.getElementById('pendingClass').textContent = currentUser.gameClass || "-";
+                document.getElementById('pendingLineName').textContent = currentUser.displayName || "-";
+
+                const pendingCard = document.getElementById('pendingReviewCard');
+                pendingCard.classList.remove('hidden');
+                pendingCard.classList.add('fade-in');
+            } else {
+                // 狀態 B：已審核通過（或未註冊訪客，視需求而定） -> 顯示查詢主畫面
+                document.getElementById('topBadge').textContent = "公會名冊";
+                document.getElementById('pageMainTitle').textContent = "會員公開資料查詢";
+                document.getElementById('pageSubTitle').textContent = "輸入「遊戲角色暱稱」或「LINE 暱稱」進行關鍵字搜尋";
+
+                const searchMainContent = document.getElementById('searchMainContent');
+                searchMainContent.classList.remove('hidden');
+                searchMainContent.classList.add('fade-in');
+
+                // 渲染頂部個人身分卡片資訊
+                document.getElementById('authMemberNick').textContent = currentUser.isRegistered ? currentUser.gameNickname : (currentUser.displayName || "訪客");
+                document.getElementById('authMemberClass').textContent = currentUser.isRegistered ? currentUser.gameClass : "尚未完成綁定";
+                
+                if (currentUser.pictureUrl) {
+                    document.getElementById('avatarImg').src = currentUser.pictureUrl;
+                }
+
+                if (currentUser.isRegistered) {
+                    const badge = document.getElementById('authMemberRole');
+                    badge.textContent = currentUser.guildRole;
+                    badge.classList.remove('hidden');
+                    if (currentUser.guildRole === '幹部') {
+                        badge.className = "text-[10px] bg-sky-100 text-sky-800 font-bold px-2 py-0.5 rounded-full border border-sky-200";
+                    } else {
+                        badge.className = "text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full border border-emerald-200";
+                    }
                 }
             }
         }
@@ -262,7 +314,7 @@
             }
         }
 
-        // 綁定表單送出事件
+        // 搜尋表單送出事件
         document.getElementById('searchForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const keyword = document.getElementById('searchInput').value.trim();
@@ -291,6 +343,7 @@
 
                 card.innerHTML = `
                     <div class="flex items-center gap-2 pb-2.5 border-b border-amber-100 mb-3">
+                        <span class="text-lg">🔹</span>
                         <span class="text-sm font-black text-amber-950">${m.gameNickname || "冒險者"}</span>
                     </div>
 
