@@ -75,92 +75,87 @@
         <p class="text-[11px] text-amber-800/40 text-center mt-6">&copy; 2026 GuildMaster</p>
     </main>
 
-    <script>
-        // API 部署網址
-        const API_URL = "https://script.google.com/macros/s/AKfycbxIRwxVfiCxwKwBi4MTz3C4mzBLg-76SCnp301IGb1_Pdlbi2bdOtOZK3bdXY0TeInTyg/exec";
+<script>
+    // 指向你的 Node.js 伺服器網址 (本地測試可用 http://localhost:8080，上線後換成你的 Render/Heroku 網址)
+    const API_URL = ""; // 如果前端和後端部署在同一個網址，留空或寫相對路徑即可
 
-        // 全域儲存所有會員資料
-        let allMembers = [];
+    let allMembers = [];
 
-        // 頁面載入時先取得全部資料
-        async function fetchAllMembers() {
-            const loadingBox = document.getElementById('loadingStatus');
-            try {
-                const response = await fetch(`${API_URL}?action=search&q=`, {
-                    method: "GET",
-                    redirect: "follow"
-                });
-                if (!response.ok) throw new Error("網路異常");
-                const result = await response.json();
-                allMembers = (result && result.data) ? result.data : [];
-            } catch (error) {
-                console.error("載入會員名冊失敗:", error);
-                allMembers = [];
-            } finally {
-                loadingBox.classList.add('hidden');
-                // 預設載入後直接渲染全部或保持空白（這裡預設顯示全部或提示搜尋）
-                renderMembers(allMembers);
-            }
+    // 頁面載入時向 Node.js 後端取得開放查詢的會員清單
+    async function fetchAllMembers() {
+        const loadingBox = document.getElementById('loadingStatus');
+        try {
+            const response = await fetch(`${API_URL}/api/members/search`);
+            if (!response.ok) throw new Error("網路異常");
+            const result = await response.json();
+            allMembers = (result && result.data) ? result.data : [];
+        } catch (error) {
+            console.error("載入會員名冊失敗:", error);
+            allMembers = [];
+        } finally {
+            loadingBox.classList.add('hidden');
+            renderMembers(allMembers);
+        }
+    }
+
+    // 即時輸入過濾 (支援 遊戲暱稱 或 LINE 暱稱 模糊搜尋)
+    function handleSearch() {
+        const keyword = document.getElementById('searchInput').value.trim().toLowerCase();
+        
+        if (!keyword) {
+            renderMembers(allMembers);
+            return;
         }
 
-        // 即時過濾搜尋邏輯
-        function handleSearch() {
-            const keyword = document.getElementById('searchInput').value.trim().toLowerCase();
-            
-            if (!keyword) {
-                renderMembers(allMembers);
-                return;
-            }
+        const filtered = allMembers.filter(m => {
+            const gameNick = (m.gameNickname || "").toLowerCase();
+            const lineName = (m.lineDisplayName || "").toLowerCase();
+            return gameNick.includes(keyword) || lineName.includes(keyword);
+        });
 
-            const filtered = allMembers.filter(m => {
-                const gameNick = (m.gameNickname || "").toLowerCase();
-                const lineName = (m.lineDisplayName || "").toLowerCase();
-                return gameNick.includes(keyword) || lineName.includes(keyword);
-            });
+        renderMembers(filtered);
+    }
 
-            renderMembers(filtered);
+    // 渲染清單畫面
+    function renderMembers(members) {
+        const resultBox = document.getElementById('resultContainer');
+        const emptyBox = document.getElementById('emptyStatus');
+        resultBox.innerHTML = "";
+
+        if (members.length === 0) {
+            emptyBox.classList.remove('hidden');
+            return;
+        } else {
+            emptyBox.classList.add('hidden');
         }
 
-        // 渲染畫面清單
-        function renderMembers(members) {
-            const resultBox = document.getElementById('resultContainer');
-            const emptyBox = document.getElementById('emptyStatus');
-            resultBox.innerHTML = "";
+        members.forEach(m => {
+            const card = document.createElement('div');
+            card.className = "bg-white rounded-[32px] p-6 border-2 border-amber-200/80 soft-card-shadow fade-in";
 
-            if (members.length === 0) {
-                emptyBox.classList.remove('hidden');
-                return;
-            } else {
-                emptyBox.classList.add('hidden');
-            }
+            card.innerHTML = `
+                <div class="flex items-center gap-2 pb-3 border-b border-amber-100 mb-4">
+                    <span class="text-xl">🔹</span>
+                    <span class="text-base font-black text-amber-950">${m.gameNickname || "冒險者"}</span>
+                </div>
 
-            members.forEach(m => {
-                const card = document.createElement('div');
-                card.className = "bg-white rounded-[32px] p-6 border-2 border-amber-200/80 soft-card-shadow fade-in";
-
-                card.innerHTML = `
-                    <div class="flex items-center gap-2 pb-3 border-b border-amber-100 mb-4">
-                        <span class="text-xl">🔹</span>
-                        <span class="text-base font-black text-amber-950">${m.gameNickname || "冒險者"}</span>
+                <div class="bg-[#FFFDF9] rounded-2xl p-4 border border-amber-200/70 text-sm space-y-2.5 text-amber-950">
+                    <div class="flex items-center justify-between">
+                        <span class="text-amber-800/80 font-bold text-xs">遊戲職業</span>
+                        <span class="font-extrabold text-amber-950">${m.gameClass || "未登記"}</span>
                     </div>
-
-                    <div class="bg-[#FFFDF9] rounded-2xl p-4 border border-amber-200/70 text-sm space-y-2.5 text-amber-950">
-                        <div class="flex items-center justify-between">
-                            <span class="text-amber-800/80 font-bold text-xs">遊戲職業</span>
-                            <span class="font-extrabold text-amber-950">${m.gameClass || "未登記"}</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span class="text-amber-800/80 font-bold text-xs">LINE 暱稱</span>
-                            <span class="font-bold text-amber-950">${m.lineDisplayName || "-"}</span>
-                        </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-amber-800/80 font-bold text-xs">LINE 暱稱</span>
+                        <span class="font-bold text-amber-950">${m.lineDisplayName || "-"}</span>
                     </div>
-                `;
-                resultBox.appendChild(card);
-            });
-        }
+                </div>
+            `;
+            resultBox.appendChild(card);
+        });
+    }
 
-        // 網頁一開好就自動抓取資料
-        window.addEventListener('DOMContentLoaded', fetchAllMembers);
-    </script>
+    window.addEventListener('DOMContentLoaded', fetchAllMembers);
+</script>
+
 </body>
 </html>
