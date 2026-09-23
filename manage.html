@@ -770,59 +770,72 @@ input[type="date"], input[type="time"], select {
 
  const TODAY_STR = new Date().toISOString().split('T')[0];
 
-window.addEventListener("DOMContentLoaded", async () => {
-  const urlParams = new URLSearchParams(window.location.search);
-  const queryUid = urlParams.get('uid') || urlParams.get('userId');
-  let isLiffReady = false;
+ window.addEventListener("DOMContentLoaded", async () => {
+ const urlParams = new URLSearchParams(window.location.search);
+ const queryUid = urlParams.get('uid') || urlParams.get('userId');
+ let isLiffReady = false;
 
-  if (MY_LIFF_ID && typeof liff !== 'undefined') {
-    try {
-      await liff.init({ liffId: MY_LIFF_ID });
-      if (liff.isLoggedIn()) {
-        const profile = await liff.getProfile();
-        currentAdminUser.lineUserId = profile.userId;
-        currentAdminUser.pictureUrl = profile.pictureUrl || "";
-        isLiffReady = true;
-      } else { liff.login(); return; }
-    } catch (err) { console.error(err); }
-  }
+ if (MY_LIFF_ID && typeof liff !== 'undefined') {
+ try {
+ await liff.init({ liffId: MY_LIFF_ID });
+ if (liff.isLoggedIn()) {
+ const profile = await liff.getProfile();
+ currentAdminUser.lineUserId = profile.userId;
+ currentAdminUser.pictureUrl = profile.pictureUrl || "";
+ isLiffReady = true;
+ } else { liff.login(); return; }
+ } catch (err) { console.error(err); }
+ }
 
-  if (!isLiffReady && queryUid) currentAdminUser.lineUserId = queryUid;
-  if (!currentAdminUser.lineUserId) { alert("非幹部身分不可使用"); return; }
+ if (!isLiffReady && queryUid) currentAdminUser.lineUserId = queryUid;
+ if (!currentAdminUser.lineUserId) { alert("非幹部身分不可使用"); return; }
 
 try {
   const res = await fetch(`${BACKEND_API_URL}/api/members/${encodeURIComponent(currentAdminUser.lineUserId)}`);
   const data = await res.json();
   
-  // 彈出對話框讓你直接在手機上看到後端回傳了什麼
-  alert(`後端回傳檢查：\nstatus: ${data.status}\nrole: ${data.guild_role}\naccountStatus: ${data.account_status}\nmyUid: ${currentAdminUser.lineUserId}`);
+  console.log("後端回傳的驗證資料：", data);
 
-  if (data.status !== "found" || data.account_status !== "已審核" || String(data.guild_role || "").trim() !== "幹部") {
-    alert(`身分驗證未通過！\n你目前的職稱是：[${data.guild_role}]\n狀態是：[${data.account_status}]`);
-    if (typeof liff !== 'undefined' && liff.closeWindow) liff.closeWindow();
+  try {
+  const res = await fetch(`${BACKEND_API_URL}/api/members/${encodeURIComponent(currentAdminUser.lineUserId)}`);
+  const data = await res.json();
+  
+  // 把它們印出來看
+  console.log("後端回傳資料:", data);
+  console.log("目前我的 UID:", currentAdminUser.lineUserId);
+
+  if (data.status !== "found") {
+    alert(`登入失敗：資料庫找不到此 UID (${currentAdminUser.lineUserId})`);
+    return;
+  }
+  if (data.account_status !== "已審核") {
+    alert(`登入失敗：帳號狀態是「${data.account_status}」，必須為「已審核」`);
+    return;
+  }
+  if (String(data.guild_role || "").trim() !== "幹部") {
+    alert(`登入失敗：公會身分是「${data.guild_role}」，必須為「幹部」`);
     return;
   }
   
   currentAdminUser.gameNickname = data.game_nickname || data.gameNickname;
   currentAdminUser.gameClass = data.game_class || data.gameClass;
 } catch (err) {
-  alert("連線後端伺服器發生錯誤：" + err.message);
+  alert("連線伺服器發生錯誤：" + err.message);
   return;
 }
 
-  // 先把職業清單從後端非同步抓回來，再開始渲染畫面
-  await loadCustomClasses(); 
-  renderAdminIdentity();
-  loadGroupSettings();
-  syncAllClassDropdowns();
-  renderCustomClassManager();
-  initTimeWheelSelects();
-  await fetchAllBackendData();
-  updateMemberCounts();
-  renderMembersList();
-  renderLeavesContent();
-  renderUrgentRules();
-});
+ await loadCustomClasses(); // 確保先從 API 取得職業清單
+ renderAdminIdentity();
+ loadGroupSettings();
+ syncAllClassDropdowns();
+ renderCustomClassManager();
+ initTimeWheelSelects();
+ await fetchAllBackendData();
+ updateMemberCounts();
+ renderMembersList();
+ renderLeavesContent();
+ renderUrgentRules();
+ });
 
 
  async function fetchAllBackendData() {
