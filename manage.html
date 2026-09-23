@@ -808,9 +808,8 @@ window.addEventListener("DOMContentLoaded", async () => {
     return;
   }
 
-  // 👉 這裡可以安全地使用 await，因為外層 window.addEventListener 已經是 async 了
-  await loadCustomClasses(); 
-
+  //這裡可以安全地使用 await，因為外層 window.addEventListener 已經是 async 了
+  loadCustomClasses(); 
   renderAdminIdentity();
   loadGroupSettings();
   syncAllClassDropdowns();
