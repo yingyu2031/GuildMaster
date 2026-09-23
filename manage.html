@@ -1145,7 +1145,7 @@ input[type="date"], input[type="time"], select {
  card.className = "bg-white rounded-2xl p-3.5 border border-sky-100 soft-sky-shadow text-left space-y-1.5 fade-in";
  card.innerHTML = `
  <div class="flex items-center justify-between">
- <span class="text-xs font-black text-slate-900">${l.gameNickname} ${l.gameClass ? `(${l.gameClass})`''}</span>
+<span class="text-xs font-black text-slate-900">${l.gameNickname}${l.gameClass ? `(${l.gameClass})` : ''}</span>
  <div class="flex items-center gap-1.5">
  ${isUrgent ? '<span class="text-[10px] bg-rose-50 text-rose-700 px-2 py-0.5 rounded-full font-normal border border-rose-200">臨時</span>' : ''}
  <span class="text-[10px] text-slate-500 font-bold">${l.date}</span>
@@ -1200,7 +1200,7 @@ input[type="date"], input[type="time"], select {
  card.className = "bg-white rounded-2xl p-3.5 border border-sky-100 soft-sky-shadow text-left space-y-1.5 fade-in";
  card.innerHTML = `
  <div class="flex items-center justify-between">
- <span class="text-xs font-black text-slate-900">${l.gameNickname} ${l.gameClass ? `(${l.gameClass})`''}</span>
+<span class="text-xs font-black text-slate-900">${l.gameNickname}${l.gameClass ? `(${l.gameClass})` : ''}</span>
  <div class="flex items-center gap-1.5">
  ${isUrgent ? '<span class="text-[10px] bg-rose-50 text-rose-700 px-2 py-0.5 rounded-full font-normal border border-rose-200">臨時</span>' : ''}
  <span class="text-[10px] text-slate-500 font-bold">${l.date}</span>
