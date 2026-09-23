@@ -82,39 +82,27 @@
     </main>
 
     <script>
-        // 請務必確認為最新部署的 Web App URL
-        const GAS_API_URL = "https://script.google.com/macros/s/AKfycbxIRwxVfiCxwKwBi4MTz3C4mzBLg-76SCnp301IGb1_Pdlbi2bdOtOZK3bdXY0TeInTyg/exec";
+        // API 部署網址
+        const API_URL = "https://script.google.com/macros/s/AKfycbxIRwxVfiCxwKwBi4MTz3C4mzBLg-76SCnp301IGb1_Pdlbi2bdOtOZK3bdXY0TeInTyg/exec";
 
-        // JSONP 跨域查詢
-        function searchSheetByJsonp(keyword) {
-            return new Promise((resolve) => {
-                const callbackName = "gas_search_cb_" + Date.now();
-                const script = document.createElement("script");
-
-                const timer = setTimeout(() => {
-                    cleanup();
-                    resolve({ status: "timeout", data: [] });
-                }, 7000);
-
-                function cleanup() {
-                    clearTimeout(timer);
-                    if (script.parentNode) script.parentNode.removeChild(script);
-                    delete window[callbackName];
+        // 使用標準 Fetch API 進行後端查詢
+        async function searchSheetByApi(keyword) {
+            try {
+                const response = await fetch(`${API_URL}?action=search&q=${encodeURIComponent(keyword)}`, {
+                    method: "GET",
+                    redirect: "follow"
+                });
+                
+                if (!response.ok) {
+                    throw new Error("網路連線異常");
                 }
-
-                window[callbackName] = function(response) {
-                    cleanup();
-                    resolve(response);
-                };
-
-                script.src = `${GAS_API_URL}?action=search&q=${encodeURIComponent(keyword)}&callback=${callbackName}&_=${Date.now()}`;
-                script.onerror = function() {
-                    cleanup();
-                    resolve({ status: "error", data: [] });
-                };
-
-                document.body.appendChild(script);
-            });
+                
+                const result = await response.json();
+                return result;
+            } catch (error) {
+                console.error("API 查詢失敗:", error);
+                return { status: "error", data: [] };
+            }
         }
 
         document.getElementById('searchForm').addEventListener('submit', async (e) => {
@@ -130,7 +118,7 @@
             emptyBox.classList.add('hidden');
             resultBox.innerHTML = "";
 
-            const res = await searchSheetByJsonp(keyword);
+            const res = await searchSheetByApi(keyword);
             loadingBox.classList.add('hidden');
 
             const members = (res && res.data) ? res.data : [];
@@ -140,7 +128,7 @@
                 return;
             }
 
-            // 只渲染：遊戲暱稱、遊戲職業、LINE 暱稱
+            // 渲染：遊戲暱稱、遊戲職業、LINE 暱稱
             members.forEach(m => {
                 const card = document.createElement('div');
                 card.className = "bg-white rounded-[32px] p-6 border-2 border-amber-200/80 soft-card-shadow fade-in";
