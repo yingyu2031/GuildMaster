@@ -98,22 +98,8 @@
             </button>
         </div>
 
-        <!-- 狀態 3：退會狀態專屬卡片 -->
-        <div id="rejectedCard" class="hidden bg-white rounded-[32px] p-6 sm:p-7 border-2 border-rose-200 soft-card-shadow text-center relative">
-            <div class="w-14 h-14 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-3 border-2 border-rose-200 text-2xl text-rose-500">
-                🚫
-            </div>
-            <h3 class="text-base font-black text-rose-950 mb-1">已退出公會</h3>
-            <p class="text-xs text-rose-800/70 leading-relaxed mb-5">
-                系統紀錄您目前為退會狀態，無法使用公會活動請假系統。如有疑問請向公會幹部反映。
-            </p>
 
-            <button onclick="closeLiffWindow()" class="w-full bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold py-3.5 rounded-2xl text-sm transition cursor-pointer">
-                關閉視窗
-            </button>
-        </div>
-
-        <!-- 狀態 4：未登記成員卡片 -->
+        <!-- 狀態 4：退會/未登記成員卡片 -->
         <div id="unregisteredCard" class="hidden bg-white rounded-[32px] p-6 sm:p-7 border-2 border-amber-200/80 soft-card-shadow text-center relative">
             <div class="w-14 h-14 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-3 border-2 border-amber-200 text-2xl">
                 📝
@@ -410,16 +396,6 @@
             pendingCard.classList.add('fade-in');
         }
 
-        function applyRejectedUI() {
-            document.getElementById('topBadge').textContent = "無使用權限";
-            document.getElementById('topBadge').className = "inline-block bg-rose-100 text-rose-800 border border-rose-200 text-xs font-bold px-3.5 py-1 rounded-full mb-3";
-            document.getElementById('pageMainTitle').textContent = "會員資格無效";
-            document.getElementById('pageSubTitle').textContent = "您目前非公會現任會員，無法使用此功能";
-
-            const rejectedCard = document.getElementById('rejectedCard');
-            rejectedCard.classList.remove('hidden');
-            rejectedCard.classList.add('fade-in');
-        }
 
         function applyUnregisteredUI() {
             document.getElementById('topBadge').textContent = "未登記會員";
