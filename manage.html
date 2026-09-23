@@ -771,58 +771,77 @@ input[type="date"], input[type="time"], select {
  const TODAY_STR = new Date().toISOString().split('T')[0];
 
  window.addEventListener("DOMContentLoaded", async () => {
- const urlParams = new URLSearchParams(window.location.search);
- const queryUid = urlParams.get('uid') || urlParams.get('userId');
- let isLiffReady = false;
+  const urlParams = new URLSearchParams(window.location.search);
+  const queryUid = urlParams.get('uid') || urlParams.get('userId');
+  let isLiffReady = false;
 
- if (MY_LIFF_ID && typeof liff !== 'undefined') {
- try {
- await liff.init({ liffId: MY_LIFF_ID });
- if (liff.isLoggedIn()) {
- const profile = await liff.getProfile();
- currentAdminUser.lineUserId = profile.userId;
- currentAdminUser.pictureUrl = profile.pictureUrl || "";
- isLiffReady = true;
- } else { liff.login(); return; }
- } catch (err) { console.error(err); }
- }
+  // 確保全域物件存在，避免未定義錯誤
+  if (typeof currentAdminUser === 'undefined') {
+    console.error("currentAdminUser 未定義");
+    return;
+  }
 
- if (!isLiffReady && queryUid) currentAdminUser.lineUserId = queryUid;
- if (!currentAdminUser.lineUserId) { alert("非幹部身分不可使用"); return; }
+  if (typeof MY_LIFF_ID !== 'undefined' && MY_LIFF_ID && typeof liff !== 'undefined') {
+    try {
+      await liff.init({ liffId: MY_LIFF_ID });
+      if (liff.isLoggedIn()) {
+        const profile = await liff.getProfile();
+        currentAdminUser.lineUserId = profile.userId;
+        currentAdminUser.pictureUrl = profile.pictureUrl || "";
+        isLiffReady = true;
+      } else { 
+        liff.login(); 
+        return; 
+      }
+    } catch (err) { 
+      console.error("LIFF 初始化失敗：", err); 
+    }
+  }
 
-try {
-  const res = await fetch(`${BACKEND_API_URL}/api/members/${encodeURIComponent(currentAdminUser.lineUserId)}`);
-  const data = await res.json();
-  
-  console.log("後端回傳的驗證資料：", data);
+  if (!isLiffReady && queryUid) {
+    currentAdminUser.lineUserId = queryUid;
+  }
+
+  if (!currentAdminUser.lineUserId) {
+    alert("非幹部身分不可使用");
+    return;
+  }
 
   try {
-  const res = await fetch(`${BACKEND_API_URL}/api/members/${encodeURIComponent(currentAdminUser.lineUserId)}`);
-  const data = await res.json();
-  
-  // 把它們印出來看
-  console.log("後端回傳資料:", data);
-  console.log("目前我的 UID:", currentAdminUser.lineUserId);
+    const res = await fetch(`${BACKEND_API_URL}/api/members/${encodeURIComponent(currentAdminUser.lineUserId)}`);
+    
+    // 檢查 HTTP 狀態碼是否為 200 左右，若非 200 也可以在這裡捕捉
+    if (!res.ok) {
+      throw new Error(`伺服器回應狀態碼：${res.status}`);
+    }
 
-  if (data.status !== "found") {
-    alert(`登入失敗：資料庫找不到此 UID (${currentAdminUser.lineUserId})`);
+    const data = await res.json();
+    
+    console.log("後端回傳資料:", data);
+    console.log("目前我的 UID:", currentAdminUser.lineUserId);
+
+    if (data.status !== "found") {
+      alert(`登入失敗：資料庫找不到此 UID (${currentAdminUser.lineUserId})`);
+      return;
+    }
+    if (data.account_status !== "已審核") {
+      alert(`登入失敗：帳號狀態是「${data.account_status}」，必須為「已審核」`);
+      return;
+    }
+    if (String(data.guild_role || "").trim() !== "幹部") {
+      alert(`登入失敗：公會身分是「${data.guild_role}」，必須為「幹部」`);
+      return;
+    }
+    
+    currentAdminUser.gameNickname = data.game_nickname || data.gameNickname;
+    currentAdminUser.gameClass = data.game_class || data.gameClass;
+    
+    // 驗證成功後可以在此執行後續初始化畫面或邏輯
+  } catch (err) {
+    alert("連線伺服器發生錯誤：" + err.message);
+    console.error(err);
     return;
   }
-  if (data.account_status !== "已審核") {
-    alert(`登入失敗：帳號狀態是「${data.account_status}」，必須為「已審核」`);
-    return;
-  }
-  if (String(data.guild_role || "").trim() !== "幹部") {
-    alert(`登入失敗：公會身分是「${data.guild_role}」，必須為「幹部」`);
-    return;
-  }
-  
-  currentAdminUser.gameNickname = data.game_nickname || data.gameNickname;
-  currentAdminUser.gameClass = data.game_class || data.gameClass;
-} catch (err) {
-  alert("連線伺服器發生錯誤：" + err.message);
-  return;
-}
 
  await loadCustomClasses(); // 確保先從 API 取得職業清單
  renderAdminIdentity();
