@@ -787,19 +787,14 @@ window.addEventListener("DOMContentLoaded", async () => {
     const res = await fetch(`${BACKEND_API_URL}/api/members/${encodeURIComponent(currentAdminUser.lineUserId)}`);
     const data = await res.json();
     
-// 設定頭貼：有抓到就用使用者的，沒抓到就自動帶入 LINE 官方預設大頭貼
-const userAvatarUrl = currentAdminUser.pictureUrl || "https://static.line-scdn.net/li-profile-resource/public/default_profile.png";
-
-const avatarImg = document.getElementById('authModalAvatar');
-const avatarPlaceholder = document.getElementById('authModalAvatarPlaceholder');
-
-if (avatarImg) {
-  avatarImg.src = userAvatarUrl;
-  avatarImg.classList.remove('hidden');
-  if (avatarPlaceholder) {
-    avatarPlaceholder.classList.add('hidden');
+// 設定頭貼：如果有抓到個人頭貼就覆蓋，沒抓到就維持 HTML 裡的預設圖
+if (currentAdminUser.pictureUrl) {
+  const avatarImg = document.getElementById('authModalAvatar');
+  if (avatarImg) {
+    avatarImg.src = currentAdminUser.pictureUrl;
   }
 }
+
 
     document.getElementById('authModalNickname').textContent = data.game_nickname || data.gameNickname || "未註冊成員";
     document.getElementById('authModalClass').textContent = data.game_class || data.gameClass || "尚未設定職業";
@@ -2271,16 +2266,15 @@ async function closeAuthModal() {
 
     <!-- 個人資訊小卡 (改用你喜歡的精緻排版) -->
     <div class="bg-[#F8FAFC] border border-sky-100 rounded-2xl p-4 flex items-center gap-3 text-left">
-      <div class="relative shrink-0">
-        <div class="w-12 h-12 rounded-full border-2 border-amber-200 bg-amber-50 flex items-center justify-center overflow-hidden shadow-sm">
-          <img id="authModalAvatar" src="" class="w-full h-full object-cover hidden" alt="頭貼">
-          <span id="authModalAvatarPlaceholder" class="text-xs font-bold text-amber-700">訪客</span>
-        </div>
-        <!-- LINE 標誌小貼紙裝飾 -->
-        <div class="absolute -bottom-1 -right-1 bg-emerald-500 text-white text-[9px] font-black px-1.5 py-0.2 rounded-full border border-white shadow-xs">
-          LINE
-        </div>
-      </div>
+<div class="relative shrink-0">
+  <div class="w-12 h-12 rounded-full border-2 border-amber-200 bg-amber-50 flex items-center justify-center overflow-hidden shadow-sm">
+    <img id="authModalAvatar" src="https://static.line-scdn.net/li-profile-resource/public/default_profile.png" class="w-full h-full object-cover" alt="頭貼">
+  </div>
+  <!-- LINE 標誌小貼紙裝飾 -->
+  <div class="absolute -bottom-1 -right-1 bg-emerald-500 text-white text-[9px] font-black px-1.5 py-0.2 rounded-full border border-white shadow-xs">
+    LINE
+  </div>
+</div>
       <div class="min-w-0 flex-1">
         <div class="flex items-center gap-1.5">
           <span id="authModalNickname" class="text-sm font-black text-slate-900 truncate">讀取中...</span>
