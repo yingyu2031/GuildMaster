@@ -80,25 +80,25 @@ input[type="date"], input[type="time"], select {
  </div>
 
  <!-- 4 大主頁籤列 -->
- <div class="bg-sky-500 rounded-t-2xl px-2 pt-3 flex items-end gap-1 select-none overflow-x-auto">
- <button id="mainTabMembers" onclick="switchMainSection('members')" 
- class="bg-white text-sky-900 font-black px-3.5 py-2.5 rounded-t-xl text-xs flex items-center gap-1 transition-all relative top-[1px] shadow-sm whitespace-nowrap cursor-pointer">
- <span>會員名冊</span>
- <span id="badgePendingCount" class="bg-rose-500 text-white text-[10px] px-1.5 py-0.2 rounded-full hidden">0</span>
- </button>
- <button id="mainTabLeaves" onclick="switchMainSection('leaves')" 
- class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl transition-all whitespace-nowrap flex items-center gap-1 cursor-pointer">
- <span>請假紀錄</span>
- <span id="badgeMainTodayLeave" class="bg-rose-500 text-white text-[10px] px-1.5 py-0.2 rounded-full hidden">0</span>
- </button>
- <button id="mainTabEvents" onclick="switchMainSection('events')" 
- class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl transition-all whitespace-nowrap cursor-pointer">
- <span>活動列表</span>
- </button>
- <button id="mainTabSettings" onclick="switchMainSection('settings')" 
- class="text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl transition-all whitespace-nowrap cursor-pointer">
- <span>其他設定</span>
- </button>
+ <div class="bg-sky-500 rounded-t-2xl px-2 pt-3 grid grid-cols-4 gap-1 select-none">
+<button id="mainTabMembers" onclick="switchMainSection('members')" 
+  class="bg-white text-sky-900 font-black py-2.5 rounded-t-xl text-xs flex items-center justify-center gap-1 transition-all relative top-[1px] shadow-sm cursor-pointer">
+  <span>會員名冊</span>
+  <span id="badgePendingCount" class="bg-rose-500 text-white text-[10px] px-1.5 py-0.2 rounded-full hidden">0</span>
+</button>
+<button id="mainTabLeaves" onclick="switchMainSection('leaves')" 
+  class="text-sky-100 hover:text-white font-bold py-2 text-xs rounded-t-xl transition-all flex items-center justify-center gap-1 cursor-pointer">
+  <span>請假紀錄</span>
+  <span id="badgeMainTodayLeave" class="bg-rose-500 text-white text-[10px] px-1.5 py-0.2 rounded-full hidden">0</span>
+</button>
+<button id="mainTabEvents" onclick="switchMainSection('events')" 
+  class="text-sky-100 hover:text-white font-bold py-2 text-xs rounded-t-xl transition-all flex items-center justify-center cursor-pointer">
+  <span>活動列表</span>
+</button>
+<button id="mainTabSettings" onclick="switchMainSection('settings')" 
+  class="text-sky-100 hover:text-white font-bold py-2 text-xs rounded-t-xl transition-all flex items-center justify-center cursor-pointer">
+  <span>其他設定</span>
+</button>
  </div>
 
  <!-- 主體內容卡片 -->
