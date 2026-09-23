@@ -790,26 +790,29 @@ window.addEventListener("DOMContentLoaded", async () => {
   if (!isLiffReady && queryUid) currentAdminUser.lineUserId = queryUid;
   if (!currentAdminUser.lineUserId) { alert("非幹部身分不可使用"); return; }
 
-  try {
-    const res = await fetch(`${BACKEND_API_URL}/api/members/${encodeURIComponent(currentAdminUser.lineUserId)}`);
-    const data = await res.json();
-    
-    // 這裡維持原本你正常的驗證
-    if (data.status !== "found" || data.account_status !== "已審核" || String(data.guild_role || "").trim() !== "幹部") {
-      alert("非幹部身分不可使用");
-      if (typeof liff !== 'undefined' && liff.closeWindow) liff.closeWindow();
-      return;
-    }
-    
-    currentAdminUser.gameNickname = data.game_nickname || data.gameNickname;
-    currentAdminUser.gameClass = data.game_class || data.gameClass;
-  } catch (err) {
+try {
+  const res = await fetch(`${BACKEND_API_URL}/api/members/${encodeURIComponent(currentAdminUser.lineUserId)}`);
+  const data = await res.json();
+  
+  // 簡化條件：只要資料找得到 (found)，且職稱包含「幹部」就直接放行
+  const userRole = String(data.guild_role || "").trim();
+
+  if (data.status !== "found" || userRole !== "幹部") {
     alert("非幹部身分不可使用");
+    if (typeof liff !== 'undefined' && liff.closeWindow) liff.closeWindow();
     return;
   }
+  
+  currentAdminUser.gameNickname = data.game_nickname || data.gameNickname;
+  currentAdminUser.gameClass = data.game_class || data.gameClass;
+} catch (err) {
+  alert("非幹部身分不可使用");
+  return;
+}
+
 
   //這裡可以安全地使用 await，因為外層 window.addEventListener 已經是 async 了
-  loadCustomClasses(); 
+  await loadCustomClasses(); 
   renderAdminIdentity();
   loadGroupSettings();
   syncAllClassDropdowns();
