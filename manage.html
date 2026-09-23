@@ -1155,7 +1155,7 @@ input[type="date"], input[type="time"], select {
  <div class="text-xs text-slate-600 font-medium bg-[#F8FAFC] p-2 rounded-xl border border-slate-100">${l.reason}</div>
  <div class="flex items-center justify-between text-[10px] text-slate-400 pt-1">
  <span>填單時間：${submitTimeFormatted}</span>
- <span class="text-right">由 ${l.operator || '本人'} 登記</span>
+<span class="text-right">由 ${l.operator === l.gameNickname ? '本人' : l.operator} 登記</span>
  </div>
  `;
  container.appendChild(card);
@@ -1210,7 +1210,7 @@ input[type="date"], input[type="time"], select {
  <div class="text-xs text-slate-600 font-medium bg-[#F8FAFC] p-2 rounded-xl border border-slate-100">${l.reason}</div>
  <div class="flex items-center justify-between text-[10px] text-slate-400 pt-1">
  <span>填單時間：${submitTimeFormatted}</span>
- <span class="text-right">由 ${l.operator || '本人'} 登記</span>
+<span class="text-right">由 ${l.operator === l.gameNickname ? '本人' : l.operator} 登記</span>
  </div>
  `;
  container.appendChild(card);
