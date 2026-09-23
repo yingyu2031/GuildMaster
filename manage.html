@@ -747,18 +747,12 @@ input[type="date"], input[type="time"], select {
 
  const TODAY_STR = new Date().toISOString().split('T')[0];
 
- window.addEventListener("DOMContentLoaded", async () => {
+window.addEventListener("DOMContentLoaded", async () => {
   const urlParams = new URLSearchParams(window.location.search);
   const queryUid = urlParams.get('uid') || urlParams.get('userId');
   let isLiffReady = false;
 
-  // 確保全域物件存在，避免未定義錯誤
-  if (typeof currentAdminUser === 'undefined') {
-    console.error("currentAdminUser 未定義");
-    return;
-  }
-
-  if (typeof MY_LIFF_ID !== 'undefined' && MY_LIFF_ID && typeof liff !== 'undefined') {
+  if (MY_LIFF_ID && typeof liff !== 'undefined') {
     try {
       await liff.init({ liffId: MY_LIFF_ID });
       if (liff.isLoggedIn()) {
@@ -771,67 +765,85 @@ input[type="date"], input[type="time"], select {
         return; 
       }
     } catch (err) { 
-      console.error("LIFF 初始化失敗：", err); 
+      console.error(err); 
     }
   }
 
-  if (!isLiffReady && queryUid) {
-    currentAdminUser.lineUserId = queryUid;
-  }
+  if (!isLiffReady && queryUid) currentAdminUser.lineUserId = queryUid;
 
+  // 如果在瀏覽器開且沒帶 uid，直接在彈窗顯示錯誤，不卡讀取
   if (!currentAdminUser.lineUserId) {
-    alert("非幹部身分不可使用");
+    document.getElementById('authMessagetextContent = "⚠️ 找不到使用者 UID，請透過 LINE 官方選單進入。";
+    document.getElementById('authMessage').className = "text-xs font-bold text-rose-500";
+    document.getElementById('authModalNickname').textContent = "未登入";
     return;
   }
 
   try {
     const res = await fetch(`${BACKEND_API_URL}/api/members/${encodeURIComponent(currentAdminUser.lineUserId)}`);
-    
-    // 檢查 HTTP 狀態碼是否為 200 左右，若非 200 也可以在這裡捕捉
-    if (!res.ok) {
-      throw new Error(`伺服器回應狀態碼：${res.status}`);
-    }
-
     const data = await res.json();
     
-    console.log("後端回傳資料:", data);
-    console.log("目前我的 UID:", currentAdminUser.lineUserId);
+    // 設定頭貼
+    if (currentAdminUser.pictureUrl) {
+      document.getElementById('authModalAvatar').src = currentAdminUser.pictureUrl;
+      document.getElementById('authModalAvatar').classList.remove('hidden');
+      document.getElementById('authModalAvatarPlaceholder').classList.add('hidden');
+    }
 
-    if (data.status !== "found") {
-      alert(`登入失敗：資料庫找不到此 UID (${currentAdminUser.lineUserId})`);
-      return;
-    }
-    if (data.account_status !== "已審核") {
-      alert(`登入失敗：帳號狀態是「${data.account_status}」，必須為「已審核」`);
-      return;
-    }
-    if (String(data.guild_role || "").trim() !== "幹部") {
-      alert(`登入失敗：公會身分是「${data.guild_role}」，必須為「幹部」`);
-      return;
+    document.getElementById('authModalNickname').textContent = data.game_nickname || data.gameNickname || "未註冊成員";
+    document.getElementById('authModalClass').textContent = data.game_class || data.gameClass || "尚未設定職業";
+    
+    const userRole = String(data.guild_role || "").trim();
+    document.getElementById('authModalRoleBadge').textContent = userRole || "一般";
+
+    // 檢查是否為幹部
+    if (data.status !== "found" || userRole !== "幹部") {
+      document.getElementById('authMessage').textContent = "⚠️ 權限不足：您不是本公會幹部，無法進入後台。";
+      document.getElementById('authMessage').className = "text-xs font-bold text-rose-500";
+      document.getElementById('authModalRoleBadge').className = "text-[10px] bg-rose-100 text-rose-600 px-2 py-0.5 rounded-full font-bold";
+      return; // 停在彈窗，不顯示進入按鈕
     }
     
+    // 驗證成功
     currentAdminUser.gameNickname = data.game_nickname || data.gameNickname;
     currentAdminUser.gameClass = data.game_class || data.gameClass;
-    
-    // 驗證成功後可以在此執行後續初始化畫面或邏輯
-  } catch (err) {
-    alert("連線伺服器發生錯誤：" + err.message);
-    console.error(err);
-    return;
-  }
 
- await loadCustomClasses(); // 確保先從 API 取得職業清單
- renderAdminIdentity();
- loadGroupSettings();
- syncAllClassDropdowns();
- renderCustomClassManager();
- initTimeWheelSelects();
- await fetchAllBackendData();
- updateMemberCounts();
- renderMembersList();
- renderLeavesContent();
- renderUrgentRules();
- });
+    document.getElementById('authMessage').textContent = "身分驗證成功！請點擊下方按鈕進入。";
+    document.getElementById('authMessage').className = "text-xs font-bold text-emerald-600";
+    document.getElementById('authModalRoleBadge').className = "text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-bold";
+    document.getElementById('enterAdminBtn').classList.remove('hidden'); // 顯示進入按鈕
+
+  } catch (err) {
+    document.getElementById('authMessage').textContent = "伺服器連線發生錯誤：" + err.message;
+    document.getElementById('authMessage').className = "text-xs font-bold text-rose-500";
+  }
+});
+
+// 點擊進入後台
+async function closeAuthModal() {
+  document.getElementById('authModal').classList.add('hidden');
+
+  // 開始載入後台所有資料與畫面
+  await loadCustomClasses(); 
+  loadGroupSettings();
+  syncAllClassDropdowns();
+  renderCustomClassManager();
+  initTimeWheelSelects();
+  await fetchAllBackendData();
+  updateMemberCounts();
+  renderMembersList();
+  renderLeavesContent();
+  renderUrgentRules();
+}
+
+function closeWindow() {
+  if (typeof liff !== 'undefined' && liff.closeWindow) {
+    liff.closeWindow();
+  } else {
+    window.close();
+  }
+}
+
 
 
  async function fetchAllBackendData() {
@@ -2238,40 +2250,45 @@ input[type="date"], input[type="time"], select {
 
  function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
 </script>
-
 <!-- 全螢幕身分登入/驗證彈窗 -->
 <div id="authModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-  <div class="bg-white w-full max-w-sm rounded-[32px] p-6 border-2 border-sky-200 shadow-2xl text-center space-y-4 animate-fade-in">
+  <div class="bg-white w-full max-w-sm rounded-[32px] p-6 border-2 border-sky-200 shadow-2xl text-center space-y-4">
     
-    <!-- 頂部標題與裝飾 -->
     <div class="inline-block bg-sky-100 text-sky-700 text-[11px] font-black px-3 py-1 rounded-full">
       GuildMaster 安全認證
     </div>
     <h3 class="text-lg font-black text-slate-900">幹部管理中心</h3>
 
-    <!-- 個人資訊小卡 (從主畫面移過來的) -->
+    <!-- 個人資訊小卡 (改用你喜歡的精緻排版) -->
     <div class="bg-[#F8FAFC] border border-sky-100 rounded-2xl p-4 flex items-center gap-3 text-left">
-      <img id="authModalAvatar" src="" class="w-12 h-12 rounded-full object-cover border-2 border-sky-400 bg-slate-200" alt="頭貼">
+      <div class="relative shrink-0">
+        <div class="w-12 h-12 rounded-full border-2 border-amber-200 bg-amber-50 flex items-center justify-center overflow-hidden shadow-sm">
+          <img id="authModalAvatar" src="" class="w-full h-full object-cover hidden" alt="頭貼">
+          <span id="authModalAvatarPlaceholder" class="text-xs font-bold text-amber-700">訪客</span>
+        </div>
+        <!-- LINE 標誌小貼紙裝飾 -->
+        <div class="absolute -bottom-1 -right-1 bg-emerald-500 text-white text-[9px] font-black px-1.5 py-0.2 rounded-full border border-white shadow-xs">
+          LINE
+        </div>
+      </div>
       <div class="min-w-0 flex-1">
         <div class="flex items-center gap-1.5">
           <span id="authModalNickname" class="text-sm font-black text-slate-900 truncate">讀取中...</span>
-          <span id="authModalRoleBadge" class="text-[10px] bg-sky-100 text-sky-700 px-2 py-0.5 rounded-full font-bold">檢查中</span>
+          <span id="authModalRoleBadge" class="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full font-bold">檢查中</span>
         </div>
-        <p id="authModalClass" class="text-xs text-slate-500 mt-0.5 truncate">-</p>
+        <p id="authModalClass" class="text-xs text-slate-500 mt-0.5 truncate">正在連接資料庫...</p>
       </div>
     </div>
-
-    <!-- 驗證結果與按鈕區 -->
+    <!-- 狀態與按鈕區 -->
     <div id="authActionArea" class="space-y-2 pt-2">
-      <!-- 狀態訊息 -->
-      <p id="authMessage" class="text-xs font-bold text-slate-600">正在確認您的幹部身分...</p>
+      <p id="authMessage" class="text-xs font-bold text-slate-600">正在確認您的身分...</p>
       
-      <!-- 進入按鈕 (預設隱藏，確認是幹部才顯示) -->
+      <!-- 進入按鈕 (預設隱藏) -->
       <button id="enterAdminBtn" onclick="closeAuthModal()" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-black py-3 rounded-2xl shadow-md transition cursor-pointer hidden">
         進入管理中心
       </button>
       
-      <!-- 拒絕/關閉按鈕 -->
+      <!-- 關閉按鈕 -->
       <button id="exitWindowBtn" onclick="closeWindow()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 rounded-2xl transition cursor-pointer">
         關閉頁面
       </button>
@@ -2279,6 +2296,7 @@ input[type="date"], input[type="time"], select {
 
   </div>
 </div>
+
 
 </body>
 </html>
