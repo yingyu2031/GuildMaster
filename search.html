@@ -83,8 +83,8 @@
 
     <script>
         // 若前端與 Node.js 後端部署在同一個網址，此處可留空 ''
-        const API_URL = ""; 
-
+       const MY_LIFF_ID = "2011659633-XUHrG3ge";
+        const API_URL = "https://guildmaster.zeabur.app";
         async function searchMembers(keyword) {
             try {
                 const response = await fetch(`${API_URL}/api/members/search?q=${encodeURIComponent(keyword)}`, {
