@@ -790,28 +790,28 @@ window.addEventListener("DOMContentLoaded", async () => {
   if (!isLiffReady && queryUid) currentAdminUser.lineUserId = queryUid;
   if (!currentAdminUser.lineUserId) { alert("非幹部身分不可使用"); return; }
 
-try {
-  const res = await fetch(`${BACKEND_API_URL}/api/members/${encodeURIComponent(currentAdminUser.lineUserId)}`);
-  const data = await res.json();
-  
-  // 簡化條件：只要資料找得到 (found)，且職稱包含「幹部」就直接放行
-  const userRole = String(data.guild_role || "").trim();
+  try {
+    const res = await fetch(`${BACKEND_API_URL}/api/members/${encodeURIComponent(currentAdminUser.lineUserId)}`);
+    const data = await res.json();
+    
+    // 放寬條件：只要資料找得到 (found)，且職稱是「幹部」就直接給過
+    const userRole = String(data.guild_role || "").trim();
 
-  if (data.status !== "found" || userRole !== "幹部") {
+    if (data.status !== "found" || userRole !== "幹部") {
+      alert("非幹部身分不可使用");
+      if (typeof liff !== 'undefined' && liff.closeWindow) liff.closeWindow();
+      return;
+    }
+    
+    currentAdminUser.gameNickname = data.game_nickname || data.gameNickname;
+    currentAdminUser.gameClass = data.game_class || data.gameClass;
+  } catch (err) {
     alert("非幹部身分不可使用");
-    if (typeof liff !== 'undefined' && liff.closeWindow) liff.closeWindow();
     return;
   }
-  
-  currentAdminUser.gameNickname = data.game_nickname || data.gameNickname;
-  currentAdminUser.gameClass = data.game_class || data.gameClass;
-} catch (err) {
-  alert("非幹部身分不可使用");
-  return;
-}
-});
 
-  await loadCustomClasses();
+  // 先把職業清單從後端非同步抓回來，再開始渲染畫面
+  await loadCustomClasses(); 
   renderAdminIdentity();
   loadGroupSettings();
   syncAllClassDropdowns();
@@ -822,6 +822,8 @@ try {
   renderMembersList();
   renderLeavesContent();
   renderUrgentRules();
+});
+
 
  async function fetchAllBackendData() {
  try {
