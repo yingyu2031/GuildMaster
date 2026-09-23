@@ -533,7 +533,7 @@
                 const isSameUid = m.lineUserId && currentUser.userId && (m.lineUserId === currentUser.userId);
                 const isSameNick = m.gameNickname && currentUser.gameNickname && (m.gameNickname === currentUser.gameNickname);
                 
-                const isCurrent = (m.guildRole === '現任');
+                const isCurrent = (m.guildRole !== '退會');
                 const isApproved = (m.accountStatus === '已審核');
                 const isAllowSearch = (m.allowSearch === 'Y');
 
