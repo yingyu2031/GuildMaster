@@ -570,13 +570,14 @@ input[type="date"], input[type="time"], select {
  <input type="text" id="ruleEventName" required placeholder="例如：公會GVG聯賽" class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-sky-400">
  </div>
  
- <div>
- <label class="block mb-1 text-slate-800">最晚請假截止時間 <span class="text-rose-500">*</span></label>
- <div onclick="openTimeWheelPicker('rule')" class="w-full h-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 flex items-center justify-between cursor-pointer font-bold text-slate-900">
- <span id="ruleLatestTimeDisplay">20:00</span>
- <span class="text-slate-400 text-[10px]">▼</span>
- </div>
- <input type="hidden" id="ruleLatestTime" required value="20:00">
+<div>
+  <label class="block mb-1 text-slate-800">最晚請假截止時間 <span class="text-rose-500">*</span></label>
+  <div onclick="openTimeWheelPicker('rule')" class="w-full h-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 flex items-center justify-between cursor-pointer font-bold text-slate-900">
+    <span id="ruleLatestTimeDisplay">請選擇時間</span>
+    <span class="text-slate-400 text-[10px]">▼</span>
+  </div>
+  <!-- 隱藏 input，用來存放實際帶入的時間 -->
+  <input type="hidden" id="ruleLatestTime" required>
  <p class="text-[10px] text-slate-400 font-bold mt-1 leading-tight">（不會擋會員請假，但會註記為臨時請假，且可設定即時推播）</p>
  </div>
 
@@ -1939,7 +1940,8 @@ function initTimeWheelSelects() {
 function openTimeWheelPicker(targetType) {
     activeTimeWheelTarget = targetType; // 'rule' 或 'bc'
     const inputId = targetType === 'rule' ? 'ruleLatestTime' : 'formBcTime';
-    const currentVal = document.getElementById(inputId).value || "20:00";
+    // 若沒有值，預設抓取目前畫面上顯示的，或者給個當前當下時間，絕不寫死 20:00
+    const currentVal = document.getElementById(inputId).value || document.getElementById('ruleLatestTimeDisplay').textContent || "12:00";
     const parts = currentVal.split(':');
     if (parts.length === 2) {
         document.getElementById('wheelHourSelect').value = parts[0];
@@ -1959,44 +1961,44 @@ function confirmTimeWheel() {
         
         if (timeInput) timeInput.value = finalTime;
         if (timeDisplay) timeDisplay.textContent = finalTime;
-        
-        console.log("已成功更新請假項目截止時間為:", finalTime);
     } else if (activeTimeWheelTarget === 'bc') {
         const bcInput = document.getElementById('formBcTime');
         const bcDisplay = document.getElementById('formBcTimeDisplay');
         
         if (bcInput) bcInput.value = finalTime;
         if (bcDisplay) bcDisplay.textContent = finalTime;
-        
-        console.log("已成功更新推播時間為:", finalTime);
     }
     
     closeModal('timeWheelModal');
 }
 
 function openUrgentRuleModal(mode, event = '', latestTime = '', cycle = '', enabled = 1) {
-    // 💡 移除原本會強制洗掉自訂時間的 .reset()，改為手動清空必要欄位
     document.getElementById('ruleEventName').value = "";
     selectedCycleDays = [];
     
-    // 優先採用傳進來的有效時間，沒有才給預設 20:00
-    const resolvedTime = (latestTime && latestTime.includes(':')) ? latestTime : "20:00";
     window.currentEditingRuleEnabled = enabled; // 暫存原本的啟用狀態
 
     if (mode === 'edit') {
         document.getElementById('urgentRuleModalTitle').textContent = "編輯請假項目與時間";
         document.getElementById('ruleOriginalEventName').value = event;
         document.getElementById('ruleEventName').value = event;
+        
+        // 💡 直接使用從資料庫抓出來的真實時間 (例如 18:00 或 16:00)
+        const resolvedTime = latestTime && latestTime.includes(':') ? latestTime : "12:00";
         document.getElementById('ruleLatestTime').value = resolvedTime;
         document.getElementById('ruleLatestTimeDisplay').textContent = resolvedTime;
+        
         if (cycle) {
             selectedCycleDays = cycle.split(',').map(s => s.trim().replace('週', ''));
         }
     } else {
         document.getElementById('urgentRuleModalTitle').textContent = "新增請假項目與時間";
         document.getElementById('ruleOriginalEventName').value = "";
-        document.getElementById('ruleLatestTime').value = "20:00";
-        document.getElementById('ruleLatestTimeDisplay').textContent = "20:00";
+        
+        // 預設帶入一個空狀態或當前預設時間，但不強迫 20:00
+        document.getElementById('ruleLatestTime').value = "";
+        document.getElementById('ruleLatestTimeDisplay').textContent = "請選擇時間";
+        
         window.currentEditingRuleEnabled = 1; // 預設新增時啟用
         selectedCycleDays = [];
     }
@@ -2026,20 +2028,22 @@ function updateCycleButtonsUI() {
     document.getElementById('ruleCycleValue').value = selectedCycleDays.map(d => '週' + d).join(', ');
 }
 
-// 請假項目表單送出（儲存）
+// 請假項目表單送出（儲存）- 帶有必填檢查
 document.getElementById('urgentRuleForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     
     const originalEvent = document.getElementById('ruleOriginalEventName').value;
     const eventName = document.getElementById('ruleEventName').value.trim();
+    const latestTime = document.getElementById('ruleLatestTime').value.trim();
     
-    // 💡 直接抓取畫面顯示的時間文字（最保險，不會抓到隱藏 input 跑掉的問題）
-    const latestTime = document.getElementById('ruleLatestTimeDisplay').textContent.trim() || "20:00";
+    // 💡 必填檢查：如果沒有時間，不予送出並跳出提示
+    if (!latestTime || !latestTime.includes(':') || latestTime === "請選擇時間") {
+        alert("請選擇最晚請假截止時間！");
+        return;
+    }
     
     const enabled = window.currentEditingRuleEnabled !== undefined ? window.currentEditingRuleEnabled : 1;
     const cycle = document.getElementById('ruleCycleValue').value;
-
-    console.log("準備送出的請假規則資料:", { originalEvent, eventName, latestTime, cycle, enabled });
 
     try {
         const res = await fetch(`${BACKEND_API_URL}/api/admin/leave-rules/save`, {
