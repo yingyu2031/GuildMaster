@@ -1254,248 +1254,322 @@ async function closeAuthModal() {
  renderLeaveList();
  }
 
- // ==========================================
- // 7. 活動管理與報名清單邏輯
- // ==========================================
- function switchEventSubTab(tab) {
- currentEventSubTab = tab;
- const tabAct = document.getElementById('eventSubTabActive');
- const tabArch = document.getElementById('eventSubTabArchived');
+// ==========================================
+// 活動管理相關 API 串接邏輯
+// ==========================================
 
- if (tab === 'active') {
- tabAct.className = "py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black cursor-pointer";
- tabArch.className = "py-1.5 rounded-lg text-slate-500 hover:text-slate-800 cursor-pointer";
- } else {
- tabArch.className = "py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black cursor-pointer";
- tabAct.className = "py-1.5 rounded-lg text-slate-500 hover:text-slate-800 cursor-pointer";
- }
- renderEventsList();
- }
+function switchEventSubTab(tab) {
+    currentEventSubTab = tab;
+    const tabAct = document.getElementById('eventSubTabActive');
+    const tabArch = document.getElementById('eventSubTabArchived');
 
- function renderEventsList() {
- const container = document.getElementById('eventListContainer');
- container.innerHTML = "";
+    if (tab === 'active') {
+        tabAct.className = "py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black cursor-pointer";
+        tabArch.className = "py-1.5 rounded-lg text-slate-500 hover:text-slate-800 cursor-pointer";
+    } else {
+        tabArch.className = "py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black cursor-pointer";
+        tabAct.className = "py-1.5 rounded-lg text-slate-500 hover:text-slate-800 cursor-pointer";
+    }
+    renderEventsList();
+}
 
- eventsData.forEach(evt => {
- if (evt.date < TODAY_STR) {
- evt.isArchived = true;
- evt.status = "已結束";
- }
- });
+function renderEventsList() {
+    const container = document.getElementById('eventListContainer');
+    if (!container) return;
+    container.innerHTML = "";
 
- const list = eventsData.filter(evt => {
- if (currentEventSubTab === 'active') return !evt.isArchived;
- return evt.isArchived;
- });
+    eventsData.forEach(evt => {
+        if (evt.date < TODAY_STR) {
+            evt.isArchived = true;
+            evt.status = "已結束";
+        }
+    });
 
- document.getElementById('eventCountText').textContent = `共 ${list.length} 場活動`;
+    const list = eventsData.filter(evt => {
+        if (currentEventSubTab === 'active') return !evt.isArchived;
+        return evt.isArchived;
+    });
 
- if (list.length === 0) {
- const emptyText = currentEventSubTab === 'active' ? "目前無進行中的活動" : "目前無已封存之歷史活動";
- container.innerHTML = `<div class="bg-[#F8FAFC] rounded-2xl p-6 text-center text-xs text-slate-400 font-bold border border-sky-100">${emptyText}</div>`;
- return;
- }
+    const countText = document.getElementById('eventCountText');
+    if (countText) countText.textContent = `共 ${list.length} 場活動`;
 
- list.forEach(evt => {
- const attendees = evt.attendees || [];
- const attendeesCount = attendees.length;
- const limitText = evt.maxLimit ? `${attendeesCount} / ${evt.maxLimit} 人` : `${attendeesCount} 人 (無上限)`;
- const percent = evt.maxLimit ? Math.min(100, Math.round((attendeesCount / evt.maxLimit) * 100)) : 100;
+    if (list.length === 0) {
+        const emptyText = currentEventSubTab === 'active' ? "目前無進行中的活動" : "目前無已封存之歷史活動";
+        container.innerHTML = `<div class="bg-[#F8FAFC] rounded-2xl p-6 text-center text-xs text-slate-400 font-bold border border-sky-100">${emptyText}</div>`;
+        return;
+    }
 
- const card = document.createElement('div');
- card.className = "bg-white rounded-2xl p-4 border border-sky-100 soft-sky-shadow fade-in text-left space-y-3";
- 
- let statusBadgeClass = "bg-slate-100 text-slate-500";
- if (evt.status === '報名中') statusBadgeClass = "bg-sky-100 text-sky-800";
- if (evt.status === '已截止') statusBadgeClass = "bg-amber-100 text-amber-800";
+    list.forEach(evt => {
+        const attendees = evt.attendees || [];
+        const attendeesCount = attendees.length;
+        const limitText = evt.maxLimit ? `${attendeesCount} / ${evt.maxLimit} 人` : `${attendeesCount} 人 (無上限)`;
+        const percent = evt.maxLimit ? Math.min(100, Math.round((attendeesCount / evt.maxLimit) * 100)) : 100;
 
- card.innerHTML = `
- <div class="flex items-start justify-between">
- <div>
- <span class="text-[10px] font-black px-2 py-0.5 rounded ${statusBadgeClass}">${evt.status}</span>
- <h3 class="text-base font-black text-slate-900 mt-1">${evt.title}</h3>
- <div class="text-xs text-slate-500 font-bold mt-0.5">日期：${evt.date} · 時間：${evt.time}</div>
- </div>
- <div class="flex items-center gap-1.5">
- <button onclick="openEventModal('edit', '${evt.id}')" class="bg-sky-50 text-sky-800 border border-sky-200 text-xs font-bold px-3 py-1.5 rounded-xl hover:bg-sky-100 transition cursor-pointer">
- 編輯
- </button>
- ${evt.isArchived ? `
- <button onclick="unarchiveEvent('${evt.id}')" class="bg-sky-50 text-sky-700 border border-sky-200 text-xs font-bold px-3 py-1.5 rounded-xl hover:bg-sky-100 transition cursor-pointer">
- 解封
- </button>
- ` : `
- <button onclick="archiveEvent('${evt.id}')" class="bg-slate-50 text-slate-600 border border-slate-200 text-xs font-bold px-3 py-1.5 rounded-xl hover:bg-slate-100 transition cursor-pointer">
- 封存
- </button>
- `}
- </div>
- </div>
- <div class="text-[11px] text-slate-500 bg-[#F8FAFC] p-2 rounded-xl border border-sky-100 space-y-0.5 font-mono">
- <div>報名開放：${evt.signupStart || '無限制'}</div>
- <div>報名截止：${evt.signupEnd || '活動開始前'}</div>
- </div>
- <p class="text-xs text-slate-600 bg-[#F8FAFC] p-2.5 rounded-xl border border-sky-100 leading-relaxed">${evt.desc || '無備註'}</p>
- <div>
- <div class="flex justify-between text-xs font-bold mb-1">
- <span class="text-slate-500">報名進度</span>
- <span class="text-slate-800 font-mono">${limitText}</span>
- </div>
- <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
- <div class="h-full bg-sky-500 rounded-full" style="width: ${percent}%"></div>
- </div>
- </div>
- <button onclick="viewAttendees('${evt.id}')" class="w-full bg-sky-50 hover:bg-sky-100 text-sky-900 border border-sky-200 font-bold text-xs py-2 rounded-xl transition cursor-pointer">
- 查看已報名成員 (${attendeesCount})
- </button>
- `;
- container.appendChild(card);
- });
- }
+        const card = document.createElement('div');
+        card.className = "bg-white rounded-2xl p-4 border border-sky-100 soft-sky-shadow fade-in text-left space-y-3";
+        
+        let statusBadgeClass = "bg-slate-100 text-slate-500";
+        if (evt.status === '報名中') statusBadgeClass = "bg-sky-100 text-sky-800";
+        if (evt.status === '已截止') statusBadgeClass = "bg-amber-100 text-amber-800";
 
- function archiveEvent(id) {
- const evt = eventsData.find(e => e.id === id);
- if (!evt) return;
- evt.isArchived = true;
- evt.status = "已結束";
- renderEventsList();
- }
+        card.innerHTML = `
+            <div class="flex items-start justify-between">
+                <div>
+                    <span class="text-[10px] font-black px-2 py-0.5 rounded ${statusBadgeClass}">${evt.status}</span>
+                    <h3 class="text-base font-black text-slate-900 mt-1">${evt.title}</h3>
+                    <div class="text-xs text-slate-500 font-bold mt-0.5">日期：${evt.date} · 時間：${evt.time}</div>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <button onclick="openEventModal('edit', '${evt.id}')" class="bg-sky-50 text-sky-800 border border-sky-200 text-xs font-bold px-3 py-1.5 rounded-xl hover:bg-sky-100 transition cursor-pointer">
+                        編輯
+                    </button>
+                    ${evt.isArchived ? `
+                    <button onclick="unarchiveEvent('${evt.id}')" class="bg-sky-50 text-sky-700 border border-sky-200 text-xs font-bold px-3 py-1.5 rounded-xl hover:bg-sky-100 transition cursor-pointer">
+                        解封
+                    </button>
+                    ` : `
+                    <button onclick="archiveEvent('${evt.id}')" class="bg-slate-50 text-slate-600 border border-slate-200 text-xs font-bold px-3 py-1.5 rounded-xl hover:bg-slate-100 transition cursor-pointer">
+                        封存
+                    </button>
+                    `}
+                </div>
+            </div>
+            <div class="text-[11px] text-slate-500 bg-[#F8FAFC] p-2 rounded-xl border border-sky-100 space-y-0.5 font-mono">
+                <div>報名開放：${evt.signupStart || '無限制'}</div>
+                <div>報名截止：${evt.signupEnd || '活動開始前'}</div>
+            </div>
+            <p class="text-xs text-slate-600 bg-[#F8FAFC] p-2.5 rounded-xl border border-sky-100 leading-relaxed">${evt.desc || '無備註'}</p>
+            <div>
+                <div class="flex justify-between text-xs font-bold mb-1">
+                    <span class="text-slate-500">報名進度</span>
+                    <span class="text-slate-800 font-mono">${limitText}</span>
+                </div>
+                <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div class="h-full bg-sky-500 rounded-full" style="width: ${percent}%"></div>
+                </div>
+            </div>
+            <button onclick="viewAttendees('${evt.id}')" class="w-full bg-sky-50 hover:bg-sky-100 text-sky-900 border border-sky-200 font-bold text-xs py-2 rounded-xl transition cursor-pointer">
+                查看已報名成員 (${attendeesCount})
+            </button>
+        `;
+        container.appendChild(card);
+    });
+}
 
- function unarchiveEvent(id) {
- const evt = eventsData.find(e => e.id === id);
- if (!evt) return;
- evt.isArchived = false;
- if (evt.status === "已結束") evt.status = "報名中";
- renderEventsList();
- }
+// 封存活動 API
+async function archiveEvent(id) {
+    const evt = eventsData.find(e => e.id === id);
+    if (!evt) return;
+    evt.isArchived = true;
+    evt.status = "已結束";
+    
+    try {
+        await fetch(`${BACKEND_API_URL}/api/admin/events/save`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(evt)
+        });
+        renderEventsList();
+    } catch (err) {
+        console.error("封存活動失敗:", err);
+    }
+}
 
- function openEventModal(mode, eventId = null) {
- const modal = document.getElementById('eventModal');
- document.getElementById('eventForm').reset();
- const deleteWrapper = document.getElementById('deleteEventBtnWrapper');
+// 解封活動 API
+async function unarchiveEvent(id) {
+    const evt = eventsData.find(e => e.id === id);
+    if (!evt) return;
+    evt.isArchived = false;
+    if (evt.status === "已結束") evt.status = "報名中";
 
- if (mode === 'create') {
- document.getElementById('eventModalTitle').textContent = "建立新活動";
- document.getElementById('formEventId').value = "";
- document.getElementById('formEventDate').value = TODAY_STR;
- document.getElementById('formEventTime').value = "20:00";
- document.getElementById('formEventSignupStartDate').value = TODAY_STR;
- document.getElementById('formEventSignupStartTime').value = "12:00";
- document.getElementById('formEventSignupEndDate').value = TODAY_STR;
- document.getElementById('formEventSignupEndTime').value = "19:00";
- document.getElementById('formEventStatus').value = "報名中";
- deleteWrapper.classList.add('hidden');
- } else {
- document.getElementById('eventModalTitle').textContent = "編輯活動內容";
- const evt = eventsData.find(e => e.id === eventId);
- if (!evt) return;
- document.getElementById('formEventId').value = evt.id;
- document.getElementById('formEventTitle').value = evt.title;
- document.getElementById('formEventDate').value = evt.date;
- document.getElementById('formEventTime').value = evt.time;
+    try {
+        await fetch(`${BACKEND_API_URL}/api/admin/events/save`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(evt)
+        });
+        renderEventsList();
+    } catch (err) {
+        console.error("解封活動失敗:", err);
+    }
+}
 
- if (evt.signupStart) {
- const parts = evt.signupStart.split(' ');
- document.getElementById('formEventSignupStartDate').value = parts[0] || TODAY_STR;
- document.getElementById('formEventSignupStartTime').value = parts[1] || "12:00";
- }
- if (evt.signupEnd) {
- const parts = evt.signupEnd.split(' ');
- document.getElementById('formEventSignupEndDate').value = parts[0] || TODAY_STR;
- document.getElementById('formEventSignupEndTime').value = parts[1] || "19:00";
- }
+function openEventModal(mode, eventId = null) {
+    const modal = document.getElementById('eventModal');
+    document.getElementById('eventForm').reset();
+    const deleteWrapper = document.getElementById('deleteEventBtnWrapper');
 
- document.getElementById('formEventMaxLimit').value = evt.maxLimit || "";
- document.getElementById('formEventStatus').value = evt.status;
- document.getElementById('formEventDesc').value = evt.desc || "";
- deleteWrapper.classList.remove('hidden');
- }
- modal.classList.remove('hidden');
- }
+    if (mode === 'create') {
+        document.getElementById('eventModalTitle').textContent = "建立新活動";
+        document.getElementById('formEventId').value = "";
+        document.getElementById('formEventDate').value = TODAY_STR;
+        document.getElementById('formEventTime').value = "20:00";
+        document.getElementById('formEventSignupStartDate').value = TODAY_STR;
+        document.getElementById('formEventSignupStartTime').value = "12:00";
+        document.getElementById('formEventSignupEndDate').value = TODAY_STR;
+        document.getElementById('formEventSignupEndTime').value = "19:00";
+        document.getElementById('formEventStatus').value = "報名中";
+        deleteWrapper.classList.add('hidden');
+    } else {
+        document.getElementById('eventModalTitle').textContent = "編輯活動內容";
+        const evt = eventsData.find(e => e.id === eventId);
+        if (!evt) return;
+        document.getElementById('formEventId').value = evt.id;
+        document.getElementById('formEventTitle').value = evt.title;
+        document.getElementById('formEventDate').value = evt.date;
+        document.getElementById('formEventTime').value = evt.time;
 
- function deleteCurrentEvent() {
- const eventId = document.getElementById('formEventId').value;
- const evt = eventsData.find(e => e.id === eventId);
- if (!evt) return;
- eventsData = eventsData.filter(e => e.id !== eventId);
- closeModal('eventModal');
- renderEventsList();
- }
+        if (evt.signupStart) {
+            const parts = evt.signupStart.split(' ');
+            document.getElementById('formEventSignupStartDate').value = parts[0] || TODAY_STR;
+            document.getElementById('formEventSignupStartTime').value = parts[1] || "12:00";
+        }
+        if (evt.signupEnd) {
+            const parts = evt.signupEnd.split(' ');
+            document.getElementById('formEventSignupEndDate').value = parts[0] || TODAY_STR;
+            document.getElementById('formEventSignupEndTime').value = parts[1] || "19:00";
+        }
 
- document.getElementById('eventForm').addEventListener('submit', (e) => {
- e.preventDefault();
- const eId = document.getElementById('formEventId').value;
- const signupStartVal = `${document.getElementById('formEventSignupStartDate').value} ${document.getElementById('formEventSignupStartTime').value}`;
- const signupEndVal = `${document.getElementById('formEventSignupEndDate').value} ${document.getElementById('formEventSignupEndTime').value}`;
- const eventDateVal = document.getElementById('formEventDate').value;
+        document.getElementById('formEventMaxLimit').value = evt.maxLimit || "";
+        document.getElementById('formEventStatus').value = evt.status;
+        document.getElementById('formEventDesc').value = evt.desc || "";
+        deleteWrapper.classList.remove('hidden');
+    }
+    modal.classList.remove('hidden');
+}
 
- const data = {
- title: document.getElementById('formEventTitle').value.trim(),
- date: eventDateVal,
- time: document.getElementById('formEventTime').value,
- signupStart: signupStartVal,
- signupEnd: signupEndVal,
- maxLimit: parseInt(document.getElementById('formEventMaxLimit').value) || null,
- status: document.getElementById('formEventStatus').value,
- desc: document.getElementById('formEventDesc').value.trim()
- };
+// 刪除活動 API
+async function deleteCurrentEvent() {
+    const eventId = document.getElementById('formEventId').value;
+    if (!eventId) return;
 
- if (eId) {
- const target = eventsData.find(e => e.id === eId);
- if (target) Object.assign(target, data);
- } else {
- data.id = "EVT" + Date.now();
- data.attendees = [];
- data.isArchived = (eventDateVal < TODAY_STR);
- eventsData.unshift(data);
- }
- closeModal('eventModal');
- renderEventsList();
- });
+    if (confirm("確定要刪除此活動嗎？")) {
+        try {
+            await fetch(`${BACKEND_API_URL}/api/admin/events/${encodeURIComponent(eventId)}`, {
+                method: 'DELETE'
+            });
+            eventsData = eventsData.filter(e => e.id !== eventId);
+            closeModal('eventModal');
+            renderEventsList();
+        } catch (err) {
+            console.error("刪除活動失敗:", err);
+            alert("網路異常，刪除失敗");
+        }
+    }
+}
 
- function viewAttendees(eventId) {
- currentViewingEventId = eventId;
- const evt = eventsData.find(e => e.id === eventId);
- if (!evt) return;
+// 儲存/建立活動表單送出 API
+document.getElementById('eventForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const eId = document.getElementById('formEventId').value;
+    const signupStartVal = `${document.getElementById('formEventSignupStartDate').value} ${document.getElementById('formEventSignupStartTime').value}`;
+    const signupEndVal = `${document.getElementById('formEventSignupEndDate').value} ${document.getElementById('formEventSignupEndTime').value}`;
+    const eventDateVal = document.getElementById('formEventDate').value;
 
- document.getElementById('attendeesModalTitle').textContent = evt.title;
- document.getElementById('attendeesModalSub').textContent = `共 ${(evt.attendees || []).length} 人報名 · 活動時間 ${evt.date} ${evt.time}`;
+    const data = {
+        id: eId || ("EVT" + Date.now()),
+        title: document.getElementById('formEventTitle').value.trim(),
+        date: eventDateVal,
+        time: document.getElementById('formEventTime').value,
+        signupStart: signupStartVal,
+        signupEnd: signupEndVal,
+        maxLimit: parseInt(document.getElementById('formEventMaxLimit').value) || null,
+        status: document.getElementById('formEventStatus').value,
+        desc: document.getElementById('formEventDesc').value.trim(),
+        isArchived: (eventDateVal < TODAY_STR)
+    };
 
- const container = document.getElementById('attendeesListContainer');
- container.innerHTML = "";
+    try {
+        const res = await fetch(`${BACKEND_API_URL}/api/admin/events/save`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        const result = await res.json();
+        if (result.status === "success") {
+            await fetchAllBackendData(); // 重新同步後端最新資料
+            closeModal('eventModal');
+            renderEventsList();
+        } else {
+            alert("儲存活動失敗: " + result.message);
+        }
+    } catch (err) {
+        console.error("儲存活動發生錯誤:", err);
+        alert("網路連線異常，儲存失敗");
+    }
+});
 
- const attendees = evt.attendees || [];
- if (attendees.length === 0) {
- container.innerHTML = `<div class="py-8 text-center text-xs text-slate-400 font-bold">目前尚無人報名</div>`;
- } else {
- attendees.forEach((a, i) => {
- const row = document.createElement('div');
- row.className = "flex items-center justify-between p-2.5 rounded-xl bg-[#F8FAFC] border border-sky-100";
- row.innerHTML = `
- <div class="flex items-center gap-2">
- <span class="w-5 h-5 bg-sky-100 text-sky-800 rounded-full flex items-center justify-center font-bold text-[10px]">${i+1}</span>
- <div>
- <div class="font-black text-slate-800">${a.gameNickname}</div>
- <div class="text-[10px] text-slate-400 font-bold">${a.gameClass} · ${a.time}</div>
- </div>
- </div>
- <button onclick="removeAttendee('${a.gameNickname}')" class="text-xs font-bold text-rose-600 hover:text-rose-700 bg-rose-50 border border-rose-200 px-2 py-1 rounded-lg transition cursor-pointer">
- 移除
- </button>
- `;
- container.appendChild(row);
- });
- }
- document.getElementById('eventAttendeesModal').classList.remove('hidden');
- }
+function viewAttendees(eventId) {
+    currentViewingEventId = eventId;
+    const evt = eventsData.find(e => e.id === eventId);
+    if (!evt) return;
 
- function removeAttendee(nick) {
- if (!currentViewingEventId) return;
- const evt = eventsData.find(e => e.id === currentViewingEventId);
- if (!evt) return;
- evt.attendees = evt.attendees.filter(a => a.gameNickname !== nick);
- viewAttendees(currentViewingEventId);
- renderEventsList();
+    document.getElementById('attendeesModalTitle').textContent = evt.title;
+    document.getElementById('attendeesModalSub').textContent = `共 ${(evt.attendees || []).length} 人報名 · 活動時間 ${evt.date} ${evt.time}`;
+
+    const container = document.getElementById('attendeesListContainer');
+    container.innerHTML = "";
+
+    const attendees = evt.attendees || [];
+    if (attendees.length === 0) {
+        container.innerHTML = `<div class="py-8 text-center text-xs text-slate-400 font-bold">目前尚無人報名</div>`;
+    } else {
+        attendees.forEach((a, i) => {
+            const row = document.createElement('div');
+            row.className = "flex items-center justify-between p-2.5 rounded-xl bg-[#F8FAFC] border border-sky-100";
+            
+            let signupTimeFormatted = a.signupTime || "-";
+            if (signupTimeFormatted.length > 16) signupTimeFormatted = signupTimeFormatted.substring(0, 16).replace('T', ' ');
+
+            row.innerHTML = `
+                <div class="flex items-center gap-2">
+                    <span class="w-5 h-5 bg-sky-100 text-sky-800 rounded-full flex items-center justify-center font-bold text-[10px]">${i+1}</span>
+                    <div>
+                        <div class="font-black text-slate-800">${a.gameNickname}</div>
+                        <div class="text-[10px] text-slate-400 font-bold">${a.gameClass} · ${signupTimeFormatted}</div>
+                    </div>
+                </div>
+                <button onclick="removeAttendee('${a.lineUserId || a.gameNickname}')" class="text-xs font-bold text-rose-600 hover:text-rose-700 bg-rose-50 border border-rose-200 px-2 py-1 rounded-lg transition cursor-pointer">
+                    移除
+                </button>
+            `;
+            container.appendChild(row);
+        });
+    }
+    document.getElementById('eventAttendeesModal').classList.remove('hidden');
+}
+
+// 幹部從名冊中強制移除報名成員 API
+async function removeAttendee(userKey) {
+    if (!currentViewingEventId) return;
+    const evt = eventsData.find(e => e.id === currentViewingEventId);
+    if (!evt) return;
+
+    if (confirm("確定要將此成員從報名名單中移除嗎？")) {
+        try {
+            const res = await fetch(`${BACKEND_API_URL}/api/events/signup`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    eventId: evt.id,
+                    lineUserId: userKey // 若後端支援以 lineUserId 或 gameNickname 刪除
+                })
+            });
+            const result = await res.json();
+            if (result.status === "success") {
+                await fetchAllBackendData();
+                viewAttendees(currentViewingEventId);
+                renderEventsList();
+            } else {
+                alert("移除失敗: " + result.message);
+            }
+        } catch (err) {
+            console.error(err);
+            alert("網路異常，移除失敗");
+        }
+    }
+}
+
  }
 
  // ==========================================
