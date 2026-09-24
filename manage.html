@@ -723,6 +723,18 @@ input[type="date"], input[type="time"], select {
  </div>
  </div>
 </div>
+<!-- 統一風格彈窗：確認刪除請假項目 Modal -->
+<div id="deleteUrgentRuleConfirmModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
+  <div class="bg-white w-full max-w-xs rounded-[28px] p-6 border-2 border-rose-200 soft-sky-shadow text-center">
+    <h3 class="text-base font-black text-slate-900 mb-1 mt-2">確認刪除請假項目？</h3>
+    <p id="deleteUrgentRuleConfirmText" class="text-xs text-slate-500 mb-5">確定要刪除此請假項目嗎？</p>
+    <input type="hidden" id="deleteUrgentRuleTargetName">
+    <div class="grid grid-cols-2 gap-2">
+      <button onclick="closeModal('deleteUrgentRuleConfirmModal')" class="bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold py-2.5 rounded-xl transition cursor-pointer">取消</button>
+      <button onclick="executeDeleteUrgentRule()" class="bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold py-2.5 rounded-xl transition shadow-md cursor-pointer">確認刪除</button>
+    </div>
+  </div>
+</div>
 
 
 <script>
@@ -2022,29 +2034,40 @@ function promptDeleteUrgentRule() {
     const eventName = document.getElementById('ruleOriginalEventName').value;
     if (!eventName) return;
     
-    if (confirm(`確定要刪除請假項目【${eventName}】嗎？`)) {
-        executeDeleteUrgentRule(eventName);
-    }
+    // 將名稱帶入隱藏欄位與提示文字中
+    document.getElementById('deleteUrgentRuleTargetName').value = eventName;
+    document.getElementById('deleteUrgentRuleConfirmText').textContent = `確定要刪除請假項目【${eventName}】嗎？`;
+    
+    // 關閉編輯彈窗，打開美觀的確認刪除彈窗
+    closeModal('urgentRuleModal');
+    document.getElementById('deleteUrgentRuleConfirmModal').classList.remove('hidden');
 }
 
-// 執行刪除請假項目 API 請求
-async function executeDeleteUrgentRule(eventName) {
+// 點擊 Modal 中的「確認刪除」後真正發送 API
+async function executeDeleteUrgentRule() {
+    const eventName = document.getElementById('deleteUrgentRuleTargetName').value;
+    if (!eventName) return;
+
     try {
         const response = await fetch(`${BACKEND_API_URL}/api/admin/leave-rules/${encodeURIComponent(eventName)}`, {
             method: 'DELETE'
         });
         const result = await response.json();
+        
+        closeModal('deleteUrgentRuleConfirmModal');
+        
         if (result.status === "success") {
-            closeModal('urgentRuleModal');
             await renderUrgentRules();
         } else {
             alert("刪除失敗: " + result.message);
         }
     } catch (err) {
         console.error("刪除發生錯誤:", err);
+        closeModal('deleteUrgentRuleConfirmModal');
         alert("網路連線異常，刪除失敗");
     }
 }
+
 
 
  // ==========================================
