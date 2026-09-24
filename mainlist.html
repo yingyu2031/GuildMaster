@@ -8,8 +8,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- html2canvas CDN -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- SheetJS (xlsx) CDN for Excel export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
         body {
@@ -47,8 +47,8 @@
 </head>
 <body class="bg-gray-100 min-h-screen pb-16">
 
-    <!-- 頂部導航列 (匯出時會自動隱藏) -->
-    <header id="app-header" class="bg-white shadow-sm sticky top-0 z-30 border-b border-gray-200">
+    <!-- 頂部導航列 (優化欄位間距，改善擁擠感) -->
+    <header class="bg-white shadow-sm sticky top-0 z-30 border-b border-gray-200">
         <div class="max-w-4xl mx-auto px-4 py-3 flex flex-col gap-3">
             <div class="flex justify-between items-center">
                 <div class="flex items-center gap-2">
@@ -56,34 +56,35 @@
                         <i class="fa-solid fa-shield-halved text-lg"></i>
                     </div>
                     <div>
-                        <h1 class="text-lg font-bold text-gray-800 leading-tight">公會戰場主戰名單指揮系統</h1>
-                        <p class="text-xs text-gray-500">手機優化・列表指派・自訂排序・標準出圖</p>
+                        <h1 class="text-base sm:text-lg font-bold text-gray-800 leading-tight">公會戰場主戰名單指揮系統</h1>
+                        <p class="text-xs text-gray-500">手機優化・列表指派・四向排序・Excel匯出</p>
                     </div>
                 </div>
-                <span class="text-xs font-semibold bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-full border border-indigo-200">
+                <span class="text-xs font-semibold bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-full border border-indigo-200 shrink-0">
                     <i class="fa-solid fa-lock mr-1"></i> 5人鎖定版
                 </span>
             </div>
 
-            <!-- 操作按鈕工具列 -->
-            <div class="grid grid-cols-4 gap-2 pt-1">
-                <div class="relative col-span-1">
-                    <input type="date" id="roster-date" class="w-full bg-gray-50 border border-gray-300 text-gray-800 text-xs rounded-lg px-2 py-2.5 font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none text-center">
+            <!-- 操作按鈕工具列：重新排版，清晰不擁擠 -->
+            <div class="flex flex-wrap sm:flex-nowrap items-center gap-2 pt-1">
+                <input type="date" id="roster-date" class="w-full sm:w-auto flex-1 bg-gray-50 border border-gray-300 text-gray-800 text-xs rounded-lg px-3 py-2.5 font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none text-center">
+                
+                <div class="grid grid-cols-3 gap-2 w-full sm:w-auto flex-1">
+                    <button onclick="saveCurrentRoster()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-2.5 px-3 rounded-lg shadow-sm flex items-center justify-center gap-1 transition">
+                        <i class="fa-solid fa-floppy-disk"></i> 存檔
+                    </button>
+                    <button onclick="openHistoryModal()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold py-2.5 px-3 rounded-lg border border-gray-300 flex items-center justify-center gap-1 transition">
+                        <i class="fa-solid fa-clock-rotate-left"></i> 歷史
+                    </button>
+                    <button onclick="openLeaveModal()" class="bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-bold py-2.5 px-3 rounded-lg border border-amber-300 flex items-center justify-center gap-1 transition">
+                        <i class="fa-solid fa-user-slash"></i> 請假(<span id="leave-count">0</span>)
+                    </button>
                 </div>
-                <button onclick="saveCurrentRoster()" class="col-span-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-2.5 px-2 rounded-lg shadow-sm flex items-center justify-center gap-1 transition">
-                    <i class="fa-solid fa-floppy-disk"></i> 存檔
-                </button>
-                <button onclick="openHistoryModal()" class="col-span-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold py-2.5 px-2 rounded-lg border border-gray-300 flex items-center justify-center gap-1 transition">
-                    <i class="fa-solid fa-clock-rotate-left"></i> 歷史
-                </button>
-                <button onclick="openLeaveModal()" class="col-span-1 bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-bold py-2.5 px-2 rounded-lg border border-amber-300 flex items-center justify-center gap-1 transition">
-                    <i class="fa-solid fa-user-slash"></i> 請假(<span id="leave-count">0</span>)
-                </button>
             </div>
             
             <div class="w-full">
-                <button onclick="exportToImage()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold py-2.5 px-4 rounded-lg shadow-md flex items-center justify-center gap-2 transition">
-                    <i class="fa-solid fa-image"></i> 一鍵匯出標準戰術名單圖片
+                <button onclick="exportToExcel()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold py-2.5 px-4 rounded-lg shadow-md flex items-center justify-center gap-2 transition">
+                    <i class="fa-solid fa-file-excel"></i> 匯出 EXCEL 名單
                 </button>
             </div>
         </div>
@@ -92,8 +93,8 @@
     <!-- 主內容區 -->
     <main class="max-w-4xl mx-auto px-3 py-4 flex flex-col gap-6">
 
-        <!-- 人員搜尋與職業篩選區 (匯出時會自動隱藏) -->
-        <section id="member-section-ui" class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+        <!-- 人員搜尋與職業篩選區 -->
+        <section class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
             <div class="flex justify-between items-center mb-3">
                 <h2 class="text-sm font-bold text-gray-700 flex items-center gap-2">
                     <i class="fa-solid fa-users text-indigo-600"></i> 人員列表 (點擊或拖曳指派)
@@ -128,17 +129,18 @@
             </div>
         </section>
 
-        <!-- 戰術名單配置區 (匯出圖例核心) -->
-        <section id="capture-area" class="bg-white rounded-2xl shadow-md border border-gray-200 p-4 flex flex-col gap-4">
+        <!-- 戰術名單配置區 -->
+        <section class="bg-white rounded-2xl shadow-md border border-gray-200 p-4 flex flex-col gap-4">
             <div class="flex justify-between items-center border-b pb-3">
                 <div>
                     <h2 class="text-base font-black text-gray-800 tracking-wide">主戰名單</h2>
                     <p class="text-xs text-gray-500" id="display-date-label">日期：2026-09-24</p>
                 </div>
-                <div class="flex items-center gap-2" id="action-buttons-group">
+                <div class="flex items-center gap-2">
                     <span class="text-xs font-bold bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full border border-indigo-200" id="total-assigned-badge">已配置: 0 / 0</span>
+                    <!-- 改名為 +隊伍 -->
                     <button onclick="addSquad()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow transition flex items-center gap-1">
-                        <i class="fa-solid fa-plus"></i> 加隊伍
+                        <i class="fa-solid fa-plus"></i> 隊伍
                     </button>
                     <button onclick="openMergeModal()" class="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow transition flex items-center gap-1">
                         <i class="fa-solid fa-object-group"></i> 合併團隊
@@ -159,7 +161,7 @@
                 <!-- 動態產生 -->
             </div>
             
-            <div class="flex justify-between items-center pt-2" id="notice-edit-trigger-row">
+            <div class="flex justify-between items-center pt-2">
                 <button onclick="openNoticeModal()" class="text-xs text-indigo-600 hover:text-indigo-800 font-bold flex items-center gap-1">
                     <i class="fa-solid fa-pen-to-square"></i> 管理戰術叮嚀與提示框
                 </button>
@@ -169,7 +171,7 @@
 
     </main>
 
-    <!-- 各類 Modals -->
+    <!-- Modals (請假、提示框、合併、歷史) -->
     <!-- 請假管理 Modal -->
     <div id="leave-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-md max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
@@ -205,7 +207,6 @@
                     <h4 class="text-xs font-bold text-gray-700">新增提示框</h4>
                     <textarea id="new-notice-text" rows="2" placeholder="輸入提示文字（支援換行）..." class="bg-white border border-gray-300 text-xs rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none"></textarea>
                     
-                    <!-- 淺色選單 (粉、黃、綠、藍、紫、灰) -->
                     <div class="flex items-center gap-2 pt-1">
                         <span class="text-xs text-gray-600 font-medium">底色選擇：</span>
                         <div class="flex gap-2.5" id="color-picker-options">
@@ -287,7 +288,7 @@
 
         let squads = [
             { id: 1, name: "隊伍 1(左路)", members: ["非禮勿言", "小嫩少", "蔚藍Azure", "那一籠蝦餃", "。倫倫爸、"] },
-            { id: 2, name: "隊[隊伍 2(左路)", name: "隊伍 2(左路)", members: ["小象哇哇", "比目魚", "羅伊先森", "赤伶、(賢)", "阿畢達布"] },
+            { id: 2, name: "隊伍 2(左路)", members: ["小象哇哇", "比目魚", "羅伊先森", "赤伶、(賢)", "阿畢達布"] },
             { id: 3, name: "隊伍 3(左路)", members: ["馬東三", "至尊寶ゞ", "小桃祇(賢)", "得成芭芭拉", "妳好正喔"] },
             { id: 4, name: "隊伍 4(右路)", members: ["小小蚊子", "白轻尘", "丹尼老詩", "李至安(賢)", "大风起兮云飞扬"] },
             { id: 5, name: "隊伍 5(右路)", members: ["農地山泉", "Kaixxxxx(賢)", "翔翔、", "乃喵。", "紓紓"] },
@@ -348,7 +349,6 @@
             return leaveList.some(l => l.name === name);
         }
 
-        // 渲染列表式指派
         function renderMemberList() {
             const container = document.getElementById('member-list-container');
             const search = document.getElementById('search-input').value.trim();
@@ -369,7 +369,7 @@
             filtered.forEach(m => {
                 const assigned = isAssigned(m.name);
                 const leave = isLeave(m.name);
-                if (leave) return; // 自動排除請假
+                if (leave) return;
 
                 const row = document.createElement('div');
                 row.className = `flex items-center justify-between px-3 py-2 rounded-xl border text-xs transition bg-white ${assigned ? 'opacity-60 border-gray-200' : 'border-gray-200 shadow-2xs hover:border-indigo-300'}`;
@@ -406,7 +406,6 @@
             alert('所有隊伍皆已達 5 人滿編！');
         }
 
-        // 渲染隊伍與排序
         function renderSquads() {
             const container = document.getElementById('squads-container');
             container.innerHTML = '';
@@ -415,21 +414,23 @@
             let totalCapacity = squads.length * 5;
             let renderedSquadIds = new Set();
 
-            // 渲染合併團隊
+            // 渲染合併團隊 (支援 <<, <, >, >> 四向排序)
             mergedGroups.forEach((group, gIndex) => {
                 const groupDiv = document.createElement('div');
                 groupDiv.className = 'border-2 border-purple-400 bg-purple-50/20 rounded-xl p-3 flex flex-col gap-3 relative';
                 
                 let groupHeader = `
                     <div class="flex justify-between items-center bg-purple-100 px-3 py-1.5 rounded-lg border border-purple-200">
-                        <div class="flex items-center gap-2">
+                        <div class="flex items-center gap-1.5">
                             <span class="text-xs font-black text-purple-900"><i class="fa-solid fa-object-group mr-1"></i> ${group.name}</span>
-                            <div class="flex gap-1 sort-hidden">
-                                <button onclick="moveMergedGroup(${gIndex}, -1)" class="text-purple-700 hover:text-purple-900 text-xs px-1" title="往上移"><i class="fa-solid fa-arrow-up"></i></button>
-                                <button onclick="moveMergedGroup(${gIndex}, 1)" class="text-purple-700 hover:text-purple-900 text-xs px-1" title="往下移"><i class="fa-solid fa-arrow-down"></i></button>
+                            <div class="flex gap-0.5 text-[10px]">
+                                <button onclick="moveMergedGroupTarget(${gIndex}, 'first')" class="bg-white/80 hover:bg-white px-1 py-0.5 rounded text-purple-800 font-bold" title="置前">《</button>
+                                <button onclick="moveMergedGroup(${gIndex}, -1)" class="bg-white/80 hover:bg-white px-1 py-0.5 rounded text-purple-800 font-bold" title="往前">〈</button>
+                                <button onclick="moveMergedGroup(${gIndex}, 1)" class="bg-white/80 hover:bg-white px-1 py-0.5 rounded text-purple-800 font-bold" title="往後">〉</button>
+                                <button onclick="moveMergedGroupTarget(${gIndex}, 'last')" class="bg-white/80 hover:bg-white px-1 py-0.5 rounded text-purple-800 font-bold" title="置後">》</button>
                             </div>
                         </div>
-                        <button onclick="removeMergedGroup(${gIndex})" class="text-purple-700 hover:text-red-600 text-xs font-bold sort-hidden"><i class="fa-solid fa-xmark"></i> 解除團隊</button>
+                        <button onclick="removeMergedGroup(${gIndex})" class="text-purple-700 hover:text-red-600 text-xs font-bold"><i class="fa-solid fa-xmark"></i> 解除團隊</button>
                     </div>
                     <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 `;
@@ -448,7 +449,7 @@
                 container.appendChild(groupDiv);
             });
 
-            // 渲染獨立小隊
+            // 渲染獨立小隊 (支援 <<, <, >, >> 四向排序)
             const independentGrid = document.createElement('div');
             independentGrid.className = 'grid grid-cols-2 sm:grid-cols-3 gap-2';
             
@@ -470,7 +471,6 @@
             document.getElementById('total-assigned-badge').innerText = `已配置: ${totalAssigned} / ${totalCapacity}`;
         }
 
-        // 產生單一小隊卡片 HTML (整條填滿職業顏色)
         function createSquadCardHtml(squad) {
             let slotsHtml = '';
             for (let i = 0; i < 5; i++) {
@@ -483,7 +483,7 @@
                                 <span class="text-[9px] px-1 py-0.5 rounded bg-white/70 font-black shrink-0">${job}</span>
                                 <span class="truncate">${member}</span>
                             </div>
-                            <button onclick="removeMemberFromSquad(${squad.id}, ${i})" class="opacity-70 hover:opacity-100 p-0.5 shrink-0 sort-hidden"><i class="fa-solid fa-xmark"></i></button>
+                            <button onclick="removeMemberFromSquad(${squad.id}, ${i})" class="opacity-70 hover:opacity-100 p-0.5 shrink-0"><i class="fa-solid fa-xmark"></i></button>
                         </div>
                     `;
                 } else {
@@ -498,17 +498,19 @@
 
             return `
                 <div class="bg-white border border-gray-300 rounded-xl shadow-xs overflow-hidden flex flex-col">
-                    <div class="bg-gray-100 px-2.5 py-1.5 border-b border-gray-200 flex justify-between items-center">
+                    <div class="bg-gray-100 px-2 py-1.5 border-b border-gray-200 flex justify-between items-center">
                         <div class="flex items-center gap-1">
-                            <input type="text" value="${squad.name}" onchange="updateSquadName(${squad.id}, this.value)" class="bg-transparent text-xs font-black text-gray-800 w-24 focus:outline-none focus:bg-white px-1 rounded">
-                            <div class="flex gap-0.5 sort-hidden">
-                                <button onclick="moveSquad(${squad.id}, -1)" class="text-gray-400 hover:text-gray-700 text-[10px] px-0.5"><i class="fa-solid fa-chevron-up"></i></button>
-                                <button onclick="moveSquad(${squad.id}, 1)" class="text-gray-400 hover:text-gray-700 text-[10px] px-0.5"><i class="fa-solid fa-chevron-down"></i></button>
+                            <input type="text" value="${squad.name}" onchange="updateSquadName(${squad.id}, this.value)" class="bg-transparent text-xs font-black text-gray-800 w-20 focus:outline-none focus:bg-white px-1 rounded">
+                            <div class="flex gap-0.5 text-[9px]">
+                                <button onclick="moveSquadTarget(${squad.id}, 'first')" class="bg-white hover:bg-gray-200 px-0.5 rounded font-bold text-gray-600" title="置前">《</button>
+                                <button onclick="moveSquad(${squad.id}, -1)" class="bg-white hover:bg-gray-200 px-0.5 rounded font-bold text-gray-600" title="往前">〈</button>
+                                <button onclick="moveSquad(${squad.id}, 1)" class="bg-white hover:bg-gray-200 px-0.5 rounded font-bold text-gray-600" title="往後">〉</button>
+                                <button onclick="moveSquadTarget(${squad.id}, 'last')" class="bg-white hover:bg-gray-200 px-0.5 rounded font-bold text-gray-600" title="置後">》</button>
                             </div>
                         </div>
                         <div class="flex items-center gap-1">
                             <span class="text-[10px] font-bold ${squad.members.length === 5 ? 'text-emerald-600' : 'text-amber-600'}">${squad.members.length}/5</span>
-                            <button onclick="deleteSquad(${squad.id})" class="text-gray-400 hover:text-red-600 text-xs sort-hidden"><i class="fa-solid fa-trash-can"></i></button>
+                            <button onclick="deleteSquad(${squad.id})" class="text-gray-400 hover:text-red-600 text-xs"><i class="fa-solid fa-trash-can"></i></button>
                         </div>
                     </div>
                     <div class="p-2 flex flex-col gap-1.5 bg-gray-50/50"
@@ -519,7 +521,7 @@
             `;
         }
 
-        // 排序調整
+        // 四向排序邏輯：置前、往前、往後、置後
         function moveSquad(squadId, direction) {
             const index = squads.findIndex(s => s.id === squadId);
             if (index < 0) return;
@@ -531,12 +533,28 @@
             renderSquads();
         }
 
+        function moveSquadTarget(squadId, target) {
+            const index = squads.findIndex(s => s.id === squadId);
+            if (index < 0) return;
+            const item = squads.splice(index, 1)[0];
+            if (target === 'first') squads.unshift(item);
+            else if (target === 'last') squads.push(item);
+            renderSquads();
+        }
+
         function moveMergedGroup(gIndex, direction) {
             const newIndex = gIndex + direction;
             if (newIndex < 0 || newIndex >= mergedGroups.length) return;
             const temp = mergedGroups[gIndex];
             mergedGroups[gIndex] = mergedGroups[newIndex];
             mergedGroups[newIndex] = temp;
+            renderSquads();
+        }
+
+        function moveMergedGroupTarget(gIndex, target) {
+            const item = mergedGroups.splice(gIndex, 1)[0];
+            if (target === 'first') mergedGroups.unshift(item);
+            else if (target === 'last') mergedGroups.push(item);
             renderSquads();
         }
 
@@ -795,45 +813,27 @@
             }
         }
 
-        // 完美圖例格式匯出
-        function exportToImage() {
-            const captureElement = document.getElementById('capture-area');
-            const btn = event.currentTarget;
-            const originalText = btn.innerHTML;
-            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 正在產生圖片...`;
-            btn.disabled = true;
+        // 匯出 EXCEL 功能 (為後續接 GAS 同步預備)
+        function exportToExcel() {
+            const dateVal = document.getElementById('roster-date').value || 'date';
+            let excelData = [];
 
-            // 暫時隱藏編輯按鈕與多餘控制項，確保匯出結果乾淨如圖例
-            document.querySelectorAll('.sort-hidden').forEach(el => el.style.display = 'none');
-            document.getElementById('action-buttons-group').style.display = 'none';
-            document.getElementById('notice-edit-trigger-row').style.display = 'none';
+            excelData.push(["公會戰場主戰名單", `日期: ${dateVal}`]);
+            excelData.push([]);
 
-            html2canvas(captureElement, {
-                scale: 2,
-                useCORS: true,
-                backgroundColor: '#ffffff'
-            }).then(canvas => {
-                const link = document.createElement('a');
-                link.download = `公會戰場主戰名單_${document.getElementById('roster-date').value || 'date'}.png`;
-                link.href = canvas.toDataURL('image/png');
-                link.click();
-
-                // 恢復顯示
-                document.querySelectorAll('.sort-hidden').forEach(el => el.style.display = '');
-                document.getElementById('action-buttons-group').style.display = '';
-                document.getElementById('notice-edit-trigger-row').style.display = '';
-
-                btn.innerHTML = originalText;
-                btn.disabled = false;
-            }).catch(err => {
-                console.error(err);
-                alert('匯出失敗，請再試一次！');
-                document.querySelectorAll('.sort-hidden').forEach(el => el.style.display = '');
-                document.getElementById('action-buttons-group').style.display = '';
-                document.getElementById('notice-edit-trigger-row').style.display = '';
-                btn.innerHTML = originalText;
-                btn.disabled = false;
+            squads.forEach((squad, idx) => {
+                let rowData = [squad.name];
+                for (let i = 0; i < 5; i++) {
+                    rowData.push(squad.members[i] || "");
+                }
+                excelData.push(rowData);
             });
+
+            const worksheet = XLSX.utils.aoa_to_sheet(excelData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "主戰名單");
+
+            XLSX.writeFile(workbook, `公會戰場主戰名單_${dateVal}.xlsx`);
         }
     </script>
 </body>
