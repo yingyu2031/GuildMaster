@@ -156,7 +156,7 @@
             </button>
         </div>
     </div>
-<!-- 統一風格彈窗：活動報名確認 Modal -->
+<!-- 琥珀橘圓角風格：確認報名 Modal -->
 <div id="eventSignupConfirmModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
   <div class="bg-white w-full max-w-xs rounded-[28px] p-6 border-2 border-amber-200 soft-amber-shadow text-center">
     <h3 class="text-base font-black text-slate-900 mb-1 mt-2">確認報名活動？</h3>
@@ -164,23 +164,24 @@
     <input type="hidden" id="eventSignupTargetId">
     <div class="grid grid-cols-2 gap-2">
       <button onclick="closeModal('eventSignupConfirmModal')" class="bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold py-2.5 rounded-xl transition cursor-pointer">取消</button>
-      <button onclick="executeEventSignup()" class="bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold py-2.5 rounded-xl transition shadow-md cursor-pointer">確認報名</button>
+      <button onclick="executeEventSignup()" class="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-xs font-bold py-2.5 rounded-xl transition shadow-md shadow-orange-200 cursor-pointer">確認報名</button>
     </div>
   </div>
 </div>
 
-<!-- 統一風格彈窗：取消報名確認 Modal -->
+<!-- 琥珀橘圓角風格：確認取消報名 Modal -->
 <div id="eventCancelConfirmModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
-  <div class="bg-white w-full max-w-xs rounded-[28px] p-6 border-2 border-rose-200 soft-amber-shadow text-center">
+  <div class="bg-white w-full max-w-xs rounded-[28px] p-6 border-2 border-amber-200 soft-amber-shadow text-center">
     <h3 class="text-base font-black text-slate-900 mb-1 mt-2">確定取消報名？</h3>
     <p id="eventCancelConfirmText" class="text-xs text-slate-500 mb-5">確定要取消此活動的報名嗎？</p>
     <input type="hidden" id="eventCancelTargetId">
     <div class="grid grid-cols-2 gap-2">
       <button onclick="closeModal('eventCancelConfirmModal')" class="bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold py-2.5 rounded-xl transition cursor-pointer">返回</button>
-      <button onclick="executeEventCancel()" class="bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold py-2.5 rounded-xl transition shadow-md cursor-pointer">確認取消</button>
+      <button onclick="executeEventCancel()" class="bg-gradient-to-r from-rose-500 to-red-500 hover:from-rose-600 hover:to-red-600 text-white text-xs font-bold py-2.5 rounded-xl transition shadow-md cursor-pointer">確認取消</button>
     </div>
   </div>
 </div>
+
 
 
     <script>
@@ -490,19 +491,17 @@
 
         let currentSelectedEventId = null;
 
-// 點擊「立即報名參加」時觸發（改為開啟美觀的 Modal）
+// 點擊「立即報名參加」時觸發
 function handleJoinSignup(eventId) {
     const evt = eventsDatabase.find(e => e.id === eventId);
     if (!evt) return;
 
-    currentSelectedEventId = eventId;
     document.getElementById('eventSignupTargetId').value = eventId;
     document.getElementById('eventSignupConfirmText').textContent = `確定要報名參加【${evt.title}】嗎？\n請確認當日時間可準時出席！`;
-    
     document.getElementById('eventSignupConfirmModal').classList.remove('hidden');
 }
 
-// 點擊 Modal 中的「確認報名」後真正發送 API
+// 點擊圓角 Modal 中的「確認報名」後送出 API
 async function executeEventSignup() {
     const eventId = document.getElementById('eventSignupTargetId').value;
     const evt = eventsDatabase.find(e => e.id === eventId);
@@ -535,18 +534,17 @@ async function executeEventSignup() {
     }
 }
 
-// 點擊「點此取消」時觸發（改為開啟美觀的 Modal）
+// 點擊「點此取消」時觸發
 function handleCancelSignup(eventId) {
     const evt = eventsDatabase.find(e => e.id === eventId);
     if (!evt) return;
 
     document.getElementById('eventCancelTargetId').value = eventId;
     document.getElementById('eventCancelConfirmText').textContent = `確定要取消【${evt.title}】的報名嗎？\n取消後名額將釋出給其他夥伴。`;
-    
     document.getElementById('eventCancelConfirmModal').classList.remove('hidden');
 }
 
-// 點擊 Modal 中的「確認取消」後真正發送 DELETE API
+// 點擊圓角 Modal 中的「確認取消」後送出 DELETE API
 async function executeEventCancel() {
     const eventId = document.getElementById('eventCancelTargetId').value;
     const evt = eventsDatabase.find(e => e.id === eventId);
