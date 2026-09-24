@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="zh-TW" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>遊戲公會戰場主戰名單排班與調度系統</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkbg: '#0f172a',
+                        cardbg: '#1e293b',
+                        bordercolor: '#334155'
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .dragging {
+            opacity: 0.5;
+            transform: scale(0.98);
+        }
+        .drag-over {
+            border-color: #3b82f6 !important;
+            background-color: rgba(59, 130, 246, 0.1) !important;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+    </style>
+</head>
+<body class="bg-darkbg text-slate-100 min-h-screen font-sans flex flex-col selection:bg-blue-500 selection:text-white">
+
+    <header class="bg-cardbg border-b border-bordercolor sticky top-0 z-50 px-4 py-3 shadow-md">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="bg-blue-600 p-2.5 rounded-xl text-white shadow-lg shadow-blue-600/30">
+                    <i class="fa-solid fa-shield-halved text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-wide flex items-center gap-2">
+                        公會戰場主戰名單調度系統 
+                        <span class="text-xs bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-0.5 rounded-full font-medium">戰術指揮台</span>
+                    </h1>
+                    <p class="text-xs text-slate-400">即時人員調配、隊伍合併與歷史存檔</p>
+                </div>
+            </div>
+
+            <!-- Date selector & Save controls -->
+            <div class="flex flex-wrap items-center gap-3">
+                <div class="flex items-center bg-slate-900 border border-bordercolor rounded-lg px-3 py-1.5 shadow-inner">
+                    <label for="rosterDate" class="text-xs text-slate-400 mr-2 flex items-center gap-1">
+                        <i class="fa-regular fa-calendar-days"></i> 排班日期:
+                    </label>
+                    <input type="date" id="rosterDate" class="bg-transparent text-sm text-slate-100 focus:outline-none cursor-pointer">
+                </div>
+                <button onclick="saveRoster()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-md transition flex items-center gap-2">
+                    <i class="fa-solid fa-floppy-disk"></i> 儲存名單
+                </button>
+                <button onclick="openHistoryModal()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
+                    <i class="fa-solid fa-clock-rotate-left"></i> 歷史紀錄
+                </button>
+                <button onclick="openLeaveModal()" class="bg-amber-600/30 hover:bg-amber-600/50 text-amber-300 border border-amber-500/40 px-3 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
+                    <i class="fa-solid fa-user-slash"></i> 請假名單 (<span id="leaveCountBadge">0</span>)
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Left Sidebar: Roster pool & Search -->
+        <aside class="lg:col-span-4 flex flex-col gap-5">
+            
+            <!-- Search & Filter Card -->
+            <div class="bg-cardbg border border-bordercolor rounded-2xl p-4 shadow-lg">
+                <h2 class="text-sm font-bold text-slate-300 mb-3 flex items-center justify-between">
+                    <span><i class="fa-solid fa-magnifying-glass text-blue-400 mr-1.5"></i> 成員搜尋與職業篩選</span>
+                    <span id="memberCountInfo" class="text-xs text-slate-400 font-normal">總計 0 人</span>
+                </h2>
+                <div class="space-y-3">
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+                            <i class="fa-solid fa-search text-xs"></i>
+                        </span>
+                        <input type="text" id="searchInput" placeholder="搜尋角色名稱..." class="w-full bg-slate-900 border border-bordercolor rounded-xl pl-9 pr-4 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500 transition">
+                    </div>
+                    <div>
+                        <select id="classFilter" class="w-full bg-slate-900 border border-bordercolor rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500 transition cursor-pointer">
+                            <option value="all">全職業顯示</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Roster Pool List -->
+            <div class="bg-cardbg border border-bordercolor rounded-2xl p-4 shadow-lg flex-1 flex flex-col min-h-[400px]">
+                <div class="flex justify-between items-center mb-3">
+                    <h2 class="text-sm font-bold text-slate-300 flex items-center gap-1.5">
+                        <i class="fa-solid fa-users text-indigo-400"></i> 現任人員/職業列表 
+                    </h2>
+                    <span class="text-xs text-slate-500">可拖曳或點擊分配</span>
+                </div>
+                <div id="rosterPoolContainer" class="flex-1 overflow-y-auto space-y-2 pr-1 max-h-[500px]">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+
+            <!-- Quick Unassigned Pool / Bench -->
+            <div class="bg-cardbg border border-bordercolor rounded-2xl p-4 shadow-lg">
+                <div class="flex justify-between items-center mb-2">
+                    <h2 class="text-sm font-bold text-slate-300 flex items-center gap-1.5">
+                        <i class="fa-solid fa-bench-tree text-emerald-400"></i> 未分配/後備區
+                    </h2>
+                    <span id="unassignedCount" class="text-xs bg-slate-800 px-2 py-0.5 rounded text-slate-400">0</span>
+                </div>
+                <div id="unassignedContainer" class="min-h-[80px] bg-slate-950/50 border border-dashed border-bordercolor rounded-xl p-2 flex flex-wrap gap-1.5 overflow-y-auto max-h-[150px]" ondragover="allowDrop(event)" ondragleave="removeDropStyle(event)" ondrop="dropToUnassigned(event)">
+                    <!-- Drag back here -->
+                </div>
+            </div>
+
+        </aside>
+
+        <!-- Right Main Content: Squads Management & Tactical Canvas -->
+        <section class="lg:col-span-8 flex flex-col gap-5">
+            
+            <!-- Controls bar for Squads -->
+            <div class="bg-cardbg border border-bordercolor rounded-2xl p-4 shadow-lg flex flex-wrap items-center justify-between gap-4">
+                <div class="flex items-center gap-2">
+                    <h2 class="text-base font-bold text-slate-100 flex items-center gap-2">
+                        <i class="fa-solid fa-chess-board text-blue-400"></i> 主戰名單配置區
+                    </h2>
+                    <span id="totalAssignedBadge" class="text-xs bg-blue-500/20 text-blue-300 px-2.5 py-1 rounded-full border border-blue-500/30">已配置: 0 人</span>
+                </div>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <button onclick="addNewSquad()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-xl text-sm font-medium transition flex items-center gap-1.5 shadow-md">
+                        <i class="fa-solid fa-plus"></i> 新增隊伍
+                    </button>
+                    <button onclick="openMergeModal()" class="bg-purple-600 hover:bg-purple-500 text-white px-3 py-1.5 rounded-xl text-sm font-medium transition flex items-center gap-1.5 shadow-md">
+                        <i class="fa-solid fa-object-ungroup"></i> 隊伍合併團隊
+                    </button>
+                    <button onclick="resetAllAssignments()" class="bg-rose-600/20 hover:bg-rose-600/40 text-rose-300 border border-rose-500/30 px-3 py-1.5 rounded-xl text-sm font-medium transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-rotate-right"></i> 重置分配
+                    </button>
+                </div>
+            </div>
+
+            <!-- Merged Teams Display Section -->
+            <div id="mergedTeamsContainer" class="space-y-3">
+                <!-- Dynamically populated merged groups -->
+            </div>
+
+            <!-- Squads Grid Container -->
+            <div id="squadsGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Dynamically populated squad cards -->
+            </div>
+
+        </section>
+
+    </main>
+
+    
+    <!-- History Modal -->
+    <div id="historyModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-cardbg border border-bordercolor rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl flex flex-col max-h-[80vh]">
+            <div class="p-4 border-b border-bordercolor flex justify-between items-center bg-slate-900/50">
+                <h3 class="font-bold text-slate-200 flex items-center gap-2">
+                    <i class="fa-solid fa-clock-rotate-left text-blue-400"></i> 歷史排班存檔紀錄
+                </h3>
+                <button onclick="closeHistoryModal()" class="text-slate-400 hover:text-white p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div class="p-4 overflow-y-auto flex-1 space-y-2" id="historyListContainer">
+                <!-- Loaded history dates -->
+            </div>
+            <div class="p-3 border-t border-bordercolor bg-slate-900/50 text-right">
+                <button onclick="closeHistoryModal()" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-1.5 rounded-lg text-sm">關閉</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leave Modal -->
+    <div id="leaveModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-cardbg border border-bordercolor rounded-2xl w-full max-w-xl overflow-hidden shadow-2xl flex flex-col max-h-[85vh]">
+            <div class="p-4 border-b border-bordercolor flex justify-between items-center bg-slate-900/50">
+                <h3 class="font-bold text-slate-200 flex items-center gap-2">
+                    <i class="fa-solid fa-user-slash text-amber-400"></i> 當天請假人員管理
+                </h3>
+                <button onclick="closeLeaveModal()" class="text-slate-400 hover:text-white p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div class="p-4 overflow-y-auto flex-1 space-y-4">
+                <div class="bg-slate-900/60 p-3 rounded-xl border border-bordercolor flex flex-col sm:flex-row gap-2">
+                    <input type="text" id="leaveNameInput" placeholder="請假人員名稱" class="flex-1 bg-slate-950 border border-bordercolor rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-amber-500">
+                    <input type="text" id="leaveClassInput" placeholder="職業 (例如: 刺客)" class="w-full sm:w-36 bg-slate-950 border border-bordercolor rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-amber-500">
+                    <input type="date" id="leaveDateInput" class="w-full sm:w-36 bg-slate-950 border border-bordercolor rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-amber-500">
+                    <button onclick="addLeavePerson()" class="bg-amber-600 hover:bg-amber-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition">新增請假</button>
+                </div>
+                <div class="space-y-2" id="leaveListContainer">
+                    <!-- Leave items -->
+                </div>
+            </div>
+            <div class="p-3 border-t border-bordercolor bg-slate-900/50 text-right">
+                <button onclick="closeLeaveModal()" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-1.5 rounded-lg text-sm">完成</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Merge Teams Modal -->
+    <div id="mergeModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-cardbg border border-bordercolor rounded-2xl w-full max-w-md overflow-hidden shadow-2xl flex flex-col">
+            <div class="p-4 border-b border-bordercolor flex justify-between items-center bg-slate-900/50">
+                <h3 class="font-bold text-slate-200 flex items-center gap-2">
+                    <i class="fa-solid fa-object-ungroup text-purple-400"></i> 隊伍合併團隊設定
+                </h3>
+                <button onclick="closeMergeModal()" class="text-slate-400 hover:text-white p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div class="p-4 space-y-4">
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">合併後大團隊名稱</label>
+                    <input type="text" id="mergeTeamName" placeholder="例如: 突擊第一兵團 (陣伍1 + 陣伍2)" class="w-full bg-slate-950 border border-bordercolor rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-purple-500">
+                </div>
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">選擇要合併的隊伍 (複選)</label>
+                    <div id="mergeSquadCheckboxes" class="space-y-2 max-h-48 overflow-y-auto bg-slate-950 p-3 rounded-xl border border-bordercolor">
+                        <!-- Checkboxes generated dynamically -->
+                    </div>
+                </div>
+            </div>
+            <div class="p-3 border-t border-bordercolor bg-slate-900/50 flex justify-end gap-2">
+                <button onclick="closeMergeModal()" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-1.5 rounded-lg text-sm">取消</button>
+                <button onclick="confirmMergeTeams()" class="bg-purple-600 hover:bg-purple-500 text-white px-4 py-1.5 rounded-lg text-sm font-medium">確認合併</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Message Box Modal -->
+    <div id="msgModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-cardbg border border-bordercolor rounded-2xl w-full max-w-sm p-5 shadow-2xl text-center space-y-4">
+            <div id="msgIcon" class="text-4xl text-blue-400">
+                <i class="fa-solid fa-circle-info"></i>
+            </div>
+            <h4 id="msgTitle" class="font-bold text-lg text-slate-100">提示訊息</h4>
+            <p id="msgContent" class="text-sm text-slate-300">內容敘述</p>
+            <button onclick="closeMsgModal()" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-2 rounded-xl text-sm font-medium transition">確定</button>
+        </div>
+    </div>
+
+    <script>
+        // Predefined professional roster based on user specifications and screenshot data
+        const initialMembers = [
+            { id: "m1", name: "尋森覓言", class: "刺客" },
+            { id: "m2", name: "玖威瑟拉拉", class: "刺客" },
+            { id: "m3", name: "神冰月", class: "刺客" },
+            { id: "m4", name: "曉風、", class: "刺客" },
+            { id: "m5", name: "宮本麗姬", class: "刺客" },
+            { id: "m6", name: "赤穆匂宮", class: "十字軍" },
+            { id: "m7", name: "小小蚊子", class: "十字軍" },
+            { id: "m8", name: "小衛少", class: "十字軍" },
+            { id: "m9", name: "白輕尘", class: "十字軍" },
+            { id: "m10", name: "Fe", class: "十字軍" },
+            { id: "m11", name: "夜蘭人靜", class: "十字軍" },
+            { id: "m12", name: "農地山泉", class: "法師" },
+            { id: "m13", name: "餅藍Azure", class: "法師" },
+            { id: "m14", name: "那一龍顆粒", class: "法師" },
+            { id: "m15", name: "主練太長好看喔", class: "法師" },
+            { id: "m16", name: "荷魯斯", class: "法師" },
+            { id: "m17", name: "馬東三", class: "創造者" },
+            { id: "m18", name: "文老爹", class: "創造者" },
+            { id: "m19", name: "大塚呢係", class: "創造者" },
+            { id: "m20", name: "乃福、", class: "補師" },
+            { id: "m21", name: "、備備衛、", class: "補師" },
+            { id: "m22", name: "阿華達布", class: "補師" },
+            { id: "m23", name: "抑好正嗨", class: "補師" },
+            { id: "m24", name: "大風起兮云飛揚", class: "補師" },
+            { id: "m25", name: "妤妤", class: "補師" },
+            { id: "m26", name: "、七彩小夜球", class: "補師" },
+            { id: "m27", name: "絳絳、", class: "補師" },
+            { id: "m28", name: "大買寶", class: "補師" },
+            { id: "m29", name: "梵音", class: "補師" },
+            { id: "m30", name: "blackpinkyoo", class: "補師" },
+            { id: "m31", name: "ebi", class: "補師" },
+            { id: "m32", name: "阿瑀想嚕啦", class: "補師" },
+            { id: "m33", name: "包手模哪", class: "補師" },
+            { id: "m34", name: "李知恩的狗", class: "武僧" },
+            { id: "m35", name: "比目魚", class: "武僧" },
+            { id: "m36", name: "羅伊先森", class: "武僧" },
+            { id: "m37", name: "亞力三小", class: "武僧" },
+            { id: "m38", name: "沈宇", class: "武僧" },
+            { id: "m39", name: "千呋", class: "武僧" },
+            { id: "m40", name: "TwiZee", class: "武僧" },
+            { id: "m41", name: "大塚十八年", class: "武僧" },
+            { id: "m42", name: "小歐娃娃", class: "騎士" },
+            { id: "m43", name: "願景幾飛翔", class: "騎士" },
+            { id: "m44", name: "丹尼老師", class: "搞笑藝人" },
+            { id: "m45", name: "珝珝、", class: "搞笑藝人" },
+            { id: "m46", name: "大默", class: "搞笑藝人" },
+            { id: "m47", name: "問問閃", class: "搞笑藝人" },
+            { id: "m48", name: "學長的藍波大人", class: "搞笑藝人" },
+            { id: "m49", name: "就是雜不類", class: "搞笑藝人" },
+            { id: "m50", name: "克羅伊", class: "吟遊戲偶" },
+            { id: "m51", name: "解惑大師", class: "神射手" },
+            { id: "m52", name: "TT", class: "流氓" },
+            { id: "m53", name: "狩獵的紅鬍子手", class: "神射手" }
+        ];
+
+        const classColors = {
+            "刺客": "bg-rose-500/20 text-rose-300 border-rose-500/40",
+            "十字軍": "bg-amber-500/20 text-amber-300 border-amber-500/40",
+            "法師": "bg-blue-500/20 text-blue-300 border-blue-500/40",
+            "創造者": "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
+            "補師": "bg-teal-500/20 text-teal-300 border-teal-500/40",
+            "武僧": "bg-indigo-500/20 text-indigo-300 border-indigo-500/40",
+            "騎士": "bg-orange-500/20 text-orange-300 border-orange-500/40",
+            "搞笑藝人": "bg-pink-500/20 text-pink-300 border-pink-500/40",
+            "吟遊戲偶": "bg-purple-500/20 text-purple-300 border-purple-500/40",
+            "神射手": "bg-cyan-500/20 text-cyan-300 border-cyan-500/40",
+            "流氓": "bg-zinc-500/20 text-zinc-300 border-zinc-500/40"
+        };
+
+        // App state
+        let members = JSON.parse(JSON.stringify(initialMembers));
+        let squads = [
+            { id: "s1", name: "陣伍1 (左路)", members: ["尋森覓言", "小歐娃娃", "馬東三", "小小蚊子", "農地山泉", "李知恩的狗"] },
+            { id: "s2", name: "陣伍2 (左路)", members: ["赤穆匂宮", "比目魚", "至尊寶Y", "白輕玄", "Kaixxxxx賀)(異常)", "Vergil"] },
+            { id: "s3", name: "陣伍3 (左路)", members: ["龍藍Azure", "羅伊先森", "小禍呢/(買)(異常)", "丹尼老師", "絳絳、", "解惑大師"] },
+            { id: "s4", name: "陣伍4 (右路)", members: ["備備衛、", "阿華達布", "抑好正嗨", "大風起兮云飛揚", "妤妤", "、七彩小夜球"] },
+            { id: "s5", name: "陣伍5 (右路)", members: [] },
+            { id: "s6", name: "陣伍6 (右路)", members: [] },
+            { id: "s7", name: "陣伍7 (左路)", members: ["亞力三小", "陣海、", "願景幾飛翔", "主練太長好累喔", "神之準(請假)", "桃風、"] },
+            { id: "s8", name: "陣伍8 (中路)", members: ["沈宇", "Fe", "琴琴頭條", "TwiZee", "阿魯斯", "宮本麗姬"] },
+            { id: "s9", name: "陣伍9 (中路)", members: ["千呋", "夜蘭人靜", "學長的藍波大人", "問問閃", "克羅伊", "大寶寶"] },
+            { id: "s10", name: "陣伍10 (中路)", members: ["文老爹", "微風小弟", "blackpinkyoo", "ebi", "阿瑀想嚕啦", "包手模哪"] }
+        ];
+
+        let mergedTeams = []; // [{name: "團體A", squadIds: ["s1", "s2"]}]
+        let leaveList = [
+            { name: "哥哥呵呵", class: "十字軍", date: "2026-09-22" },
+            { name: "透水男孩", class: "刺客", date: "2026-09-22" },
+            { name: "馬東三", class: "煉金", date: "2026-09-22" },
+            { name: "DARK熊", class: "詩人", date: "2026-09-22" },
+            { name: "南遠半", class: "詩人", date: "2026-09-24" },
+            { name: "神之準", class: "詩人", date: "2026-09-24" }
+        ];
+
+        let currentDate = new Date().toISOString().split('T')[0];
+
+        window.onload = function() {
+            document.getElementById('rosterDate').value = currentDate;
+            document.getElementById('rosterDate').addEventListener('change', (e) => {
+                currentDate = e.target.value;
+                loadRosterForDate(currentDate);
+            });
+
+            document.getElementById('searchInput').addEventListener('input', renderRosterPool);
+            document.getElementById('classFilter').addEventListener('change', renderRosterPool);
+
+            // Populate class filter options
+            const classes = Object.keys(classColors);
+            const select = document.getElementById('classFilter');
+            classes.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c;
+                opt.textContent = c;
+                select.appendChild(opt);
+            });
+
+            renderAll();
+        };
+
+        function renderAll() {
+            renderRosterPool();
+            renderSquads();
+            renderMergedTeams();
+            renderLeaveList();
+            updateStats();
+        }
+
+        function renderRosterPool() {
+            const container = document.getElementById('rosterPoolContainer');
+            container.innerHTML = '';
+
+            const keyword = document.getElementById('searchInput').value.trim().toLowerCase();
+            const selectedClass = document.getElementById('classFilter').value;
+
+            // Get all assigned member names
+            const assignedMembers = new Set();
+            squads.forEach(s => s.members.forEach(m => assignedMembers.add(m)));
+
+            let filtered = members.filter(m => {
+                const matchKeyword = m.name.toLowerCase().includes(keyword);
+                const matchClass = selectedClass === 'all' || m.class === selectedClass;
+                return matchKeyword && matchClass;
+            });
+
+            document.getElementById('memberCountInfo.textContent` = `總計 ${filtered.length} 人`;
+
+            // Group by class or display list
+            filtered.forEach(m => {
+                const isAssigned = assignedMembers.has(m.name);
+                const div = document.createElement('div');
+                div.className = `flex items-center justify-between p-2 rounded-xl border border-bordercolor bg-slate-900/60 transition hover:border-slate-500 ${isAssigned ? 'opacity-50' : 'cursor-grab'}`;
+                div.draggable = !isAssigned;
+                
+                if (!isAssigned) {
+                    div.addEventListener('dragstart', (e) => {
+                        e.dataTransfer.setData('text/plain', m.name);
+                        div.classList.add('dragging');
+                    });
+                    div.addEventListener('dragend', () => div.classList.remove('dragging'));
+                }
+
+                const badgeColor = classColors[m.class] || 'bg-slate-700 text-slate-300';
+
+                div.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded border ${badgeColor} font-medium">${m.class}</span>
+                        <span class="text-sm font-medium text-slate-200">${m.name}</span>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        ${isAssigned ? '<span class="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded">已排入</span>' : '<i class="fa-solid fa-grip-vertical text-slate-600 text-xs"></i>'}
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+
+            // Also render unassigned bench
+            renderUnassignedPool(assignedMembers);
+        }
+
+        function renderUnassignedPool(assignedMembers) {
+            const container = document.getElementById('unassignedContainer');
+            container.innerHTML = '';
+            
+            const unassigned = members.filter(m => !assignedMembers.has(m.name));
+            document.getElementById('unassignedCount').textContent = unassigned.length;
+
+            if (unassigned.length === 0) {
+                container.innerHTML = '<span class="text-xs text-slate-500 italic p-1">無未分配人員</span>';
+                return;
+            }
+
+            unassigned.forEach(m => {
+                const tag = document.createElement('div');
+                const badgeColor = classColors[m.class] || 'bg-slate-700 text-slate-300';
+                tag.className = `text-xs px-2.5 py-1 rounded-lg border ${badgeColor} cursor-grab flex items-center gap-1.5 bg-slate-900 shadow-sm`;
+                tag.draggable = true;
+                tag.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.setData('text/plain', m.name);
+                });
+                tag.innerHTML = `<span>${m.name}</span><span class="text-[10px] opacity-70">(${m.class})</span>`;
+                container.appendChild(tag);
+            });
+        }
+
+        function renderSquads() {
+            const grid = document.getElementById('squadsGrid');
+            grid.innerHTML = '';
+
+            squads.forEach((squad, index) => {
+                const card = document.createElement('div');
+                card.className = 'bg-cardbg border border-bordercolor rounded-2xl p-4 shadow-lg flex flex-col transition hover:border-slate-600';
+                card.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    card.classList.add('drag-over');
+                });
+                card.addEventListener('dragleave', () => {
+                    card.classList.remove('drag-over');
+                });
+                card.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    card.classList.remove('drag-over');
+                    const memberName = e.dataTransfer.getData('text/plain');
+                    if (memberName) {
+                        assignMemberToSquad(memberName, squad.id);
+                    }
+                });
+
+                // Header with editable name
+                card.innerHTML = `
+                    <div class="flex items-center justify-between mb-3 pb-2 border-b border-bordercolor gap-2">
+                        <div class="flex items-center gap-2 flex-1">
+                            <span class="text-xs bg-blue-600/30 text-blue-400 font-bold px-2 py-0.5 rounded border border-blue-500/30">#${index + 1}</span>
+                            <input type="text" value="${squad.name}" onblur="updateSquadName('${squad.id}', this.value)" class="bg-transparent text-sm font-bold text-slate-200 focus:outline-none focus:bg-slate-900 px-1.5 py-0.5 rounded w-full border border-transparent focus:border-bordercolor transition">
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <span class="text-xs text-slate-400 font-medium px-2 py-0.5 bg-slate-900 rounded">${squad.members.length} 人</span>
+                            <button onclick="deleteSquad('${squad.id}')" class="text-slate-500 hover:text-rose-400 p-1 text-xs transition" title="刪除隊伍">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="flex-1 min-h-[110px] bg-slate-950/60 rounded-xl p-2.5 border border-bordercolor flex flex-wrap gap-2 content-start overflow-y-auto max-h-[180px]" id="squad-members-${squad.id}">
+                        <!-- Member tags inside squad -->
+                    </div>
+                `;
+
+                const memberContainer = card.querySelector(`#squad-members-${squad.id}`);
+                if (squad.members.length === 0) {
+                    memberContainer.innerHTML = '<div class="w-full h-full flex items-center justify-center text-xs text-slate-600 italic py-6">請將左側人員拖曳至此處</div>';
+                } else {
+                    squad.members.forEach(mName => {
+                        const memberObj = members.find(m => m.name === mName) || { name: mName, class: "未知" };
+                        const badgeColor = classColors[memberObj.class] || 'bg-slate-700 text-slate-300';
+                        
+                        const tag = document.createElement('div');
+                        tag.className = `text-xs px-2.5 py-1 rounded-xl border ${badgeColor} flex items-center gap-2 bg-slate-900 shadow-sm animate-fadeIn`;
+                        tag.innerHTML = `
+                            <span class="font-semibold">${memberObj.name}</span>
+                            <span class="text-[10px] opacity-70">(${memberObj.class})</span>
+                            <button onclick="removeMemberFromSquad('${squad.id}', '${memberObj.name}')" class="hover:text-rose-400 transition ml-0.5">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        `;
+                        memberContainer.appendChild(tag);
+                    });
+                }
+
+                grid.appendChild(card);
+            });
+        }
+
+        function assignMemberToSquad(memberName, squadId) {
+            // Remove from other squads first
+            squads.forEach(s => {
+                s.members = s.members.filter(m => m !== memberName);
+            });
+            // Add to target squad
+            const target = squads.find(s => s.id === squadId);
+            if (target) {
+                target.members.push(memberName);
+            }
+            renderAll();
+        }
+
+        function removeMemberFromSquad(squadId, memberName) {
+            const squad = squads.find(s => s.id === squadId);
+            if (squad) {
+                squad.members = squad.members.filter(m => m !== memberName);
+            }
+            renderAll();
+        }
+
+        function dropToUnassigned(e) {
+            e.preventDefault();
+            const memberName = e.dataTransfer.getData('text/plain');
+            if (memberName) {
+                squads.forEach(s => {
+                    s.members = s.members.filter(m => m !== memberName);
+                });
+                renderAll();
+            }
+        }
+
+        function allowDrop(e) {
+            e.preventDefault();
+        }
+
+        function removeDropStyle(e) {
+            // helper
+        }
+
+        function updateSquadName(squadId, newName) {
+            const squad = squads.find(s => s.id === squadId);
+            if (squad && newName.trim() !== "") {
+                squad.name = newName.trim();
+            }
+        }
+
+        function addNewSquad() {
+            const newId = 's' + (Date.now());
+            const newNum = squads.length + 1;
+            squads.push({
+                id: newId,
+                name: `陣伍${newNum} (新)`,
+                members: []
+            });
+            renderAll();
+        }
+
+        function deleteSquad(squadId) {
+            if (squads.length <= 1) {
+                showMsg("提示", "至少需保留一個隊伍！", "warning");
+                return;
+            }
+            squads = squads.filter(s => s.id !== squadId);
+            // Also clean up merged teams
+            mergedTeams.forEach(mt => {
+                mt.squadIds = mt.squadIds.filter(id => id !== squadId);
+            });
+            mergedTeams = mergedTeams.filter(mt => mt.squadIds.length > 0);
+            renderAll();
+        }
+
+        function resetAllAssignments() {
+            squads.forEach(s => s.members = []);
+            mergedTeams = [];
+            renderAll();
+            showMsg("成功", "已重置所有隊伍分配！", "success");
+        }
+
+        function openMergeModal() {
+            const container = document.getElementById('mergeSquadCheckboxes');
+            container.innerHTML = '';
+            squads.forEach(s => {
+                const div = document.createElement('label');
+                div.className = 'flex items-center gap-3 text-sm text-slate-200 cursor-pointer hover:bg-slate-900 p-1.5 rounded-lg transition';
+                div.innerHTML = `
+                    <input type="checkbox" value="${squad.id}" class="rounded border-bordercolor bg-slate-900 text-purple-600 focus:ring-purple-500 w-4 h-4">
+                    <span class="font-medium">${squad.name}</span>
+                    <span class="text-xs text-slate-400 ml-auto">(${squad.members.length} 人)</span>
+                `;
+                container.appendChild(div);
+            });
+            document.getElementById('mergeTeamName').value = '';
+            document.getElementById('mergeModal').classList.remove('hidden');
+        }
+
+        function closeMergeModal() {
+            document.getElementById('mergeModal').classList.add('hidden');
+        }
+
+        function confirmMergeTeams() {
+            const teamName = document.getElementById('mergeTeamName').value.trim();
+            const checkboxes = document.querySelectorAll('#mergeSquadCheckboxes input[type="checkbox"]:checked');
+            const squadIds = Array.from(checkboxes).map(cb => cb.value);
+
+            if (!teamName) {
+                showMsg("提示", "請輸入合併後的大團隊名稱！", "warning");
+                return;
+            }
+            if (squadIds.length < 2) {
+                showMsg("提示", "請至少勾選兩個隊伍進行合併！", "warning");
+                return;
+            }
+
+            mergedTeams.push({
+                name: teamName,
+                squadIds: squadIds
+            });
+
+            closeMergeModal();
+            renderMergedTeams();
+            showMsg("成功", `成功建立合併團隊：${teamName}`, "success");
+        }
+
+        function renderMergedTeams() {
+            const container = document.getElementById('mergedTeamsContainer');
+            container.innerHTML = '';
+
+            if (mergedTeams.length === 0) return;
+
+            mergedTeams.forEach((mt, idx) => {
+                // Gather all members from these squads
+                let allMembers = [];
+                mt.squadIds.forEach(sid => {
+                    const sq = squads.find(s => s.id === sid);
+                    if (sq) allMembers = allMembers.concat(sq.members);
+                });
+
+                const div = document.createElement('div');
+                div.className = 'bg-cardbg border border-purple-500/40 rounded-2xl p-4 shadow-lg space-y-3';
+                div.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <div class="bg-purple-600/30 text-purple-300 px-2.5 py-1 rounded-xl border border-purple-500/40 font-bold text-sm flex items-center gap-1.5">
+                                <i class="fa-solid fa-object-ungroup"></i> ${mt.name}
+                            </div>
+                            <span class="text-xs text-slate-400">包含隊伍: ${mt.squadIds.map(sid => {
+                                const s = squads.find(sq => sq.id === sid);
+                                return s ? s.name : '';
+                            }).filter(Boolean).join(' + ')}</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs bg-purple-500/20 text-purple-300 px-2.5 py-1 rounded-full border border-purple-500/30 font-medium">總成員: ${allMembers.length} 人</span>
+                            <button onclick="removeMergedTeam(${idx})" class="text-slate-500 hover:text-rose-400 p-1 text-xs transition"><i class="fa-solid fa-trash-can"></i></button>
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap gap-1.5 bg-slate-950/50 p-2.5 rounded-xl border border-bordercolor">
+                        ${allMembers.length === 0 ? '<span class="text-xs text-slate-500 italic">目前合併團隊無成員</span>' : allMembers.map(mName => {
+                            const mObj = members.find(m => m.name === mName) || { name: mName, class: "未知" };
+                            const badgeColor = classColors[mObj.class] || 'bg-slate-700 text-slate-300';
+                            return `<span class="text-xs px-2.5 py-1 rounded-lg border ${badgeColor} bg-slate-900">${mObj.name} <span class="opacity-70 text-[10px]">(${mObj.class})</span></span>`;
+                        }).join('')}
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function removeMergedTeam(idx) {
+            mergedTeams.splice(idx, 1);
+            renderMergedTeams();
+        }
+
+        function renderLeaveList() {
+            const container = document.getElementById('leaveListContainer');
+            container.innerHTML = '';
+            
+            // Filter leaves matching current date or show all
+            const countBadge = document.getElementById('leaveCountBadge');
+            countBadge.textContent = leaveList.length;
+
+            if (leaveList.length === 0) {
+                container.innerHTML = '<div class="text-center py-6 text-xs text-slate-500 italic">目前無請假紀錄</div>';
+                return;
+            }
+
+            leaveList.forEach((l, idx) => {
+                const div = document.createElement('div');
+                div.className = 'flex items-center justify-between p-3 bg-slate-950/60 border border-bordercolor rounded-xl';
+                div.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <span class="text-xs bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded border border-amber-500/30 font-medium">${l.class}</span>
+                        <span class="text-sm font-semibold text-slate-200">${l.name}</span>
+                        <span class="text-xs text-slate-400"><i class="fa-regular fa-calendar mr-1"></i>${l.date}</span>
+                    </div>
+                    <button onclick="deleteLeavePerson(${idx})" class="text-slate-500 hover:text-rose-400 text-xs p-1 transition"><i class="fa-solid fa-trash-can"></i></button>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function addLeavePerson() {
+            const name = document.getElementById('leaveNameInput').value.trim();
+            const cls = document.getElementById('leaveClassInput').value.trim();
+            const date = document.getElementById('leaveDateInput').value || currentDate;
+
+            if (!name || !cls) {
+                showMsg("提示", "請填寫請假人員名稱與職業！", "warning");
+                return;
+            }
+
+            leaveList.push({ name, class: cls, date });
+            document.getElementById('leaveNameInput').value = '';
+            document.getElementById('leaveClassInput').value = '';
+            renderLeaveList();
+            showMsg("成功", "已新增請假紀錄！", "success");
+        }
+
+        function deleteLeavePerson(idx) {
+            leaveList.splice(idx, 1);
+            renderLeaveList();
+        }
+
+        function openLeaveModal() {
+            document.getElementById('leaveDateInput').value = currentDate;
+            document.getElementById('leaveModal').classList.remove('hidden');
+        }
+
+        function closeLeaveModal() {
+            document.getElementById('leaveModal').classList.add('hidden');
+        }
+
+        // Save & History with localStorage
+        function saveRoster() {
+            const dataToSave = {
+                date: currentDate,
+                squads: squads,
+                mergedTeams: mergedTeams,
+                leaveList: leaveList,
+                updatedAt: new Date().toLocaleString()
+            };
+
+            localStorage.setItem(`guild_roster_${currentDate}`, JSON.stringify(dataToSave));
+            showMsg("成功", `日期 [${currentDate}] 的主戰名單已成功存檔！`, "success");
+        }
+
+        function openHistoryModal() {
+            const container = document.getElementById('historyListContainer');
+            container.innerHTML = '';
+
+            // Find all saved roster keys in localStorage
+            const keys = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key.startsWith('guild_roster_')) {
+                    keys.push(key);
+                }
+            }
+
+            if (keys.length === 0) {
+                container.innerHTML = '<div class="text-center py-8 text-xs text-slate-500 italic">尚無任何歷史存檔紀錄</div>';
+            } else {
+                keys.sort().reverse().forEach(key => {
+                    const data = JSON.parse(localStorage.getItem(key));
+                    const div = document.createElement('div');
+                    div.className = 'flex items-center justify-between p-3 bg-slate-900/80 border border-bordercolor rounded-xl hover:border-blue-500/50 transition cursor-pointer';
+                    div.onclick = () => loadHistoryData(data);
+                    div.innerHTML = `
+                        <div>
+                            <div class="text-sm font-bold text-slate-200 flex items-center gap-2">
+                                <i class="fa-regular fa-calendar-days text-blue-400"></i> ${data.date}
+                            </div>
+                            <div class="text-xs text-slate-400 mt-0.5">存檔時間: ${data.updatedAt || '未知'} | 隊伍數: ${data.squads.length}</div>
+                        </div>
+                        <span class="text-xs bg-blue-600/20 text-blue-400 border border-blue-500/30 px-3 py-1.5 rounded-lg font-medium">載入此排班</span>
+                    `;
+                    container.appendChild(div);
+                });
+            }
+
+            document.getElementById('historyModal').classList.remove('hidden');
+        }
+
+        function closeHistoryModal() {
+            document.getElementById('historyModal').classList.add('hidden');
+        }
+
+        function loadHistoryData(data) {
+            currentDate = data.date;
+            document.getElementById('rosterDate').value = currentDate;
+            squads = data.squads || squads;
+            mergedTeams = data.mergedTeams || [];
+            leaveList = data.leaveList || leaveList;
+            closeHistoryModal();
+            renderAll();
+            showMsg("成功", `已成功載入 [${currentDate}] 的排班名單！`, "success");
+        }
+
+        function loadRosterForDate(dateStr) {
+            const saved = localStorage.getItem(`guild_roster_${dateStr}`);
+            if (saved) {
+                const data = JSON.parse(saved);
+                squads = data.squads || squads;
+                mergedTeams = data.mergedTeams || [];
+                leaveList = data.leaveList || leaveList;
+                renderAll();
+                showMsg("提示", `已自動載入日期 [${dateStr}] 的存檔排班。`, "info");
+            } else {
+                // If not saved, keep current layout or reset
+                renderAll();
+            }
+        }
+
+        function updateStats() {
+            let totalAssigned = 0;
+            squads.forEach(s => totalAssigned += s.members.length);
+            document.getElementById('totalAssignedBadge').textContent = `已配置: ${totalAssigned} 人`;
+        }
+
+        // Custom Message Box
+        function showMsg(title, content, type = 'info') {
+            document.getElementById('msgTitle').textContent = title;
+            document.getElementById('msgContent').textContent = content;
+            const iconEl = document.getElementById('msgIcon');
+            if (type === 'success') {
+                iconEl.innerHTML = '<i class="fa-solid fa-circle-check text-emerald-400"></i>';
+            } else if (type === 'warning') {
+                iconEl.innerHTML = '<i class="fa-solid fa-triangle-exclamation text-amber-400"></i>';
+            } else {
+                iconEl.innerHTML = '<i class="fa-solid fa-circle-info text-blue-400"></i>';
+            }
+            document.getElementById('msgModal').classList.remove('hidden');
+        }
+
+        function closeMsgModal() {
+            document.getElementById('msgModal').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
