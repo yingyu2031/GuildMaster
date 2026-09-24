@@ -1954,12 +1954,23 @@ function confirmTimeWheel() {
     const finalTime = `${h}:${m}`;
 
     if (activeTimeWheelTarget === 'rule') {
-        document.getElementById('ruleLatestTime').value = finalTime;
-        document.getElementById('ruleLatestTimeDisplay').textContent = finalTime;
+        const timeInput = document.getElementById('ruleLatestTime');
+        const timeDisplay = document.getElementById('ruleLatestTimeDisplay');
+        
+        if (timeInput) timeInput.value = finalTime;
+        if (timeDisplay) timeDisplay.textContent = finalTime;
+        
+        console.log("已成功更新請假項目截止時間為:", finalTime);
     } else if (activeTimeWheelTarget === 'bc') {
-        document.getElementById('formBcTime').value = finalTime;
-        document.getElementById('formBcTimeDisplay').textContent = finalTime;
+        const bcInput = document.getElementById('formBcTime');
+        const bcDisplay = document.getElementById('formBcTimeDisplay');
+        
+        if (bcInput) bcInput.value = finalTime;
+        if (bcDisplay) bcDisplay.textContent = finalTime;
+        
+        console.log("已成功更新推播時間為:", finalTime);
     }
+    
     closeModal('timeWheelModal');
 }
 
