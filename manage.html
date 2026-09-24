@@ -2027,11 +2027,17 @@ function updateCycleButtonsUI() {
 // 請假項目表單送出（儲存）
 document.getElementById('urgentRuleForm').addEventListener('submit', async (e) => {
     e.preventDefault();
+    
     const originalEvent = document.getElementById('ruleOriginalEventName').value;
     const eventName = document.getElementById('ruleEventName').value.trim();
-    const latestTime = document.getElementById('ruleLatestTime').value.trim();
+    
+    // 💡 直接抓取畫面顯示的時間文字（最保險，不會抓到隱藏 input 跑掉的問題）
+    const latestTime = document.getElementById('ruleLatestTimeDisplay').textContent.trim() || "20:00";
+    
     const enabled = window.currentEditingRuleEnabled !== undefined ? window.currentEditingRuleEnabled : 1;
     const cycle = document.getElementById('ruleCycleValue').value;
+
+    console.log("準備送出的請假規則資料:", { originalEvent, eventName, latestTime, cycle, enabled });
 
     try {
         const res = await fetch(`${BACKEND_API_URL}/api/admin/leave-rules/save`, {
