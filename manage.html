@@ -598,6 +598,12 @@ input[type="date"], input[type="time"], select {
  <button type="button" onclick="closeModal('urgentRuleModal')" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 rounded-xl transition cursor-pointer">取消</button>
  <button type="submit" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-2.5 rounded-xl transition shadow-md shadow-sky-200 cursor-pointer">確認儲存</button>
  </div>
+<div class="pt-2 border-t border-slate-100 mt-2">
+  <button type="button" onclick="promptDeleteUrgentRule()" class="w-full bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold py-2.5 rounded-xl text-xs transition cursor-pointer">
+    刪除此請假項目
+  </button>
+</div>
+
  </form>
  </div>
 </div>
@@ -2010,6 +2016,36 @@ async function saveGroupSettings() {
  await renderUrgentRules();
  } catch (err) { alert("儲存失敗"); }
  });
+
+// 點擊刪除請假項目時觸發
+function promptDeleteUrgentRule() {
+    const eventName = document.getElementById('ruleOriginalEventName').value;
+    if (!eventName) return;
+    
+    if (confirm(`確定要刪除請假項目【${eventName}】嗎？`)) {
+        executeDeleteUrgentRule(eventName);
+    }
+}
+
+// 執行刪除請假項目 API 請求
+async function executeDeleteUrgentRule(eventName) {
+    try {
+        const response = await fetch(`${BACKEND_API_URL}/api/admin/leave-rules/${encodeURIComponent(eventName)}`, {
+            method: 'DELETE'
+        });
+        const result = await response.json();
+        if (result.status === "success") {
+            closeModal('urgentRuleModal');
+            await renderUrgentRules();
+        } else {
+            alert("刪除失敗: " + result.message);
+        }
+    } catch (err) {
+        console.error("刪除發生錯誤:", err);
+        alert("網路連線異常，刪除失敗");
+    }
+}
+
 
  // ==========================================
  // 10. 成員狀態管理與團體速查邏輯
