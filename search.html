@@ -93,7 +93,7 @@
             </button>
         </div>
 
-        <!-- 狀態 3：未登記或已退會成員卡片 (合而為一) -->
+        <!-- 狀態 3：未登記或已退會成員卡片 -->
         <div id="unregisteredCard" class="hidden bg-white rounded-[32px] p-6 sm:p-7 border-2 border-amber-200/80 soft-card-shadow text-center relative">
             <div class="w-14 h-14 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-3 border-2 border-amber-200 text-2xl">
                 📝
@@ -108,7 +108,7 @@
             </button>
         </div>
 
-        <!-- 狀態 4：主要查詢主體 (審核通過且正常成員顯示) -->
+        <!-- 狀態 4：主要查詢主體 -->
         <div id="searchMainContent" class="hidden space-y-4">
             
             <!-- 會員身分小卡 -->
@@ -126,23 +126,24 @@
                 </div>
             </div>
 
-            <!-- 搜尋列卡片 (改用 onclick 與 Enter 觸發，不依賴 form) -->
-<div class="bg-white rounded-[28px] p-2.5 border-2 border-amber-200/80 soft-card-shadow">
-    <div class="flex items-center gap-2">
-        <div class="relative flex-1">
-            <input type="text" id="searchInput" placeholder="輸入遊戲角色或 LINE 暱稱..." 
-                   onkeydown="if(event.key === 'Enter') handleSearchClick()"
-                   class="w-full bg-[#FFFDF9] border border-amber-200/80 rounded-2xl pl-4 pr-3 py-3 text-sm font-bold text-amber-950 placeholder:text-amber-800/35 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition">
-        </div>
-        <button type="button" onclick="handleSearchClick()" title="開始搜尋"
-                class="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold p-3 rounded-2xl shadow-md shadow-amber-300/40 transition active:scale-95 flex items-center justify-center cursor-pointer">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-            </svg>
-        </button>
-    </div>
-</div>
-            <!-- 搜尋中狀態 (Spinner) -->
+            <!-- 搜尋列卡片 -->
+            <div class="bg-white rounded-[28px] p-2.5 border-2 border-amber-200/80 soft-card-shadow">
+                <div class="flex items-center gap-2">
+                    <div class="relative flex-1">
+                        <input type="text" id="searchInput" placeholder="輸入遊戲角色或 LINE 暱稱..." 
+                               onkeydown="if(event.key === 'Enter') handleSearchClick()"
+                               class="w-full bg-[#FFFDF9] border border-amber-200/80 rounded-2xl pl-4 pr-3 py-3 text-sm font-bold text-amber-950 placeholder:text-amber-800/35 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition">
+                    </div>
+                    <button type="button" onclick="handleSearchClick()" title="開始搜尋"
+                            class="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold p-3 rounded-2xl shadow-md shadow-amber-300/40 transition active:scale-95 flex items-center justify-center cursor-pointer">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 搜尋中狀態 -->
             <div id="searchLoadingStatus" class="hidden bg-white rounded-[32px] p-6 border-2 border-amber-200/80 soft-card-shadow text-center fade-in">
                 <div class="relative w-10 h-10 mx-auto mb-2">
                     <div class="absolute inset-0 rounded-full border-3 border-amber-200 border-t-amber-500 animate-spin"></div>
@@ -169,7 +170,7 @@
         <p class="text-[11px] text-amber-800/40 text-center mt-6">&copy; 2026 GuildMaster</p>
     </main>
 
-<script>
+    <script>
         const MY_LIFF_ID = "2011659633-XUHrG3ge";
         const BACKEND_API_URL = "https://guildmaster.zeabur.app";
 
@@ -263,10 +264,8 @@
                 console.error("驗證身分發生錯誤:", err);
             }
 
-            // 隱藏載入畫面
             document.getElementById('loadingCard').classList.add('hidden');
 
-            // 狀態判斷：只要是「未登記」或是「guildRole 為退會」，都導向未登記卡片
             if (!currentUser.isRegistered || currentUser.guildRole === "退會") {
                 document.getElementById('topBadge').textContent = "身分未定";
                 document.getElementById('pageMainTitle').textContent = "尚未完成會員登記";
@@ -285,7 +284,6 @@
                 document.getElementById('pendingReviewCard').classList.remove('hidden');
                 document.getElementById('pendingReviewCard').classList.add('fade-in');
             } else {
-                // 正常已審核通過 -> 顯示查詢主畫面
                 document.getElementById('topBadge').textContent = "公會名冊";
                 document.getElementById('pageMainTitle').textContent = "會員公開資料查詢";
                 document.getElementById('pageSubTitle').textContent = "輸入「遊戲角色暱稱」或「LINE 暱稱」進行關鍵字搜尋";
@@ -315,51 +313,53 @@
         async function searchMembers(keyword) {
             try {
                 const baseUrl = BACKEND_API_URL.replace(/\/+$/, '');
-                const response = await fetch(`${baseUrl}/api/members/search?q=${encodeURIComponent(keyword)}`, {
+                const targetUrl = `${baseUrl}/api/members/search?q=${encodeURIComponent(keyword)}`;
+                console.log("發送 API 請求到:", targetUrl);
+
+                const response = await fetch(targetUrl, {
                     method: "GET",
+                    headers: { "Accept": "application/json" },
                     redirect: "follow"
                 });
-                if (!response.ok) throw new Error("網路連線異常");
+
+                console.log("後端回應狀態碼:", response.status);
+                if (!response.ok) throw new Error("網路連線異常，狀態碼: " + response.status);
+
                 const result = await response.json();
+                console.log("後端回傳的原始資料:", result);
+
                 return (result && result.data) ? result.data : [];
             } catch (error) {
                 console.error("搜尋發生錯誤:", error);
+                alert("查詢發生錯誤: " + error.message);
                 return [];
             }
         }
 
-        // 獨立的點擊 / Enter 搜尋觸發函式
         async function handleSearchClick() {
-    const keyword = document.getElementById('searchInput').value.trim();
-    if (!keyword) {
-        alert("請輸入關鍵字！");
-        return;
-    }
+            const keyword = document.getElementById('searchInput').value.trim();
+            if (!keyword) {
+                alert("請輸入要搜尋的關鍵字！");
+                return;
+            }
 
-    try {
-        const baseUrl = BACKEND_API_URL.replace(/\/+$/, '');
-        console.log(`正在發送請求到: ${baseUrl}/api/members/search?q=${keyword}`);
-        
-        const response = await fetch(`${baseUrl}/api/members/search?q=${encodeURIComponent(keyword)}`, {
-            method: "GET",
-            redirect: "follow"
-        });
+            const searchLoadingStatus = document.getElementById('searchLoadingStatus');
+            const emptyBox = document.getElementById('emptyStatus');
+            const resultBox = document.getElementById('resultContainer');
 
-        console.log("後端回應狀態碼:", response.status);
-        if (!response.ok) throw new Error("網路連線異常，狀態碼: " + response.status);
+            searchLoadingStatus.classList.remove('hidden');
+            emptyBox.classList.add('hidden');
+            resultBox.innerHTML = "";
 
-        const result = await response.json();
-        console.log("後端回傳的資料:", result);
+            const members = await searchMembers(keyword);
+            searchLoadingStatus.classList.add('hidden');
 
-        const members = (result && result.data) ? result.data : [];
-        alert(`查詢完成！找到 ${members.length} 筆資料`);
+            alert(`查詢完成！找到 ${members.length} 筆相符資料`);
 
-        // ... 後續顯示畫面的程式碼 ...
-    } catch (error) {
-        console.error("搜尋發生錯誤:", error);
-        alert("發生錯誤: " + error.message);
-    }
-}
+            if (members.length === 0) {
+                emptyBox.classList.remove('hidden');
+                return;
+            }
 
             members.forEach(m => {
                 const card = document.createElement('div');
