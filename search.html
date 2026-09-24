@@ -330,26 +330,36 @@
 
         // 獨立的點擊 / Enter 搜尋觸發函式
         async function handleSearchClick() {
-            console.log("搜尋按鈕被點擊了！"); // 👈 加上這行
-             alert("按鈕有觸發");             // 👈 加上這行直接跳出彈窗測試
-            const keyword = document.getElementById('searchInput').value.trim();
-            if (!keyword) return;
+    const keyword = document.getElementById('searchInput').value.trim();
+    if (!keyword) {
+        alert("請輸入關鍵字！");
+        return;
+    }
 
-            const searchLoadingStatus = document.getElementById('searchLoadingStatus');
-            const emptyBox = document.getElementById('emptyStatus');
-            const resultBox = document.getElementById('resultContainer');
+    try {
+        const baseUrl = BACKEND_API_URL.replace(/\/+$/, '');
+        console.log(`正在發送請求到: ${baseUrl}/api/members/search?q=${keyword}`);
+        
+        const response = await fetch(`${baseUrl}/api/members/search?q=${encodeURIComponent(keyword)}`, {
+            method: "GET",
+            redirect: "follow"
+        });
 
-            searchLoadingStatus.classList.remove('hidden');
-            emptyBox.classList.add('hidden');
-            resultBox.innerHTML = "";
+        console.log("後端回應狀態碼:", response.status);
+        if (!response.ok) throw new Error("網路連線異常，狀態碼: " + response.status);
 
-            const members = await searchMembers(keyword);
-            searchLoadingStatus.classList.add('hidden');
+        const result = await response.json();
+        console.log("後端回傳的資料:", result);
 
-            if (members.length === 0) {
-                emptyBox.classList.remove('hidden');
-                return;
-            }
+        const members = (result && result.data) ? result.data : [];
+        alert(`查詢完成！找到 ${members.length} 筆資料`);
+
+        // ... 後續顯示畫面的程式碼 ...
+    } catch (error) {
+        console.error("搜尋發生錯誤:", error);
+        alert("發生錯誤: " + error.message);
+    }
+}
 
             members.forEach(m => {
                 const card = document.createElement('div');
