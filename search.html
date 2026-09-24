@@ -330,6 +330,8 @@
 
         // 獨立的點擊 / Enter 搜尋觸發函式
         async function handleSearchClick() {
+            console.log("搜尋按鈕被點擊了！"); // 👈 加上這行
+             alert("按鈕有觸發");             // 👈 加上這行直接跳出彈窗測試
             const keyword = document.getElementById('searchInput').value.trim();
             if (!keyword) return;
 
