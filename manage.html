@@ -1900,150 +1900,160 @@ async function saveGroupSettings() {
  renderBroadcastSection();
  });
 
- // ==========================================
- // 9. 請假規則與時間滾輪選擇器互動
- // ==========================================
- async function renderUrgentRules() {
- try {
- const res = await fetch(`${BACKEND_API_URL}/api/admin/leave-rules`);
- if (res.ok) {
- const data = await res.json();
- leaveRulesData = data.rules || [];
- }
- } catch (err) { console.error(err); }
- if (currentMainSection === 'settings' && currentSettingSubTab === 'broadcast') {
- renderBroadcastSection();
- }
- }
+// ==========================================
+// 9. 請假規則與時間滾輪選擇器互動
+// ==========================================
+async function renderUrgentRules() {
+    try {
+        const res = await fetch(`${BACKEND_API_URL}/api/admin/leave-rules`);
+        if (res.ok) {
+            const data = await res.json();
+            leaveRulesData = data.rules || [];
+        }
+    } catch (err) { 
+        console.error(err); 
+    }
+    if (currentMainSection === 'settings' && currentSettingSubTab === 'broadcast') {
+        renderBroadcastSection();
+    }
+}
 
- function initTimeWheelSelects() {
- const hSelect = document.getElementById('wheelHourSelect');
- const mSelect = document.getElementById('wheelMinuteSelect');
- if (!hSelect || !mSelect) return;
+function initTimeWheelSelects() {
+    const hSelect = document.getElementById('wheelHourSelect');
+    const mSelect = document.getElementById('wheelMinuteSelect');
+    if (!hSelect || !mSelect) return;
 
- hSelect.innerHTML = "";
- mSelect.innerHTML = "";
+    hSelect.innerHTML = "";
+    mSelect.innerHTML = "";
 
- for (let i = 0; i < 24; i++) {
- const hs = String(i).padStart(2, '0');
- hSelect.innerHTML += `<option value="${hs}">${hs}</option>`;
- }
- for (let i = 0; i < 60; i++) {
- const ms = String(i).padStart(2, '0');
- mSelect.innerHTML += `<option value="${ms}">${ms}</option>`;
- }
- }
+    for (let i = 0; i < 24; i++) {
+        const hs = String(i).padStart(2, '0');
+        hSelect.innerHTML += `<option value="${hs}">${hs}</option>`;
+    }
+    for (let i = 0; i < 60; i++) {
+        const ms = String(i).padStart(2, '0');
+        mSelect.innerHTML += `<option value="${ms}">${ms}</option>`;
+    }
+}
 
- function openTimeWheelPicker(targetType) {
- activeTimeWheelTarget = targetType; // 'rule' 或 'bc'
- const inputId = targetType === 'rule' ? 'ruleLatestTime' : 'formBcTime';
- const currentVal = document.getElementById(inputId).value || "20:00";
- const parts = currentVal.split(':');
- if (parts.length === 2) {
- document.getElementById('wheelHourSelect').value = parts[0];
- document.getElementById('wheelMinuteSelect').value = parts[1];
- }
- document.getElementById('timeWheelModal').classList.remove('hidden');
- }
+function openTimeWheelPicker(targetType) {
+    activeTimeWheelTarget = targetType; // 'rule' 或 'bc'
+    const inputId = targetType === 'rule' ? 'ruleLatestTime' : 'formBcTime';
+    const currentVal = document.getElementById(inputId).value || "20:00";
+    const parts = currentVal.split(':');
+    if (parts.length === 2) {
+        document.getElementById('wheelHourSelect').value = parts[0];
+        document.getElementById('wheelMinuteSelect').value = parts[1];
+    }
+    document.getElementById('timeWheelModal').classList.remove('hidden');
+}
 
- function confirmTimeWheel() {
- const h = document.getElementById('wheelHourSelect').value;
- const m = document.getElementById('wheelMinuteSelect').value;
- const finalTime = `${h}:${m}`;
+function confirmTimeWheel() {
+    const h = document.getElementById('wheelHourSelect').value;
+    const m = document.getElementById('wheelMinuteSelect').value;
+    const finalTime = `${h}:${m}`;
 
- if (activeTimeWheelTarget === 'rule') {
- document.getElementById('ruleLatestTime').value = finalTime;
- document.getElementById('ruleLatestTimeDisplay').textContent = finalTime;
- } else if (activeTimeWheelTarget === 'bc') {
- document.getElementById('formBcTime').value = finalTime;
- document.getElementById('formBcTimeDisplay').textContent = finalTime;
- }
- closeModal('timeWheelModal');
- }
+    if (activeTimeWheelTarget === 'rule') {
+        document.getElementById('ruleLatestTime').value = finalTime;
+        document.getElementById('ruleLatestTimeDisplay').textContent = finalTime;
+    } else if (activeTimeWheelTarget === 'bc') {
+        document.getElementById('formBcTime').value = finalTime;
+        document.getElementById('formBcTimeDisplay').textContent = finalTime;
+    }
+    closeModal('timeWheelModal');
+}
 
- function openUrgentRuleModal(mode, event = '', latestTime = '', cycle = '', enabled = 1) {
- document.getElementById('urgentRuleForm').reset();
- selectedCycleDays = [];
- 
- const resolvedTime = latestTime || "20:00";
- window.currentEditingRuleEnabled = enabled; // 暫存原本的啟用狀態
+function openUrgentRuleModal(mode, event = '', latestTime = '', cycle = '', enabled = 1) {
+    document.getElementById('urgentRuleForm').reset();
+    selectedCycleDays = [];
+    
+    const resolvedTime = latestTime || "20:00";
+    window.currentEditingRuleEnabled = enabled; // 暫存原本的啟用狀態
 
- if (mode === 'edit') {
- document.getElementById('urgentRuleModalTitle').textContent = "編輯請假項目與時間";
- document.getElementById('ruleOriginalEventName').value = event;
- document.getElementById('ruleEventName').value = event;
- document.getElementById('ruleLatestTime').value = resolvedTime;
- document.getElementById('ruleLatestTimeDisplay').textContent = resolvedTime;
- if (cycle) {
- selectedCycleDays = cycle.split(',').map(s => s.trim().replace('週', ''));
- }
- } else {
- document.getElementById('urgentRuleModalTitle').textContent = "新增請假項目與時間";
- document.getElementById('ruleOriginalEventName').value = "";
- document.getElementById('ruleLatestTime').value = "20:00";
- document.getElementById('ruleLatestTimeDisplay').textContent = "20:00";
- window.currentEditingRuleEnabled = 1; // 預設新增時啟用
- selectedCycleDays = [];
- }
- updateCycleButtonsUI();
- document.getElementById('urgentRuleModal').classList.remove('hidden');
- }
+    if (mode === 'edit') {
+        document.getElementById('urgentRuleModalTitle').textContent = "編輯請假項目與時間";
+        document.getElementById('ruleOriginalEventName').value = event;
+        document.getElementById('ruleEventName').value = event;
+        document.getElementById('ruleLatestTime').value = resolvedTime;
+        document.getElementById('ruleLatestTimeDisplay').textContent = resolvedTime;
+        if (cycle) {
+            selectedCycleDays = cycle.split(',').map(s => s.trim().replace('週', ''));
+        }
+    } else {
+        document.getElementById('urgentRuleModalTitle').textContent = "新增請假項目與時間";
+        document.getElementById('ruleOriginalEventName').value = "";
+        document.getElementById('ruleLatestTime').value = "20:00";
+        document.getElementById('ruleLatestTimeDisplay').textContent = "20:00";
+        window.currentEditingRuleEnabled = 1; // 預設新增時啟用
+        selectedCycleDays = [];
+    }
+    updateCycleButtonsUI();
+    document.getElementById('urgentRuleModal').classList.remove('hidden');
+}
 
- function toggleCycleDay(day) {
- if (selectedCycleDays.includes(day)) {
- selectedCycleDays = selectedCycleDays.filter(d => d !== day);
- } else {
- selectedCycleDays.push(day);
- }
- updateCycleButtonsUI();
- }
+function toggleCycleDay(day) {
+    if (selectedCycleDays.includes(day)) {
+        selectedCycleDays = selectedCycleDays.filter(d => d !== day);
+    } else {
+        selectedCycleDays.push(day);
+    }
+    updateCycleButtonsUI();
+}
 
- function updateCycleButtonsUI() {
- const btns = document.querySelectorAll('.cycle-btn');
- btns.forEach(btn => {
- const day = btn.getAttribute('data-day');
- if (selectedCycleDays.includes(day)) {
- btn.className = "cycle-btn flex-1 py-2 rounded-xl border border-sky-400 text-xs font-black transition bg-sky-500 text-white shadow-xs cursor-pointer";
- } else {
- btn.className = "cycle-btn flex-1 py-2 rounded-xl border border-sky-200 text-xs font-black transition bg-white text-slate-600 cursor-pointer";
- }
- });
- document.getElementById('ruleCycleValue').value = selectedCycleDays.map(d => '週' + d).join(', ');
- }
+function updateCycleButtonsUI() {
+    const btns = document.querySelectorAll('.cycle-btn');
+    btns.forEach(btn => {
+        const day = btn.getAttribute('data-day');
+        if (selectedCycleDays.includes(day)) {
+            btn.className = "cycle-btn flex-1 py-2 rounded-xl border border-sky-400 text-xs font-black transition bg-sky-500 text-white shadow-xs cursor-pointer";
+        } else {
+            btn.className = "cycle-btn flex-1 py-2 rounded-xl border border-sky-200 text-xs font-black transition bg-white text-slate-600 cursor-pointer";
+        }
+    });
+    document.getElementById('ruleCycleValue').value = selectedCycleDays.map(d => '週' + d).join(', ');
+}
 
- document.getElementById('urgentRuleForm').addEventListener('submit', async (e) => {
- e.preventDefault();
- const originalEvent = document.getElementById('ruleOriginalEventName').value;
- const eventName = document.getElementById('ruleEventName').value.trim();
- const latestTime = document.getElementById('ruleLatestTime').value.trim();
- const enabled = window.currentEditingRuleEnabled !== undefined ? window.currentEditingRuleEnabled : 1;
- const cycle = document.getElementById('ruleCycleValue').value;
+// 請假項目表單送出（儲存）
+document.getElementById('urgentRuleForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const originalEvent = document.getElementById('ruleOriginalEventName').value;
+    const eventName = document.getElementById('ruleEventName').value.trim();
+    const latestTime = document.getElementById('ruleLatestTime').value.trim();
+    const enabled = window.currentEditingRuleEnabled !== undefined ? window.currentEditingRuleEnabled : 1;
+    const cycle = document.getElementById('ruleCycleValue').value;
 
- try {
- await fetch(`${BACKEND_API_URL}/api/admin/leave-rules/save`, {
- method: 'POST', headers: { 'Content-Type': 'application/json' },
- body: JSON.stringify({ originalEvent, event: eventName, latestTime, cycle, enabled })
- });
- closeModal('urgentRuleModal');
- await renderUrgentRules();
- } catch (err) { alert("儲存失敗"); }
- });
+    try {
+        const res = await fetch(`${BACKEND_API_URL}/api/admin/leave-rules/save`, {
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ originalEvent, event: eventName, latestTime, cycle, enabled })
+        });
+        const result = await res.json();
+        if (result.status === "success") {
+            closeModal('urgentRuleModal');
+            await renderUrgentRules();
+        } else {
+            alert("儲存失敗: " + (result.message || '未知錯誤'));
+        }
+    } catch (err) { 
+        console.error("儲存發生錯誤:", err);
+        alert("網路連線異常，儲存失敗"); 
+    }
+});
 
-// 點擊刪除請假項目時觸發
+// 點擊刪除按鈕時觸發（開啟美觀確認 Modal）
 function promptDeleteUrgentRule() {
     const eventName = document.getElementById('ruleOriginalEventName').value;
     if (!eventName) return;
     
-    // 將名稱帶入隱藏欄位與提示文字中
     document.getElementById('deleteUrgentRuleTargetName').value = eventName;
     document.getElementById('deleteUrgentRuleConfirmText').textContent = `確定要刪除請假項目【${eventName}】嗎？`;
     
-    // 關閉編輯彈窗，打開美觀的確認刪除彈窗
     closeModal('urgentRuleModal');
     document.getElementById('deleteUrgentRuleConfirmModal').classList.remove('hidden');
 }
 
-// 點擊 Modal 中的「確認刪除」後真正發送 API
+// 執行美觀 Modal 的確認刪除 API
 async function executeDeleteUrgentRule() {
     const eventName = document.getElementById('deleteUrgentRuleTargetName').value;
     if (!eventName) return;
@@ -2067,7 +2077,6 @@ async function executeDeleteUrgentRule() {
         alert("網路連線異常，刪除失敗");
     }
 }
-
 
 
  // ==========================================
