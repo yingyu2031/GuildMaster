@@ -10,6 +10,8 @@
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800;900&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <!-- LIFF SDK -->
+    <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
         body { 
             font-family: 'M PLUS Rounded 1c', 'Noto Sans TC', sans-serif; 
@@ -29,47 +31,111 @@
 <body class="bg-[#FFFDF7] text-slate-800 antialiased selection:bg-amber-200 selection:text-amber-900 min-h-screen flex flex-col justify-between py-6 px-3 sm:px-4">
 
     <main class="max-w-md w-full mx-auto">
-        <!-- 頂部標題區 (間距完美對齊請假表單) -->
+        <!-- 頂部標題區 -->
         <div class="text-center mb-6 pt-2">
-            <div class="inline-block bg-amber-100 text-amber-900 text-xs font-black px-4 py-1 rounded-full mb-3 border border-amber-200/60">
+            <div id="topBadge" class="inline-block bg-amber-100 text-amber-900 text-xs font-black px-4 py-1 rounded-full mb-3 border border-amber-200/60">
                 活動報名
             </div>
-            <h1 class="text-2xl font-black text-amber-950 tracking-tight mb-2">公會活動報名</h1>
-            <p class="text-[13px] font-bold text-amber-900/70">不定期舉行～歡迎大家踴躍參加喔！</p>
+            <h1 id="pageMainTitle" class="text-2xl font-black text-amber-950 tracking-tight mb-2">公會活動報名</h1>
+            <p id="pageSubTitle" class="text-[13px] font-bold text-amber-900/70">不定期舉行～歡迎大家踴躍參加喔！</p>
         </div>
 
-        <!-- 會員資訊卡片 (LINE頭貼 + 現任 + 職業，無小團體) -->
-        <div class="bg-amber-50/50 border-2 border-amber-200/80 rounded-2xl p-3.5 mb-5 flex items-center gap-3.5 soft-amber-shadow text-left">
-            <div class="relative shrink-0">
-                <img id="userAvatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&h=120&q=80" 
-                     alt="Avatar" class="w-12 h-12 rounded-full object-cover border-2 border-white shadow-xs">
-                <span class="absolute -bottom-1 -right-1 bg-[#06C755] text-white text-[9px] font-black px-1 py-0.2 rounded-full border border-white leading-tight">
-                    LINE
-                </span>
+        <!-- 狀態 1：預覽讀取畫面 -->
+        <div id="loadingCard" class="bg-white rounded-[32px] p-8 border-2 border-amber-200/80 soft-amber-shadow text-center">
+            <div id="loadingSpinner" class="relative w-16 h-16 mx-auto mb-4">
+                <div class="absolute inset-0 rounded-full border-4 border-amber-200 border-t-amber-500 animate-spin"></div>
+                <div class="w-full h-full rounded-full flex items-center justify-center text-xl">
+                    📋
+                </div>
+            </div>
+            <h3 id="loadingTitle" class="text-sm font-black text-amber-950 mb-1">正在連線會員資料...</h3>
+            <p id="loadingDesc" class="text-xs text-amber-800/60">正在確認身分，請稍候</p>
+            
+            <div id="errorBox" class="hidden mt-4 text-left">
+                <div class="text-xs font-bold text-rose-700 mb-1">提示與操作：</div>
+                <div id="errorDetail" class="text-[11px] text-rose-600 bg-rose-50 border border-rose-200 p-3 rounded-xl font-mono break-all leading-relaxed"></div>
+                <button onclick="closeLiffWindow()" class="w-full mt-3 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold py-2.5 rounded-xl shadow-md transition cursor-pointer">
+                    關閉視窗重新載入
+                </button>
+            </div>
+        </div>
+
+        <!-- 狀態 2：審核中專屬卡片 -->
+        <div id="pendingReviewCard" class="hidden bg-white rounded-[32px] p-6 sm:p-7 border-2 border-amber-200/80 soft-amber-shadow text-center relative">
+            <div class="w-14 h-14 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-3 border-2 border-amber-200 text-2xl">
+                ⏳
+            </div>
+            <p class="text-xs text-amber-900/70 leading-relaxed mb-5">
+                您的會員資料尚在審核階段，目前無法進行活動報名。<br>待幹部審核通過後即可正常參加！
+            </p>
+
+            <div class="bg-[#FFFDF9] rounded-2xl p-4 border border-amber-200/80 text-left text-sm space-y-2 mb-6 text-amber-950 shadow-inner">
+                <div class="flex items-center justify-between">
+                    <span class="text-amber-800/80 font-bold">遊戲暱稱：</span>
+                    <span id="pendingNickname" class="font-bold text-amber-950">-</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-amber-800/80 font-bold">遊戲職業：</span>
+                    <span id="pendingClass" class="font-bold text-amber-950">-</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-amber-800/80 font-bold">LINE 暱稱：</span>
+                    <span id="pendingLineName" class="font-bold text-amber-950">-</span>
+                </div>
             </div>
 
-            <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2">
-                    <span id="userGameNickname" class="text-base font-black text-slate-900 truncate">克蘿伊</span>
-                    <span class="bg-emerald-100 text-emerald-800 text-[11px] font-black px-2 py-0.5 rounded-full border border-emerald-200 shrink-0">
-                        現任
+            <button onclick="closeLiffWindow()" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold py-3.5 rounded-2xl text-sm shadow-md transition cursor-pointer">
+                稍後再回來確認
+            </button>
+        </div>
+
+        <!-- 狀態 3：未登記/退會成員卡片 -->
+        <div id="unregisteredCard" class="hidden bg-white rounded-[32px] p-6 sm:p-7 border-2 border-amber-200/80 soft-amber-shadow text-center relative">
+            <div class="w-14 h-14 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-3 border-2 border-amber-200 text-2xl">
+                📝
+            </div>
+            <h3 class="text-base font-black text-amber-950 mb-1">尚未完成會員登記</h3>
+            <p class="text-xs text-amber-900/70 leading-relaxed mb-5">
+                請先填寫公會會員資料並通過審核，才能進行活動報名喔！
+            </p>
+
+            <button onclick="closeLiffWindow()" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold py-3.5 rounded-2xl text-sm shadow-md transition cursor-pointer">
+                關閉視窗
+            </button>
+        </div>
+
+        <!-- 狀態 4：正常驗證通過後的「活動報名主介面」 -->
+        <div id="mainContentArea" class="hidden space-y-5">
+            <!-- 會員資訊卡片 -->
+            <div class="bg-amber-50/50 border-2 border-amber-200/80 rounded-2xl p-3.5 flex items-center gap-3.5 soft-amber-shadow text-left">
+                <div class="relative shrink-0">
+                    <img id="userAvatar" src="https://yingyu2031.github.io/GuildMaster/IMG_9732.png" 
+                         alt="Avatar" class="w-12 h-12 rounded-full object-cover border-2 border-white shadow-xs">
+                    <span class="absolute -bottom-1 -right-1 bg-[#06C755] text-white text-[9px] font-black px-1 py-0.2 rounded-full border border-white leading-tight">
+                        LINE
                     </span>
                 </div>
-                <div class="text-xs font-bold text-slate-500 truncate mt-0.5">
-                    <span id="userGameClass" class="text-slate-700 font-bold">冷豔舞姬（舞孃）</span>
+
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2">
+                        <span id="userGameNickname" class="text-base font-black text-slate-900 truncate">讀取中...</span>
+                        <span id="userRoleBadge" class="text-[11px] font-black px-2 py-0.5 rounded-full border shrink-0">檢查中</span>
+                    </div>
+                    <div class="text-xs font-bold text-slate-500 truncate mt-0.5">
+                        <span id="userGameClass" class="text-slate-700 font-bold">-</span>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- 活動列表容器 -->
-        <div id="eventCardListContainer" class="space-y-4">
+            <!-- 活動列表容器 -->
+            <div id="eventCardListContainer" class="space-y-4"></div>
         </div>
 
         <!-- 底部版權 -->
         <p class="text-[11px] text-amber-900/40 text-center mt-6">&copy; 2026 GuildMaster 活動報名系統</p>
     </main>
 
-    <!-- 彈窗：已報名會員明細 Drawer Modal -->
+    <!-- 彈窗：已報名會員明細 Modal -->
     <div id="attendeesModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
         <div class="bg-white w-full max-w-md rounded-[28px] p-6 border-2 border-amber-200 soft-amber-shadow max-h-[85vh] flex flex-col">
             <div class="flex items-center justify-between pb-3 border-b border-amber-100 mb-3">
@@ -77,7 +143,7 @@
                     <h3 id="modalEventTitle" class="text-base font-black text-slate-900">活動名稱</h3>
                     <p id="modalEventSub" class="text-[11px] text-amber-800 font-bold mt-0.5">已報名會員明細</p>
                 </div>
-                <button onclick="closeAttendeesModal()" class="text-slate-400 hover:text-slate-600 text-sm font-bold">關閉</button>
+                <button onclick="closeAttendeesModal()" class="text-slate-400 hover:text-slate-600 text-sm font-bold cursor-pointer">關閉</button>
             </div>
             
             <div id="classSummaryBar" class="text-[11px] font-bold text-slate-700 bg-amber-50/60 p-2 rounded-xl border border-amber-100 mb-2.5 flex flex-wrap gap-1.5">
@@ -85,100 +151,224 @@
 
             <div id="modalAttendeesList" class="flex-1 overflow-y-auto space-y-2 pr-1 text-xs text-left">
             </div>
-            <button onclick="closeAttendeesModal()" class="mt-4 w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 rounded-xl text-xs transition">
+            <button onclick="closeAttendeesModal()" class="mt-4 w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 rounded-xl text-xs transition cursor-pointer">
                 返回活動列表
             </button>
         </div>
     </div>
 
     <script>
+        const MY_LIFF_ID = "2011659633-9Km5nhzg"; // 請替換成您的活動專屬 LIFF ID
+        const BACKEND_API_URL = "https://guildmaster.zeabur.app";
+
         let currentUser = {
-            lineUserId: "U2b228d4c5915",
-            gameNickname: "克蘿伊",
-            gameClass: "冷豔舞姬（舞孃）",
+            userId: "",
+            displayName: "",
+            pictureUrl: "",
+            gameNickname: "",
+            gameClass: "",
+            accountStatus: "",
             guildRole: "現任",
-            accountStatus: "已審核"
+            isRegistered: false
         };
 
-        let eventsDatabase = [
-            {
-                id: "EVT01",
-                title: "週日大型 GVG 決戰要塞",
-                date: "2026-09-20",
-                time: "20:00",
-                signupStart: "2026-09-15 12:00",
-                signupEnd: "2026-09-20 23:59",
-                maxLimit: 24,
-                status: "報名中",
-                isArchived: false,
-                desc: "請全體公會主力準時於 19:50 前進入 DC 語音頻道集合，聽從指揮分配攻防組別，攜帶足夠補給品！",
-                attendees: [
-                    { lineUserId: "U1001", gameNickname: "超級法神", gameClass: "超魔導士", signupTime: "2026-09-18 12:30" },
-                    { lineUserId: "U2b228d4c5915", gameNickname: "克蘿伊", gameClass: "冷豔舞姬（舞孃）", signupTime: "2026-09-18 14:10" },
-                    { lineUserId: "U1002", gameNickname: "暗夜殺手", gameClass: "十字刺客", signupTime: "2026-09-19 09:00" }
-                ]
-            },
-            {
-                id: "EVT02",
-                title: "每週公會副本快速全通團",
-                date: "2026-09-22",
-                time: "21:00",
-                signupStart: "2026-09-16 00:00",
-                signupEnd: "2026-09-22 20:00",
-                maxLimit: 12,
-                status: "報名中",
-                isArchived: false,
-                desc: "協助公會新成員與戰力提升，通關獲取高階附魔與精煉材料，歡迎踴躍參加。",
-                attendees: [
-                    { lineUserId: "U1002", gameNickname: "暗夜殺手", gameClass: "十字刺客", signupTime: "2026-09-19 10:00" }
-                ]
-            },
-            {
-                id: "EVT03_FUTURE",
-                title: "下週六跨服世界王爭奪戰",
-                date: "2026-09-26",
-                time: "20:30",
-                signupStart: "2026-09-22 12:00",
-                signupEnd: "2026-09-26 19:00",
-                maxLimit: 30,
-                status: "報名中",
-                isArchived: false,
-                desc: "需先完成前置公會科技強化任務，請務必先向小隊長報到確認配置。",
-                attendees: []
+        let eventsDatabase = [];
+        let currentViewingEventId = null;
+
+        async function queryMemberFromBackend(uid) {
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+                const response = await fetch(`${BACKEND_API_URL}/api/members/${encodeURIComponent(uid)}`, {
+                    method: 'GET',
+                    headers: { 'Accept': 'application/json' },
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+
+                if (!response.ok) return { status: "error" };
+                return await response.json();
+            } catch (err) {
+                return { status: "error" };
             }
-        ];
-
-        window.addEventListener("DOMContentLoaded", () => {
-            renderUserInfo();
-            renderEvents();
-        });
-
-        function renderUserInfo() {
-            document.getElementById('userGameNickname').textContent = currentUser.gameNickname;
-            document.getElementById('userGameClass').textContent = currentUser.gameClass;
         }
 
-        function getCurrentDateTimeStr() {
-            const now = new Date();
-            const year = now.getFullYear();
-            const month = String(now.getMonth() + 1).padStart(2, '0');
-            const day = String(now.getDate()).padStart(2, '0');
-            const hours = String(now.getHours()).padStart(2, '0');
-            const minutes = String(now.getMinutes()).padStart(2, '0');
-            return `${year}-${month}-${day} ${hours}:${minutes}`;
+        async function initApp() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const queryUid = urlParams.get('uid') || urlParams.get('userId');
+            const queryName = urlParams.get('name') || urlParams.get('displayName');
+
+            let isLiffReady = false;
+            let liffErrorDetail = "";
+
+            if (MY_LIFF_ID && typeof liff !== 'undefined') {
+                try {
+                    await liff.init({ liffId: MY_LIFF_ID });
+                    if (liff.isLoggedIn()) {
+                        const profile = await liff.getProfile();
+                        currentUser.userId = profile.userId;
+                        currentUser.displayName = profile.displayName;
+                        currentUser.pictureUrl = profile.pictureUrl || "";
+                        isLiffReady = true;
+                    } else {
+                        document.getElementById('loadingSpinner').classList.add('hidden');
+                        document.getElementById('loadingTitle').textContent = "需要登入 LINE";
+                        document.getElementById('loadingDesc').textContent = "請點擊下方按鈕進行驗證授權";
+                        const errBox = document.getElementById('errorBox');
+                        const errDetail = document.getElementById('errorDetail');
+                        errDetail.innerHTML = `<button onclick="liff.login()" class="w-full bg-[#06C755] text-white font-bold py-2.5 rounded-xl shadow-md cursor-pointer">點擊登入 LINE 帳號</button>`;
+                        errBox.classList.remove('hidden');
+                        return;
+                    }
+                } catch (err) {
+                    liffErrorDetail = err.message || JSON.stringify(err);
+                }
+            }
+
+            if (!isLiffReady && queryUid) {
+                currentUser.userId = queryUid;
+                if (queryName) currentUser.displayName = decodeURIComponent(queryName);
+            }
+
+            await verifyAndDisplayView(liffErrorDetail);
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initApp);
+        } else {
+            initApp();
+        }
+
+        async function verifyAndDisplayView(errorMsg) {
+            if (!currentUser.userId) {
+                document.getElementById('loadingSpinner').classList.add('hidden');
+                document.getElementById('loadingTitle').textContent = "無法辨識 LINE 身分";
+                document.getElementById('loadingDesc').textContent = "請確認您是點擊 LINE 官方專用連結開啟";
+                const errBox = document.getElementById('errorBox');
+                const errDetail = document.getElementById('errorDetail');
+                errDetail.textContent = errorMsg || "LIFF 未能取得 Profile。";
+                errBox.classList.remove('hidden');
+                return;
+            }
+
+            const result = await queryMemberFromBackend(currentUser.userId);
+            
+            if (result && (result.status === "timeout" || result.status === "error")) {
+                document.getElementById('loadingSpinner').classList.add('hidden');
+                document.getElementById('loadingTitle').textContent = "連線後台逾時";
+                document.getElementById('loadingDesc').textContent = "伺服器回應較慢，請點擊下方重試";
+                const errBox = document.getElementById('errorBox');
+                const errDetail = document.getElementById('errorDetail');
+                errDetail.textContent = "請確認網路是否正常";
+                errBox.classList.remove('hidden');
+                return;
+            }
+
+            if (result && result.status === "found") {
+                currentUser.gameNickname = result.gameNickname || result.game_nickname || "";
+                currentUser.gameClass = result.gameClass || result.game_class || "";
+                currentUser.displayName = result.lineDisplayName || currentUser.displayName;
+                currentUser.accountStatus = String(result.accountStatus || result.account_status || "").trim();
+                currentUser.guildRole = String(result.guildRole || result.guild_role || "現任").trim();
+                currentUser.isRegistered = true;
+            }
+
+            document.getElementById('loadingCard').classList.add('hidden');
+
+            const isRetired = currentUser.guildRole.includes("退會");
+
+            if (!currentUser.isRegistered) {
+                applyUnregisteredUI();
+            } else if (isRetired) {
+                applyUnregisteredUI();
+            } else if (currentUser.accountStatus.includes("待審")) {
+                applyPendingReviewUI();
+            } else if (currentUser.accountStatus === "已審核") {
+                applyMainAppUI();
+            } else {
+                applyUnregisteredUI();
+            }
+        }
+
+        function applyPendingReviewUI() {
+            document.getElementById('topBadge').textContent = "資格審核";
+            document.getElementById('pageMainTitle').textContent = "入會申請處理中";
+            document.getElementById('pageSubTitle').textContent = "幹部正在核對名冊，目前無法報名活動";
+
+            document.getElementById('pendingNickname').textContent = currentUser.gameNickname || "-";
+            document.getElementById('pendingClass').textContent = currentUser.gameClass || "-";
+            document.getElementById('pendingLineName').textContent = currentUser.displayName || "-";
+
+            const pendingCard = document.getElementById('pendingReviewCard');
+            pendingCard.classList.remove('hidden');
+            pendingCard.classList.add('fade-in');
+        }
+
+        function applyUnregisteredUI() {
+            document.getElementById('topBadge').textContent = "未登記會員";
+            document.getElementById('pageMainTitle').textContent = "查無會員身分";
+            document.getElementById('pageSubTitle').textContent = "請先綁定會員身分並待審核通過後再行報名";
+
+            const unregCard = document.getElementById('unregisteredCard');
+            unregCard.classList.remove('hidden');
+            unregCard.classList.add('fade-in');
+        }
+
+        async function applyMainAppUI() {
+            document.getElementById('mainContentArea').classList.remove('hidden');
+            document.getElementById('mainContentArea').classList.add('fade-in');
+
+            if (currentUser.pictureUrl) {
+                document.getElementById('userAvatar').src = currentUser.pictureUrl;
+            }
+            document.getElementById('userGameNickname').textContent = currentUser.gameNickname;
+            document.getElementById('userGameClass').textContent = currentUser.gameClass;
+
+            const badge = document.getElementById('userRoleBadge');
+            badge.textContent = currentUser.guildRole;
+            if (currentUser.guildRole === '幹部') {
+                badge.className = "text-[11px] font-black px-2 py-0.5 rounded-full border border-sky-200 bg-sky-100 text-sky-800 shrink-0";
+            } else {
+                badge.className = "text-[11px] font-black px-2 py-0.5 rounded-full border border-emerald-200 bg-emerald-100 text-emerald-800 shrink-0";
+            }
+
+            await fetchEventsFromBackend();
+        }
+
+        function closeLiffWindow() {
+            if (typeof liff !== 'undefined' && liff.closeWindow) {
+                liff.closeWindow();
+            } else {
+                window.close();
+            }
+        }
+
+        async function fetchEventsFromBackend() {
+            try {
+                const res = await fetch(`${BACKEND_API_URL}/api/admin/events`);
+                const data = await res.json();
+                if (data.status === "success" && data.events) {
+                    eventsDatabase = data.events;
+                }
+                renderEvents();
+            } catch (err) {
+                console.error("載入活動失敗:", err);
+                document.getElementById('eventCardListContainer').innerHTML = `
+                    <div class="bg-white rounded-2xl p-8 text-center border-2 border-amber-200/80 soft-amber-shadow">
+                        <div class="text-xs font-black text-rose-500">載入活動清單失敗，請稍後再試</div>
+                    </div>
+                `;
+            }
         }
 
         function renderEvents() {
             const container = document.getElementById('eventCardListContainer');
             container.innerHTML = "";
 
-            const currentDT = getCurrentDateTimeStr();
-
             const openEvents = eventsDatabase.filter(evt => {
-                if (evt.isArchived || evt.status !== "報名中") return false;
-                const hasStarted = !evt.signupStart || currentDT >= evt.signupStart;
-                const notEnded = !evt.signupEnd || currentDT <= evt.signupEnd;
-                return hasStarted && notEnded;
+                if (evt.isArchived || evt.status === "已結束") return false;
+                return true;
             });
 
             if (openEvents.length === 0) {
@@ -193,14 +383,15 @@
             }
 
             openEvents.forEach(evt => {
-                const attendeesCount = evt.attendees.length;
+                const attendees = evt.attendees || [];
+                const attendeesCount = attendees.length;
                 const isFull = evt.maxLimit && evt.maxLimit > 0 && attendeesCount >= evt.maxLimit;
-                const isUserJoined = evt.attendees.some(a => a.lineUserId === currentUser.lineUserId);
+                const isUserJoined = attendees.some(a => a.lineUserId === currentUser.userId);
 
                 let actionBtnHtml = "";
                 if (isUserJoined) {
                     actionBtnHtml = `
-                        <button onclick="handleCancelSignup('${evt.id}')" class="w-full bg-emerald-500 hover:bg-emerald-600 active:scale-98 text-white font-black text-xs py-2.5 rounded-xl transition shadow-md shadow-emerald-200 flex items-center justify-center gap-1.5">
+                        <button onclick="handleCancelSignup('${evt.id}')" class="w-full bg-emerald-500 hover:bg-emerald-600 active:scale-98 text-white font-black text-xs py-2.5 rounded-xl transition shadow-md shadow-emerald-200 flex items-center justify-center gap-1.5 cursor-pointer">
                             <span>✓ 已報名成功</span>
                             <span class="text-[11px] font-normal opacity-90">(點此取消)</span>
                         </button>
@@ -213,7 +404,7 @@
                     `;
                 } else {
                     actionBtnHtml = `
-                        <button onclick="handleJoinSignup('${evt.id}')" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 active:scale-98 text-white font-black text-xs py-2.5 rounded-xl transition shadow-md shadow-orange-200">
+                        <button onclick="handleJoinSignup('${evt.id}')" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 active:scale-98 text-white font-black text-xs py-2.5 rounded-xl transition shadow-md shadow-orange-200 cursor-pointer">
                             立即報名參加
                         </button>
                     `;
@@ -227,7 +418,7 @@
                 card.innerHTML = `
                     <div class="flex items-start justify-between">
                         <div>
-                            <span class="bg-amber-500 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full shadow-xs">開放報名中</span>
+                            <span class="bg-amber-500 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full shadow-xs">${evt.status || '報名中'}</span>
                             <h3 class="text-base font-black text-slate-900 mt-1.5">${evt.title}</h3>
                             <div class="text-xs text-slate-600 font-bold mt-0.5">
                                 活動時間：<span class="text-amber-900 font-black font-mono">${evt.date} ${evt.time}</span>
@@ -262,7 +453,7 @@
 
                     <div class="pt-1 space-y-2">
                         ${actionBtnHtml}
-                        <button onclick="viewAttendeesModal('${evt.id}')" class="w-full bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 text-xs font-black py-1.5 rounded-xl transition">
+                        <button onclick="viewAttendeesModal('${evt.id}')" class="w-full bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 text-xs font-black py-1.5 rounded-xl transition cursor-pointer">
                             查看已報名會員 (${attendeesCount})
                         </button>
                     </div>
@@ -271,40 +462,73 @@
             });
         }
 
-        function handleJoinSignup(eventId) {
+        async function handleJoinSignup(eventId) {
             const evt = eventsDatabase.find(e => e.id === eventId);
             if (!evt) return;
 
             if (confirm(`確定要報名參加【${evt.title}】嗎？\n請確認當日時間可準時出席！`)) {
-                evt.attendees.push({
-                    lineUserId: currentUser.lineUserId,
-                    gameNickname: currentUser.gameNickname,
-                    gameClass: currentUser.gameClass,
-                    signupTime: getCurrentDateTimeStr()
-                });
-                renderEvents();
+                try {
+                    const res = await fetch(`${BACKEND_API_URL}/api/events/signup`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            eventId: evt.id,
+                            lineUserId: currentUser.userId,
+                            gameNickname: currentUser.gameNickname,
+                            gameClass: currentUser.gameClass
+                        })
+                    });
+                    const result = await res.json();
+                    if (result.status === "success") {
+                        await fetchEventsFromBackend();
+                    } else {
+                        alert("報名失敗: " + result.message);
+                    }
+                } catch (err) {
+                    console.error(err);
+                    alert("網路異常，報名失敗");
+                }
             }
         }
 
-        function handleCancelSignup(eventId) {
+        async function handleCancelSignup(eventId) {
             const evt = eventsDatabase.find(e => e.id === eventId);
             if (!evt) return;
 
             if (confirm(`確定要取消【${evt.title}】的報名嗎？\n取消後名額將釋出給其他夥伴。`)) {
-                evt.attendees = evt.attendees.filter(a => a.lineUserId !== currentUser.lineUserId);
-                renderEvents();
+                try {
+                    const res = await fetch(`${BACKEND_API_URL}/api/events/signup`, {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            eventId: evt.id,
+                            lineUserId: currentUser.userId
+                        })
+                    });
+                    const result = await res.json();
+                    if (result.status === "success") {
+                        await fetchEventsFromBackend();
+                    } else {
+                        alert("取消失敗: " + result.message);
+                    }
+                } catch (err) {
+                    console.error(err);
+                    alert("網路異常，取消失敗");
+                }
             }
         }
 
         function viewAttendeesModal(eventId) {
+            currentViewingEventId = eventId;
             const evt = eventsDatabase.find(e => e.id === eventId);
             if (!evt) return;
 
+            const attendees = evt.attendees || [];
             document.getElementById('modalEventTitle').textContent = evt.title;
-            document.getElementById('modalEventSub').textContent = `已報名 ${evt.attendees.length} 人 · 集合時間 ${evt.date} ${evt.time}`;
+            document.getElementById('modalEventSub').textContent = `已報名 ${attendees.length} 人 · 集合時間 ${evt.date} ${evt.time}`;
 
             const classCounts = {};
-            evt.attendees.forEach(a => {
+            attendees.forEach(a => {
                 classCounts[a.gameClass] = (classCounts[a.gameClass] || 0) + 1;
             });
             const summaryContainer = document.getElementById('classSummaryBar');
@@ -319,13 +543,16 @@
             const listContainer = document.getElementById('modalAttendeesList');
             listContainer.innerHTML = "";
 
-            if (evt.attendees.length === 0) {
+            if (attendees.length === 0) {
                 listContainer.innerHTML = `<div class="py-6 text-center text-xs text-slate-400 font-bold">目前尚無會員報名</div>`;
             } else {
-                evt.attendees.forEach((a, i) => {
+                attendees.forEach((a, i) => {
                     const row = document.createElement('div');
                     row.className = "flex items-center justify-between p-2.5 rounded-xl bg-amber-50/40 border border-amber-100";
-                    const isSelf = a.lineUserId === currentUser.lineUserId;
+                    const isSelf = a.lineUserId === currentUser.userId;
+
+                    let signupTimeFormatted = a.signupTime || "-";
+                    if (signupTimeFormatted.length > 16) signupTimeFormatted = signupTimeFormatted.substring(0, 16).replace('T', ' ');
 
                     row.innerHTML = `
                         <div class="flex items-center gap-2">
@@ -335,7 +562,7 @@
                                     <span>${a.gameNickname}</span>
                                     ${isSelf ? `<span class="text-[9px] bg-emerald-100 text-emerald-800 px-1 py-0.2 rounded font-bold">你自己</span>` : ''}
                                 </div>
-                                <div class="text-[10px] text-slate-400 font-bold">${a.gameClass} · ${a.signupTime}</div>
+                                <div class="text-[10px] text-slate-400 font-bold">${a.gameClass} · ${signupTimeFormatted}</div>
                             </div>
                         </div>
                     `;
