@@ -1975,10 +1975,12 @@ function confirmTimeWheel() {
 }
 
 function openUrgentRuleModal(mode, event = '', latestTime = '', cycle = '', enabled = 1) {
-    document.getElementById('urgentRuleForm').reset();
+    // 💡 移除原本會強制洗掉自訂時間的 .reset()，改為手動清空必要欄位
+    document.getElementById('ruleEventName').value = "";
     selectedCycleDays = [];
     
-    const resolvedTime = latestTime || "20:00";
+    // 優先採用傳進來的有效時間，沒有才給預設 20:00
+    const resolvedTime = (latestTime && latestTime.includes(':')) ? latestTime : "20:00";
     window.currentEditingRuleEnabled = enabled; // 暫存原本的啟用狀態
 
     if (mode === 'edit') {
@@ -2094,7 +2096,6 @@ async function executeDeleteUrgentRule() {
         alert("網路連線異常，刪除失敗");
     }
 }
-
 
  // ==========================================
  // 10. 成員狀態管理與團體速查邏輯
