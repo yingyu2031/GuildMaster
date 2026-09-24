@@ -1490,18 +1490,60 @@ async function closeAuthModal() {
  switchSettingSubTab(currentSettingSubTab);
  }
 
- function loadGroupSettings() {
- const savedGuildId = localStorage.getItem("gm_guild_group_id") || "";
- const savedAdminId = localStorage.getItem("gm_admin_group_id") || "";
- document.getElementById('guildGroupIdInput').value = savedGuildId;
- document.getElementById('adminGroupIdInput').value = savedAdminId;
- }
+ // 1. 從後端資料庫載入群組設定
+async function loadGroupSettings() {
+    try {
+        const response = await fetch(`${BACKEND_API_URL}/api/admin/configs`, {
+            method: 'GET',
+            headers: { 'Accept': 'application/json' }
+        });
+        const result = await response.json();
+        
+        if (result.status === "success" && result.configs) {
+            // 對應資料庫中的 config_key
+            if (result.configs.mainGroupId) {
+                document.getElementById('guildGroupIdInput').value = result.configs.mainGroupId;
+            }
+            if (result.configs.adminGroupId) {
+                document.getElementById('adminGroupIdInput').value = result.configs.adminGroupId;
+            }
+        }
+    } catch (err) {
+        console.error("載入群組設定失敗:", err);
+    }
+}
 
- function saveGroupSettings() {
- const gId = document.getElementById('guildGroupIdInput').value.trim();
- const aId = document.getElementById('adminGroupIdInput').value.trim();
- localStorage.setItem("gm_guild_group_id", gId);
- localStorage.setItem("gm_admin_group_id", aId);
+// 2. 儲存群組設定至後端資料庫
+async function saveGroupSettings() {
+    const mainGroupId = document.getElementById('guildGroupIdInput').value.trim();
+    const adminGroupId = document.getElementById('adminGroupIdInput').value.trim();
+    const saveMsg = document.getElementById('groupIdSaveMsg');
+
+    try {
+        const response = await fetch(`${BACKEND_API_URL}/api/admin/configs`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                mainGroupId: mainGroupId,
+                adminGroupId: adminGroupId
+            })
+        });
+
+        const result = await response.json();
+        if (result.status === "success") {
+            // 顯示「已儲存完成」提示文字，2秒後自動隱藏
+            saveMsg.classList.remove('hidden');
+            setTimeout(() => {
+                saveMsg.classList.add('hidden');
+            }, 2000);
+        } else {
+            alert("儲存失敗: " + result.message);
+        }
+    } catch (err) {
+        console.error("儲存發生錯誤:", err);
+        alert("網路連線異常，儲存失敗");
+    }
+}
 
  const msg = document.getElementById('groupIdSaveMsg');
  msg.classList.remove('hidden');
