@@ -1489,8 +1489,8 @@ async function closeAuthModal() {
  function renderSettingsSection() {
  switchSettingSubTab(currentSettingSubTab);
  }
-
- // 1. 從後端資料庫載入群組設定
+ 
+// 1. 從後端資料庫載入群組設定
 async function loadGroupSettings() {
     try {
         const response = await fetch(`${BACKEND_API_URL}/api/admin/configs`, {
@@ -1500,12 +1500,11 @@ async function loadGroupSettings() {
         const result = await response.json();
         
         if (result.status === "success" && result.configs) {
-            // 對應資料庫中的 config_key
-            if (result.configs.mainGroupId) {
-                document.getElementById('guildGroupIdInput').value = result.configs.mainGroupId;
+            if (result.configs.guild_group_id) {
+                document.getElementById('guildGroupIdInput').value = result.configs.guild_group_id;
             }
-            if (result.configs.adminGroupId) {
-                document.getElementById('adminGroupIdInput').value = result.configs.adminGroupId;
+            if (result.configs.admin_group_id) {
+                document.getElementById('adminGroupIdInput').value = result.configs.admin_group_id;
             }
         }
     } catch (err) {
@@ -1515,8 +1514,8 @@ async function loadGroupSettings() {
 
 // 2. 儲存群組設定至後端資料庫
 async function saveGroupSettings() {
-    const mainGroupId = document.getElementById('guildGroupIdInput').value.trim();
-    const adminGroupId = document.getElementById('adminGroupIdInput').value.trim();
+    const guild_group_id = document.getElementById('guildGroupIdInput').value.trim();
+    const admin_group_id = document.getElementById('adminGroupIdInput').value.trim();
     const saveMsg = document.getElementById('groupIdSaveMsg');
 
     try {
@@ -1524,14 +1523,13 @@ async function saveGroupSettings() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                mainGroupId: mainGroupId,
-                adminGroupId: adminGroupId
+                guild_group_id: guild_group_id,
+                admin_group_id: admin_group_id
             })
         });
 
         const result = await response.json();
         if (result.status === "success") {
-            // 顯示「已儲存完成」提示文字，2秒後自動隱藏
             saveMsg.classList.remove('hidden');
             setTimeout(() => {
                 saveMsg.classList.add('hidden');
