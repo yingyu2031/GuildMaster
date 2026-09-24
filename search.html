@@ -126,22 +126,22 @@
                 </div>
             </div>
 
-            <!-- 搜尋列卡片 -->
-            <div class="bg-white rounded-[28px] p-2.5 border-2 border-amber-200/80 soft-card-shadow">
-                <form id="searchForm" class="flex items-center gap-2">
-                    <div class="relative flex-1">
-                        <input type="text" id="searchInput" required placeholder="輸入遊戲角色或 LINE 暱稱..." 
-                               class="w-full bg-[#FFFDF9] border border-amber-200/80 rounded-2xl pl-4 pr-3 py-3 text-sm font-bold text-amber-950 placeholder:text-amber-800/35 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition">
-                    </div>
-                    <button type="submit" id="searchBtn" title="開始搜尋"
-                            class="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold p-3 rounded-2xl shadow-md shadow-amber-300/40 transition active:scale-95 flex items-center justify-center cursor-pointer">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                        </svg>
-                    </button>
-                </form>
-            </div>
-
+            <!-- 搜尋列卡片 (改用 onclick 與 Enter 觸發，不依賴 form) -->
+<div class="bg-white rounded-[28px] p-2.5 border-2 border-amber-200/80 soft-card-shadow">
+    <div class="flex items-center gap-2">
+        <div class="relative flex-1">
+            <input type="text" id="searchInput" placeholder="輸入遊戲角色或 LINE 暱稱..." 
+                   onkeydown="if(event.key === 'Enter') handleSearchClick()"
+                   class="w-full bg-[#FFFDF9] border border-amber-200/80 rounded-2xl pl-4 pr-3 py-3 text-sm font-bold text-amber-950 placeholder:text-amber-800/35 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition">
+        </div>
+        <button type="button" onclick="handleSearchClick()" title="開始搜尋"
+                class="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold p-3 rounded-2xl shadow-md shadow-amber-300/40 transition active:scale-95 flex items-center justify-center cursor-pointer">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+            </svg>
+        </button>
+    </div>
+</div>
             <!-- 搜尋中狀態 (Spinner) -->
             <div id="searchLoadingStatus" class="hidden bg-white rounded-[32px] p-6 border-2 border-amber-200/80 soft-card-shadow text-center fade-in">
                 <div class="relative w-10 h-10 mx-auto mb-2">
@@ -169,7 +169,7 @@
         <p class="text-[11px] text-amber-800/40 text-center mt-6">&copy; 2026 GuildMaster</p>
     </main>
 
- <script>
+<script>
         const MY_LIFF_ID = "2011659633-XUHrG3ge";
         const BACKEND_API_URL = "https://guildmaster.zeabur.app";
 
@@ -314,7 +314,6 @@
 
         async function searchMembers(keyword) {
             try {
-                // 使用 replace 確保網址絕對不會出現雙斜線
                 const baseUrl = BACKEND_API_URL.replace(/\/+$/, '');
                 const response = await fetch(`${baseUrl}/api/members/search?q=${encodeURIComponent(keyword)}`, {
                     method: "GET",
@@ -329,57 +328,51 @@
             }
         }
 
-        // 確保 DOM 載入後才安全綁定搜尋送出事件
-        document.addEventListener('DOMContentLoaded', () => {
-            const searchForm = document.getElementById('searchForm');
-            if (searchForm) {
-                searchForm.addEventListener('submit', async (e) => {
-                    e.preventDefault();
-                    const keyword = document.getElementById('searchInput').value.trim();
-                    if (!keyword) return;
+        // 獨立的點擊 / Enter 搜尋觸發函式
+        async function handleSearchClick() {
+            const keyword = document.getElementById('searchInput').value.trim();
+            if (!keyword) return;
 
-                    const searchLoadingStatus = document.getElementById('searchLoadingStatus');
-                    const emptyBox = document.getElementById('emptyStatus');
-                    const resultBox = document.getElementById('resultContainer');
+            const searchLoadingStatus = document.getElementById('searchLoadingStatus');
+            const emptyBox = document.getElementById('emptyStatus');
+            const resultBox = document.getElementById('resultContainer');
 
-                    searchLoadingStatus.classList.remove('hidden');
-                    emptyBox.classList.add('hidden');
-                    resultBox.innerHTML = "";
+            searchLoadingStatus.classList.remove('hidden');
+            emptyBox.classList.add('hidden');
+            resultBox.innerHTML = "";
 
-                    const members = await searchMembers(keyword);
-                    searchLoadingStatus.classList.add('hidden');
+            const members = await searchMembers(keyword);
+            searchLoadingStatus.classList.add('hidden');
 
-                    if (members.length === 0) {
-                        emptyBox.classList.remove('hidden');
-                        return;
-                    }
-
-                    members.forEach(m => {
-                        const card = document.createElement('div');
-                        card.className = "bg-white rounded-[28px] p-5 border-2 border-amber-200/80 soft-card-shadow fade-in";
-
-                        card.innerHTML = `
-                            <div class="flex items-center gap-2 pb-2.5 border-b border-amber-100 mb-3">
-                                <span class="text-lg">🔹</span>
-                                <span class="text-sm font-black text-amber-950">${m.gameNickname || "冒險者"}</span>
-                            </div>
-
-                            <div class="bg-[#FFFDF9] rounded-2xl p-3.5 border border-amber-200/70 text-xs space-y-2 text-amber-950">
-                                <div class="flex items-center justify-between">
-                                    <span class="text-amber-800/80 font-bold">遊戲職業</span>
-                                    <span class="font-extrabold text-amber-950">${m.gameClass || "未登記"}</span>
-                                </div>
-                                <div class="flex items-center justify-between">
-                                    <span class="text-amber-800/80 font-bold">LINE 暱稱</span>
-                                    <span class="font-bold text-amber-950">${m.lineDisplayName || "-"}</span>
-                                </div>
-                            </div>
-                        `;
-                        resultBox.appendChild(card);
-                    });
-                });
+            if (members.length === 0) {
+                emptyBox.classList.remove('hidden');
+                return;
             }
-        });
+
+            members.forEach(m => {
+                const card = document.createElement('div');
+                card.className = "bg-white rounded-[28px] p-5 border-2 border-amber-200/80 soft-card-shadow fade-in";
+
+                card.innerHTML = `
+                    <div class="flex items-center gap-2 pb-2.5 border-b border-amber-100 mb-3">
+                        <span class="text-lg">🔹</span>
+                        <span class="text-sm font-black text-amber-950">${m.gameNickname || "冒險者"}</span>
+                    </div>
+
+                    <div class="bg-[#FFFDF9] rounded-2xl p-3.5 border border-amber-200/70 text-xs space-y-2 text-amber-950">
+                        <div class="flex items-center justify-between">
+                            <span class="text-amber-800/80 font-bold">遊戲職業</span>
+                            <span class="font-extrabold text-amber-950">${m.gameClass || "未登記"}</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-amber-800/80 font-bold">LINE 暱稱</span>
+                            <span class="font-bold text-amber-950">${m.lineDisplayName || "-"}</span>
+                        </div>
+                    </div>
+                `;
+                resultBox.appendChild(card);
+            });
+        }
 
         function closeLiffWindow() {
             if (typeof liff !== 'undefined' && liff.closeWindow) {
