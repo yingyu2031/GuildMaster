@@ -203,31 +203,31 @@ input[type="date"], input[type="time"], select {
  <button id="subTabSettingClasses" onclick="switchSettingSubTab('classes')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800 cursor-pointer">職業</button>
  </div>
 
-<!-- 子視圖 1：LINE群 -->
-      <div id="settingViewLine" class="space-y-3 text-left fade-in">
-        <div class="bg-[#F8FAFC] rounded-2xl p-4 border border-sky-100">
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-xs font-black text-slate-900">LINE 推播群組 ID 設定</span>
-            <span id="groupIdSaveMsg" class="text-[10px] text-emerald-600 font-bold hidden">已儲存完成</span>
-          </div>
-          <p class="text-[11px] text-slate-500 mb-3">設定推播目標群組識別碼，供系統判定發送至公會大群或幹部專用群組。</p>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-3">
-            <div>
-              <label class="block text-[11px] font-bold text-slate-600 mb-1">公會大群組 ID</label>
-              <input type="text" id="guildGroupIdInput" placeholder="例如：C1234567890abcdef..."
-              class="w-full h-[38px] bg-white border border-sky-200 rounded-xl px-2.5 text-xs font-mono font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400 box-border">
-            </div>
-            <div>
-              <label class="block text-[11px] font-bold text-slate-600 mb-1">幹部專用群組 ID</label>
-              <input type="text" id="adminGroupIdInput" placeholder="例如：C0987654321fedcba..."
-              class="w-full h-[38px] bg-white border border-sky-200 rounded-xl px-2.5 text-xs font-mono font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400 box-border">
-            </div>
-          </div>
-          <button onclick="saveGroupSettings()" class="w-full bg-white hover:bg-sky-50 text-sky-800 border border-sky-200 text-xs font-bold py-2 rounded-xl transition shadow-xs cursor-pointer">
-            儲存群組 ID 設定
-          </button>
-        </div>
-      </div>
+ <!-- 子視圖 1：LINE群 -->
+ <div id="settingViewLine" class="space-y-3 text-left fade-in">
+ <div class="bg-[#F8FAFC] rounded-2xl p-4 border border-sky-100">
+ <div class="flex items-center justify-between mb-2">
+ <span class="text-xs font-black text-slate-900">LINE 推播群組 ID 設定</span>
+ <span id="groupIdSaveMsg" class="text-[10px] text-emerald-600 font-bold hidden">已儲存完成</span>
+ </div>
+ <p class="text-[11px] text-slate-500 mb-3">設定推播目標群組識別碼，供系統判定發送至公會大群或幹部專用群組。</p>
+ <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-3">
+ <div>
+ <label class="block text-[11px] font-bold text-slate-600 mb-1">公會大群組 ID</label>
+ <input type="text" id="guildGroupIdInput" placeholder="例如：C1234567890abcdef..."
+ class="w-full h-[38px] bg-white border border-sky-200 rounded-xl px-2.5 text-xs font-mono font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400 box-border">
+ </div>
+ <div>
+ <label class="block text-[11px] font-bold text-slate-600 mb-1">幹部專用群組 ID</label>
+ <input type="text" id="adminGroupIdInput" placeholder="例如：C0987654321fedcba..."
+ class="w-full h-[38px] bg-white border border-sky-200 rounded-xl px-2.5 text-xs font-mono font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400 box-border">
+ </div>
+ </div>
+ <button onclick="saveGroupSettings()" class="w-full bg-white hover:bg-sky-50 text-sky-800 border border-sky-200 text-xs font-bold py-2 rounded-xl transition shadow-xs cursor-pointer">
+ 儲存群組 ID 設定
+ </button>
+ </div>
+ </div>
 
  <!-- 子視圖 2：推播 -->
  <div id="settingViewBroadcast" class="hidden space-y-4 text-left fade-in">
@@ -1489,8 +1489,8 @@ async function closeAuthModal() {
  function renderSettingsSection() {
  switchSettingSubTab(currentSettingSubTab);
  }
- 
-// 1. 從後端資料庫載入群組設定
+
+ // 1. 從後端資料庫載入群組設定
 async function loadGroupSettings() {
     try {
         const response = await fetch(`${BACKEND_API_URL}/api/admin/configs`, {
@@ -1500,11 +1500,12 @@ async function loadGroupSettings() {
         const result = await response.json();
         
         if (result.status === "success" && result.configs) {
-            if (result.configs.guild_group_id) {
-                document.getElementById('guildGroupIdInput').value = result.configs.guild_group_id;
+            // 對應資料庫中的 config_key
+            if (result.configs.mainGroupId) {
+                document.getElementById('guildGroupIdInput').value = result.configs.mainGroupId;
             }
-            if (result.configs.admin_group_id) {
-                document.getElementById('adminGroupIdInput').value = result.configs.admin_group_id;
+            if (result.configs.adminGroupId) {
+                document.getElementById('adminGroupIdInput').value = result.configs.adminGroupId;
             }
         }
     } catch (err) {
@@ -1514,8 +1515,8 @@ async function loadGroupSettings() {
 
 // 2. 儲存群組設定至後端資料庫
 async function saveGroupSettings() {
-    const guild_group_id = document.getElementById('guildGroupIdInput').value.trim();
-    const admin_group_id = document.getElementById('adminGroupIdInput').value.trim();
+    const mainGroupId = document.getElementById('guildGroupIdInput').value.trim();
+    const adminGroupId = document.getElementById('adminGroupIdInput').value.trim();
     const saveMsg = document.getElementById('groupIdSaveMsg');
 
     try {
@@ -1523,13 +1524,14 @@ async function saveGroupSettings() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                guild_group_id: guild_group_id,
-                admin_group_id: admin_group_id
+                mainGroupId: mainGroupId,
+                adminGroupId: adminGroupId
             })
         });
 
         const result = await response.json();
         if (result.status === "success") {
+            // 顯示「已儲存完成」提示文字，2秒後自動隱藏
             saveMsg.classList.remove('hidden');
             setTimeout(() => {
                 saveMsg.classList.add('hidden');
