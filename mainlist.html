@@ -8,7 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- html2canvas CDN for exporting image -->
+    <!-- html2canvas CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
@@ -18,7 +18,7 @@
             color: #1f2937;
         }
         .slot-card {
-            min-height: 42px;
+            min-height: 38px;
             transition: all 0.2s ease;
         }
         .slot-card.drag-over {
@@ -26,35 +26,29 @@
             border-color: #6366f1;
             transform: scale(1.02);
         }
-        /* 自定義顏色卡片樣式 */
-        .job-tag-刺客 { background-color: #fecaca; color: #991b1b; }
-        .job-tag-十字軍 { background-color: #fde68a; color: #92400e; }
-        .job-tag-法師 { background-color: #bfdbfe; color: #1e40af; }
-        .job-tag-創造者 { background-color: #e9d5ff; color: #6b21a8; }
-        .job-tag-補師 { background-color: #bbf7d0; color: #166534; }
-        .job-tag-武僧 { background-color: #fed7aa; color: #9a3412; }
-        .job-tag-騎士 { background-color: #f3e8ff; color: #581c87; }
-        .job-tag-搞笑藝人 { background-color: #fbcfe8; color: #831843; }
-        .job-tag-吟遊戲偶 { background-color: #c7d2fe; color: #3730a3; }
-        .job-tag-神射手 { background-color: #bae6fd; color: #0369a1; }
-        .job-tag-流氓 { background-color: #e5e7eb; color: #374151; }
-        .job-tag-煉金 { background-color: #fed7aa; color: #c2410c; }
-        .job-tag-詩人 { background-color: #fef08a; color: #854d0e; }
+        /* 職業顏色定義 (整條底色與文字) */
+        .job-card-刺客 { background-color: #fecaca; color: #991b1b; border-color: #f87171; }
+        .job-card-十字軍 { background-color: #fde68a; color: #92400e; border-color: #fbbf24; }
+        .job-card-法師 { background-color: #bfdbfe; color: #1e40af; border-color: #60a5fa; }
+        .job-card-創造者 { background-color: #e9d5ff; color: #6b21a8; border-color: #c084fc; }
+        .job-card-補師 { background-color: #bbf7d0; color: #166534; border-color: #4ade80; }
+        .job-card-武僧 { background-color: #fed7aa; color: #9a3412; border-color: #fb923c; }
+        .job-card-騎士 { background-color: #f3e8ff; color: #581c87; border-color: #d8b4fe; }
+        .job-card-搞笑藝人 { background-color: #fbcfe8; color: #831843; border-color: #f472b6; }
+        .job-card-吟遊戲偶 { background-color: #c7d2fe; color: #3730a3; border-color: #818cf8; }
+        .job-card-神射手 { background-color: #bae6fd; color: #0369a1; border-color: #38bdf8; }
+        .job-card-流氓 { background-color: #e5e7eb; color: #374151; border-color: #9ca3af; }
+        .job-card-詩人 { background-color: #fef08a; color: #854d0e; border-color: #facc15; }
+        .job-card-煉金 { background-color: #fed7aa; color: #c2410c; border-color: #fb923c; }
 
-        /* 隱藏捲軸但可滾動 */
-        .no-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
-        .no-scrollbar {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen pb-16">
 
-    <!-- 頂部導航列 -->
-    <header class="bg-white shadow-sm sticky top-0 z-30 border-b border-gray-200">
+    <!-- 頂部導航列 (匯出時會自動隱藏) -->
+    <header id="app-header" class="bg-white shadow-sm sticky top-0 z-30 border-b border-gray-200">
         <div class="max-w-4xl mx-auto px-4 py-3 flex flex-col gap-3">
             <div class="flex justify-between items-center">
                 <div class="flex items-center gap-2">
@@ -63,7 +57,7 @@
                     </div>
                     <div>
                         <h1 class="text-lg font-bold text-gray-800 leading-tight">公會戰場主戰名單指揮系統</h1>
-                        <p class="text-xs text-gray-500">手機版最佳化・5人滿編・一鍵出圖</p>
+                        <p class="text-xs text-gray-500">手機優化・列表指派・自訂排序・標準出圖</p>
                     </div>
                 </div>
                 <span class="text-xs font-semibold bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-full border border-indigo-200">
@@ -71,7 +65,7 @@
                 </span>
             </div>
 
-            <!-- 操作按鈕工具列 (確保日期長度與其他按鈕齊平美觀) -->
+            <!-- 操作按鈕工具列 -->
             <div class="grid grid-cols-4 gap-2 pt-1">
                 <div class="relative col-span-1">
                     <input type="date" id="roster-date" class="w-full bg-gray-50 border border-gray-300 text-gray-800 text-xs rounded-lg px-2 py-2.5 font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none text-center">
@@ -89,7 +83,7 @@
             
             <div class="w-full">
                 <button onclick="exportToImage()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold py-2.5 px-4 rounded-lg shadow-md flex items-center justify-center gap-2 transition">
-                    <i class="fa-solid fa-image"></i> 一鍵匯出戰術名單圖片
+                    <i class="fa-solid fa-image"></i> 一鍵匯出標準戰術名單圖片
                 </button>
             </div>
         </div>
@@ -98,13 +92,13 @@
     <!-- 主內容區 -->
     <main class="max-w-4xl mx-auto px-3 py-4 flex flex-col gap-6">
 
-        <!-- 人員搜尋與職業篩選區 -->
-        <section class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+        <!-- 人員搜尋與職業篩選區 (匯出時會自動隱藏) -->
+        <section id="member-section-ui" class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
             <div class="flex justify-between items-center mb-3">
                 <h2 class="text-sm font-bold text-gray-700 flex items-center gap-2">
-                    <i class="fa-solid fa-users text-indigo-600"></i> 現任人員總表與快速指派
+                    <i class="fa-solid fa-users text-indigo-600"></i> 人員列表 (點擊或拖曳指派)
                 </h2>
-                <span class="text-xs text-gray-400">點擊成員可快速指派至未滿編隊伍</span>
+                <span class="text-xs text-gray-400">已自動排除請假人員</span>
             </div>
             <div class="flex gap-2 mb-3">
                 <div class="relative flex-1">
@@ -128,20 +122,20 @@
                     <option value="煉金">煉金</option>
                 </select>
             </div>
-            <!-- 人員列表 (橫向滾動或自適應) -->
-            <div id="member-list-container" class="flex flex-wrap gap-1.5 max-h-44 overflow-y-auto p-1 bg-gray-50 rounded-lg border border-gray-100 no-scrollbar">
-                <!-- 動態生成成員按鈕 -->
+            <!-- 列表式指派清單 -->
+            <div id="member-list-container" class="flex flex-col gap-1.5 max-h-56 overflow-y-auto p-1 bg-gray-50 rounded-lg border border-gray-100">
+                <!-- 動態生成成員列 -->
             </div>
         </section>
 
-        <!-- 戰術名單配置區 (截圖呈現區) -->
+        <!-- 戰術名單配置區 (匯出圖例核心) -->
         <section id="capture-area" class="bg-white rounded-2xl shadow-md border border-gray-200 p-4 flex flex-col gap-4">
             <div class="flex justify-between items-center border-b pb-3">
                 <div>
                     <h2 class="text-base font-black text-gray-800 tracking-wide">主戰名單</h2>
                     <p class="text-xs text-gray-500" id="display-date-label">日期：2026-09-24</p>
                 </div>
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2" id="action-buttons-group">
                     <span class="text-xs font-bold bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full border border-indigo-200" id="total-assigned-badge">已配置: 0 / 0</span>
                     <button onclick="addSquad()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow transition flex items-center gap-1">
                         <i class="fa-solid fa-plus"></i> 加隊伍
@@ -155,17 +149,17 @@
                 </div>
             </div>
 
-            <!-- 合併群組與隊伍網格容器 -->
+            <!-- 隊伍與合併群組容器 -->
             <div id="squads-container" class="flex flex-col gap-4">
-                <!-- 動態生成隊伍與群組 -->
+                <!-- 動態生成 -->
             </div>
 
-            <!-- 自訂戰術叮嚀與提示框容器 -->
+            <!-- 戰術叮嚀與提示框容器 -->
             <div id="notices-container" class="flex flex-col gap-2 pt-2 border-t border-gray-200">
-                <!-- 動態產生提示框 -->
+                <!-- 動態產生 -->
             </div>
             
-            <div class="flex justify-between items-center pt-2">
+            <div class="flex justify-between items-center pt-2" id="notice-edit-trigger-row">
                 <button onclick="openNoticeModal()" class="text-xs text-indigo-600 hover:text-indigo-800 font-bold flex items-center gap-1">
                     <i class="fa-solid fa-pen-to-square"></i> 管理戰術叮嚀與提示框
                 </button>
@@ -175,9 +169,10 @@
 
     </main>
 
+    <!-- 各類 Modals -->
     <!-- 請假管理 Modal -->
     <div id="leave-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl w-full max-w-md max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-scale">
+        <div class="bg-white rounded-2xl w-full max-w-md max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
             <div class="bg-amber-500 text-white px-4 py-3 flex justify-between items-center">
                 <h3 class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-user-slash"></i> 當天請假人員管理</h3>
                 <button onclick="closeLeaveModal()" class="text-white hover:text-gray-200"><i class="fa-solid fa-xmark text-lg"></i></button>
@@ -190,9 +185,7 @@
                     <input type="date" id="leave-date-input" class="bg-white border border-gray-300 text-xs rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:outline-none">
                     <button onclick="addLeavePerson()" class="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold py-2 rounded-lg transition">新增</button>
                 </div>
-                <div class="flex flex-col gap-2" id="leave-list-ui">
-                    <!-- 請假列表 -->
-                </div>
+                <div class="flex flex-col gap-2" id="leave-list-ui"></div>
             </div>
             <div class="bg-gray-50 px-4 py-3 border-t flex justify-end">
                 <button onclick="closeLeaveModal()" class="bg-gray-800 hover:bg-gray-900 text-white text-xs font-bold px-4 py-2 rounded-lg">完成</button>
@@ -211,21 +204,22 @@
                 <div class="bg-gray-50 p-3 rounded-xl border border-gray-200 flex flex-col gap-2">
                     <h4 class="text-xs font-bold text-gray-700">新增提示框</h4>
                     <textarea id="new-notice-text" rows="2" placeholder="輸入提示文字（支援換行）..." class="bg-white border border-gray-300 text-xs rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none"></textarea>
-                    <div class="flex items-center gap-2">
+                    
+                    <!-- 淺色選單 (粉、黃、綠、藍、紫、灰) -->
+                    <div class="flex items-center gap-2 pt-1">
                         <span class="text-xs text-gray-600 font-medium">底色選擇：</span>
-                        <div class="flex gap-2" id="color-picker-options">
-                            <button type="button" onclick="selectNoticeColor('#fecaca', '#991b1b', this)" class="w-6 h-6 rounded-full bg-[#fecaca] border-2 border-red-400 focus:outline-none ring-2 ring-offset-1 ring-red-500" data-bg="#fecaca" data-text="#991b1b"></button>
-                            <button type="button" onclick="selectNoticeColor('#fef08a', '#854d0e', this)" class="w-6 h-6 rounded-full bg-[#fef08a] border-2 border-yellow-300 focus:outline-none" data-bg="#fef08a" data-text="#854d0e"></button>
-                            <button type="button" onclick="selectNoticeColor('#bfdbfe', '#1e40af', this)" class="w-6 h-6 rounded-full bg-[#bfdbfe] border-2 border-blue-300 focus:outline-none" data-bg="#bfdbfe" data-text="#1e40af"></button>
-                            <button type="button" onclick="selectNoticeColor('#fef9c3', '#713f12', this)" class="w-6 h-6 rounded-full bg-[#fef9c3] border-2 border-amber-300 focus:outline-none" data-bg="#fef9c3" data-text="#713f12"></button>
-                            <button type="button" onclick="selectNoticeColor('#e9d5ff', '#6b21a8', this)" class="w-6 h-6 rounded-full bg-[#e9d5ff] border-2 border-purple-300 focus:outline-none" data-bg="#e9d5ff" data-text="#6b21a8"></button>
+                        <div class="flex gap-2.5" id="color-picker-options">
+                            <button type="button" onclick="selectNoticeColor('#fecaca', '#991b1b', this)" class="w-6 h-6 rounded-full bg-[#fecaca] border-2 border-red-300 focus:outline-none ring-2 ring-offset-1 ring-red-500" data-bg="#fecaca" data-text="#991b1b" title="粉紅"></button>
+                            <button type="button" onclick="selectNoticeColor('#fef08a', '#854d0e', this)" class="w-6 h-6 rounded-full bg-[#fef08a] border-2 border-yellow-300 focus:outline-none" data-bg="#fef08a" data-text="#854d0e" title="黃色"></button>
+                            <button type="button" onclick="selectNoticeColor('#bbf7d0', '#166534', this)" class="w-6 h-6 rounded-full bg-[#bbf7d0] border-2 border-green-300 focus:outline-none" data-bg="#bbf7d0" data-text="#166534" title="綠色"></button>
+                            <button type="button" onclick="selectNoticeColor('#bfdbfe', '#1e40af', this)" class="w-6 h-6 rounded-full bg-[#bfdbfe] border-2 border-blue-300 focus:outline-none" data-bg="#bfdbfe" data-text="#1e40af" title="藍色"></button>
+                            <button type="button" onclick="selectNoticeColor('#e9d5ff', '#6b21a8', this)" class="w-6 h-6 rounded-full bg-[#e9d5ff] border-2 border-purple-300 focus:outline-none" data-bg="#e9d5ff" data-text="#6b21a8" title="紫色"></button>
+                            <button type="button" onclick="selectNoticeColor('#e5e7eb', '#374151', this)" class="w-6 h-6 rounded-full bg-[#e5e7eb] border-2 border-gray-300 focus:outline-none" data-bg="#e5e7eb" data-text="#374151" title="灰色"></button>
                         </div>
                     </div>
                     <button onclick="addNoticeItem()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-2 rounded-lg transition mt-1">加入提示框</button>
                 </div>
-                <div class="flex flex-col gap-2" id="notice-list-ui">
-                    <!-- 動態提示框清單 -->
-                </div>
+                <div class="flex flex-col gap-2" id="notice-list-ui"></div>
             </div>
             <div class="bg-gray-50 px-4 py-3 border-t flex justify-end">
                 <button onclick="closeNoticeModal()" class="bg-gray-800 hover:bg-gray-900 text-white text-xs font-bold px-4 py-2 rounded-lg">完成</button>
@@ -233,7 +227,7 @@
         </div>
     </div>
 
-    <!-- 合併團隊管理 Modal -->
+    <!-- 合併團隊 Modal -->
     <div id="merge-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-md max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
             <div class="bg-purple-600 text-white px-4 py-3 flex justify-between items-center">
@@ -245,16 +239,12 @@
                     <h4 class="text-xs font-bold text-gray-700">建立新合併團隊</h4>
                     <input type="text" id="merge-group-name" placeholder="團隊名稱 (例如: 總攻突破部隊)" class="bg-white border border-gray-300 text-xs rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:outline-none">
                     <p class="text-xs text-gray-500 mt-1">請勾選要納入此團隊的小隊：</p>
-                    <div id="merge-squad-checkboxes" class="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto p-2 bg-white rounded border">
-                        <!-- 動態生成小隊選項 -->
-                    </div>
+                    <div id="merge-squad-checkboxes" class="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto p-2 bg-white rounded border"></div>
                     <button onclick="createMergedGroup()" class="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold py-2 rounded-lg transition mt-1">確認合併</button>
                 </div>
                 <div class="flex flex-col gap-2">
                     <h4 class="text-xs font-bold text-gray-700">現有合併團隊</h4>
-                    <div id="existing-merged-groups-list" class="flex flex-col gap-2">
-                        <!-- 現有合併群組 -->
-                    </div>
+                    <div id="existing-merged-groups-list" class="flex flex-col gap-2"></div>
                 </div>
             </div>
             <div class="bg-gray-50 px-4 py-3 border-t flex justify-end">
@@ -270,18 +260,15 @@
                 <h3 class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-clock-rotate-left"></i> 歷史排班紀錄</h3>
                 <button onclick="closeHistoryModal()" class="text-white hover:text-gray-200"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
-            <div class="p-4 overflow-y-auto flex flex-col gap-2" id="history-list-container">
-                <!-- 動態載入歷史紀錄 -->
-            </div>
+            <div class="p-4 overflow-y-auto flex flex-col gap-2" id="history-list-container"></div>
             <div class="bg-gray-50 px-4 py-3 border-t flex justify-end">
                 <button onclick="closeHistoryModal()" class="bg-gray-800 hover:bg-gray-900 text-white text-xs font-bold px-4 py-2 rounded-lg">關閉</button>
             </div>
         </div>
     </div>
 
-    <!-- 核心 JavaScript 邏輯 -->
+    <!-- 核心 JS 邏輯 -->
     <script>
-        // 完整現任人員資料庫
         const masterMembers = [
             { name: "非禮勿言", job: "刺客" }, { name: "小嫩少", job: "刺客" }, { name: "蔚藍Azure", job: "刺客" }, { name: "那一籠蝦餃", job: "刺客" }, { name: "。倫倫爸、", job: "刺客" },
             { name: "小象哇哇", job: "十字軍" }, { name: "比目魚", job: "十字軍" }, { name: "羅伊先森", job: "十字軍" }, { name: "赤伶、(賢)", job: "十字軍" }, { name: "阿畢達布", job: "十字軍" },
@@ -295,13 +282,12 @@
             { name: "玖寶", job: "神射手" }, { name: "主線太長好累喔", job: "神射手" }, { name: "荷魯斯", job: "神射手" }, { name: "就是睡不飽", job: "神射手" }, { name: "ebi", job: "神射手" },
             { name: "閃閃閃", job: "流氓" }, { name: "神之準", job: "流氓" }, { name: "克蘿伊", job: "流氓" }, { name: "大庫十八年", job: "流氓" }, { name: "阿鈣想吸吸", job: "流氓" },
             { name: "神冰月", job: "詩人" }, { name: "晚風、", job: "詩人" }, { name: "宮本寶藏", job: "詩人" }, { name: "大蛋佑佑", job: "詩人" }, { name: "包手檳榔", job: "詩人" },
-            { name: "小華班", job: "煉金" }, { name: "醋意結局", job: "煉金" }, { name: "昇忍老師", job: "煉金" }, { name: "翔翔。", job: "煉金" }, { name: "大猷", job: "煉金" }, { name: "學長的藍波大人", job: "煉金" }
+            { name: "小華班", job: "煉金" }, { name: "醋意結局", job: "煉金" }, { name: "昇忍老師", job: "煉金" }, { name: "翔翔。", job: "煉金" }
         ];
 
-        // 預設 12 個 5人小隊
         let squads = [
             { id: 1, name: "隊伍 1(左路)", members: ["非禮勿言", "小嫩少", "蔚藍Azure", "那一籠蝦餃", "。倫倫爸、"] },
-            { id: 2, name: "隊伍 2(左路)", members: ["小象哇哇", "比目魚", "羅伊先森", "赤伶、(賢)", "阿畢達布"] },
+            { id: 2, name: "隊[隊伍 2(左路)", name: "隊伍 2(左路)", members: ["小象哇哇", "比目魚", "羅伊先森", "赤伶、(賢)", "阿畢達布"] },
             { id: 3, name: "隊伍 3(左路)", members: ["馬東三", "至尊寶ゞ", "小桃祇(賢)", "得成芭芭拉", "妳好正喔"] },
             { id: 4, name: "隊伍 4(右路)", members: ["小小蚊子", "白轻尘", "丹尼老詩", "李至安(賢)", "大风起兮云飞扬"] },
             { id: 5, name: "隊伍 5(右路)", members: ["農地山泉", "Kaixxxxx(賢)", "翔翔、", "乃喵。", "紓紓"] },
@@ -309,34 +295,27 @@
             { id: 7, name: "隊伍 7(左路)", members: ["亞力三小", "泷宇", "千咲", "文老爹", "大寶寶"] },
             { id: 8, name: "隊伍 8(中路)", members: ["唏唏、", "Fe", "夜闌人靜", "微風小弟", "梵音"] },
             { id: 9, name: "隊伍 9(中路)", members: ["顧景幾翔", "琴華願殤", "TwiZee", "學長的藍波大人", "blackpinkyoo"] },
-            { id: 10, name: "隊伍 10(中路)", members: ["玖寶", "主線太長好累憂", "荷魯斯", "就是睡不飽", "ebi"] },
+            { id: 10, name: "隊伍 10(中路)", members: ["玖寶", "主線太長好累喔", "荷魯斯", "就是睡不飽", "ebi"] },
             { id: 11, name: "中路(支援隊-1)", members: ["閃閃閃", "神之準", "克蘿伊", "大庫十八年", "阿鈣想吸吸"] },
             { id: 12, name: "右路(支援隊-2)", members: ["神冰月", "晚風、", "宮本寶藏", "大蛋佑佑", "包手檳榔"] }
         ];
 
-        // 預設合併群組
         let mergedGroups = [];
-
-        // 預設提示框
         let notices = [
             { id: 1, text: "【！！晚到者請隊長(隊友)去聯絡失聯隊友(隊長)，晚上 8點30分請自主性組隊！！】", bg: "#fecaca", textCol: "#991b1b" },
             { id: 2, text: "召集隊：4、5、6、7\n支援隊*2", bg: "#fef08a", textCol: "#854d0e" },
             { id: 3, text: "二塔存活：主推線\n剩內塔：主防守", bg: "#bfdbfe", textCol: "#1e40af" },
-            { id: 4, text: "未召集隊：\n我方二塔還在，主推線\n剩內塔，主防守", bg: "#fef9c3", textCol: "#713f12" }
+            { id: 4, text: "未召集隊：\n我方二塔還在，主推線\n剩內塔，主防守", bg: "#e5e7eb", textCol: "#374151" }
         ];
 
-        // 請假名單
         let leaveList = [
             { name: "哥哥呵呵", job: "十字軍", date: "2026-09-22" },
-            { name: "透水男孩", job: "刺客", date: "2026-09-22" },
-            { name: "馬東三", job: "煉金", date: "2026-09-22" },
-            { name: "DARK熊", job: "詩人", date: "2026-09-22" }
+            { name: "透水男孩", job: "刺客", date: "2026-09-22" }
         ];
 
         let selectedNoticeBg = "#fecaca";
         let selectedNoticeTextCol = "#991b1b";
 
-        // 初始化
         window.onload = function() {
             const todayStr = new Date().toISOString().split('T')[0];
             document.getElementById('roster-date').value = todayStr;
@@ -353,13 +332,11 @@
             updateLeaveCount();
         };
 
-        // 取得人員職業
         function getMemberJob(name) {
             const found = masterMembers.find(m => m.name === name);
             return found ? found.job : '其他';
         }
 
-        // 檢查人員是否已被分配
         function isAssigned(name) {
             for (let s of squads) {
                 if (s.members.includes(name)) return true;
@@ -367,17 +344,15 @@
             return false;
         }
 
-        // 檢查人員是否請假
         function isLeave(name) {
             return leaveList.some(l => l.name === name);
         }
 
-        // 渲染左側人員清單與搜尋
+        // 渲染列表式指派
         function renderMemberList() {
             const container = document.getElementById('member-list-container');
             const search = document.getElementById('search-input').value.trim();
             const filterJob = document.getElementById('job-filter').value;
-            
             container.innerHTML = '';
 
             const filtered = masterMembers.filter(m => {
@@ -394,28 +369,31 @@
             filtered.forEach(m => {
                 const assigned = isAssigned(m.name);
                 const leave = isLeave(m.name);
-                
-                const btn = document.createElement('div');
-                let statusClass = `job-tag-${m.job} cursor-pointer`;
-                if (assigned) statusClass = 'bg-gray-200 text-gray-400 line-through cursor-not-allowed';
-                if (leave) statusClass = 'bg-amber-100 text-amber-500 opacity-60 cursor-not-allowed';
+                if (leave) return; // 自動排除請假
 
-                btn.className = `text-xs px-2.5 py-1 rounded-md font-medium transition flex items-center gap-1 shadow-xs ${statusClass}`;
-                btn.innerHTML = `<span class="opacity-75 text-[10px]">${m.job}</span><span>${m.name}</span>`;
+                const row = document.createElement('div');
+                row.className = `flex items-center justify-between px-3 py-2 rounded-xl border text-xs transition bg-white ${assigned ? 'opacity-60 border-gray-200' : 'border-gray-200 shadow-2xs hover:border-indigo-300'}`;
                 
-                if (!assigned && !leave) {
-                    btn.onclick = () => assignToFirstAvailable(m.name);
-                    // 支援拖拉開始
-                    btn.draggable = true;
-                    btn.ondragstart = (e) => {
-                        e.dataTransfer.setData('text/plain', m.name);
-                    };
+                let actionHtml = assigned ? 
+                    `<span class="text-gray-400 font-bold bg-gray-100 px-2.5 py-1 rounded-md text-[11px]">已排</span>` :
+                    `<button onclick="assignToFirstAvailable('${m.name}')" class="bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white font-bold px-3 py-1 rounded-md transition text-[11px]">指派</button>`;
+
+                row.innerHTML = `
+                    <div class="flex items-center gap-2.5">
+                        <span class="job-card-${m.job} px-2 py-0.5 rounded font-bold text-[10px] border">${m.job}</span>
+                        <span class="font-bold text-gray-800">${m.name}</span>
+                    </div>
+                    ${actionHtml}
+                `;
+
+                if (!assigned) {
+                    row.draggable = true;
+                    row.ondragstart = (e) => e.dataTransfer.setData('text/plain', m.name);
                 }
-                container.appendChild(btn);
+                container.appendChild(row);
             });
         }
 
-        // 點擊未指派人員自動放入第一個未滿5人的隊伍
         function assignToFirstAvailable(name) {
             for (let squad of squads) {
                 if (squad.members.length < 5) {
@@ -428,26 +406,30 @@
             alert('所有隊伍皆已達 5 人滿編！');
         }
 
-        // 渲染右側 5 人滿編隊伍
+        // 渲染隊伍與排序
         function renderSquads() {
             const container = document.getElementById('squads-container');
             container.innerHTML = '';
 
             let totalAssigned = 0;
             let totalCapacity = squads.length * 5;
-
-            // 繪製群組與隊伍
             let renderedSquadIds = new Set();
 
-            // 先渲染合併群組
+            // 渲染合併團隊
             mergedGroups.forEach((group, gIndex) => {
                 const groupDiv = document.createElement('div');
-                groupDiv.className = 'border-2 border-purple-400 bg-purple-50/30 rounded-xl p-3 flex flex-col gap-3 relative';
+                groupDiv.className = 'border-2 border-purple-400 bg-purple-50/20 rounded-xl p-3 flex flex-col gap-3 relative';
                 
                 let groupHeader = `
                     <div class="flex justify-between items-center bg-purple-100 px-3 py-1.5 rounded-lg border border-purple-200">
-                        <span class="text-xs font-black text-purple-900"><i class="fa-solid fa-object-group mr-1"></i> ${group.name}</span>
-                        <button onclick="removeMergedGroup(${gIndex})" class="text-purple-700 hover:text-red-600 text-xs font-bold"><i class="fa-solid fa-xmark"></i> 解除團隊</button>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-black text-purple-900"><i class="fa-solid fa-object-group mr-1"></i> ${group.name}</span>
+                            <div class="flex gap-1 sort-hidden">
+                                <button onclick="moveMergedGroup(${gIndex}, -1)" class="text-purple-700 hover:text-purple-900 text-xs px-1" title="往上移"><i class="fa-solid fa-arrow-up"></i></button>
+                                <button onclick="moveMergedGroup(${gIndex}, 1)" class="text-purple-700 hover:text-purple-900 text-xs px-1" title="往下移"><i class="fa-solid fa-arrow-down"></i></button>
+                            </div>
+                        </div>
+                        <button onclick="removeMergedGroup(${gIndex})" class="text-purple-700 hover:text-red-600 text-xs font-bold sort-hidden"><i class="fa-solid fa-xmark"></i> 解除團隊</button>
                     </div>
                     <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 `;
@@ -466,16 +448,16 @@
                 container.appendChild(groupDiv);
             });
 
-            // 渲染未被合併的獨立隊伍
+            // 渲染獨立小隊
             const independentGrid = document.createElement('div');
             independentGrid.className = 'grid grid-cols-2 sm:grid-cols-3 gap-2';
             
             let hasIndependent = false;
-            squads.forEach(squad => {
+            squads.forEach((squad, sIndex) => {
                 if (!renderedSquadIds.has(squad.id)) {
                     hasIndependent = true;
                     const card = document.createElement('div');
-                    card.innerHTML = createSquadCardHtml(squad);
+                    card.innerHTML = createSquadCardHtml(squad, sIndex);
                     independentGrid.appendChild(card.firstElementChild);
                     totalAssigned += squad.members.length;
                 }
@@ -488,7 +470,7 @@
             document.getElementById('total-assigned-badge').innerText = `已配置: ${totalAssigned} / ${totalCapacity}`;
         }
 
-        // 產生單一小隊卡片 HTML
+        // 產生單一小隊卡片 HTML (整條填滿職業顏色)
         function createSquadCardHtml(squad) {
             let slotsHtml = '';
             for (let i = 0; i < 5; i++) {
@@ -496,17 +478,17 @@
                 if (member) {
                     const job = getMemberJob(member);
                     slotsHtml += `
-                        <div class="flex items-center justify-between bg-white px-2 py-1.5 rounded border border-gray-200 shadow-2xs text-xs">
+                        <div class="flex items-center justify-between job-card-${job} px-2.5 py-1.5 rounded-lg border shadow-2xs text-xs font-bold">
                             <div class="flex items-center gap-1.5 truncate">
-                                <span class="job-tag-${job} text-[9px] px-1 py-0.5 rounded font-bold shrink-0">${job}</span>
-                                <span class="font-bold text-gray-800 truncate">${member}</span>
+                                <span class="text-[9px] px-1 py-0.5 rounded bg-white/70 font-black shrink-0">${job}</span>
+                                <span class="truncate">${member}</span>
                             </div>
-                            <button onclick="removeMemberFromSquad(${squad.id}, ${i})" class="text-gray-400 hover:text-red-500 p-0.5 shrink-0"><i class="fa-solid fa-xmark"></i></button>
+                            <button onclick="removeMemberFromSquad(${squad.id}, ${i})" class="opacity-70 hover:opacity-100 p-0.5 shrink-0 sort-hidden"><i class="fa-solid fa-xmark"></i></button>
                         </div>
                     `;
                 } else {
                     slotsHtml += `
-                        <div class="slot-card flex items-center justify-center bg-gray-50 border border-dashed border-gray-300 rounded text-[11px] text-gray-400 py-1"
+                        <div class="slot-card flex items-center justify-center bg-gray-50 border border-dashed border-gray-300 rounded-lg text-[11px] text-gray-400 py-1"
                              ondragover="allowDrop(event)" ondragleave="removeDropStyle(event)" ondrop="dropToSquad(event, ${squad.id})">
                             + 空位 (上限5人)
                         </div>
@@ -517,10 +499,16 @@
             return `
                 <div class="bg-white border border-gray-300 rounded-xl shadow-xs overflow-hidden flex flex-col">
                     <div class="bg-gray-100 px-2.5 py-1.5 border-b border-gray-200 flex justify-between items-center">
-                        <input type="text" value="${squad.name}" onchange="updateSquadName(${squad.id}, this.value)" class="bg-transparent text-xs font-black text-gray-800 w-28 focus:outline-none focus:bg-white px-1 rounded">
+                        <div class="flex items-center gap-1">
+                            <input type="text" value="${squad.name}" onchange="updateSquadName(${squad.id}, this.value)" class="bg-transparent text-xs font-black text-gray-800 w-24 focus:outline-none focus:bg-white px-1 rounded">
+                            <div class="flex gap-0.5 sort-hidden">
+                                <button onclick="moveSquad(${squad.id}, -1)" class="text-gray-400 hover:text-gray-700 text-[10px] px-0.5"><i class="fa-solid fa-chevron-up"></i></button>
+                                <button onclick="moveSquad(${squad.id}, 1)" class="text-gray-400 hover:text-gray-700 text-[10px] px-0.5"><i class="fa-solid fa-chevron-down"></i></button>
+                            </div>
+                        </div>
                         <div class="flex items-center gap-1">
                             <span class="text-[10px] font-bold ${squad.members.length === 5 ? 'text-emerald-600' : 'text-amber-600'}">${squad.members.length}/5</span>
-                            <button onclick="deleteSquad(${squad.id})" class="text-gray-400 hover:text-red-600 text-xs"><i class="fa-solid fa-trash-can"></i></button>
+                            <button onclick="deleteSquad(${squad.id})" class="text-gray-400 hover:text-red-600 text-xs sort-hidden"><i class="fa-solid fa-trash-can"></i></button>
                         </div>
                     </div>
                     <div class="p-2 flex flex-col gap-1.5 bg-gray-50/50"
@@ -531,22 +519,35 @@
             `;
         }
 
-        // 拖拉事件處理
-        function allowDrop(e) {
-            e.preventDefault();
-            e.currentTarget.classList.add('drag-over');
+        // 排序調整
+        function moveSquad(squadId, direction) {
+            const index = squads.findIndex(s => s.id === squadId);
+            if (index < 0) return;
+            const newIndex = index + direction;
+            if (newIndex < 0 || newIndex >= squads.length) return;
+            const temp = squads[index];
+            squads[index] = squads[newIndex];
+            squads[newIndex] = temp;
+            renderSquads();
         }
 
-        function removeDropStyle(e) {
-            e.currentTarget.classList.remove('drag-over');
+        function moveMergedGroup(gIndex, direction) {
+            const newIndex = gIndex + direction;
+            if (newIndex < 0 || newIndex >= mergedGroups.length) return;
+            const temp = mergedGroups[gIndex];
+            mergedGroups[gIndex] = mergedGroups[newIndex];
+            mergedGroups[newIndex] = temp;
+            renderSquads();
         }
 
+        // 拖拉功能
+        function allowDrop(e) { e.preventDefault(); e.currentTarget.classList.add('drag-over'); }
+        function removeDropStyle(e) { e.currentTarget.classList.remove('drag-over'); }
         function dropToSquad(e, squadId) {
             e.preventDefault();
             e.currentTarget.classList.remove('drag-over');
             const memberName = e.dataTransfer.getData('text/plain');
             if (!memberName) return;
-
             const squad = squads.find(s => s.id === squadId);
             if (squad && squad.members.length < 5 && !isAssigned(memberName)) {
                 squad.members.push(memberName);
@@ -557,7 +558,6 @@
             }
         }
 
-        // 移除隊伍成員
         function removeMemberFromSquad(squadId, memberIndex) {
             const squad = squads.find(s => s.id === squadId);
             if (squad) {
@@ -567,32 +567,25 @@
             }
         }
 
-        // 更新隊伍名稱
         function updateSquadName(squadId, newName) {
             const squad = squads.find(s => s.id === squadId);
             if (squad) squad.name = newName;
         }
 
-        // 新增隊伍
         function addSquad() {
             const newId = squads.length > 0 ? Math.max(...squads.map(s => s.id)) + 1 : 1;
             squads.push({ id: newId, name: `隊伍 ${newId}`, members: [] });
             renderSquads();
         }
 
-        // 刪除隊伍
         function deleteSquad(squadId) {
             squads = squads.filter(s => s.id !== squadId);
-            // 同時檢查並清理合併群組中的 ID
-            mergedGroups.forEach(g => {
-                g.squadIds = g.squadIds.filter(id => id !== squadId);
-            });
+            mergedGroups.forEach(g => g.squadIds = g.squadIds.filter(id => id !== squadId));
             mergedGroups = mergedGroups.filter(g => g.squadIds.length > 0);
             renderSquads();
             renderMemberList();
         }
 
-        // 重置所有配置
         function resetRoster() {
             if (confirm('確定要清空所有隊伍配置嗎？')) {
                 squads.forEach(s => s.members = []);
@@ -602,7 +595,7 @@
             }
         }
 
-        // 渲染提示框
+        // 提示框管理
         function renderNotices() {
             const container = document.getElementById('notices-container');
             container.innerHTML = '';
@@ -617,15 +610,8 @@
             });
         }
 
-        // 戰術提示框 Modal 管理
-        function openNoticeModal() {
-            document.getElementById('notice-modal').classList.remove('hidden');
-            renderNoticeListUI();
-        }
-        function closeNoticeModal() {
-            document.getElementById('notice-modal').classList.add('hidden');
-            renderNotices();
-        }
+        function openNoticeModal() { document.getElementById('notice-modal').classList.remove('hidden'); renderNoticeListUI(); }
+        function closeNoticeModal() { document.getElementById('notice-modal').classList.add('hidden'); renderNotices(); }
 
         function selectNoticeColor(bg, textCol, btn) {
             selectedNoticeBg = bg;
@@ -645,10 +631,7 @@
             renderNoticeListUI();
         }
 
-        function deleteNoticeItem(id) {
-            notices = notices.filter(n => n.id !== id);
-            renderNoticeListUI();
-        }
+        function deleteNoticeItem(id) { notices = notices.filter(n => n.id !== id); renderNoticeListUI(); }
 
         function renderNoticeListUI() {
             const listUi = document.getElementById('notice-list-ui');
@@ -666,21 +649,13 @@
             });
         }
 
-        // 合併團隊 Modal 管理
-        function openMergeModal() {
-            document.getElementById('merge-modal').classList.remove('hidden');
-            renderMergeCheckboxes();
-            renderExistingMergedGroups();
-        }
-        function closeMergeModal() {
-            document.getElementById('merge-modal').classList.add('hidden');
-            renderSquads();
-        }
+        // 合併團隊管理
+        function openMergeModal() { document.getElementById('merge-modal').classList.remove('hidden'); renderMergeCheckboxes(); renderExistingMergedGroups(); }
+        function closeMergeModal() { document.getElementById('merge-modal').classList.add('hidden'); renderSquads(); }
 
         function renderMergeCheckboxes() {
             const container = document.getElementById('merge-squad-checkboxes');
             container.innerHTML = '';
-            // 只列出尚未被納入任何合併群組的小隊
             const assignedSquadIds = new Set();
             mergedGroups.forEach(g => g.squadIds.forEach(id => assignedSquadIds.add(id)));
 
@@ -698,16 +673,7 @@
             const groupName = document.getElementById('merge-group-name').value.trim();
             const checkboxes = document.querySelectorAll('input[name="merge-squad-cb"]:checked');
             const selectedIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
-
-            if (!groupName) {
-                alert('請輸入團隊名稱！');
-                return;
-            }
-            if (selectedIds.length === 0) {
-                alert('請至少勾選一個小隊！');
-                return;
-            }
-
+            if (!groupName || selectedIds.length === 0) { alert('請輸入團隊名稱並至少勾選一個小隊！'); return; }
             mergedGroups.push({ name: groupName, squadIds: selectedIds });
             document.getElementById('merge-group-name').value = '';
             renderMergeCheckboxes();
@@ -724,10 +690,7 @@
         function renderExistingMergedGroups() {
             const container = document.getElementById('existing-merged-groups-list');
             container.innerHTML = '';
-            if (mergedGroups.length === 0) {
-                container.innerHTML = `<span class="text-xs text-gray-400">目前無合併團隊</span>`;
-                return;
-            }
+            if (mergedGroups.length === 0) { container.innerHTML = `<span class="text-xs text-gray-400">目前無合併團隊</span>`; return; }
             mergedGroups.forEach((g, idx) => {
                 const div = document.createElement('div');
                 div.className = 'flex justify-between items-center p-2 bg-purple-50 border border-purple-200 rounded-lg text-xs font-bold text-purple-900';
@@ -739,112 +702,70 @@
             });
         }
 
-        // 請假管理 Modal
-        function openLeaveModal() {
-            document.getElementById('leave-modal').classList.remove('hidden');
-            renderLeaveListUI();
-        }
-        function closeLeaveModal() {
-            document.getElementById('leave-modal').classList.add('hidden');
-            updateLeaveCount();
-            renderMemberList();
-        }
+        // 請假管理
+        function openLeaveModal() { document.getElementById('leave-modal').classList.remove('hidden'); renderLeaveListUI(); }
+        function closeLeaveModal() { document.getElementById('leave-modal').classList.add('hidden'); updateLeaveCount(); renderMemberList(); }
 
         function addLeavePerson() {
             const name = document.getElementById('leave-name').value.trim();
             const job = document.getElementById('leave-job').value.trim();
             const date = document.getElementById('leave-date-input').value;
-            if (!name || !job || !date) {
-                alert('請完整填寫請假資訊！');
-                return;
-            }
+            if (!name || !job || !date) { alert('請完整填寫！'); return; }
             leaveList.push({ name, job, date });
             document.getElementById('leave-name').value = '';
             document.getElementById('leave-job').value = '';
             renderLeaveListUI();
         }
 
-        function deleteLeavePerson(index) {
-            leaveList.splice(index, 1);
-            renderLeaveListUI();
-        }
-
+        function deleteLeavePerson(index) { leaveList.splice(index, 1); renderLeaveListUI(); }
         function renderLeaveListUI() {
             const container = document.getElementById('leave-list-ui');
             container.innerHTML = '';
             leaveList.forEach((l, idx) => {
                 const item = document.createElement('div');
-                item.className = 'flex justify-between items-center p-2.5 bg-white border border-amber-200 rounded-xl text-xs shadow-2xs';
+                item.className = 'flex justify-between items-center p-2.5 bg-white border border-amber-200 rounded-xl text-xs';
                 item.innerHTML = `
                     <div class="flex items-center gap-2">
-                        <span class="job-tag-${l.job} px-2 py-0.5 rounded font-bold">${l.job}</span>
+                        <span class="job-card-${l.job} px-2 py-0.5 rounded font-bold text-[10px] border">${l.job}</span>
                         <span class="font-bold text-gray-800">${l.name}</span>
-                        <span class="text-gray-400 text-[10px]"><i class="fa-regular fa-calendar"></i> ${l.date}</span>
+                        <span class="text-gray-400 text-[10px]">${l.date}</span>
                     </div>
-                    <button onclick="deleteLeavePerson(${idx})" class="text-gray-400 hover:text-red-600 p-1"><i class="fa-solid fa-trash-can"></i></button>
+                    <button onclick="deleteLeavePerson(${idx})" class="text-gray-400 hover:text-red-600"><i class="fa-solid fa-trash-can"></i></button>
                 `;
                 container.appendChild(item);
             });
             updateLeaveCount();
         }
+        function updateLeaveCount() { document.getElementById('leave-count').innerText = leaveList.length; }
 
-        function updateLeaveCount() {
-            document.getElementById('leave-count').innerText = leaveList.length;
-        }
-
-        // 日期存檔與歷史紀錄
+        // 存檔與歷史
         function saveCurrentRoster() {
             const dateVal = document.getElementById('roster-date').value;
-            if (!dateVal) {
-                alert('請選擇存檔日期！');
-                return;
-            }
-            const dataToSave = {
-                date: dateVal,
-                squads: JSON.parse(JSON.stringify(squads)),
-                mergedGroups: JSON.parse(JSON.stringify(mergedGroups)),
-                notices: JSON.parse(JSON.stringify(notices))
-            };
-
+            if (!dateVal) { alert('請選擇日期！'); return; }
+            const dataToSave = { date: dateVal, squads: JSON.parse(JSON.stringify(squads)), mergedGroups: JSON.parse(JSON.stringify(mergedGroups)), notices: JSON.parse(JSON.stringify(notices)) };
             let history = JSON.parse(localStorage.getItem('guild_roster_history') || '[]');
-            // 檢查是否已有該日期存檔，若有則覆蓋
             history = history.filter(h => h.date !== dateVal);
             history.push(dataToSave);
             localStorage.setItem('guild_roster_history', JSON.stringify(history));
-            alert(`成功儲存 ${dateVal} 的戰術名單！`);
+            alert(`成功儲存 ${dateVal} 名單！`);
         }
 
-        function openHistoryModal() {
-            document.getElementById('history-modal').classList.remove('hidden');
-            renderHistoryList();
-        }
-        function closeHistoryModal() {
-            document.getElementById('history-modal').classList.add('hidden');
-        }
-
+        function openHistoryModal() { document.getElementById('history-modal').classList.remove('hidden'); renderHistoryList(); }
+        function closeHistoryModal() { document.getElementById('history-modal').classList.add('hidden'); }
         function renderHistoryList() {
             const container = document.getElementById('history-list-container');
             container.innerHTML = '';
             let history = JSON.parse(localStorage.getItem('guild_roster_history') || '[]');
-            
-            if (history.length === 0) {
-                container.innerHTML = `<div class="text-xs text-gray-400 text-center py-4">尚無歷史存檔紀錄</div>`;
-                return;
-            }
-
+            if (history.length === 0) { container.innerHTML = `<div class="text-xs text-gray-400 text-center py-4">尚無歷史紀錄</div>`; return; }
             history.sort((a, b) => new Date(b.date) - new Date(a.date));
-
             history.forEach(h => {
                 const item = document.createElement('div');
-                item.className = 'flex justify-between items-center p-3 bg-gray-50 border border-gray-200 rounded-xl hover:bg-indigo-50 transition';
+                item.className = 'flex justify-between items-center p-3 bg-gray-50 border rounded-xl';
                 item.innerHTML = `
-                    <div class="flex items-center gap-2">
-                        <i class="fa-regular fa-calendar-days text-indigo-600 text-base"></i>
-                        <span class="text-xs font-bold text-gray-800">${h.date} 戰術名單</span>
-                    </div>
+                    <span class="text-xs font-bold text-gray-800">${h.date} 戰術名單</span>
                     <div class="flex gap-2">
-                        <button onclick="loadHistory('${h.date}')" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow transition">載入</button>
-                        <button onclick="deleteHistory('${h.date}')" class="bg-gray-200 hover:bg-red-100 text-gray-600 hover:text-red-600 text-xs px-2.5 py-1.5 rounded-lg transition"><i class="fa-solid fa-trash-can"></i></button>
+                        <button onclick="loadHistory('${h.date}')" class="bg-indigo-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg">載入</button>
+                        <button onclick="deleteHistory('${h.date}')" class="bg-gray-200 text-gray-600 text-xs px-2.5 py-1.5 rounded-lg"><i class="fa-solid fa-trash-can"></i></button>
                     </div>
                 `;
                 container.appendChild(item);
@@ -860,16 +781,13 @@
                 notices = found.notices ? JSON.parse(JSON.stringify(found.notices)) : notices;
                 document.getElementById('roster-date').value = found.date;
                 document.getElementById('display-date-label').innerText = `日期：${found.date}`;
-                renderSquads();
-                renderNotices();
-                renderMemberList();
-                closeHistoryModal();
-                alert(`已成功載入 ${found.date} 的歷史名單！`);
+                renderSquads(); renderNotices(); renderMemberList(); closeHistoryModal();
+                alert(`已載入 ${found.date} 歷史名單！`);
             }
         }
 
         function deleteHistory(dateStr) {
-            if (confirm(`確定要刪除 ${dateStr} 的歷史紀錄嗎？`)) {
+            if (confirm(`刪除 ${dateStr}？`)) {
                 let history = JSON.parse(localStorage.getItem('guild_roster_history') || '[]');
                 history = history.filter(h => h.date !== dateStr);
                 localStorage.setItem('guild_roster_history', JSON.stringify(history));
@@ -877,15 +795,18 @@
             }
         }
 
-        // 一鍵匯出成圖片
+        // 完美圖例格式匯出
         function exportToImage() {
             const captureElement = document.getElementById('capture-area');
-            
-            // 顯示載入提示
             const btn = event.currentTarget;
             const originalText = btn.innerHTML;
             btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 正在產生圖片...`;
             btn.disabled = true;
+
+            // 暫時隱藏編輯按鈕與多餘控制項，確保匯出結果乾淨如圖例
+            document.querySelectorAll('.sort-hidden').forEach(el => el.style.display = 'none');
+            document.getElementById('action-buttons-group').style.display = 'none';
+            document.getElementById('notice-edit-trigger-row').style.display = 'none';
 
             html2canvas(captureElement, {
                 scale: 2,
@@ -897,11 +818,19 @@
                 link.href = canvas.toDataURL('image/png');
                 link.click();
 
+                // 恢復顯示
+                document.querySelectorAll('.sort-hidden').forEach(el => el.style.display = '');
+                document.getElementById('action-buttons-group').style.display = '';
+                document.getElementById('notice-edit-trigger-row').style.display = '';
+
                 btn.innerHTML = originalText;
                 btn.disabled = false;
             }).catch(err => {
                 console.error(err);
-                alert('圖片匯出失敗，請再試一次！');
+                alert('匯出失敗，請再試一次！');
+                document.querySelectorAll('.sort-hidden').forEach(el => el.style.display = '');
+                document.getElementById('action-buttons-group').style.display = '';
+                document.getElementById('notice-edit-trigger-row').style.display = '';
                 btn.innerHTML = originalText;
                 btn.disabled = false;
             });
