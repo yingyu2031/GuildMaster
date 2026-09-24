@@ -507,6 +507,8 @@ async function executeEventSignup() {
     const evt = eventsDatabase.find(e => e.id === eventId);
     if (!evt) return;
 
+    closeModal('eventSignupConfirmModal');
+
     try {
         const res = await fetch(`${BACKEND_API_URL}/api/events/signup`, {
             method: 'POST',
@@ -519,20 +521,19 @@ async function executeEventSignup() {
             })
         });
         const result = await res.json();
-        
-        closeModal('eventSignupConfirmModal');
 
         if (result.status === "success") {
-            await fetchEventsFromBackend();
+            await fetchEventsFromBackend(); // 重新載入活動狀態並更新畫面
         } else {
             alert("報名失敗: " + result.message);
         }
     } catch (err) {
         console.error(err);
-        closeModal('eventSignupConfirmModal');
         alert("網路異常，報名失敗");
     }
 }
+
+
 
 // 點擊「點此取消」時觸發
 function handleCancelSignup(eventId) {
@@ -550,6 +551,8 @@ async function executeEventCancel() {
     const evt = eventsDatabase.find(e => e.id === eventId);
     if (!evt) return;
 
+    closeModal('eventCancelConfirmModal');
+
     try {
         const res = await fetch(`${BACKEND_API_URL}/api/events/signup`, {
             method: 'DELETE',
@@ -560,21 +563,17 @@ async function executeEventCancel() {
             })
         });
         const result = await res.json();
-        
-        closeModal('eventCancelConfirmModal');
 
         if (result.status === "success") {
-            await fetchEventsFromBackend();
+            await fetchEventsFromBackend(); // 重新載入活動狀態並更新畫面
         } else {
             alert("取消失敗: " + result.message);
         }
     } catch (err) {
         console.error(err);
-        closeModal('eventCancelConfirmModal');
         alert("網路異常，取消失敗");
     }
 }
-
 
         function viewAttendeesModal(eventId) {
             currentViewingEventId = eventId;
@@ -634,6 +633,11 @@ async function executeEventCancel() {
         function closeAttendeesModal() {
             document.getElementById('attendeesModal').classList.add('hidden');
         }
+        
+        function closeModal(modalId) {
+    document.getElementById(modalId).classList.add('hidden');
+}
+
     </script>
 </body>
 </html>
