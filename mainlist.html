@@ -64,14 +64,13 @@
     <!-- 主內容區：黃金比例 2:8 分割排版 -->
     <main class="max-w-7xl mx-auto px-3 flex flex-col lg:grid lg:grid-cols-12 gap-4">
 
-        <!-- 左側：人員列表區塊 (佔 2.5 份 / 20%) -->
+        <!-- 左側：人員列表區塊 (佔 3 份 / 20%) -->
         <div class="lg:col-span-3 sticky top-3 z-20 bg-gray-100/95 backdrop-blur-sm pt-1 pb-2 flex flex-col gap-3">
             <section class="bg-white rounded-2xl shadow-md border border-gray-200 p-3.5 flex flex-col gap-2.5">
                 <div class="flex justify-between items-center">
                     <h2 class="text-xs sm:text-sm font-bold text-gray-700 flex items-center gap-1.5">
-                        <i class="fa-solid fa-users text-indigo-600"></i> 人員列表
+                        <i class="fa-solid fa-users text-indigo-600"></i> 人員列表 (<span id="available-count">0</span>)
                     </h2>
-                    <!-- 請假按鈕塞在人員名單裡 -->
                     <button onclick="openLeaveModal()" class="bg-amber-50 hover:bg-amber-100 text-amber-800 text-[11px] font-bold py-1 px-2 rounded-lg border border-amber-300 flex items-center gap-1 transition shadow-2xs">
                         <i class="fa-solid fa-user-slash"></i> 請假(<span id="leave-count">0</span>)
                     </button>
@@ -98,14 +97,14 @@
                         <option value="煉金">煉金</option>
                     </select>
                 </div>
-                <!-- 列表式指派清單 (固定高度大約顯示 5 個人) -->
-                <div id="member-list-container" class="flex flex-col gap-1 h-[280px] overflow-y-auto p-1 bg-gray-50 rounded-lg border border-gray-100">
+                <!-- 列表式指派清單 (縮短高度約一覽 5 人) -->
+                <div id="member-list-container" class="flex flex-col gap-1 h-[210px] overflow-y-auto p-1 bg-gray-50 rounded-lg border border-gray-100">
                     <!-- 動態生成 -->
                 </div>
             </section>
         </div>
 
-        <!-- 右側：主戰名單配置區 (佔 9.5 份 / 80%) -->
+        <!-- 右側：主戰名單配置區 (佔 9 份 / 80%) -->
         <div class="lg:col-span-9 flex flex-col gap-4">
             <section class="bg-white rounded-2xl shadow-md border border-gray-200 p-4 flex flex-col gap-4">
                 <!-- 標題與日期、已配置數 -->
@@ -368,6 +367,11 @@
             const search = document.getElementById('search-input').value.trim();
             const filterJob = document.getElementById('job-filter').value;
             container.innerHTML = '';
+
+            const currentDate = document.getElementById('roster-date').value;
+            const currentLeaves = leaveList.filter(l => l.date === currentDate);
+            const availableCount = masterMembers.length - currentLeaves.length;
+            document.getElementById('available-count').innerText = availableCount;
 
             const filtered = masterMembers.filter(m => {
                 const matchSearch = m.name.includes(search);
