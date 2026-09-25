@@ -106,7 +106,7 @@
 
         <!-- 右側：主戰名單配置區 (佔 8 份 / 70%) -->
         <div class="lg:col-span-8 flex flex-col gap-4">
-            <section id="capture-area" class="bg-white rounded-2xl shadow-md border border-gray-200 p-4 flex flex-col gap-4">
+            <section class="bg-white rounded-2xl shadow-md border border-gray-200 p-4 flex flex-col gap-4">
                 <!-- 標題與日期、已配置數 -->
                 <div class="flex flex-col gap-3 border-b pb-3">
                     <div class="flex justify-between items-center">
@@ -129,16 +129,19 @@
                     </div>
                 </div>
 
-                <!-- 橫排六隊配置視窗 (支援左右橫滑) -->
-                <div class="roster-scroll-wrapper no-scrollbar pb-3">
-                    <div id="squads-container" class="flex flex-col gap-4">
-                        <!-- 動態生成 -->
+                <!-- 匯出圖片專用的乾淨列印包覆區塊 -->
+                <div id="export-capture-target" class="flex flex-col gap-4 bg-white p-2 rounded-xl">
+                    <!-- 橫排六隊配置視窗 -->
+                    <div class="roster-scroll-wrapper no-scrollbar pb-3">
+                        <div id="squads-container" class="flex flex-col gap-4">
+                            <!-- 動態生成 -->
+                        </div>
                     </div>
-                </div>
 
-                <!-- 戰術叮嚀與提示框容器 -->
-                <div id="notices-container" class="flex flex-col gap-2 pt-2 border-t border-gray-200">
-                    <!-- 動態產生 -->
+                    <!-- 戰術叮嚀與提示框容器 -->
+                    <div id="notices-container" class="flex flex-col gap-2 pt-2 border-t border-gray-200">
+                        <!-- 動態產生 -->
+                    </div>
                 </div>
                 
                 <div class="flex justify-between items-center pt-2 sort-hidden">
@@ -424,7 +427,7 @@
             alert('所有隊伍皆已達 5 人滿編！');
         }
 
-        // 統一百分比橫排六隊渲染（團隊與隊伍在同一個 row 內依序排序）
+        // 精準計算 span 寬度的橫排六隊渲染
         function renderSquads() {
             const container = document.getElementById('squads-container');
             container.innerHTML = '';
@@ -484,12 +487,12 @@
                 } else if (item.type === 'group') {
                     const group = mergedGroups.find(g => g.name === item.groupName);
                     if (group) {
-                        const groupSpan = Math.min(group.squadIds.length, 6);
+                        const spanCount = Math.min(group.squadIds.length, 6);
                         const groupDiv = document.createElement('div');
                         groupDiv.className = 'border-2 border-purple-400 bg-purple-50/20 rounded-xl p-3 flex flex-col gap-3';
                         
                         let groupHeader = `
-                            <div class="flex justify-between items-center bg-purple-100 px-3 py-1.5 rounded-lg border border-purple-200">
+                            <div class="flex justify-between items-center bg-purple-100 px-3 py-1.5 rounded-lg border border-purple-200 sort-hidden">
                                 <div class="flex items-center gap-1.5">
                                     <span class="text-xs font-black text-purple-900"><i class="fa-solid fa-object-group mr-1"></i> ${group.name}</span>
                                     <div class="flex gap-0.5 text-[10px]">
@@ -516,7 +519,7 @@
                         });
 
                         groupDiv.innerHTML = groupHeader + squadGridHtml + `</div>`;
-                        appendToRow(groupDiv, groupSpan);
+                        appendToRow(groupDiv, spanCount);
                     }
                 }
             });
@@ -537,12 +540,12 @@
                     slotsHtml += `
                         <div class="flex items-center justify-between job-card-${job} px-2.5 py-1.5 rounded-lg border shadow-2xs text-xs font-bold">
                             <span class="truncate pr-1">${member}</span>
-                            <button onclick="removeMemberFromSquad(${squad.id}, ${i})" class="opacity-70 hover:opacity-100 p-0.5 shrink-0"><i class="fa-solid fa-xmark"></i></button>
+                            <button onclick="removeMemberFromSquad(${squad.id}, ${i})" class="opacity-70 hover:opacity-100 p-0.5 shrink-0 sort-hidden"><i class="fa-solid fa-xmark"></i></button>
                         </div>
                     `;
                 } else {
                     slotsHtml += `
-                        <div class="slot-card flex items-center justify-center bg-gray-50 border border-dashed border-gray-300 rounded-lg text-[11px] text-gray-400 py-1"
+                        <div class="slot-card flex items-center justify-center bg-gray-50 border border-dashed border-gray-300 rounded-lg text-[11px] text-gray-400 py-1 sort-hidden"
                              ondragover="allowDrop(event)" ondragleave="removeDropStyle(event)" ondrop="dropToSquad(event, ${squad.id})">
                             + 空位 (5人)
                         </div>
@@ -555,7 +558,7 @@
             if (!inGroup) {
                 const mIndex = masterOrder.findIndex(item => item.type === 'squad' && item.id === squad.id);
                 sortButtonsHtml = `
-                    <div class="flex gap-0.5 text-[9px]">
+                    <div class="flex gap-0.5 text-[9px] sort-hidden">
                         <button onclick="moveMasterOrderTarget(${mIndex}, 'first')" class="bg-white hover:bg-gray-200 px-0.5 rounded font-bold text-gray-600" title="置前">《</button>
                         <button onclick="moveMasterOrder(${mIndex}, -1)" class="bg-white hover:bg-gray-200 px-0.5 rounded font-bold text-gray-600" title="往前">〈</button>
                         <button onclick="moveMasterOrder(${mIndex}, 1)" class="bg-white hover:bg-gray-200 px-0.5 rounded font-bold text-gray-600" title="往後">〉</button>
@@ -573,7 +576,7 @@
                         </div>
                         <div class="flex items-center gap-1">
                             <span class="text-[10px] font-bold ${squad.members.length === 5 ? 'text-emerald-600' : 'text-amber-600'}">${squad.members.length}/5</span>
-                            <button onclick="deleteSquad(${squad.id})" class="text-gray-400 hover:text-red-600 text-xs"><i class="fa-solid fa-trash-can"></i></button>
+                            <button onclick="deleteSquad(${squad.id})" class="text-gray-400 hover:text-red-600 text-xs sort-hidden"><i class="fa-solid fa-trash-can"></i></button>
                         </div>
                     </div>
                     <div class="p-2 flex flex-col gap-1.5 bg-gray-50/50"
@@ -888,14 +891,15 @@
             }
         }
 
-        // 一鍵匯出成圖片
+        // 完美匯出完整戰術圖例圖片（包含所有隊伍與下方戰術提示框）
         function exportToImage() {
-            const captureElement = document.getElementById('capture-area');
+            const captureElement = document.getElementById('export-capture-target');
             const btn = event.currentTarget;
             const originalText = btn.innerHTML;
-            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 正在產生...`;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 正在產生圖片...`;
             btn.disabled = true;
 
+            // 暫時隱藏排序與刪除等編輯按鈕
             document.querySelectorAll('.sort-hidden').forEach(el => el.style.display = 'none');
 
             html2canvas(captureElement, {
