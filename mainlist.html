@@ -26,7 +26,7 @@
             border-color: #6366f1;
             transform: scale(1.02);
         }
-        /* 職業顏色定義 (整條底色與文字) */
+        /* 職業顏色定義 */
         .job-card-刺客 { background-color: #fecaca; color: #991b1b; border-color: #f87171; }
         .job-card-十字軍 { background-color: #fde68a; color: #92400e; border-color: #fbbf24; }
         .job-card-法師 { background-color: #bfdbfe; color: #1e40af; border-color: #60a5fa; }
@@ -44,7 +44,7 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-        /* 嚴格確保一列6隊、總寬度撐開以支援手機左右橫滑 */
+        /* 嚴格橫排六隊與左右橫滑 */
         .roster-scroll-wrapper {
             width: 100%;
             overflow-x: auto;
@@ -55,6 +55,7 @@
             grid-template-columns: repeat(6, 170px);
             gap: 10px;
             width: 1080px;
+            margin-bottom: 12px;
         }
     </style>
 </head>
@@ -86,13 +87,10 @@
                 </button>
             </div>
 
-            <!-- 第二列：歷史、請假、匯出 EXCEL 名單 -->
-            <div class="grid grid-cols-3 gap-2">
+            <!-- 第二列：歷史、匯出 EXCEL 名單 -->
+            <div class="grid grid-cols-2 gap-2">
                 <button onclick="openHistoryModal()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold py-2.5 px-2 rounded-lg border border-gray-300 flex items-center justify-center gap-1 transition">
-                    <i class="fa-solid fa-clock-rotate-left"></i> 歷史
-                </button>
-                <button onclick="openLeaveModal()" class="bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-bold py-2.5 px-2 rounded-lg border border-amber-300 flex items-center justify-center gap-1 transition">
-                    <i class="fa-solid fa-user-slash"></i> 請假(<span id="leave-count">0</span>)
+                    <i class="fa-solid fa-clock-rotate-left"></i> 歷史紀錄
                 </button>
                 <button onclick="exportToExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2.5 px-2 rounded-lg shadow-md flex items-center justify-center gap-1 transition">
                     <i class="fa-solid fa-file-excel"></i> 匯出EXCEL
@@ -104,54 +102,62 @@
     <!-- 主內容區 -->
     <main class="max-w-6xl mx-auto px-3 py-4 flex flex-col gap-6">
 
-        <!-- 當日請假人員區塊 -->
-        <section class="bg-amber-50 rounded-xl shadow-xs border border-amber-200 p-3.5 flex flex-col gap-2">
-            <div class="flex justify-between items-center">
-                <h3 class="text-xs font-bold text-amber-900 flex items-center gap-1.5">
-                    <i class="fa-solid fa-user-slash text-amber-600"></i> 本日請假人員名單 (<span id="today-leave-count">0</span> 人)
-                </h3>
-                <span class="text-[10px] text-amber-700 font-medium" id="leave-date-label">2026-09-25</span>
-            </div>
-            <div id="today-leave-list" class="flex flex-wrap gap-1.5">
-                <!-- 動態填入當日請假人員 -->
-            </div>
-        </section>
-
-        <!-- 人員搜尋與職業篩選區 -->
-        <section class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-            <div class="flex justify-between items-center mb-3">
-                <h2 class="text-sm font-bold text-gray-700 flex items-center gap-2">
-                    <i class="fa-solid fa-users text-indigo-600"></i> 人員列表 (點擊或拖曳指派)
-                </h2>
-                <span class="text-xs text-gray-400">已自動排除請假人員</span>
-            </div>
-            <div class="flex gap-2 mb-3">
-                <div class="relative flex-1">
-                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-gray-400 text-xs"></i>
-                    <input type="text" id="search-input" placeholder="搜尋姓名..." oninput="renderMemberList()" class="w-full bg-gray-50 border border-gray-300 text-xs rounded-lg pl-9 pr-3 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+        <!-- 凍結區塊：當日請假人員區塊 + 人員搜尋與職業篩選區 -->
+        <div class="sticky top-[148px] sm:top-[158px] z-20 bg-gray-100/95 backdrop-blur-sm pt-1 pb-2 flex flex-col gap-3 shadow-xs">
+            <!-- 當日請假人員常駐顯示區塊 -->
+            <section class="bg-amber-50 rounded-xl shadow-xs border border-amber-200 p-3 flex flex-col gap-2">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-xs font-bold text-amber-900 flex items-center gap-1.5">
+                        <i class="fa-solid fa-user-slash text-amber-600"></i> 本日請假人員名單 (<span id="today-leave-count">0</span> 人)
+                    </h3>
+                    <div class="flex items-center gap-2">
+                        <span class="text-[10px] text-amber-700 font-medium" id="leave-date-label">2026-09-25</span>
+                        <button onclick="openLeaveModal()" class="bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-bold px-2 py-0.5 rounded shadow-2xs transition flex items-center gap-1">
+                            <i class="fa-solid fa-plus"></i> 請假
+                        </button>
+                    </div>
                 </div>
-                <select id="job-filter" onchange="renderMemberList()" class="bg-gray-50 border border-gray-300 text-xs rounded-lg px-3 py-2.5 text-gray-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-                    <option value="全部">全部職業</option>
-                    <option value="刺客">刺客</option>
-                    <option value="十字軍">十字軍</option>
-                    <option value="法師">法師</option>
-                    <option value="創造者">創造者</option>
-                    <option value="補師">補師</option>
-                    <option value="武僧">武僧</option>
-                    <option value="騎士">騎士</option>
-                    <option value="搞笑藝人">搞笑藝人</option>
-                    <option value="吟遊戲偶">吟遊戲偶</option>
-                    <option value="神射手">神射手</option>
-                    <option value="流氓">流氓</option>
-                    <option value="詩人">詩人</option>
-                    <option value="煉金">煉金</option>
-                </select>
-            </div>
-            <!-- 列表式指派清單 -->
-            <div id="member-list-container" class="flex flex-col gap-1.5 max-h-56 overflow-y-auto p-1 bg-gray-50 rounded-lg border border-gray-100">
-                <!-- 動態生成成員列 -->
-            </div>
-        </section>
+                <div id="today-leave-list" class="flex flex-col gap-1 max-h-32 overflow-y-auto no-scrollbar">
+                    <!-- 動態填入每人一行的請假人員 -->
+                </div>
+            </section>
+
+            <!-- 人員搜尋與職業篩選區 (凍結隨行) -->
+            <section class="bg-white rounded-xl shadow-md border border-gray-200 p-3">
+                <div class="flex justify-between items-center mb-2">
+                    <h2 class="text-sm font-bold text-gray-700 flex items-center gap-2">
+                        <i class="fa-solid fa-users text-indigo-600"></i> 人員列表 (點擊或拖曳指派)
+                    </h2>
+                    <span class="text-xs text-gray-400">已自動排除請假人員</span>
+                </div>
+                <div class="flex gap-2 mb-2">
+                    <div class="relative flex-1">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-gray-400 text-xs"></i>
+                        <input type="text" id="search-input" placeholder="搜尋姓名..." oninput="renderMemberList()" class="w-full bg-gray-50 border border-gray-300 text-xs rounded-lg pl-9 pr-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+                    <select id="job-filter" onchange="renderMemberList()" class="bg-gray-50 border border-gray-300 text-xs rounded-lg px-3 py-2 text-gray-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        <option value="全部">全部職業</option>
+                        <option value="刺客">刺客</option>
+                        <option value="十字軍">十字軍</option>
+                        <option value="法師">法師</option>
+                        <option value="創造者">創造者</option>
+                        <option value="補師">補師</option>
+                        <option value="武僧">武僧</option>
+                        <option value="騎士">騎士</option>
+                        <option value="搞笑藝人">搞笑藝人</option>
+                        <option value="吟遊戲偶">吟遊戲偶</option>
+                        <option value="神射手">神射手</option>
+                        <option value="流氓">流氓</option>
+                        <option value="詩人">詩人</option>
+                        <option value="煉金">煉金</option>
+                    </select>
+                </div>
+                <!-- 列表式指派清單 -->
+                <div id="member-list-container" class="flex flex-col gap-1 max-h-40 overflow-y-auto p-1 bg-gray-50 rounded-lg border border-gray-100">
+                    <!-- 動態生成成員列 -->
+                </div>
+            </section>
+        </div>
 
         <!-- 戰術名單配置區 (支援左右橫滑) -->
         <section class="bg-white rounded-2xl shadow-md border border-gray-200 p-4 flex flex-col gap-4">
@@ -198,7 +204,7 @@
 
     </main>
 
-    <!-- Modals (請假、提示框、合併、歷史) -->
+    <!-- Modals (請假管理、提示框、合併、歷史) -->
     <!-- 請假管理 Modal -->
     <div id="leave-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-md max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
@@ -332,7 +338,7 @@
         let masterOrder = [];
 
         let notices = [
-            { id: 1, text: "【！！晚到者請隊長(隊友)去聯絡失聯隊友(隊長)，晚上 8點30分請自主性組隊！！】", bg: "#fecaca", textCol: "#991b1b" },
+            { id: 1, text: "【！！晚到者請隊長(隊友)去聯絡失聯隊友(隊長)", bg: "#fecaca", textCol: "#991b1b" },
             { id: 2, text: "召集隊：4、5、6、7\n支援隊*2", bg: "#fef08a", textCol: "#854d0e" },
             { id: 3, text: "二塔存活：主推線\n剩內塔：主防守", bg: "#bfdbfe", textCol: "#1e40af" },
             { id: 4, text: "未召集隊：\n我方二塔還在，主推線\n剩內塔，主防守", bg: "#e5e7eb", textCol: "#374151" }
@@ -358,6 +364,7 @@
                 const val = e.target.value;
                 document.getElementById('display-date-label').innerText = `日期：${val}`;
                 renderTodayLeaveList(val);
+                renderMemberList();
             });
 
             initMasterOrder();
@@ -368,7 +375,7 @@
             updateLeaveCount();
         };
 
-        // 渲染當日請假名單
+        // 渲染當日請假人員常駐清單 (每人一行，先顯示職業在名稱)
         function renderTodayLeaveList(dateStr) {
             document.getElementById('leave-date-label').innerText = dateStr;
             const container = document.getElementById('today-leave-list');
@@ -378,16 +385,29 @@
             document.getElementById('today-leave-count').innerText = todayLeaves.length;
 
             if (todayLeaves.length === 0) {
-                container.innerHTML = `<span class="text-xs text-amber-700">本日無人請假</span>`;
+                container.innerHTML = `<span class="text-xs text-amber-700 p-1">本日無人請假</span>`;
                 return;
             }
 
-            todayLeaves.forEach(l => {
-                const tag = document.createElement('div');
-                tag.className = `flex items-center gap-1.5 job-card-${l.job} px-2.5 py-1 rounded-lg text-xs font-bold border shadow-2xs`;
-                tag.innerHTML = `<span>${l.name}</span>`;
-                container.appendChild(tag);
+            todayLeaves.forEach((l, idx) => {
+                const row = document.createElement('div');
+                row.className = `flex items-center justify-between px-2.5 py-1.5 rounded-lg border text-xs bg-white shadow-2xs`;
+                row.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <span class="job-card-${l.job} px-2 py-0.5 rounded font-bold text-[10px] border">${l.job}</span>
+                        <span class="font-bold text-gray-800">${l.name}</span>
+                    </div>
+                    <button onclick="deleteLeavePersonByDetails('${l.name}', '${l.date}')" class="text-gray-400 hover:text-red-600 text-xs p-0.5"><i class="fa-solid fa-trash-can"></i></button>
+                `;
+                container.appendChild(row);
             });
+        }
+
+        function deleteLeavePersonByDetails(name, date) {
+            leaveList = leaveList.filter(l => !(l.name === name && l.date === date));
+            renderTodayLeaveList(document.getElementById('roster-date').value);
+            renderMemberList();
+            updateLeaveCount();
         }
 
         function initMasterOrder() {
@@ -437,7 +457,7 @@
                 if (leave) return;
 
                 const row = document.createElement('div');
-                row.className = `flex items-center justify-between px-3 py-2 rounded-xl border text-xs transition bg-white ${assigned ? 'opacity-60 border-gray-200' : 'border-gray-200 shadow-2xs hover:border-indigo-300'}`;
+                row.className = `flex items-center justify-between px-3 py-1.5 rounded-xl border text-xs transition bg-white ${assigned ? 'opacity-60 border-gray-200' : 'border-gray-200 shadow-2xs hover:border-indigo-300'}`;
                 
                 let actionHtml = assigned ? 
                     `<span class="text-gray-400 font-bold bg-gray-100 px-2.5 py-1 rounded-md text-[11px]">已排</span>` :
@@ -471,7 +491,7 @@
             alert('所有隊伍皆已達 5 人滿編！');
         }
 
-        // 嚴格維持一律橫排六隊（每 6 個卡片一列）
+        // 嚴格修復團隊跨欄與橫排邏輯
         function renderSquads() {
             const container = document.getElementById('squads-container');
             container.innerHTML = '';
@@ -500,7 +520,6 @@
                 }
             });
 
-            // 將所有區塊分組成每列最多 6 個的 row 容器以實現精準橫排
             let currentRow = document.createElement('div');
             currentRow.className = "roster-grid-row";
             let rowItemCount = 0;
@@ -531,7 +550,7 @@
                 } else if (item.type === 'group') {
                     const group = mergedGroups.find(g => g.name === item.groupName);
                     if (group) {
-                        // 如果當前行還有未滿，先結算換行放合併團隊
+                        // 結算上一行
                         if (rowItemCount > 0) {
                             container.appendChild(currentRow);
                             currentRow = document.createElement('div');
@@ -539,24 +558,25 @@
                             rowItemCount = 0;
                         }
 
+                        // 建立團隊大框，內含的小隊直接以 grid 完美排列
                         const groupDiv = document.createElement('div');
-                        groupDiv.className = 'border-2 border-purple-400 bg-purple-50/20 rounded-xl p-3 flex flex-col gap-3 relative';
-                        groupDiv.style.gridColumn = 'span 6'; // 合併團隊橫跨 6 欄
+                        groupDiv.className = 'border-2 border-purple-400 bg-purple-50/20 rounded-xl p-3 flex flex-col gap-3';
+                        groupDiv.style.gridColumn = 'span 6';
                         
                         let groupHeader = `
                             <div class="flex justify-between items-center bg-purple-100 px-3 py-1.5 rounded-lg border border-purple-200">
                                 <div class="flex items-center gap-1.5">
                                     <span class="text-xs font-black text-purple-900"><i class="fa-solid fa-object-group mr-1"></i> ${group.name}</span>
                                     <div class="flex gap-0.5 text-[10px]">
-                                        <button onclick="moveMasterOrderTarget(${index}, 'first')" class="bg-white/80 hover:bg-white px-1 py-0.5 rounded text-purple-800 font-bold" title="置前">《</button>
-                                        <button onclick="moveMasterOrder(${index}, -1)" class="bg-white/80 hover:bg-white px-1 py-0.5 rounded text-purple-800 font-bold" title="往前">〈</button>
-                                        <button onclick="moveMasterOrder(${index}, 1)" class="bg-white/80 hover:bg-white px-1 py-0.5 rounded text-purple-800 font-bold" title="往後">〉</button>
-                                        <button onclick="moveMasterOrderTarget(${index}, 'last')" class="bg-white/80 hover:bg-white px-1 py-0.5 rounded text-purple-800 font-bold" title="置後">》</button>
+                                        <button onclick="moveMasterOrderTarget(${index}, 'first')" class="bg-white/85 hover:bg-white px-1 py-0.5 rounded text-purple-800 font-bold" title="置前">《</button>
+                                        <button onclick="moveMasterOrder(${index}, -1)" class="bg-white/85 hover:bg-white px-1 py-0.5 rounded text-purple-800 font-bold" title="往前">〈</button>
+                                        <button onclick="moveMasterOrder(${index}, 1)" class="bg-white/85 hover:bg-white px-1 py-0.5 rounded text-purple-800 font-bold" title="往後">〉</button>
+                                        <button onclick="moveMasterOrderTarget(${index}, 'last')" class="bg-white/85 hover:bg-white px-1 py-0.5 rounded text-purple-800 font-bold" title="置後">》</button>
                                     </div>
                                 </div>
                                 <button onclick="removeMergedGroupByInstance('${group.name}')" class="text-purple-700 hover:text-red-600 text-xs font-bold"><i class="fa-solid fa-xmark"></i> 解除團隊</button>
                             </div>
-                            <div class="roster-grid-row">
+                            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
                         `;
                         
                         let squadGridHtml = '';
@@ -587,7 +607,6 @@
             document.getElementById('total-assigned-badge').innerText = `已配置: ${totalAssigned} / ${totalCapacity}`;
         }
 
-        // 僅用顏色代表職業，不顯示職業文字
         function createSquadCardHtml(squad) {
             let slotsHtml = '';
             for (let i = 0; i < 5; i++) {
@@ -847,6 +866,8 @@
             document.getElementById('leave-name').value = '';
             document.getElementById('leave-job').value = '';
             renderLeaveListUI();
+            renderTodayLeaveList(document.getElementById('roster-date').value);
+            renderMemberList();
         }
 
         function deleteLeavePerson(index) { leaveList.splice(index, 1); renderLeaveListUI(); }
