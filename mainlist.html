@@ -61,16 +61,16 @@
 </head>
 <body class="bg-gray-100 min-h-screen pb-16">
 
-    <!-- 頂部導航列 (精簡乾淨) -->
+    <!-- 頂部導航列 -->
     <header class="bg-white shadow-sm sticky top-0 z-30 border-b border-gray-200">
-        <div class="max-w-6xl mx-auto px-4 py-2.5 flex justify-between items-center">
+        <div class="max-w-7xl mx-auto px-4 py-2.5 flex justify-between items-center">
             <div class="flex items-center gap-2">
                 <div class="bg-indigo-600 text-white p-1.5 rounded-lg shadow-md">
                     <i class="fa-solid fa-shield-halved text-base"></i>
                 </div>
                 <div>
                     <h1 class="text-sm sm:text-base font-bold text-gray-800 leading-tight">公會戰場主戰名單指揮系統</h1>
-                    <p class="text-[10px] text-gray-500">4:6黃金比例・一律橫排六隊</p>
+                    <p class="text-[10px] text-gray-500">黃金比例 3:7・一律橫排六隊</p>
                 </div>
             </div>
             <div class="flex items-center gap-2">
@@ -84,17 +84,17 @@
         </div>
     </header>
 
-    <!-- 主內容區：黃金比例 4:6 分割排版 -->
-    <main class="max-w-6xl mx-auto px-3 py-4 flex flex-col lg:grid lg:grid-cols-12 gap-4">
+    <!-- 主內容區：黃金比例 3:7 分割排版 -->
+    <main class="max-w-7xl mx-auto px-3 py-4 flex flex-col lg:grid lg:grid-cols-12 gap-4">
 
-        <!-- 左側：人員列表區塊 (佔 4 份 / 40%) -->
-        <div class="lg:col-span-5 sticky top-[56px] z-20 bg-gray-100/95 backdrop-blur-sm pt-1 pb-2 flex flex-col gap-3">
+        <!-- 左側：人員列表區塊 (佔 3.5 份 / 30%) -->
+        <div class="lg:col-span-4 sticky top-[56px] z-20 bg-gray-100/95 backdrop-blur-sm pt-1 pb-2 flex flex-col gap-3">
             <section class="bg-white rounded-2xl shadow-md border border-gray-200 p-3.5 flex flex-col gap-2.5">
                 <div class="flex justify-between items-center">
                     <h2 class="text-xs sm:text-sm font-bold text-gray-700 flex items-center gap-1.5">
                         <i class="fa-solid fa-users text-indigo-600"></i> 人員列表 (點擊/拖曳)
                     </h2>
-                    <span class="text-[10px] text-gray-400">已自動排除請假</span>
+                    <span class="text-[10px] text-gray-400">已排除請假</span>
                 </div>
                 <div class="flex gap-2">
                     <div class="relative flex-1">
@@ -118,15 +118,15 @@
                         <option value="煉金">煉金</option>
                     </select>
                 </div>
-                <!-- 列表式指派清單 (限制高度可滾動) -->
-                <div id="member-list-container" class="flex flex-col gap-1 max-h-[60vh] overflow-y-auto p-1 bg-gray-50 rounded-lg border border-gray-100">
+                <!-- 列表式指派清單 (固定高度大約顯示 5 個人) -->
+                <div id="member-list-container" class="flex flex-col gap-1 h-[280px] overflow-y-auto p-1 bg-gray-50 rounded-lg border border-gray-100">
                     <!-- 動態生成 -->
                 </div>
             </section>
         </div>
 
-        <!-- 右側：主戰名單配置區 (佔 7 份 / 60%) -->
-        <div class="lg:col-span-7 flex flex-col gap-4">
+        <!-- 右側：主戰名單配置區 (佔 8.5 份 / 70%) -->
+        <div class="lg:col-span-8 flex flex-col gap-4">
             <section class="bg-white rounded-2xl shadow-md border border-gray-200 p-4 flex flex-col gap-4">
                 <!-- 標題與日期、已配置數 -->
                 <div class="flex flex-col gap-3 border-b pb-3">
@@ -169,7 +169,7 @@
                     <span class="text-[10px] text-gray-400">公會戰場指揮系統產出</span>
                 </div>
 
-                <!-- 存檔、歷史紀錄、匯出 Excel 移至主戰名單最下方 -->
+                <!-- 存檔、歷史紀錄、匯出 Excel 置於主戰名單最下方 -->
                 <div class="flex flex-col sm:flex-row items-center gap-2 pt-3 border-t border-gray-200">
                     <input type="date" id="roster-date" class="w-full sm:w-auto flex-1 bg-gray-50 border border-gray-300 text-gray-800 text-xs rounded-lg px-3 py-2.5 font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none text-center">
                     <div class="grid grid-cols-3 gap-2 w-full sm:w-auto">
