@@ -427,7 +427,7 @@
             alert('所有隊伍皆已達 5 人滿編！');
         }
 
-        // 精準計算 span 寬度的橫排六隊渲染
+        // 統一百分比橫排六隊渲染（團隊與隊伍在同一個 row 內依序排序）
         function renderSquads() {
             const container = document.getElementById('squads-container');
             container.innerHTML = '';
@@ -891,7 +891,7 @@
             }
         }
 
-        // 完美匯出完整戰術圖例圖片（包含所有隊伍與下方戰術提示框）
+        // 完美匯出完整戰術圖例圖片（強制寬度展開，包含所有隊伍與下方戰術提示框）
         function exportToImage() {
             const captureElement = document.getElementById('export-capture-target');
             const btn = event.currentTarget;
@@ -899,25 +899,37 @@
             btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 正在產生圖片...`;
             btn.disabled = true;
 
-            // 暫時隱藏排序與刪除等編輯按鈕
+            // 暫時隱藏編輯按鈕
             document.querySelectorAll('.sort-hidden').forEach(el => el.style.display = 'none');
+            
+            // 強制設定截圖目標區塊的樣式以確保完整展開六隊寬度
+            const originalWidth = captureElement.style.width;
+            const originalMaxWidth = captureElement.style.maxWidth;
+            captureElement.style.width = '1350px';
+            captureElement.style.maxWidth = 'none';
 
             html2canvas(captureElement, {
                 scale: 2,
                 useCORS: true,
-                backgroundColor: '#ffffff'
+                backgroundColor: '#ffffff',
+                windowWidth: 1400
             }).then(canvas => {
                 const link = document.createElement('a');
                 link.download = `公會戰場主戰名單_${document.getElementById('roster-date').value || 'date'}.png`;
                 link.href = canvas.toDataURL('image/png');
                 link.click();
 
+                // 恢復樣式與顯示
+                captureElement.style.width = originalWidth;
+                captureElement.style.maxWidth = originalMaxWidth;
                 document.querySelectorAll('.sort-hidden').forEach(el => el.style.display = '');
                 btn.innerHTML = originalText;
                 btn.disabled = false;
             }).catch(err => {
                 console.error(err);
                 alert('圖片匯出失敗，請再試一次！');
+                captureElement.style.width = originalWidth;
+                captureElement.style.maxWidth = originalMaxWidth;
                 document.querySelectorAll('.sort-hidden').forEach(el => el.style.display = '');
                 btn.innerHTML = originalText;
                 btn.disabled = false;
