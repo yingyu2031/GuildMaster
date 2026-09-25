@@ -44,7 +44,7 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-        /* 調整寬度讓一列6隊完美並排且團隊與隊伍同步排序 */
+        /* 嚴格一列6隊橫排，支援左右橫滑 */
         .roster-scroll-wrapper {
             width: 100%;
             overflow-x: auto;
@@ -52,20 +52,20 @@
         }
         .roster-grid-row {
             display: grid;
-            grid-template-columns: repeat(6, 210px);
+            grid-template-columns: repeat(6, 200px);
             gap: 12px;
-            width: 1350px;
+            width: 1320px;
             margin-bottom: 12px;
         }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen pb-16 pt-3">
 
-    <!-- 主內容區：黃金比例 2:8 分割排版 -->
+    <!-- 主內容區：黃金比例 3:7 分割排版 -->
     <main class="max-w-7xl mx-auto px-3 flex flex-col lg:grid lg:grid-cols-12 gap-4">
 
-        <!-- 左側：人員列表區塊 (佔 3 份 / 20%) -->
-        <div class="lg:col-span-3 sticky top-3 z-20 bg-gray-100/95 backdrop-blur-sm pt-1 pb-2 flex flex-col gap-3">
+        <!-- 左側：人員列表區塊 (佔 3 份 / 30%) -->
+        <div class="lg:col-span-4 sticky top-3 z-20 bg-gray-100/95 backdrop-blur-sm pt-1 pb-2 flex flex-col gap-3">
             <section class="bg-white rounded-2xl shadow-md border border-gray-200 p-3.5 flex flex-col gap-2.5">
                 <div class="flex justify-between items-center">
                     <h2 class="text-xs sm:text-sm font-bold text-gray-700 flex items-center gap-1.5">
@@ -97,15 +97,15 @@
                         <option value="煉金">煉金</option>
                     </select>
                 </div>
-                <!-- 列表式指派清單 (縮短高度約一覽 5 人) -->
+                <!-- 列表式指派清單 (固定高度大約一覽 5 人) -->
                 <div id="member-list-container" class="flex flex-col gap-1 h-[210px] overflow-y-auto p-1 bg-gray-50 rounded-lg border border-gray-100">
                     <!-- 動態生成 -->
                 </div>
             </section>
         </div>
 
-        <!-- 右側：主戰名單配置區 (佔 9 份 / 80%) -->
-        <div class="lg:col-span-9 flex flex-col gap-4">
+        <!-- 右側：主戰名單配置區 (佔 8 份 / 70%) -->
+        <div class="lg:col-span-8 flex flex-col gap-4">
             <section id="capture-area" class="bg-white rounded-2xl shadow-md border border-gray-200 p-4 flex flex-col gap-4">
                 <!-- 標題與日期、已配置數 -->
                 <div class="flex flex-col gap-3 border-b pb-3">
@@ -424,7 +424,7 @@
             alert('所有隊伍皆已達 5 人滿編！');
         }
 
-        // 統一排版渲染：團隊與隊伍在同一個 masterOrder 內同步排序
+        // 統一百分比橫排六隊渲染（團隊與隊伍在同一個 row 內依序排序）
         function renderSquads() {
             const container = document.getElementById('squads-container');
             container.innerHTML = '';
@@ -457,15 +457,16 @@
             currentRow.className = "roster-grid-row";
             let rowItemCount = 0;
 
-            function appendToRow(element) {
-                if (rowItemCount >= 6) {
+            function appendToRow(element, span = 1) {
+                if (rowItemCount + span > 6) {
                     container.appendChild(currentRow);
                     currentRow = document.createElement('div');
                     currentRow.className = "roster-grid-row";
                     rowItemCount = 0;
                 }
+                element.style.gridColumn = `span ${span}`;
                 currentRow.appendChild(element);
-                rowItemCount++;
+                rowItemCount += span;
             }
 
             masterOrder.forEach((item, index) => {
@@ -476,23 +477,16 @@
                         if (!inGroup) {
                             const cardDiv = document.createElement('div');
                             cardDiv.innerHTML = createSquadCardHtml(squad, index);
-                            appendToRow(cardDiv.firstElementChild);
+                            appendToRow(cardDiv.firstElementChild, 1);
                             totalAssigned += squad.members.length;
                         }
                     }
                 } else if (item.type === 'group') {
                     const group = mergedGroups.find(g => g.name === item.groupName);
                     if (group) {
-                        if (rowItemCount > 0) {
-                            container.appendChild(currentRow);
-                            currentRow = document.createElement('div');
-                            currentRow.className = "roster-grid-row";
-                            rowItemCount = 0;
-                        }
-
+                        const groupSpan = Math.min(group.squadIds.length, 6);
                         const groupDiv = document.createElement('div');
                         groupDiv.className = 'border-2 border-purple-400 bg-purple-50/20 rounded-xl p-3 flex flex-col gap-3';
-                        groupDiv.style.gridColumn = 'span 6';
                         
                         let groupHeader = `
                             <div class="flex justify-between items-center bg-purple-100 px-3 py-1.5 rounded-lg border border-purple-200">
@@ -507,7 +501,7 @@
                                 </div>
                                 <button onclick="removeMergedGroupByInstance('${group.name}')" class="text-purple-700 hover:text-red-600 text-xs font-bold"><i class="fa-solid fa-xmark"></i> 解除團隊</button>
                             </div>
-                            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+                            <div class="grid gap-2.5" style="grid-template-columns: repeat(${group.squadIds.length}, 200px);">
                         `;
                         
                         let squadGridHtml = '';
@@ -522,11 +516,7 @@
                         });
 
                         groupDiv.innerHTML = groupHeader + squadGridHtml + `</div>`;
-                        container.appendChild(groupDiv);
-
-                        currentRow = document.createElement('div');
-                        currentRow.className = "roster-grid-row";
-                        rowItemCount = 0;
+                        appendToRow(groupDiv, groupSpan);
                     }
                 }
             });
