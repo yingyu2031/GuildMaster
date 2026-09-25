@@ -43,9 +43,23 @@
 
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* 動態設備寬度適配：電腦模式強制擴寬與一列6隊 */
+        body.desktop-mode {
+            max-width: 1600px !important;
+            margin: 0 auto;
+        }
+        body.desktop-mode .max-w-4xl {
+            max-width: 1550px !important;
+        }
+        body.desktop-mode .dynamic-grid-container {
+            display: grid !important;
+            grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+            gap: 12px !important;
+        }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen pb-16">
+<body class="bg-gray-100 min-h-screen pb-16 transition-all duration-300">
 
     <!-- 頂部導航列 -->
     <header class="bg-white shadow-sm sticky top-0 z-30 border-b border-gray-200">
@@ -57,12 +71,17 @@
                     </div>
                     <div>
                         <h1 class="text-base sm:text-lg font-bold text-gray-800 leading-tight">公會戰場主戰名單指揮系統</h1>
-                        <p class="text-xs text-gray-500">手機優化・混合排序・Excel同步</p>
+                        <p class="text-xs text-gray-500">支援手機/電腦模式切換・一列6隊橫排</p>
                     </div>
                 </div>
-                <span class="text-xs font-semibold bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-full border border-indigo-200 shrink-0">
-                    <i class="fa-solid fa-lock mr-1"></i> 5人鎖定版
-                </span>
+                <div class="flex items-center gap-2">
+                    <button onclick="toggleDesktopMode()" id="mode-toggle-btn" class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold px-3 py-1.5 rounded-lg border border-gray-300 flex items-center gap-1 transition shadow-2xs">
+                        <i class="fa-solid fa-desktop"></i> <span id="mode-text">電腦版(6隊)</span>
+                    </button>
+                    <span class="text-xs font-semibold bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-full border border-indigo-200 shrink-0">
+                        <i class="fa-solid fa-lock mr-1"></i> 5人鎖定版
+                    </span>
+                </div>
             </div>
 
             <!-- 第一列：日期與存檔 -->
@@ -89,7 +108,7 @@
     </header>
 
     <!-- 主內容區 -->
-    <main class="max-w-4xl mx-auto px-3 py-4 flex flex-col gap-6">
+    <main class="max-w-4xl mx-auto px-3 py-4 flex flex-col gap-6 transition-all duration-300">
 
         <!-- 人員搜尋與職業篩選區 -->
         <section class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
@@ -129,7 +148,6 @@
 
         <!-- 戰術名單配置區 -->
         <section class="bg-white rounded-2xl shadow-md border border-gray-200 p-4 flex flex-col gap-4">
-            <!-- 主戰名單標題與已配置統計同一區塊，按鈕往下放 -->
             <div class="flex flex-col gap-3 border-b pb-3">
                 <div class="flex justify-between items-center">
                     <div>
@@ -138,7 +156,6 @@
                     </div>
                     <span class="text-xs font-bold bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-full border border-indigo-200 shadow-2xs" id="total-assigned-badge">已配置: 0 / 0</span>
                 </div>
-                <!-- 功能按鈕往下放 -->
                 <div class="flex items-center gap-2 pt-1">
                     <button onclick="addSquad()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-2 px-3 rounded-lg shadow transition flex items-center justify-center gap-1">
                         <i class="fa-solid fa-plus"></i>隊伍
@@ -152,7 +169,7 @@
                 </div>
             </div>
 
-            <!-- 混合排序容器 (團隊與隊伍可交互排序) -->
+            <!-- 混合排序容器 (電腦模式下自動轉為一列6隊橫排) -->
             <div id="squads-container" class="flex flex-col gap-4">
                 <!-- 動態生成 -->
             </div>
@@ -302,9 +319,9 @@
             { id: 12, name: "右路(支援隊-2)", members: ["神冰月", "晚風、", "宮本寶藏", "大蛋佑佑", "包手檳榔"] }
         ];
 
-        // 統一名稱與順序架構：masterOrder 存放 { type: 'squad'/'group', id/index } 實現團隊與隊伍交互排序
         let mergedGroups = [];
         let masterOrder = [];
+        let isDesktop = false; // 預設手機模式
 
         let notices = [
             { id: 1, text: "【！！晚到者請隊長(隊友)去聯絡失聯隊友(隊長)，晚上 8點30分請自主性組隊！！】", bg: "#fecaca", textCol: "#991b1b" },
@@ -338,7 +355,25 @@
             updateLeaveCount();
         };
 
-        // 初始化全域順序陣列
+        // 切換電腦/手機模式
+        function toggleDesktopMode() {
+            isDesktop = !isDesktop;
+            const body = document.body;
+            const btnText = document.getElementById('mode-text');
+            const btnIcon = document.querySelector('#mode-toggle-btn i');
+
+            if (isDesktop) {
+                body.classList.add('desktop-mode');
+                btnText.innerText = "手機版(單欄)";
+                btnIcon.className = "fa-solid fa-mobile-screen";
+            } else {
+                body.classList.remove('desktop-mode');
+                btnText.innerText = "電腦版(6隊)";
+                btnIcon.className = "fa-solid fa-desktop";
+            }
+            renderSquads();
+        }
+
         function initMasterOrder() {
             masterOrder = [];
             squads.forEach(s => {
@@ -419,7 +454,6 @@
             alert('所有隊伍皆已達 5 人滿編！');
         }
 
-        // 混合渲染：團隊與隊伍可交互排序
         function renderSquads() {
             const container = document.getElementById('squads-container');
             container.innerHTML = '';
@@ -427,31 +461,34 @@
             let totalAssigned = 0;
             let totalCapacity = squads.length * 5;
 
-            // 清理已不存在的項目
+            // 電腦模式下，容器套用 grid-template-columns: repeat(6, 1fr)
+            if (isDesktop) {
+                container.className = "dynamic-grid-container grid gap-3";
+            } else {
+                container.className = "flex flex-col gap-4";
+            }
+
             masterOrder = masterOrder.filter(item => {
-                if (item.type === 'squad') {
-                    return squads.some(s => s.id === item.id);
-                } else if (item.type === 'group') {
-                    return mergedGroups.some(g => g.name === item.groupName);
-                }
+                if (item.type === 'squad') return squads.some(s => s.id === item.id);
+                else if (item.type === 'group') return mergedGroups.some(g => g.name === item.groupName);
                 return false;
             });
 
-            // 確保所有新建立的小隊或群組都有在 masterOrder 中
             squads.forEach(s => {
                 const inGroup = mergedGroups.some(g => g.squadIds.includes(s.id));
                 if (!inGroup) {
-                    const exists = masterOrder.some(item => item.type === 'squad' && item.id === s.id);
-                    if (!exists) masterOrder.push({ type: 'squad', id: s.id });
+                    if (!masterOrder.some(item => item.type === 'squad' && item.id === s.id)) {
+                        masterOrder.push({ type: 'squad', id: s.id });
+                    }
                 }
             });
 
             mergedGroups.forEach(g => {
-                const exists = masterOrder.some(item => item.type === 'group' && item.groupName === g.name);
-                if (!exists) masterOrder.push({ type: 'group', groupName: g.name });
+                if (!masterOrder.some(item => item.type === 'group' && item.groupName === g.name)) {
+                    masterOrder.push({ type: 'group', groupName: g.name });
+                }
             });
 
-            // 依 masterOrder 順序渲染
             masterOrder.forEach((item, index) => {
                 if (item.type === 'squad') {
                     const squad = squads.find(s => s.id === item.id);
@@ -468,7 +505,7 @@
                     const group = mergedGroups.find(g => g.name === item.groupName);
                     if (group) {
                         const groupDiv = document.createElement('div');
-                        groupDiv.className = 'border-2 border-purple-400 bg-purple-50/20 rounded-xl p-3 flex flex-col gap-3 relative';
+                        groupDiv.className = 'border-2 border-purple-400 bg-purple-50/20 rounded-xl p-3 flex flex-col gap-3 relative col-span-full';
                         
                         let groupHeader = `
                             <div class="flex justify-between items-center bg-purple-100 px-3 py-1.5 rounded-lg border border-purple-200">
@@ -483,7 +520,7 @@
                                 </div>
                                 <button onclick="removeMergedGroupByInstance('${group.name}')" class="text-purple-700 hover:text-red-600 text-xs font-bold"><i class="fa-solid fa-xmark"></i> 解除團隊</button>
                             </div>
-                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
                         `;
                         
                         let squadGridHtml = '';
@@ -563,7 +600,6 @@
             `;
         }
 
-        // 支援團隊與隊伍交互排序的 masterOrder 四向移動
         function moveMasterOrder(index, direction) {
             const newIndex = index + direction;
             if (newIndex < 0 || newIndex >= masterOrder.length) return;
@@ -580,7 +616,6 @@
             renderSquads();
         }
 
-        // 拖拉功能
         function allowDrop(e) { e.preventDefault(); e.currentTarget.classList.add('drag-over'); }
         function removeDropStyle(e) { e.currentTarget.classList.remove('drag-over'); }
         function dropToSquad(e, squadId) {
@@ -638,7 +673,6 @@
             }
         }
 
-        // 提示框管理
         function renderNotices() {
             const container = document.getElementById('notices-container');
             container.innerHTML = '';
@@ -692,7 +726,6 @@
             });
         }
 
-        // 合併團隊管理
         function openMergeModal() { document.getElementById('merge-modal').classList.remove('hidden'); renderMergeCheckboxes(); renderExistingMergedGroups(); }
         function closeMergeModal() { document.getElementById('merge-modal').classList.add('hidden'); renderSquads(); }
 
@@ -753,7 +786,6 @@
             });
         }
 
-        // 請假管理
         function openLeaveModal() { document.getElementById('leave-modal').classList.remove('hidden'); renderLeaveListUI(); }
         function closeLeaveModal() { document.getElementById('leave-modal').classList.add('hidden'); updateLeaveCount(); renderMemberList(); }
 
@@ -789,7 +821,6 @@
         }
         function updateLeaveCount() { document.getElementById('leave-count').innerText = leaveList.length; }
 
-        // 存檔與歷史
         function saveCurrentRoster() {
             const dateVal = document.getElementById('roster-date').value;
             if (!dateVal) { alert('請選擇日期！'); return; }
@@ -854,7 +885,6 @@
             }
         }
 
-        // 匯出 EXCEL 功能
         function exportToExcel() {
             const dateVal = document.getElementById('roster-date').value || 'date';
             let excelData = [];
