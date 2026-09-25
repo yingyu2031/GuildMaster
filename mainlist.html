@@ -44,26 +44,25 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-        /* 動態設備寬度適配：電腦模式強制擴寬與一列6隊 */
-        body.desktop-mode {
-            max-width: 1600px !important;
-            margin: 0 auto;
+        /* 全域橫排六隊版面：強制寬螢幕與左右橫滑 */
+        .roster-viewport {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
         }
-        body.desktop-mode .max-w-4xl {
-            max-width: 1550px !important;
-        }
-        body.desktop-mode .dynamic-grid-container {
-            display: grid !important;
-            grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
-            gap: 12px !important;
+        .roster-grid-container {
+            display: grid;
+            grid-template-columns: repeat(6, minmax(170px, 1fr));
+            gap: 12px;
+            min-width: 1080px;
         }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen pb-16 transition-all duration-300">
+<body class="bg-gray-100 min-h-screen pb-16">
 
     <!-- 頂部導航列 -->
     <header class="bg-white shadow-sm sticky top-0 z-30 border-b border-gray-200">
-        <div class="max-w-4xl mx-auto px-4 py-3 flex flex-col gap-2.5">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex flex-col gap-2.5">
             <div class="flex justify-between items-center">
                 <div class="flex items-center gap-2">
                     <div class="bg-indigo-600 text-white p-2 rounded-lg shadow-md">
@@ -71,17 +70,12 @@
                     </div>
                     <div>
                         <h1 class="text-base sm:text-lg font-bold text-gray-800 leading-tight">公會戰場主戰名單指揮系統</h1>
-                        <p class="text-xs text-gray-500">支援手機/電腦模式切換・一列6隊橫排</p>
+                        <p class="text-xs text-gray-500">一律橫排六隊・支援手機左右橫滑</p>
                     </div>
                 </div>
-                <div class="flex items-center gap-2">
-                    <button onclick="toggleDesktopMode()" id="mode-toggle-btn" class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold px-3 py-1.5 rounded-lg border border-gray-300 flex items-center gap-1 transition shadow-2xs">
-                        <i class="fa-solid fa-desktop"></i> <span id="mode-text">電腦版(6隊)</span>
-                    </button>
-                    <span class="text-xs font-semibold bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-full border border-indigo-200 shrink-0">
-                        <i class="fa-solid fa-lock mr-1"></i> 5人鎖定版
-                    </span>
-                </div>
+                <span class="text-xs font-semibold bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-full border border-indigo-200 shrink-0">
+                    <i class="fa-solid fa-lock mr-1"></i> 5人鎖定版
+                </span>
             </div>
 
             <!-- 第一列：日期與存檔 -->
@@ -108,7 +102,7 @@
     </header>
 
     <!-- 主內容區 -->
-    <main class="max-w-4xl mx-auto px-3 py-4 flex flex-col gap-6 transition-all duration-300">
+    <main class="max-w-6xl mx-auto px-3 py-4 flex flex-col gap-6">
 
         <!-- 人員搜尋與職業篩選區 -->
         <section class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
@@ -146,7 +140,7 @@
             </div>
         </section>
 
-        <!-- 戰術名單配置區 -->
+        <!-- 戰術名單配置區 (支援左右橫滑) -->
         <section class="bg-white rounded-2xl shadow-md border border-gray-200 p-4 flex flex-col gap-4">
             <div class="flex flex-col gap-3 border-b pb-3">
                 <div class="flex justify-between items-center">
@@ -169,9 +163,11 @@
                 </div>
             </div>
 
-            <!-- 混合排序容器 (電腦模式下自動轉為一列6隊橫排) -->
-            <div id="squads-container" class="flex flex-col gap-4">
-                <!-- 動態生成 -->
+            <!-- 橫排六隊配置視窗 (可左右滑動) -->
+            <div class="roster-viewport no-scrollbar pb-2">
+                <div id="squads-container" class="flex flex-col gap-4">
+                    <!-- 動態生成 -->
+                </div>
             </div>
 
             <!-- 戰術叮嚀與提示框容器 -->
@@ -321,7 +317,6 @@
 
         let mergedGroups = [];
         let masterOrder = [];
-        let isDesktop = false; // 預設手機模式
 
         let notices = [
             { id: 1, text: "【！！晚到者請隊長(隊友)去聯絡失聯隊友(隊長)，晚上 8點30分請自主性組隊！！】", bg: "#fecaca", textCol: "#991b1b" },
@@ -354,25 +349,6 @@
             renderNotices();
             updateLeaveCount();
         };
-
-        // 切換電腦/手機模式
-        function toggleDesktopMode() {
-            isDesktop = !isDesktop;
-            const body = document.body;
-            const btnText = document.getElementById('mode-text');
-            const btnIcon = document.querySelector('#mode-toggle-btn i');
-
-            if (isDesktop) {
-                body.classList.add('desktop-mode');
-                btnText.innerText = "手機版(單欄)";
-                btnIcon.className = "fa-solid fa-mobile-screen";
-            } else {
-                body.classList.remove('desktop-mode');
-                btnText.innerText = "電腦版(6隊)";
-                btnIcon.className = "fa-solid fa-desktop";
-            }
-            renderSquads();
-        }
 
         function initMasterOrder() {
             masterOrder = [];
@@ -454,19 +430,13 @@
             alert('所有隊伍皆已達 5 人滿編！');
         }
 
+        // 一律橫排六隊渲染（包含獨立隊伍與合併團隊內的橫排網格）
         function renderSquads() {
             const container = document.getElementById('squads-container');
             container.innerHTML = '';
 
             let totalAssigned = 0;
             let totalCapacity = squads.length * 5;
-
-            // 電腦模式下，容器套用 grid-template-columns: repeat(6, 1fr)
-            if (isDesktop) {
-                container.className = "dynamic-grid-container grid gap-3";
-            } else {
-                container.className = "flex flex-col gap-4";
-            }
 
             masterOrder = masterOrder.filter(item => {
                 if (item.type === 'squad') return squads.some(s => s.id === item.id);
@@ -489,15 +459,17 @@
                 }
             });
 
+            // 頂層排班單位（獨立隊伍或合併團隊群組）以 flex-col 垂直排列
             masterOrder.forEach((item, index) => {
                 if (item.type === 'squad') {
                     const squad = squads.find(s => s.id === item.id);
                     if (squad) {
                         const inGroup = mergedGroups.some(g => g.squadIds.includes(squad.id));
                         if (!inGroup) {
-                            const cardDiv = document.createElement('div');
-                            cardDiv.innerHTML = createSquadCardHtml(squad, index);
-                            container.appendChild(cardDiv.firstElementChild);
+                            const wrapper = document.createElement('div');
+                            wrapper.className = "roster-grid-container";
+                            wrapper.innerHTML = createSquadCardHtml(squad, index);
+                            container.appendChild(wrapper);
                             totalAssigned += squad.members.length;
                         }
                     }
@@ -505,7 +477,7 @@
                     const group = mergedGroups.find(g => g.name === item.groupName);
                     if (group) {
                         const groupDiv = document.createElement('div');
-                        groupDiv.className = 'border-2 border-purple-400 bg-purple-50/20 rounded-xl p-3 flex flex-col gap-3 relative col-span-full';
+                        groupDiv.className = 'border-2 border-purple-400 bg-purple-50/20 rounded-xl p-3 flex flex-col gap-3 relative';
                         
                         let groupHeader = `
                             <div class="flex justify-between items-center bg-purple-100 px-3 py-1.5 rounded-lg border border-purple-200">
@@ -520,7 +492,7 @@
                                 </div>
                                 <button onclick="removeMergedGroupByInstance('${group.name}')" class="text-purple-700 hover:text-red-600 text-xs font-bold"><i class="fa-solid fa-xmark"></i> 解除團隊</button>
                             </div>
-                            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+                            <div class="roster-grid-container">
                         `;
                         
                         let squadGridHtml = '';
@@ -541,6 +513,7 @@
             document.getElementById('total-assigned-badge').innerText = `已配置: ${totalAssigned} / ${totalCapacity}`;
         }
 
+        // 隊員卡片設計：僅用職業顏色代表職業，卡片內不顯示職業名稱文字
         function createSquadCardHtml(squad) {
             let slotsHtml = '';
             for (let i = 0; i < 5; i++) {
@@ -549,10 +522,7 @@
                     const job = getMemberJob(member);
                     slotsHtml += `
                         <div class="flex items-center justify-between job-card-${job} px-2.5 py-1.5 rounded-lg border shadow-2xs text-xs font-bold">
-                            <div class="flex items-center gap-1.5 truncate">
-                                <span class="text-[9px] px-1 py-0.5 rounded bg-white/70 font-black shrink-0">${job}</span>
-                                <span class="truncate">${member}</span>
-                            </div>
+                            <span class="truncate pr-1">${member}</span>
                             <button onclick="removeMemberFromSquad(${squad.id}, ${i})" class="opacity-70 hover:opacity-100 p-0.5 shrink-0"><i class="fa-solid fa-xmark"></i></button>
                         </div>
                     `;
