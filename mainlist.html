@@ -8,8 +8,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- SheetJS (xlsx) CDN for Excel export -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- html2canvas CDN for exporting image -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
         body {
@@ -44,7 +44,7 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-        /* 嚴格橫排六隊與左右橫滑 */
+        /* 調整寬度讓一列6隊完美並排且團隊與隊伍同步排序 */
         .roster-scroll-wrapper {
             width: 100%;
             overflow-x: auto;
@@ -52,9 +52,9 @@
         }
         .roster-grid-row {
             display: grid;
-            grid-template-columns: repeat(6, 170px);
-            gap: 10px;
-            width: 1080px;
+            grid-template-columns: repeat(6, 210px);
+            gap: 12px;
+            width: 1350px;
             margin-bottom: 12px;
         }
     </style>
@@ -106,7 +106,7 @@
 
         <!-- 右側：主戰名單配置區 (佔 9 份 / 80%) -->
         <div class="lg:col-span-9 flex flex-col gap-4">
-            <section class="bg-white rounded-2xl shadow-md border border-gray-200 p-4 flex flex-col gap-4">
+            <section id="capture-area" class="bg-white rounded-2xl shadow-md border border-gray-200 p-4 flex flex-col gap-4">
                 <!-- 標題與日期、已配置數 -->
                 <div class="flex flex-col gap-3 border-b pb-3">
                     <div class="flex justify-between items-center">
@@ -116,7 +116,7 @@
                         </div>
                         <span class="text-xs font-bold bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-full border border-indigo-200 shadow-2xs" id="total-assigned-badge">已配置: 0 / 0</span>
                     </div>
-                    <div class="flex items-center gap-2 pt-1">
+                    <div class="flex items-center gap-2 pt-1 sort-hidden">
                         <button onclick="addSquad()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-2 px-3 rounded-lg shadow transition flex items-center justify-center gap-1">
                             <i class="fa-solid fa-plus"></i>隊伍
                         </button>
@@ -141,15 +141,15 @@
                     <!-- 動態產生 -->
                 </div>
                 
-                <div class="flex justify-between items-center pt-2">
+                <div class="flex justify-between items-center pt-2 sort-hidden">
                     <button onclick="openNoticeModal()" class="text-xs text-indigo-600 hover:text-indigo-800 font-bold flex items-center gap-1">
                         <i class="fa-solid fa-pen-to-square"></i> 管理戰術叮嚀與提示框
                     </button>
                     <span class="text-[10px] text-gray-400">公會戰場指揮系統產出</span>
                 </div>
 
-                <!-- 存檔、歷史紀錄、匯出 Excel 置於主戰名單最下方 -->
-                <div class="flex flex-col sm:flex-row items-center gap-2 pt-3 border-t border-gray-200">
+                <!-- 存檔、歷史紀錄、匯出圖片置於主戰名單最下方 -->
+                <div class="flex flex-col sm:flex-row items-center gap-2 pt-3 border-t border-gray-200 sort-hidden">
                     <input type="date" id="roster-date" class="w-full sm:w-auto flex-1 bg-gray-50 border border-gray-300 text-gray-800 text-xs rounded-lg px-3 py-2.5 font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none text-center">
                     <div class="grid grid-cols-3 gap-2 w-full sm:w-auto">
                         <button onclick="saveCurrentRoster()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-2.5 px-3 rounded-lg shadow-sm flex items-center justify-center gap-1 transition">
@@ -158,8 +158,8 @@
                         <button onclick="openHistoryModal()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold py-2.5 px-3 rounded-lg border border-gray-300 flex items-center justify-center gap-1 transition">
                             <i class="fa-solid fa-clock-rotate-left"></i> 歷史
                         </button>
-                        <button onclick="exportToExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2.5 px-3 rounded-lg shadow-md flex items-center justify-center gap-1 transition">
-                            <i class="fa-solid fa-file-excel"></i> 匯出
+                        <button onclick="exportToImage()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2.5 px-3 rounded-lg shadow-md flex items-center justify-center gap-1 transition">
+                            <i class="fa-solid fa-image"></i> 匯出圖片
                         </button>
                     </div>
                 </div>
@@ -424,6 +424,7 @@
             alert('所有隊伍皆已達 5 人滿編！');
         }
 
+        // 統一排版渲染：團隊與隊伍在同一個 masterOrder 內同步排序
         function renderSquads() {
             const container = document.getElementById('squads-container');
             container.innerHTML = '';
@@ -897,26 +898,36 @@
             }
         }
 
-        function exportToExcel() {
-            const dateVal = document.getElementById('roster-date').value || 'date';
-            let excelData = [];
+        // 一鍵匯出成圖片
+        function exportToImage() {
+            const captureElement = document.getElementById('capture-area');
+            const btn = event.currentTarget;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 正在產生...`;
+            btn.disabled = true;
 
-            excelData.push(["公會戰場主戰名單", `日期: ${dateVal}`]);
-            excelData.push([]);
+            document.querySelectorAll('.sort-hidden').forEach(el => el.style.display = 'none');
 
-            squads.forEach((squad, idx) => {
-                let rowData = [squad.name];
-                for (let i = 0; i < 5; i++) {
-                    rowData.push(squad.members[i] || "");
-                }
-                excelData.push(rowData);
+            html2canvas(captureElement, {
+                scale: 2,
+                useCORS: true,
+                backgroundColor: '#ffffff'
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `公會戰場主戰名單_${document.getElementById('roster-date').value || 'date'}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+
+                document.querySelectorAll('.sort-hidden').forEach(el => el.style.display = '');
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }).catch(err => {
+                console.error(err);
+                alert('圖片匯出失敗，請再試一次！');
+                document.querySelectorAll('.sort-hidden').forEach(el => el.style.display = '');
+                btn.innerHTML = originalText;
+                btn.disabled = false;
             });
-
-            const worksheet = XLSX.utils.aoa_to_sheet(excelData);
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "主戰名單");
-
-            XLSX.writeFile(workbook, `公會戰場主戰名單_${dateVal}.xlsx`);
         }
     </script>
 </body>
