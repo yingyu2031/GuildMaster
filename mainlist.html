@@ -61,81 +61,47 @@
 </head>
 <body class="bg-gray-100 min-h-screen pb-16">
 
-    <!-- 頂部導航列 -->
+    <!-- 頂部導航列 (精簡乾淨) -->
     <header class="bg-white shadow-sm sticky top-0 z-30 border-b border-gray-200">
-        <div class="max-w-6xl mx-auto px-4 py-3 flex flex-col gap-2.5">
-            <div class="flex justify-between items-center">
-                <div class="flex items-center gap-2">
-                    <div class="bg-indigo-600 text-white p-2 rounded-lg shadow-md">
-                        <i class="fa-solid fa-shield-halved text-lg"></i>
-                    </div>
-                    <div>
-                        <h1 class="text-base sm:text-lg font-bold text-gray-800 leading-tight">公會戰場主戰名單指揮系統</h1>
-                        <p class="text-xs text-gray-500">固定一律橫排六隊・支援左右橫滑</p>
-                    </div>
-                </div>
-                <span class="text-xs font-semibold bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-full border border-indigo-200 shrink-0">
-                    <i class="fa-solid fa-lock mr-1"></i> 5人鎖定版
-                </span>
-            </div>
-
-            <!-- 第一列：日期與存檔 -->
+        <div class="max-w-6xl mx-auto px-4 py-2.5 flex justify-between items-center">
             <div class="flex items-center gap-2">
-                <input type="date" id="roster-date" class="flex-1 bg-gray-50 border border-gray-300 text-gray-800 text-xs rounded-lg px-3 py-2.5 font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none text-center">
-                <button onclick="saveCurrentRoster()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-2.5 px-5 rounded-lg shadow-sm flex items-center justify-center gap-1.5 transition shrink-0">
-                    <i class="fa-solid fa-floppy-disk"></i> 存檔
-                </button>
+                <div class="bg-indigo-600 text-white p-1.5 rounded-lg shadow-md">
+                    <i class="fa-solid fa-shield-halved text-base"></i>
+                </div>
+                <div>
+                    <h1 class="text-sm sm:text-base font-bold text-gray-800 leading-tight">公會戰場主戰名單指揮系統</h1>
+                    <p class="text-[10px] text-gray-500">4:6黃金比例・一律橫排六隊</p>
+                </div>
             </div>
-
-            <!-- 第二列：歷史、匯出 EXCEL 名單 -->
-            <div class="grid grid-cols-2 gap-2">
-                <button onclick="openHistoryModal()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold py-2.5 px-2 rounded-lg border border-gray-300 flex items-center justify-center gap-1 transition">
-                    <i class="fa-solid fa-clock-rotate-left"></i> 歷史紀錄
+            <div class="flex items-center gap-2">
+                <button onclick="openLeaveModal()" class="bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-bold py-1.5 px-3 rounded-lg border border-amber-300 flex items-center gap-1 transition shadow-2xs">
+                    <i class="fa-solid fa-user-slash"></i> 請假(<span id="leave-count">0</span>)
                 </button>
-                <button onclick="exportToExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2.5 px-2 rounded-lg shadow-md flex items-center justify-center gap-1 transition">
-                    <i class="fa-solid fa-file-excel"></i> 匯出EXCEL
-                </button>
+                <span class="text-[11px] font-semibold bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full border border-indigo-200 shrink-0">
+                    <i class="fa-solid fa-lock mr-1"></i> 5人鎖定
+                </span>
             </div>
         </div>
     </header>
 
-    <!-- 主內容區 -->
-    <main class="max-w-6xl mx-auto px-3 py-4 flex flex-col gap-6">
+    <!-- 主內容區：黃金比例 4:6 分割排版 -->
+    <main class="max-w-6xl mx-auto px-3 py-4 flex flex-col lg:grid lg:grid-cols-12 gap-4">
 
-        <!-- 凍結區塊：當日請假人員區塊 + 人員搜尋與職業篩選區 -->
-        <div class="sticky top-[148px] sm:top-[158px] z-20 bg-gray-100/95 backdrop-blur-sm pt-1 pb-2 flex flex-col gap-3 shadow-xs">
-            <!-- 當日請假人員常駐顯示區塊 -->
-            <section class="bg-amber-50 rounded-xl shadow-xs border border-amber-200 p-3 flex flex-col gap-2">
+        <!-- 左側：人員列表區塊 (佔 4 份 / 40%) -->
+        <div class="lg:col-span-5 sticky top-[56px] z-20 bg-gray-100/95 backdrop-blur-sm pt-1 pb-2 flex flex-col gap-3">
+            <section class="bg-white rounded-2xl shadow-md border border-gray-200 p-3.5 flex flex-col gap-2.5">
                 <div class="flex justify-between items-center">
-                    <h3 class="text-xs font-bold text-amber-900 flex items-center gap-1.5">
-                        <i class="fa-solid fa-user-slash text-amber-600"></i> 本日請假人員名單 (<span id="today-leave-count">0</span> 人)
-                    </h3>
-                    <div class="flex items-center gap-2">
-                        <span class="text-[10px] text-amber-700 font-medium" id="leave-date-label">2026-09-25</span>
-                        <button onclick="openLeaveModal()" class="bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-bold px-2 py-0.5 rounded shadow-2xs transition flex items-center gap-1">
-                            <i class="fa-solid fa-plus"></i> 請假
-                        </button>
-                    </div>
-                </div>
-                <div id="today-leave-list" class="flex flex-col gap-1 max-h-32 overflow-y-auto no-scrollbar">
-                    <!-- 動態填入每人一行的請假人員 -->
-                </div>
-            </section>
-
-            <!-- 人員搜尋與職業篩選區 (凍結隨行) -->
-            <section class="bg-white rounded-xl shadow-md border border-gray-200 p-3">
-                <div class="flex justify-between items-center mb-2">
-                    <h2 class="text-sm font-bold text-gray-700 flex items-center gap-2">
-                        <i class="fa-solid fa-users text-indigo-600"></i> 人員列表 (點擊或拖曳指派)
+                    <h2 class="text-xs sm:text-sm font-bold text-gray-700 flex items-center gap-1.5">
+                        <i class="fa-solid fa-users text-indigo-600"></i> 人員列表 (點擊/拖曳)
                     </h2>
-                    <span class="text-xs text-gray-400">已自動排除請假人員</span>
+                    <span class="text-[10px] text-gray-400">已自動排除請假</span>
                 </div>
-                <div class="flex gap-2 mb-2">
+                <div class="flex gap-2">
                     <div class="relative flex-1">
-                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-gray-400 text-xs"></i>
-                        <input type="text" id="search-input" placeholder="搜尋姓名..." oninput="renderMemberList()" class="w-full bg-gray-50 border border-gray-300 text-xs rounded-lg pl-9 pr-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-gray-400 text-xs"></i>
+                        <input type="text" id="search-input" placeholder="搜尋姓名..." oninput="renderMemberList()" class="w-full bg-gray-50 border border-gray-300 text-xs rounded-lg pl-8 pr-2 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                     </div>
-                    <select id="job-filter" onchange="renderMemberList()" class="bg-gray-50 border border-gray-300 text-xs rounded-lg px-3 py-2 text-gray-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    <select id="job-filter" onchange="renderMemberList()" class="bg-gray-50 border border-gray-300 text-xs rounded-lg px-2 py-2 text-gray-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                         <option value="全部">全部職業</option>
                         <option value="刺客">刺客</option>
                         <option value="十字軍">十字軍</option>
@@ -152,55 +118,74 @@
                         <option value="煉金">煉金</option>
                     </select>
                 </div>
-                <!-- 列表式指派清單 -->
-                <div id="member-list-container" class="flex flex-col gap-1 max-h-40 overflow-y-auto p-1 bg-gray-50 rounded-lg border border-gray-100">
-                    <!-- 動態生成成員列 -->
+                <!-- 列表式指派清單 (限制高度可滾動) -->
+                <div id="member-list-container" class="flex flex-col gap-1 max-h-[60vh] overflow-y-auto p-1 bg-gray-50 rounded-lg border border-gray-100">
+                    <!-- 動態生成 -->
                 </div>
             </section>
         </div>
 
-        <!-- 戰術名單配置區 (支援左右橫滑) -->
-        <section class="bg-white rounded-2xl shadow-md border border-gray-200 p-4 flex flex-col gap-4">
-            <div class="flex flex-col gap-3 border-b pb-3">
-                <div class="flex justify-between items-center">
-                    <div>
-                        <h2 class="text-base font-black text-gray-800 tracking-wide">主戰名單</h2>
-                        <p class="text-xs text-gray-500" id="display-date-label">日期：2026-09-25</p>
+        <!-- 右側：主戰名單配置區 (佔 7 份 / 60%) -->
+        <div class="lg:col-span-7 flex flex-col gap-4">
+            <section class="bg-white rounded-2xl shadow-md border border-gray-200 p-4 flex flex-col gap-4">
+                <!-- 標題與日期、已配置數 -->
+                <div class="flex flex-col gap-3 border-b pb-3">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h2 class="text-base font-black text-gray-800 tracking-wide">主戰名單</h2>
+                            <p class="text-xs text-gray-500" id="display-date-label">日期：2026-09-25</p>
+                        </div>
+                        <span class="text-xs font-bold bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-full border border-indigo-200 shadow-2xs" id="total-assigned-badge">已配置: 0 / 0</span>
                     </div>
-                    <span class="text-xs font-bold bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-full border border-indigo-200 shadow-2xs" id="total-assigned-badge">已配置: 0 / 0</span>
+                    <div class="flex items-center gap-2 pt-1">
+                        <button onclick="addSquad()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-2 px-3 rounded-lg shadow transition flex items-center justify-center gap-1">
+                            <i class="fa-solid fa-plus"></i>隊伍
+                        </button>
+                        <button onclick="openMergeModal()" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold py-2 px-3 rounded-lg shadow transition flex items-center justify-center gap-1">
+                            <i class="fa-solid fa-object-group"></i>合併團隊
+                        </button>
+                        <button onclick="resetRoster()" class="bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-bold py-2 px-3 rounded-lg border transition flex items-center justify-center gap-1" title="重置">
+                            <i class="fa-solid fa-rotate-right"></i> 重置
+                        </button>
+                    </div>
                 </div>
-                <div class="flex items-center gap-2 pt-1">
-                    <button onclick="addSquad()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-2 px-3 rounded-lg shadow transition flex items-center justify-center gap-1">
-                        <i class="fa-solid fa-plus"></i>隊伍
-                    </button>
-                    <button onclick="openMergeModal()" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold py-2 px-3 rounded-lg shadow transition flex items-center justify-center gap-1">
-                        <i class="fa-solid fa-object-group"></i>合併團隊
-                    </button>
-                    <button onclick="resetRoster()" class="bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-bold py-2 px-3 rounded-lg border transition flex items-center justify-center gap-1" title="重置">
-                        <i class="fa-solid fa-rotate-right"></i> 重置
-                    </button>
-                </div>
-            </div>
 
-            <!-- 橫排六隊配置視窗 (支援左右橫滑) -->
-            <div class="roster-scroll-wrapper no-scrollbar pb-3">
-                <div id="squads-container" class="flex flex-col gap-4">
-                    <!-- 動態生成 -->
+                <!-- 橫排六隊配置視窗 (支援左右橫滑) -->
+                <div class="roster-scroll-wrapper no-scrollbar pb-3">
+                    <div id="squads-container" class="flex flex-col gap-4">
+                        <!-- 動態生成 -->
+                    </div>
                 </div>
-            </div>
 
-            <!-- 戰術叮嚀與提示框容器 -->
-            <div id="notices-container" class="flex flex-col gap-2 pt-2 border-t border-gray-200">
-                <!-- 動態產生 -->
-            </div>
-            
-            <div class="flex justify-between items-center pt-2">
-                <button onclick="openNoticeModal()" class="text-xs text-indigo-600 hover:text-indigo-800 font-bold flex items-center gap-1">
-                    <i class="fa-solid fa-pen-to-square"></i> 管理戰術叮嚀與提示框
-                </button>
-                <span class="text-[10px] text-gray-400">公會戰場指揮系統產出</span>
-            </div>
-        </section>
+                <!-- 戰術叮嚀與提示框容器 -->
+                <div id="notices-container" class="flex flex-col gap-2 pt-2 border-t border-gray-200">
+                    <!-- 動態產生 -->
+                </div>
+                
+                <div class="flex justify-between items-center pt-2">
+                    <button onclick="openNoticeModal()" class="text-xs text-indigo-600 hover:text-indigo-800 font-bold flex items-center gap-1">
+                        <i class="fa-solid fa-pen-to-square"></i> 管理戰術叮嚀與提示框
+                    </button>
+                    <span class="text-[10px] text-gray-400">公會戰場指揮系統產出</span>
+                </div>
+
+                <!-- 存檔、歷史紀錄、匯出 Excel 移至主戰名單最下方 -->
+                <div class="flex flex-col sm:flex-row items-center gap-2 pt-3 border-t border-gray-200">
+                    <input type="date" id="roster-date" class="w-full sm:w-auto flex-1 bg-gray-50 border border-gray-300 text-gray-800 text-xs rounded-lg px-3 py-2.5 font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none text-center">
+                    <div class="grid grid-cols-3 gap-2 w-full sm:w-auto">
+                        <button onclick="saveCurrentRoster()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-2.5 px-3 rounded-lg shadow-sm flex items-center justify-center gap-1 transition">
+                            <i class="fa-solid fa-floppy-disk"></i> 存檔
+                        </button>
+                        <button onclick="openHistoryModal()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold py-2.5 px-3 rounded-lg border border-gray-300 flex items-center justify-center gap-1 transition">
+                            <i class="fa-solid fa-clock-rotate-left"></i> 歷史
+                        </button>
+                        <button onclick="exportToExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2.5 px-3 rounded-lg shadow-md flex items-center justify-center gap-1 transition">
+                            <i class="fa-solid fa-file-excel"></i> 匯出
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </div>
 
     </main>
 
@@ -338,7 +323,7 @@
         let masterOrder = [];
 
         let notices = [
-            { id: 1, text: "【！！晚到者請隊長(隊友)去聯絡失聯隊友(隊長)", bg: "#fecaca", textCol: "#991b1b" },
+            { id: 1, text: "【！！晚到者請隊長(隊友)去聯絡失聯隊友(隊長)，晚上 8點30分請自主性組隊！！】", bg: "#fecaca", textCol: "#991b1b" },
             { id: 2, text: "召集隊：4、5、6、7\n支援隊*2", bg: "#fef08a", textCol: "#854d0e" },
             { id: 3, text: "二塔存活：主推線\n剩內塔：主防守", bg: "#bfdbfe", textCol: "#1e40af" },
             { id: 4, text: "未召集隊：\n我方二塔還在，主推線\n剩內塔，主防守", bg: "#e5e7eb", textCol: "#374151" }
@@ -363,52 +348,16 @@
             document.getElementById('roster-date').addEventListener('change', function(e) {
                 const val = e.target.value;
                 document.getElementById('display-date-label').innerText = `日期：${val}`;
-                renderTodayLeaveList(val);
                 renderMemberList();
+                updateLeaveCount();
             });
 
             initMasterOrder();
-            renderTodayLeaveList(todayStr);
             renderMemberList();
             renderSquads();
             renderNotices();
             updateLeaveCount();
         };
-
-        // 渲染當日請假人員常駐清單 (每人一行，先顯示職業在名稱)
-        function renderTodayLeaveList(dateStr) {
-            document.getElementById('leave-date-label').innerText = dateStr;
-            const container = document.getElementById('today-leave-list');
-            container.innerHTML = '';
-
-            const todayLeaves = leaveList.filter(l => l.date === dateStr);
-            document.getElementById('today-leave-count').innerText = todayLeaves.length;
-
-            if (todayLeaves.length === 0) {
-                container.innerHTML = `<span class="text-xs text-amber-700 p-1">本日無人請假</span>`;
-                return;
-            }
-
-            todayLeaves.forEach((l, idx) => {
-                const row = document.createElement('div');
-                row.className = `flex items-center justify-between px-2.5 py-1.5 rounded-lg border text-xs bg-white shadow-2xs`;
-                row.innerHTML = `
-                    <div class="flex items-center gap-2">
-                        <span class="job-card-${l.job} px-2 py-0.5 rounded font-bold text-[10px] border">${l.job}</span>
-                        <span class="font-bold text-gray-800">${l.name}</span>
-                    </div>
-                    <button onclick="deleteLeavePersonByDetails('${l.name}', '${l.date}')" class="text-gray-400 hover:text-red-600 text-xs p-0.5"><i class="fa-solid fa-trash-can"></i></button>
-                `;
-                container.appendChild(row);
-            });
-        }
-
-        function deleteLeavePersonByDetails(name, date) {
-            leaveList = leaveList.filter(l => !(l.name === name && l.date === date));
-            renderTodayLeaveList(document.getElementById('roster-date').value);
-            renderMemberList();
-            updateLeaveCount();
-        }
 
         function initMasterOrder() {
             masterOrder = [];
@@ -491,7 +440,6 @@
             alert('所有隊伍皆已達 5 人滿編！');
         }
 
-        // 嚴格修復團隊跨欄與橫排邏輯
         function renderSquads() {
             const container = document.getElementById('squads-container');
             container.innerHTML = '';
@@ -550,7 +498,6 @@
                 } else if (item.type === 'group') {
                     const group = mergedGroups.find(g => g.name === item.groupName);
                     if (group) {
-                        // 結算上一行
                         if (rowItemCount > 0) {
                             container.appendChild(currentRow);
                             currentRow = document.createElement('div');
@@ -558,7 +505,6 @@
                             rowItemCount = 0;
                         }
 
-                        // 建立團隊大框，內含的小隊直接以 grid 完美排列
                         const groupDiv = document.createElement('div');
                         groupDiv.className = 'border-2 border-purple-400 bg-purple-50/20 rounded-xl p-3 flex flex-col gap-3';
                         groupDiv.style.gridColumn = 'span 6';
@@ -854,7 +800,6 @@
             document.getElementById('leave-modal').classList.add('hidden'); 
             updateLeaveCount(); 
             renderMemberList();
-            renderTodayLeaveList(document.getElementById('roster-date').value);
         }
 
         function addLeavePerson() {
@@ -866,11 +811,17 @@
             document.getElementById('leave-name').value = '';
             document.getElementById('leave-job').value = '';
             renderLeaveListUI();
-            renderTodayLeaveList(document.getElementById('roster-date').value);
             renderMemberList();
+            updateLeaveCount();
         }
 
-        function deleteLeavePerson(index) { leaveList.splice(index, 1); renderLeaveListUI(); }
+        function deleteLeavePerson(index) { 
+            leaveList.splice(index, 1); 
+            renderLeaveListUI(); 
+            renderMemberList();
+            updateLeaveCount();
+        }
+
         function renderLeaveListUI() {
             const container = document.getElementById('leave-list-ui');
             container.innerHTML = '';
@@ -889,7 +840,12 @@
             });
             updateLeaveCount();
         }
-        function updateLeaveCount() { document.getElementById('leave-count').innerText = leaveList.length; }
+
+        function updateLeaveCount() {
+            const currentDate = document.getElementById('roster-date').value;
+            const count = leaveList.filter(l => l.date === currentDate).length;
+            document.getElementById('leave-count').innerText = count;
+        }
 
         function saveCurrentRoster() {
             const dateVal = document.getElementById('roster-date').value;
@@ -943,7 +899,7 @@
                 if (masterOrder.length === 0) initMasterOrder();
                 document.getElementById('roster-date').value = found.date;
                 document.getElementById('display-date-label').innerText = `日期：${found.date}`;
-                renderSquads(); renderNotices(); renderMemberList(); renderTodayLeaveList(found.date); updateLeaveCount(); closeHistoryModal();
+                renderSquads(); renderNotices(); renderMemberList(); updateLeaveCount(); closeHistoryModal();
                 alert(`已載入 ${found.date} 歷史名單！`);
             }
         }
