@@ -44,17 +44,17 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-        /* 全域橫排六隊版面：強制寬螢幕與左右橫滑 */
-        .roster-viewport {
+        /* 嚴格確保一列6隊、總寬度撐開以支援手機左右橫滑 */
+        .roster-scroll-wrapper {
             width: 100%;
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
         }
-        .roster-grid-container {
+        .roster-grid-row {
             display: grid;
-            grid-template-columns: repeat(6, minmax(170px, 1fr));
-            gap: 12px;
-            min-width: 1080px;
+            grid-template-columns: repeat(6, 170px);
+            gap: 10px;
+            width: 1080px;
         }
     </style>
 </head>
@@ -70,7 +70,7 @@
                     </div>
                     <div>
                         <h1 class="text-base sm:text-lg font-bold text-gray-800 leading-tight">公會戰場主戰名單指揮系統</h1>
-                        <p class="text-xs text-gray-500">一律橫排六隊・支援手機左右橫滑</p>
+                        <p class="text-xs text-gray-500">固定一律橫排六隊・支援左右橫滑</p>
                     </div>
                 </div>
                 <span class="text-xs font-semibold bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-full border border-indigo-200 shrink-0">
@@ -103,6 +103,19 @@
 
     <!-- 主內容區 -->
     <main class="max-w-6xl mx-auto px-3 py-4 flex flex-col gap-6">
+
+        <!-- 當日請假人員區塊 -->
+        <section class="bg-amber-50 rounded-xl shadow-xs border border-amber-200 p-3.5 flex flex-col gap-2">
+            <div class="flex justify-between items-center">
+                <h3 class="text-xs font-bold text-amber-900 flex items-center gap-1.5">
+                    <i class="fa-solid fa-user-slash text-amber-600"></i> 本日請假人員名單 (<span id="today-leave-count">0</span> 人)
+                </h3>
+                <span class="text-[10px] text-amber-700 font-medium" id="leave-date-label">2026-09-25</span>
+            </div>
+            <div id="today-leave-list" class="flex flex-wrap gap-1.5">
+                <!-- 動態填入當日請假人員 -->
+            </div>
+        </section>
 
         <!-- 人員搜尋與職業篩選區 -->
         <section class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
@@ -146,7 +159,7 @@
                 <div class="flex justify-between items-center">
                     <div>
                         <h2 class="text-base font-black text-gray-800 tracking-wide">主戰名單</h2>
-                        <p class="text-xs text-gray-500" id="display-date-label">日期：2026-09-24</p>
+                        <p class="text-xs text-gray-500" id="display-date-label">日期：2026-09-25</p>
                     </div>
                     <span class="text-xs font-bold bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-full border border-indigo-200 shadow-2xs" id="total-assigned-badge">已配置: 0 / 0</span>
                 </div>
@@ -163,8 +176,8 @@
                 </div>
             </div>
 
-            <!-- 橫排六隊配置視窗 (可左右滑動) -->
-            <div class="roster-viewport no-scrollbar pb-2">
+            <!-- 橫排六隊配置視窗 (支援左右橫滑) -->
+            <div class="roster-scroll-wrapper no-scrollbar pb-3">
                 <div id="squads-container" class="flex flex-col gap-4">
                     <!-- 動態生成 -->
                 </div>
@@ -327,7 +340,9 @@
 
         let leaveList = [
             { name: "哥哥呵呵", job: "十字軍", date: "2026-09-22" },
-            { name: "透水男孩", job: "刺客", date: "2026-09-22" }
+            { name: "透水男孩", job: "刺客", date: "2026-09-22" },
+            { name: "馬東三", job: "法師", date: "2026-09-25" },
+            { name: "至尊寶ゞ", job: "法師", date: "2026-09-25" }
         ];
 
         let selectedNoticeBg = "#fecaca";
@@ -340,15 +355,40 @@
             document.getElementById('display-date-label').innerText = `日期：${todayStr}`;
             
             document.getElementById('roster-date').addEventListener('change', function(e) {
-                document.getElementById('display-date-label').innerText = `日期：${e.target.value}`;
+                const val = e.target.value;
+                document.getElementById('display-date-label').innerText = `日期：${val}`;
+                renderTodayLeaveList(val);
             });
 
             initMasterOrder();
+            renderTodayLeaveList(todayStr);
             renderMemberList();
             renderSquads();
             renderNotices();
             updateLeaveCount();
         };
+
+        // 渲染當日請假名單
+        function renderTodayLeaveList(dateStr) {
+            document.getElementById('leave-date-label').innerText = dateStr;
+            const container = document.getElementById('today-leave-list');
+            container.innerHTML = '';
+
+            const todayLeaves = leaveList.filter(l => l.date === dateStr);
+            document.getElementById('today-leave-count').innerText = todayLeaves.length;
+
+            if (todayLeaves.length === 0) {
+                container.innerHTML = `<span class="text-xs text-amber-700">本日無人請假</span>`;
+                return;
+            }
+
+            todayLeaves.forEach(l => {
+                const tag = document.createElement('div');
+                tag.className = `flex items-center gap-1.5 job-card-${l.job} px-2.5 py-1 rounded-lg text-xs font-bold border shadow-2xs`;
+                tag.innerHTML = `<span>${l.name}</span>`;
+                container.appendChild(tag);
+            });
+        }
 
         function initMasterOrder() {
             masterOrder = [];
@@ -370,7 +410,8 @@
         }
 
         function isLeave(name) {
-            return leaveList.some(l => l.name === name);
+            const currentDate = document.getElementById('roster-date').value;
+            return leaveList.some(l => l.name === name && l.date === currentDate);
         }
 
         function renderMemberList() {
@@ -430,7 +471,7 @@
             alert('所有隊伍皆已達 5 人滿編！');
         }
 
-        // 一律橫排六隊渲染（包含獨立隊伍與合併團隊內的橫排網格）
+        // 嚴格維持一律橫排六隊（每 6 個卡片一列）
         function renderSquads() {
             const container = document.getElementById('squads-container');
             container.innerHTML = '';
@@ -459,25 +500,48 @@
                 }
             });
 
-            // 頂層排班單位（獨立隊伍或合併團隊群組）以 flex-col 垂直排列
+            // 將所有區塊分組成每列最多 6 個的 row 容器以實現精準橫排
+            let currentRow = document.createElement('div');
+            currentRow.className = "roster-grid-row";
+            let rowItemCount = 0;
+
+            function appendToRow(element) {
+                if (rowItemCount >= 6) {
+                    container.appendChild(currentRow);
+                    currentRow = document.createElement('div');
+                    currentRow.className = "roster-grid-row";
+                    rowItemCount = 0;
+                }
+                currentRow.appendChild(element);
+                rowItemCount++;
+            }
+
             masterOrder.forEach((item, index) => {
                 if (item.type === 'squad') {
                     const squad = squads.find(s => s.id === item.id);
                     if (squad) {
                         const inGroup = mergedGroups.some(g => g.squadIds.includes(squad.id));
                         if (!inGroup) {
-                            const wrapper = document.createElement('div');
-                            wrapper.className = "roster-grid-container";
-                            wrapper.innerHTML = createSquadCardHtml(squad, index);
-                            container.appendChild(wrapper);
+                            const cardDiv = document.createElement('div');
+                            cardDiv.innerHTML = createSquadCardHtml(squad, index);
+                            appendToRow(cardDiv.firstElementChild);
                             totalAssigned += squad.members.length;
                         }
                     }
                 } else if (item.type === 'group') {
                     const group = mergedGroups.find(g => g.name === item.groupName);
                     if (group) {
+                        // 如果當前行還有未滿，先結算換行放合併團隊
+                        if (rowItemCount > 0) {
+                            container.appendChild(currentRow);
+                            currentRow = document.createElement('div');
+                            currentRow.className = "roster-grid-row";
+                            rowItemCount = 0;
+                        }
+
                         const groupDiv = document.createElement('div');
                         groupDiv.className = 'border-2 border-purple-400 bg-purple-50/20 rounded-xl p-3 flex flex-col gap-3 relative';
+                        groupDiv.style.gridColumn = 'span 6'; // 合併團隊橫跨 6 欄
                         
                         let groupHeader = `
                             <div class="flex justify-between items-center bg-purple-100 px-3 py-1.5 rounded-lg border border-purple-200">
@@ -492,28 +556,38 @@
                                 </div>
                                 <button onclick="removeMergedGroupByInstance('${group.name}')" class="text-purple-700 hover:text-red-600 text-xs font-bold"><i class="fa-solid fa-xmark"></i> 解除團隊</button>
                             </div>
-                            <div class="roster-grid-container">
+                            <div class="roster-grid-row">
                         `;
                         
                         let squadGridHtml = '';
                         group.squadIds.forEach(sId => {
                             const squad = squads.find(s => s.id === sId);
                             if (squad) {
-                                squadGridHtml += createSquadCardHtml(squad);
+                                const tempCard = document.createElement('div');
+                                tempCard.innerHTML = createSquadCardHtml(squad);
+                                squadGridHtml += tempCard.innerHTML;
                                 totalAssigned += squad.members.length;
                             }
                         });
 
                         groupDiv.innerHTML = groupHeader + squadGridHtml + `</div>`;
                         container.appendChild(groupDiv);
+
+                        currentRow = document.createElement('div');
+                        currentRow.className = "roster-grid-row";
+                        rowItemCount = 0;
                     }
                 }
             });
 
+            if (rowItemCount > 0) {
+                container.appendChild(currentRow);
+            }
+
             document.getElementById('total-assigned-badge').innerText = `已配置: ${totalAssigned} / ${totalCapacity}`;
         }
 
-        // 隊員卡片設計：僅用職業顏色代表職業，卡片內不顯示職業名稱文字
+        // 僅用顏色代表職業，不顯示職業文字
         function createSquadCardHtml(squad) {
             let slotsHtml = '';
             for (let i = 0; i < 5; i++) {
@@ -530,7 +604,7 @@
                     slotsHtml += `
                         <div class="slot-card flex items-center justify-center bg-gray-50 border border-dashed border-gray-300 rounded-lg text-[11px] text-gray-400 py-1"
                              ondragover="allowDrop(event)" ondragleave="removeDropStyle(event)" ondrop="dropToSquad(event, ${squad.id})">
-                            + 空位 (上限5人)
+                            + 空位 (5人)
                         </div>
                     `;
                 }
@@ -554,7 +628,7 @@
                 <div class="bg-white border border-gray-300 rounded-xl shadow-xs overflow-hidden flex flex-col">
                     <div class="bg-gray-100 px-2 py-1.5 border-b border-gray-200 flex justify-between items-center">
                         <div class="flex items-center gap-1">
-                            <input type="text" value="${squad.name}" onchange="updateSquadName(${squad.id}, this.value)" class="bg-transparent text-xs font-black text-gray-800 w-20 focus:outline-none focus:bg-white px-1 rounded">
+                            <input type="text" value="${squad.name}" onchange="updateSquadName(${squad.id}, this.value)" class="bg-transparent text-xs font-black text-gray-800 w-16 focus:outline-none focus:bg-white px-1 rounded">
                             ${sortButtonsHtml}
                         </div>
                         <div class="flex items-center gap-1">
@@ -757,7 +831,12 @@
         }
 
         function openLeaveModal() { document.getElementById('leave-modal').classList.remove('hidden'); renderLeaveListUI(); }
-        function closeLeaveModal() { document.getElementById('leave-modal').classList.add('hidden'); updateLeaveCount(); renderMemberList(); }
+        function closeLeaveModal() { 
+            document.getElementById('leave-modal').classList.add('hidden'); 
+            updateLeaveCount(); 
+            renderMemberList();
+            renderTodayLeaveList(document.getElementById('roster-date').value);
+        }
 
         function addLeavePerson() {
             const name = document.getElementById('leave-name').value.trim();
@@ -799,7 +878,8 @@
                 squads: JSON.parse(JSON.stringify(squads)), 
                 mergedGroups: JSON.parse(JSON.stringify(mergedGroups)), 
                 masterOrder: JSON.parse(JSON.stringify(masterOrder)),
-                notices: JSON.parse(JSON.stringify(notices)) 
+                notices: JSON.parse(JSON.stringify(notices)),
+                leaveList: JSON.parse(JSON.stringify(leaveList))
             };
             let history = JSON.parse(localStorage.getItem('guild_roster_history') || '[]');
             history = history.filter(h => h.date !== dateVal);
@@ -838,10 +918,11 @@
                 mergedGroups = found.mergedGroups ? JSON.parse(JSON.stringify(found.mergedGroups)) : [];
                 masterOrder = found.masterOrder ? JSON.parse(JSON.stringify(found.masterOrder)) : [];
                 notices = found.notices ? JSON.parse(JSON.stringify(found.notices)) : notices;
+                if (found.leaveList) leaveList = JSON.parse(JSON.stringify(found.leaveList));
                 if (masterOrder.length === 0) initMasterOrder();
                 document.getElementById('roster-date').value = found.date;
                 document.getElementById('display-date-label').innerText = `日期：${found.date}`;
-                renderSquads(); renderNotices(); renderMemberList(); closeHistoryModal();
+                renderSquads(); renderNotices(); renderMemberList(); renderTodayLeaveList(found.date); updateLeaveCount(); closeHistoryModal();
                 alert(`已載入 ${found.date} 歷史名單！`);
             }
         }
