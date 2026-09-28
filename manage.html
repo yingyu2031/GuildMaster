@@ -1183,51 +1183,57 @@ function syncAllClassDropdowns() {
  `;
  container.appendChild(card);
  });
- } else if (currentLeaveSubTab === 'today') {
- const todayStr = new Date().toISOString().split('T')[0];
- document.getElementById('todayDateLabel').textContent = `今日日期：${todayStr}`;
- const todayList = leavesData.filter(l => l.date === todayStr);
- document.getElementById('todayLeaveSummaryText').textContent = `共 ${todayList.length} 人請假`;
+     } else if (currentLeaveSubTab === 'today') {
+        const todayStr = new Date().toISOString().split('T')[0];
+        document.getElementById('todayDateLabel').textContent = `今日日期：${todayStr}`;
+        const todayList = leavesData.filter(l => l.date === todayStr);
+        document.getElementById('todayLeaveSummaryText').textContent = `共 ${todayList.length} 人請假`;
 
- const container = document.getElementById('leaveTodayContainer');
- container.innerHTML = "";
- if (todayList.length === 0) {
- container.innerHTML = `<div class="bg-[#F8FAFC] rounded-2xl p-6 text-center text-xs text-slate-400 font-bold border border-sky-100">今日尚無成員請假</div>`;
- return;
- }
- todayList.forEach(l => {
- const rule = leaveRulesData.find(r => r.event === l.event);
- let isUrgent = l.isUrgent;
- if (rule && rule.latestTime && l.submitTime) {
- const submitTimeStr = String(l.submitTime).split('T')[1] ? String(l.submitTime).split('T')[1].substring(0, 5) : "";
- if (submitTimeStr && submitTimeStr > rule.latestTime) isUrgent = true;
- }
+        const container = document.getElementById('leaveTodayContainer');
+        container.innerHTML = "";
+        if (todayList.length === 0) {
+            container.innerHTML = `<div class="bg-[#F8FAFC] rounded-2xl p-6 text-center text-xs text-slate-400 font-bold border border-sky-100">今日尚無成員請假</div>`;
+            return;
+        }
+        todayList.forEach(l => {
+            const rule = leaveRulesData.find(r => r.event === l.event);
+            let isUrgent = l.isUrgent;
+            if (rule && rule.latestTime && l.submitTime) {
+                const submitTimeStr = String(l.submitTime).split('T')[1] ? String(l.submitTime).split('T')[1].substring(0, 5) : "";
+                if (submitTimeStr && submitTimeStr > rule.latestTime) isUrgent = true;
+            }
 
- let submitTimeFormatted = "-";
- if (l.submitTime) {
- const raw = String(l.submitTime).replace('T', ' ');
- submitTimeFormatted = raw.length >= 16 ? raw.substring(0, 16) : raw;
- }
+            let submitTimeFormatted = "-";
+            if (l.submitTime) {
+                const raw = String(l.submitTime).replace('T', ' ');
+                submitTimeFormatted = raw.length >= 16 ? raw.substring(0, 16) : raw;
+            }
 
- const card = document.createElement('div');
- card.className = "bg-white rounded-2xl p-3.5 border border-sky-100 soft-sky-shadow text-left space-y-1.5 fade-in";
- card.innerHTML = `
- <div class="flex items-center justify-between">
-<span class="text-xs font-black text-slate-900">${l.gameNickname}&nbsp;${l.gameClass ? `(${l.gameClass})` : ''}</span>
- <div class="flex items-center gap-1.5">
- ${isUrgent ? '<span class="text-[10px] bg-rose-50 text-rose-700 px-2 py-0.5 rounded-full font-normal border border-rose-200">臨時</span>' : ''}
- <span class="text-[10px] text-slate-500 font-bold">${l.date}</span>
- </div>
- </div>
- <div class="text-xs text-slate-600 font-medium">活動：<span class="font-bold text-slate-800">${l.event}</span></div>
- <div class="text-xs text-slate-600 font-medium bg-[#F8FAFC] p-2 rounded-xl border border-slate-100">${l.reason}</div>
- <div class="flex items-center justify-between text-[10px] text-slate-400 pt-1">
- <span>填單時間：${submitTimeFormatted}</span>
-<span class="text-right">由 ${l.operator === l.gameNickname ? '本人' : l.operator} 登記</span>
- </div>
- `;
- container.appendChild(card);
- });
+            // 💡 取得今日請假專屬的職業標籤樣式
+            const badgeStyle = getBadgeStyleByClass(l.gameClass);
+
+            const card = document.createElement('div');
+            card.className = "bg-white rounded-2xl p-3.5 border border-sky-100 soft-sky-shadow text-left space-y-1.5 fade-in";
+            card.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        <span class="text-xs font-black text-slate-900">${l.gameNickname}</span>
+                        ${l.gameClass ? `<span class="text-[10px] font-bold px-2 py-0.5 rounded-md border shadow-xs ${badgeStyle}">${l.gameClass}</span>` : ''}
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        ${isUrgent ? '<span class="text-[10px] bg-rose-50 text-rose-700 px-2 py-0.5 rounded-full font-normal border border-rose-200">臨時</span>' : ''}
+                        <span class="text-[10px] text-slate-500 font-bold">${l.date}</span>
+                    </div>
+                </div>
+                <div class="text-xs text-slate-600 font-medium">活動：<span class="font-bold text-slate-800">${l.event}</span></div>
+                <div class="text-xs text-slate-600 font-medium bg-[#F8FAFC] p-2 rounded-xl border border-slate-100">${l.reason}</div>
+                <div class="flex items-center justify-between text-[10px] text-slate-400 pt-1">
+                    <span>填單時間：${submitTimeFormatted}</span>
+                    <span class="text-right">由 ${l.operator === l.gameNickname ? '本人' : l.operator} 登記</span>
+                </div>
+            `;
+            container.appendChild(card);
+        });
  } else {
  renderLeaveList();
  }
