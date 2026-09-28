@@ -1234,61 +1234,66 @@ function syncAllClassDropdowns() {
  }
 
  function renderLeaveList() {
- const container = document.getElementById('leaveHistoryContainer');
- container.innerHTML = "";
- const keyword = document.getElementById('leaveSearchInput').value.trim().toLowerCase();
- const dateFilter = document.getElementById('leaveDateFilter').value;
+    const container = document.getElementById('leaveHistoryContainer');
+    container.innerHTML = "";
+    const keyword = document.getElementById('leaveSearchInput').value.trim().toLowerCase();
+    const dateFilter = document.getElementById('leaveDateFilter').value;
 
- let list = leavesData.filter(l => {
- const matchKey = (l.gameNickname && l.gameNickname.toLowerCase().includes(keyword)) || (l.event && l.event.toLowerCase().includes(keyword)) || (l.reason && l.reason.toLowerCase().includes(keyword));
- const matchDate = !dateFilter || l.date === dateFilter;
- return matchKey && matchDate;
- });
+    let list = leavesData.filter(l => {
+        const matchKey = (l.gameNickname && l.gameNickname.toLowerCase().includes(keyword)) || (l.event && l.event.toLowerCase().includes(keyword)) || (l.reason && l.reason.toLowerCase().includes(keyword));
+        const matchDate = !dateFilter || l.date === dateFilter;
+        return matchKey && matchDate;
+    });
 
- if (list.length === 0) {
- container.innerHTML = `<div class="bg-[#F8FAFC] rounded-2xl p-6 text-center text-xs text-slate-400 font-bold border border-sky-100">查無相符的請假紀錄</div>`;
- return;
- }
+    if (list.length === 0) {
+        container.innerHTML = `<div class="bg-[#F8FAFC] rounded-2xl p-6 text-center text-xs text-slate-400 font-bold border border-sky-100">查無相符的請假紀錄</div>`;
+        return;
+    }
 
- list.forEach(l => {
- const rule = leaveRulesData.find(r => r.event === l.event);
- let isUrgent = l.isUrgent;
- if (rule && rule.latestTime && l.submitTime) {
- const submitTimeStr = String(l.submitTime).split('T')[1] ? String(l.submitTime).split('T')[1].substring(0, 5) : "";
- if (submitTimeStr && submitTimeStr > rule.latestTime) isUrgent = true;
- }
+    list.forEach(l => {
+        const rule = leaveRulesData.find(r => r.event === l.event);
+        let isUrgent = l.isUrgent;
+        if (rule && rule.latestTime && l.submitTime) {
+            const submitTimeStr = String(l.submitTime).split('T')[1] ? String(l.submitTime).split('T')[1].substring(0, 5) : "";
+            if (submitTimeStr && submitTimeStr > rule.latestTime) isUrgent = true;
+        }
 
- let submitTimeFormatted = "-";
- if (l.submitTime) {
- const raw = String(l.submitTime).replace('T', ' ');
- submitTimeFormatted = raw.length >= 16 ? raw.substring(0, 16) : raw;
- }
+        let submitTimeFormatted = "-";
+        if (l.submitTime) {
+            const raw = String(l.submitTime).replace('T', ' ');
+            submitTimeFormatted = raw.length >= 16 ? raw.substring(0, 16) : raw;
+        }
 
- const card = document.createElement('div');
- card.className = "bg-white rounded-2xl p-3.5 border border-sky-100 soft-sky-shadow text-left space-y-1.5 fade-in";
- card.innerHTML = `
- <div class="flex items-center justify-between">
-<span class="text-xs font-black text-slate-900">${l.gameNickname}&nbsp;${l.gameClass ? `(${l.gameClass})` : ''}</span>
- <div class="flex items-center gap-1.5">
- ${isUrgent ? '<span class="text-[10px] bg-rose-50 text-rose-700 px-2 py-0.5 rounded-full font-normal border border-rose-200">臨時</span>' : ''}
- <span class="text-[10px] text-slate-500 font-bold">${l.date}</span>
- </div>
- </div>
- <div class="text-xs text-slate-600 font-medium">活動：<span class="font-bold text-slate-800">${l.event}</span></div>
- <div class="text-xs text-slate-600 font-medium bg-[#F8FAFC] p-2 rounded-xl border border-slate-100">${l.reason}</div>
- <div class="flex items-center justify-between text-[10px] text-slate-400 pt-1">
- <span>填單時間：${submitTimeFormatted}</span>
-<span class="text-right">由 ${l.operator === l.gameNickname ? '本人' : l.operator} 登記</span>
- </div>
- `;
- container.appendChild(card);
- });
- }
+        // 💡 取得該職業在後台設定的專屬底色樣式（如果沒有設定則預設為深紅）
+        const classStyle = getLeaveCardStyleByClass(l.gameClass);
 
- function clearLeaveDateFilter() {
- document.getElementById('leaveDateFilter').value = "";
- renderLeaveList();
- }
+        const card = document.createElement('div');
+        // 將動態的 classStyle 結合原本的邊框與陰影樣式
+        card.className = `rounded-2xl p-3.5 border soft-sky-shadow text-left space-y-1.5 fade-in ${classStyle}`;
+        
+        card.innerHTML = `
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-black">${l.gameNickname}&nbsp;${l.gameClass ? `(${l.gameClass})` : ''}</span>
+                <div class="flex items-center gap-1.5">
+                    ${isUrgent ? '<span class="text-[10px] bg-rose-50 text-rose-700 px-2 py-0.5 rounded-full font-normal border border-rose-200">臨時</span>' : ''}
+                    <span class="text-[10px] font-bold opacity-75">${l.date}</span>
+                </div>
+            </div>
+            <div class="text-xs font-medium">活動：<span class="font-bold">${l.event}</span></div>
+            <div class="text-xs font-medium bg-white/50 p-2 rounded-xl border border-current/10">${l.reason}</div>
+            <div class="flex items-center justify-between text-[10px] opacity-70 pt-1">
+                <span>填單時間：${submitTimeFormatted}</span>
+                <span class="text-right">由 ${l.operator === l.gameNickname ? '本人' : l.operator} 登記</span>
+            </div>
+        `;
+        container.appendChild(card);
+    });
+}
+
+function clearLeaveDateFilter() {
+    document.getElementById('leaveDateFilter').value = "";
+    renderLeaveList();
+}
 
 // ==========================================
 // 活動管理相關 API 串接邏輯
