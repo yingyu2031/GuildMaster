@@ -923,20 +923,34 @@ async function closeAuthModal() {
  if (currentAdminUser.pictureUrl) document.getElementById('adminAvatar').src = currentAdminUser.pictureUrl;
  }
 
- // 同步更新頁面中所有的職業下拉選單內容
- function syncAllClassDropdowns() {
- const filterSelect = document.getElementById('memberClassFilter');
- const currentFilterVal = filterSelect.value;
- filterSelect.innerHTML = `<option value="">全部職業</option>`;
- customClassList.forEach(cls => { filterSelect.innerHTML += `<option value="${cls}">${cls}</option>`; });
- if (currentFilterVal) filterSelect.value = currentFilterVal;
+// 同步更新頁面中所有的職業下拉選單內容
+function syncAllClassDropdowns() {
+    const filterSelect = document.getElementById('memberClassFilter');
+    const currentFilterVal = filterSelect ? filterSelect.value : '';
+    
+    if (filterSelect) {
+        filterSelect.innerHTML = `<option value="">全部職業</option>`;
+        customClassList.forEach(item => { 
+            // 💡 兼容字串或物件，精確取出職業名稱
+            const clsName = typeof item === 'string' ? item : item.className;
+            filterSelect.innerHTML += `<option value="${clsName}">${clsName}</option>`; 
+        });
+        if (currentFilterVal) filterSelect.value = currentFilterVal;
+    }
 
- const formClassSelect = document.getElementById('formGameClass');
- const currentFormVal = formClassSelect.value;
- formClassSelect.innerHTML = `<option value="" disabled selected>請選擇職業</option>`;
- customClassList.forEach(cls => { formClassSelect.innerHTML += `<option value="${cls}">${cls}</option>`; });
- if (currentFormVal) formClassSelect.value = currentFormVal;
- }
+    const formClassSelect = document.getElementById('formGameClass');
+    const currentFormVal = formClassSelect ? formClassSelect.value : '';
+    
+    if (formClassSelect) {
+        formClassSelect.innerHTML = `<option value="" disabled selected>請選擇職業</option>`;
+        customClassList.forEach(item => { 
+            // 💡 兼容字串或物件，精確取出職業名稱
+            const clsName = typeof item === 'string' ? item : item.className;
+            formClassSelect.innerHTML += `<option value="${clsName}">${clsName}</option>`; 
+        });
+        if (currentFormVal) formClassSelect.value = currentFormVal;
+    }
+}
 
  // ==========================================
  // 4. 主頁籤與子分頁切換邏輯
