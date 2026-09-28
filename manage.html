@@ -265,25 +265,34 @@ input[type="date"], input[type="time"], select {
  </div>
  </div>
 
- <!-- 子視圖 3：職業 -->
- <div id="settingViewClasses" class="hidden space-y-3 text-left fade-in">
- <div>
- <h3 class="text-sm font-black text-slate-900">遊戲職業選單設定</h3>
- <p class="text-[11px] text-slate-500 mt-0.5">自訂當前手遊的職業項目，全系統表單與篩選將即時連動套用。（點擊下方職業標籤可直接修改名稱）</p>
- </div>
- <div class="flex gap-2 my-2 items-center">
- <input type="text" id="newClassInput" placeholder="輸入新職業名稱（例：拳聖、槍騎...）"
- class="flex-1 min-w-0 h-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400 box-border">
- <button onclick="addNewCustomClass()" class="shrink-0 whitespace-nowrap bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold px-3.5 h-[40px] rounded-xl shadow-sm transition box-border cursor-pointer">
- + 新增職業
- </button>
- </div>
- <div id="classListContainer" class="flex flex-wrap gap-2 p-3 bg-[#F8FAFC] border border-sky-100 rounded-2xl min-h-[100px]">
- </div>
- </div>
- </section>
+<!-- 子視圖 3：職業 -->
+<div id="settingViewClasses" class="hidden space-y-3 text-left fade-in">
+    <div>
+        <h3 class="text-sm font-black text-slate-900">遊戲職業選單設定</h3>
+        <p class="text-[11px] text-slate-500 mt-0.5">自訂當前手遊的職業項目與代表色</p>
+    </div>
+    
+    <div class="bg-[#F8FAFC] border border-sky-100 p-3.5 rounded-2xl space-y-3">
+        <input type="text" id="newClassInput" placeholder="輸入新職業名稱"
+            class="w-full h-[40px] bg-white border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400 box-border">
+        
+        <!-- 20色選擇器 (新增用) -->
+        <div>
+            <div class="text-[11px] font-bold text-slate-600 mb-1.5">選擇職業代表色：</div>
+            <div id="newClassColorPalette" class="grid grid-cols-10 gap-1.5">
+                <!-- 動態產生 20 色選擇按鈕 -->
+            </div>
+            <input type="hidden" id="selectedNewColor" value="amber">
+        </div>
 
- </div>
+        <button onclick="addNewCustomClass()" class="w-full bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold h-[40px] rounded-xl shadow-sm transition box-border cursor-pointer">
+            + 新增職業
+        </button>
+    </div>
+
+    <div id="classListContainer" class="flex flex-wrap gap-2 p-3 bg-[#F8FAFC] border border-sky-100 rounded-2xl min-h-[100px]">
+    </div>
+</div>
 
  <p class="text-[11px] text-slate-400 text-center">&copy; 2026 GuildMaster 幹部後台</p>
 </main>
@@ -684,20 +693,30 @@ input[type="date"], input[type="time"], select {
  </div>
 </div>
 
-<!-- 統一風格彈窗：編輯職業名稱 Modal -->
+<!-- 統一風格彈窗：編輯職業名稱與顏色 Modal -->
 <div id="editClassModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
- <div class="bg-white w-full max-w-xs rounded-[28px] p-6 border-2 border-sky-200 soft-sky-shadow text-center">
- <h3 class="text-base font-black text-slate-900 mb-1 mt-2">修改職業名稱</h3>
- <p class="text-xs text-slate-500 mb-3">請輸入新的職業名稱</p>
- <input type="hidden" id="editClassOldName">
- <input type="text" id="editClassNewInput" class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 mb-4 focus:outline-none focus:ring-2 focus:ring-sky-400">
- <div class="grid grid-cols-2 gap-2">
- <button onclick="closeModal('editClassModal')" class="bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold py-2.5 rounded-xl transition cursor-pointer">取消</button>
- <button onclick="executeEditClass()" class="bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold py-2.5 rounded-xl transition shadow-md cursor-pointer">確認修改</button>
- </div>
- </div>
-</div>
+    <div class="bg-white w-full max-w-sm rounded-[28px] p-6 border-2 border-sky-200 soft-sky-shadow text-center">
+        <h3 class="text-base font-black text-slate-900 mb-1 mt-2">修改職業設定</h3>
+        <p class="text-xs text-slate-500 mb-3">修改職業名稱或變更專屬代表色</p>
+        
+        <input type="hidden" id="editClassOldName">
+        <input type="text" id="editClassNewInput" class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 mb-3 focus:outline-none focus:ring-2 focus:ring-sky-400">
+        
+        <!-- 20色選擇器 (編輯用) -->
+        <div class="text-left mb-4">
+            <div class="text-[11px] font-bold text-slate-600 mb-1.5">選擇職業代表色：</div>
+            <div id="editClassColorPalette" class="grid grid-cols-10 gap-1.5">
+                <!-- 動態產生 20 色選擇按鈕 -->
+            </div>
+            <input type="hidden" id="selectedEditColor" value="amber">
+        </div>
 
+        <div class="grid grid-cols-2 gap-2">
+            <button onclick="closeModal('editClassModal')" class="bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold py-2.5 rounded-xl transition cursor-pointer">取消</button>
+            <button onclick="executeEditClass()" class="bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold py-2.5 rounded-xl transition shadow-md cursor-pointer">確認修改</button>
+        </div>
+    </div>
+</div>
 <!-- 統一風格彈窗：刪除職業確認 Modal -->
 <div id="deleteClassConfirmModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
  <div class="bg-white w-full max-w-xs rounded-[28px] p-6 border-2 border-rose-200 soft-sky-shadow text-center">
@@ -1657,122 +1676,212 @@ async function saveGroupSettings() {
     }
 }
 
- // 自訂職業管理清單介面渲染
- function renderCustomClassManager() {
- const container = document.getElementById('classListContainer');
- container.innerHTML = "";
+// 20 種精選 Tailwind 顏色清單
+const AVAILABLE_COLORS = [
+    { name: 'amber', bg: 'bg-amber-400', border: 'border-amber-500' },
+    { name: 'orange', bg: 'bg-orange-400', border: 'border-orange-500' },
+    { name: 'yellow', bg: 'bg-yellow-400', border: 'border-yellow-500' },
+    { name: 'lime', bg: 'bg-lime-400', border: 'border-lime-500' },
+    { name: 'emerald', bg: 'bg-emerald-400', border: 'border-emerald-500' },
+    { name: 'teal', bg: 'bg-teal-400', border: 'border-teal-500' },
+    { name: 'cyan', bg: 'bg-cyan-400', border: 'border-cyan-500' },
+    { name: 'sky', bg: 'bg-sky-400', border: 'border-sky-500' },
+    { name: 'blue', bg: 'bg-blue-400', border: 'border-blue-500' },
+    { name: 'indigo', bg: 'bg-indigo-400', border: 'border-indigo-500' },
+    { name: 'violet', bg: 'bg-violet-400', border: 'border-violet-500' },
+    { name: 'purple', bg: 'bg-purple-400', border: 'border-purple-500' },
+    { name: 'fuchsia', bg: 'bg-fuchsia-400', border: 'border-fuchsia-500' },
+    { name: 'pink', bg: 'bg-pink-400', border: 'border-pink-500' },
+    { name: 'rose', bg: 'bg-rose-400', border: 'border-rose-500' },
+    { name: 'red', bg: 'bg-red-400', border: 'border-red-500' },
+    { name: 'slate', bg: 'bg-slate-400', border: 'border-slate-500' },
+    { name: 'zinc', bg: 'bg-zinc-400', border: 'border-zinc-500' },
+    { name: 'stone', bg: 'bg-stone-400', border: 'border-stone-500' },
+    { name: 'neutral', bg: 'bg-neutral-400', border: 'border-neutral-500' }
+];
 
- if (customClassList.length === 0) {
- container.innerHTML = `<span class="text-xs text-slate-400">目前尚無自訂職業項目</span>`;
- return;
- }
+// 初始化渲染 20 色色盤
+function renderColorPalettes() {
+    const newPaletteContainer = document.getElementById('newClassColorPalette');
+    if (newPaletteContainer) {
+        newPaletteContainer.innerHTML = "";
+        AVAILABLE_COLORS.forEach(c => {
+            const btn = document.createElement('button');
+            btn.type = "button";
+            btn.className = `w-6 h-6 rounded-full ${c.bg} transition-all cursor-pointer border-2 border-transparent hover:scale-110`;
+            btn.dataset.color = c.name;
+            btn.onclick = () => selectColor('new', c.name);
+            newPaletteContainer.appendChild(btn);
+        });
+    }
 
- customClassList.forEach((cls, idx) => {
- const badge = document.createElement('div');
- badge.className = "inline-flex items-center gap-1.5 bg-white border border-sky-200 px-3.5 py-2 rounded-xl text-xs font-bold text-slate-800 shadow-xs hover:border-sky-400 transition";
- badge.innerHTML = `
- <span onclick="openEditClassModal('${cls}')" class="cursor-pointer" title="點擊修改名稱">${cls}</span>
- <button onclick="promptDeleteClass(${idx})" class="text-slate-400 hover:text-rose-600 text-sm font-bold cursor-pointer ml-1">×</button>
- `;
- container.appendChild(badge);
- });
- }
+    const editPaletteContainer = document.getElementById('editClassColorPalette');
+    if (editPaletteContainer) {
+        editPaletteContainer.innerHTML = "";
+        AVAILABLE_COLORS.forEach(c => {
+            const btn = document.createElement('button');
+            btn.type = "button";
+            btn.className = `w-6 h-6 rounded-full ${c.bg} transition-all cursor-pointer border-2 border-transparent hover:scale-110`;
+            btn.dataset.color = c.name;
+            btn.onclick = () => selectColor('edit', c.name);
+            editPaletteContainer.appendChild(btn);
+        });
+    }
+}
 
- function openEditClassModal(oldName) {
- document.getElementById('editClassOldName').value = oldName;
- document.getElementById('editClassNewInput').value = oldName;
- document.getElementById('editClassModal').classList.remove('hidden');
- }
+// 點擊色塊時的選取樣式切換
+function selectColor(type, colorName) {
+    const containerId = type === 'new' ? 'newClassColorPalette' : 'editClassColorPalette';
+    const inputId = type === 'new' ? 'selectedNewColor' : 'selectedEditColor';
+    
+    document.getElementById(inputId).value = colorName;
+    
+    const container = document.getElementById(containerId);
+    container.querySelectorAll('button').forEach(btn => {
+        if (btn.dataset.color === colorName) {
+            btn.classList.add('ring-2', 'ring-slate-900', 'scale-110');
+        } else {
+            btn.classList.remove('ring-2', 'ring-slate-900', 'scale-110');
+        }
+    });
+}
 
- async function executeEditClass() {
- const oldName = document.getElementById('editClassOldName').value;
- const newName = document.getElementById('editClassNewInput').value.trim();
- 
- if (!newName) {
- alert("職業名稱不能為空！");
- return;
- }
- if (customClassList.includes(newName) && newName !== oldName) {
- alert("此職業名稱已存在！");
- return;
- }
+// 頁面載入時初始化色盤
+window.addEventListener('DOMContentLoaded', () => {
+    renderColorPalettes();
+    selectColor('new', 'amber');
+});
 
- try {
- const res = await fetch(`${BACKEND_API_URL}/api/admin/classes/rename`, {
- method: 'POST',
- headers: { 'Content-Type': 'application/json' },
- body: JSON.stringify({ oldName, newName })
- });
- const result = await res.json();
- if (result.status !== "success") {
- alert("更新失敗：" + result.message);
- return;
- }
- } catch (err) {
- console.error(err);
- alert("網路異常，更新失敗");
- return;
- }
+// 自訂職業管理清單介面渲染
+function renderCustomClassManager() {
+    const container = document.getElementById('classListContainer');
+    container.innerHTML = "";
 
- await loadCustomClasses();
- closeModal('editClassModal');
- renderCustomClassManager();
- syncAllClassDropdowns();
- renderMembersList();
- await fetchAllBackendData();
- }
+    if (!customClassList || customClassList.length === 0) {
+        container.innerHTML = `<span class="text-xs text-slate-400">目前尚無自訂職業項目</span>`;
+        return;
+    }
 
- function promptDeleteClass(idx) {
- document.getElementById('deleteClassTargetIndex').value = idx;
- document.getElementById('deleteClassConfirmText').textContent = `確定要移除職業選項【${customClassList[idx]}】嗎？`;
- document.getElementById('deleteClassConfirmModal').classList.remove('hidden');
- }
+    customClassList.forEach((clsObj) => {
+        const className = typeof clsObj === 'string' ? clsObj : clsObj.className;
+        const colorTheme = typeof clsObj === 'string' ? 'amber' : (clsObj.colorTheme || 'amber');
+        
+        const colorObj = AVAILABLE_COLORS.find(c => c.name === colorTheme) || AVAILABLE_COLORS[0];
 
- async function executeDeleteClass() {
- const idx = parseInt(document.getElementById('deleteClassTargetIndex').value);
- if (isNaN(idx)) return;
- const targetClass = customClassList[idx];
+        const badge = document.createElement('div');
+        badge.className = `inline-flex items-center gap-1.5 bg-white border border-sky-200 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-800 shadow-xs hover:border-sky-400 transition`;
+        badge.innerHTML = `
+            <span class="w-3 h-3 rounded-full ${colorObj.bg} inline-block"></span>
+            <span onclick="openEditClassModal('${className}', '${colorTheme}')" class="cursor-pointer" title="點擊修改名稱與顏色">${className}</span>
+            <button onclick="promptDeleteClass('${className}')" class="text-slate-400 hover:text-rose-600 text-sm font-bold cursor-pointer ml-1">×</button>
+        `;
+        container.appendChild(badge);
+    });
+}
 
- try {
- await fetch(`${BACKEND_API_URL}/api/admin/classes/delete`, {
- method: 'POST',
- headers: { 'Content-Type': 'application/json' },
- body: JSON.stringify({ className: targetClass })
- });
- } catch (err) {
- console.error(err);
- }
+// 打開編輯視窗並帶入現有顏色
+function openEditClassModal(oldName, currentColor) {
+    document.getElementById('editClassOldName').value = oldName;
+    document.getElementById('editClassNewInput').value = oldName;
+    selectColor('edit', currentColor || 'amber');
+    document.getElementById('editClassModal').classList.remove('hidden');
+}
 
- await loadCustomClasses();
- closeModal('deleteClassConfirmModal');
- renderCustomClassManager();
- syncAllClassDropdowns();
- }
+// 執行新增職業（含顏色）
+async function addNewCustomClass() {
+    const input = document.getElementById('newClassInput');
+    const val = input.value.trim();
+    const colorTheme = document.getElementById('selectedNewColor').value;
+    
+    if (!val) return;
 
- async function addNewCustomClass() {
- const input = document.getElementById('newClassInput');
- const val = input.value.trim();
- if (!val) return;
- if (customClassList.includes(val)) {
- alert("此職業名稱已存在！");
- return;
- }
+    try {
+        const res = await fetch(`${BACKEND_API_URL}/api/admin/classes/add`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ className: val, colorTheme })
+        });
+        const result = await res.json();
+        if (result.status !== "success") {
+            alert("新增失敗：" + result.message);
+            return;
+        }
+    } catch (err) {
+        console.error(err);
+        alert("網路異常，新增失敗");
+        return;
+    }
 
- try {
- await fetch(`${BACKEND_API_URL}/api/admin/classes/add`, {
- method: 'POST',
- headers: { 'Content-Type': 'application/json' },
- body: JSON.stringify({ className: val })
- });
- } catch (err) {
- console.error(err);
- }
+    input.value = "";
+    await loadCustomClasses();
+    renderCustomClassManager();
+    syncAllClassDropdowns();
+}
 
- input.value = "";
- await loadCustomClasses();
- renderCustomClassManager();
- syncAllClassDropdowns();
- }
+// 執行修改職業名稱與顏色
+async function executeEditClass() {
+    const oldName = document.getElementById('editClassOldName').value;
+    const newName = document.getElementById('editClassNewInput').value.trim();
+    const colorTheme = document.getElementById('selectedEditColor').value;
+    
+    if (!newName) {
+        alert("職業名稱不能為空！");
+        return;
+    }
+
+    try {
+        const res = await fetch(`${BACKEND_API_URL}/api/admin/classes/rename`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ oldName, newName, colorTheme })
+        });
+        const result = await res.json();
+        if (result.status !== "success") {
+            alert("更新失敗：" + result.message);
+            return;
+        }
+    } catch (err) {
+        console.error(err);
+        alert("網路異常，更新失敗");
+        return;
+    }
+
+    await loadCustomClasses();
+    closeModal('editClassModal');
+    renderCustomClassManager();
+    syncAllClassDropdowns();
+    renderMembersList();
+    await fetchAllBackendData();
+}
+
+// 刪除確認提示（改為直接帶入職業名稱 className）
+function promptDeleteClass(className) {
+    document.getElementById('deleteClassTargetIndex').value = className; // 借用這個欄位存名稱
+    document.getElementById('deleteClassConfirmText').textContent = `確定要移除職業選項【${className}】嗎？`;
+    document.getElementById('deleteClassConfirmModal').classList.remove('hidden');
+}
+
+// 執行刪除職業
+async function executeDeleteClass() {
+    const targetClass = document.getElementById('deleteClassTargetIndex').value;
+    if (!targetClass) return;
+
+    try {
+        await fetch(`${BACKEND_API_URL}/api/admin/classes/delete`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ className: targetClass })
+        });
+    } catch (err) {
+        console.error(err);
+    }
+
+    await loadCustomClasses();
+    closeModal('deleteClassConfirmModal');
+    renderCustomClassManager();
+    syncAllClassDropdowns();
+}
+
 
  function renderBroadcastSection() {
  const urgentContainer = document.getElementById('urgentRuleContainer');
