@@ -1233,32 +1233,32 @@ function syncAllClassDropdowns() {
  }
  }
 
-// 根據職業顏色代號取得「職業小標籤」的專屬配色（白底 + 該職業色框線與文字）
+// 根據職業顏色代號取得「實心飽和底色」的標籤樣式（深底配白字，淺底配黑字）
 function getBadgeStyleByClass(className) {
     const found = customClassList.find(c => (typeof c === 'object' ? c.className === className : c === className));
     const themeName = (found && found.colorTheme) ? found.colorTheme : 'red';
 
     const badgeThemeMap = {
-        red:          "bg-red-50 border-red-300 text-red-800",
-        pink:         "bg-pink-50 border-pink-300 text-pink-800",
-        blue:         "bg-blue-50 border-blue-300 text-blue-800",
-        skyblue:      "bg-sky-50 border-sky-300 text-sky-800",
-        yellow:       "bg-amber-50 border-amber-300 text-amber-800",
-        lightyellow:  "bg-yellow-50 border-yellow-300 text-yellow-800",
-        orange:       "bg-orange-50 border-orange-300 text-orange-800",
-        lightorange:  "bg-orange-50 border-orange-300 text-orange-800",
-        brown:        "bg-stone-50 border-stone-300 text-stone-800",
-        lightbrown:   "bg-stone-50 border-stone-300 text-stone-800",
-        teal:         "bg-teal-50 border-teal-300 text-teal-800",
-        lightteal:    "bg-teal-50 border-teal-300 text-teal-800",
-        green:        "bg-emerald-50 border-emerald-300 text-emerald-800",
-        lightgreen:   "bg-emerald-50 border-emerald-300 text-emerald-800",
-        purple:       "bg-purple-50 border-purple-300 text-purple-800",
-        lightpurple:  "bg-purple-50 border-purple-300 text-purple-800",
-        gray:         "bg-slate-50 border-slate-300 text-slate-800",
-        lightgray:    "bg-slate-50 border-slate-300 text-slate-800",
-        black:        "bg-zinc-900 border-zinc-700 text-zinc-100",
-        white:        "bg-white border-slate-300 text-slate-800"
+        red:          "bg-red-700 text-white border-red-800",         // 深紅 (白字)
+        pink:         "bg-pink-400 text-black border-pink-500",       // 粉紅 (黑字)
+        blue:         "bg-blue-700 text-white border-blue-800",       // 深藍 (白字)
+        skyblue:      "bg-sky-300 text-black border-sky-400",         // 淺藍 (黑字)
+        yellow:       "bg-amber-500 text-black border-amber-600",     // 深黃 (黑字)
+        lightyellow:  "bg-yellow-200 text-black border-yellow-300",   // 淺黃 (黑字)
+        orange:       "bg-orange-600 text-white border-orange-700",   // 深橘 (白字)
+        lightorange:  "bg-orange-300 text-black border-orange-400",   // 淺橘 (黑字)
+        brown:        "bg-stone-700 text-white border-stone-800",     // 深咖 (白字)
+        lightbrown:   "bg-stone-300 text-black border-stone-400",     // 淺咖 (黑字)
+        teal:         "bg-teal-700 text-white border-teal-800",       // 深藍綠 (白字)
+        lightteal:    "bg-teal-300 text-black border-teal-400",       // 淺藍綠 (黑字)
+        green:        "bg-emerald-700 text-white border-emerald-800", // 深綠 (白字)
+        lightgreen:   "bg-emerald-300 text-black border-emerald-400", // 淺綠 (黑字)
+        purple:       "bg-purple-700 text-white border-purple-800",   // 深紫 (白字)
+        lightpurple:  "bg-purple-300 text-black border-purple-400",   // 淺紫 (黑字)
+        gray:         "bg-slate-700 text-white border-slate-800",     // 深灰 (白字)
+        lightgray:    "bg-slate-300 text-black border-slate-400",     // 淺灰 (黑字)
+        black:        "bg-zinc-950 text-white border-black",          // 黑 (白字)
+        white:        "bg-white text-slate-900 border-slate-300"      // 白 (黑字)
     };
 
     return badgeThemeMap[themeName] || badgeThemeMap['red'];
@@ -1295,18 +1295,16 @@ function renderLeaveList() {
             submitTimeFormatted = raw.length >= 16 ? raw.substring(0, 16) : raw;
         }
 
-        // 取得該職業專屬的標籤樣式
         const badgeStyle = getBadgeStyleByClass(l.gameClass);
 
         const card = document.createElement('div');
-        // 卡片本身固定維持乾淨的白底與淺灰藍邊框
         card.className = "bg-white rounded-2xl p-3.5 border border-sky-100 soft-sky-shadow text-left space-y-1.5 fade-in";
         
         card.innerHTML = `
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-1.5 flex-wrap">
                     <span class="text-xs font-black text-slate-900">${l.gameNickname}</span>
-                    ${l.gameClass ? `<span class="text-[10px] font-bold px-2 py-0.5 rounded-full border ${badgeStyle}">${l.gameClass}</span>` : ''}
+                    ${l.gameClass ? `<span class="text-[10px] font-bold px-2 py-0.5 rounded-md border shadow-xs ${badgeStyle}">${l.gameClass}</span>` : ''}
                 </div>
                 <div class="flex items-center gap-1.5 shrink-0">
                     ${isUrgent ? '<span class="text-[10px] bg-rose-50 text-rose-700 px-2 py-0.5 rounded-full font-normal border border-rose-200">臨時</span>' : ''}
@@ -1328,6 +1326,7 @@ function clearLeaveDateFilter() {
     document.getElementById('leaveDateFilter').value = "";
     renderLeaveList();
 }
+
 
 
 // ==========================================
