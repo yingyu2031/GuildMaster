@@ -253,25 +253,31 @@
         }
 
         // 動態從後端載入遊戲職業清單
-        async function loadGameClasses() {
-            try {
-                const response = await fetch(`${BACKEND_API_URL}/api/admin/classes`);
-                const result = await response.json();
-                const selectEl = document.getElementById('gameClass');
-                selectEl.innerHTML = '<option value="" disabled selected>請選擇職業</option>';
+   async function loadGameClasses() {
+    try {
+        const response = await fetch(`${BACKEND_API_URL}/api/admin/classes`);
+        const result = await response.json();
+        const selectEl = document.getElementById('gameClass');
+        if (!selectEl) return;
+        
+        selectEl.innerHTML = '<option value="" disabled selected>請選擇職業</option>';
 
-                if (result.status === "success" && result.classes) {
-                    result.classes.forEach(className => {
-                        const opt = document.createElement('option');
-                        opt.value = className;
-                        opt.textContent = className;
-                        selectEl.appendChild(opt);
-                    });
-                }
-            } catch (err) {
-                console.error("載入職業清單失敗:", err);
-            }
+        if (result.status === "success" && result.classes) {
+            result.classes.forEach(item => {
+                // 💡 兼容字串或物件格式，確保正確取得職業名稱
+                const className = typeof item === 'string' ? item : item.className;
+                
+                const opt = document.createElement('option');
+                opt.value = className;
+                opt.textContent = className;
+                selectEl.appendChild(opt);
+            });
         }
+    } catch (err) {
+        console.error("載入職業清單失敗:", err);
+    }
+   }
+
 
         async function queryMemberFromBackend(uid) {
             try {
