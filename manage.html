@@ -1233,6 +1233,39 @@ function syncAllClassDropdowns() {
  }
  }
 
+// 根據職業名稱或顏色代號取得請假小卡的樣式
+function getLeaveCardStyleByClass(className) {
+    // 從全域 customClassList 中尋找該職業設定的 colorTheme
+    const found = customClassList.find(c => (typeof c === 'object' ? c.className === className : c === className));
+    const themeName = (found && found.colorTheme) ? found.colorTheme : 'red';
+
+    // 20種簡短代號對應的請假小卡專屬柔和背景、邊框與文字配色
+    const leaveThemeMap = {
+        red:          "bg-red-50/80 border-red-200 text-red-950",                 // 深紅
+        pink:         "bg-pink-50/80 border-pink-200 text-pink-950",             // 粉紅
+        blue:         "bg-blue-50/80 border-blue-200 text-blue-950",             // 深藍
+        skyblue:      "bg-sky-50/80 border-sky-200 text-sky-950",               // 淺藍
+        yellow:       "bg-amber-50/80 border-amber-200 text-amber-950",         // 深黃
+        lightyellow:  "bg-yellow-50/80 border-yellow-200 text-yellow-950",       // 淺黃
+        orange:       "bg-orange-50/80 border-orange-200 text-orange-950",       // 深橘
+        lightorange:  "bg-orange-50/60 border-orange-200 text-orange-900",       // 淺橘
+        brown:        "bg-stone-100/90 border-stone-300 text-stone-900",         // 深咖
+        lightbrown:   "bg-stone-50/80 border-stone-200 text-stone-900",         // 淺咖
+        teal:         "bg-teal-50/80 border-teal-200 text-teal-950",             // 深藍綠
+        lightteal:    "bg-teal-50/60 border-teal-200 text-teal-900",             // 淺藍綠
+        green:        "bg-emerald-50/80 border-emerald-200 text-emerald-950",   // 深綠
+        lightgreen:   "bg-emerald-50/60 border-emerald-200 text-emerald-900",   // 淺綠
+        purple:       "bg-purple-50/80 border-purple-200 text-purple-950",       // 深紫
+        lightpurple:  "bg-purple-50/60 border-purple-200 text-purple-900",       // 淺紫
+        gray:         "bg-slate-100/90 border-slate-300 text-slate-900",         // 深灰
+        lightgray:    "bg-slate-50/80 border-slate-200 text-slate-900",         // 淺灰
+        black:        "bg-zinc-900 border-zinc-700 text-zinc-100",               // 黑 (深色模式卡片)
+        white:        "bg-white border-slate-200 text-slate-900"                 // 白
+    };
+
+    return leaveThemeMap[themeName] || leaveThemeMap['red'];
+}
+
  function renderLeaveList() {
     const container = document.getElementById('leaveHistoryContainer');
     container.innerHTML = "";
