@@ -758,37 +758,40 @@ input[type="date"], input[type="time"], select {
 
 
 <script>
- // ==========================================
- // 1. 全域常數與狀態變數宣告
- // ==========================================
- const MY_LIFF_ID = "2011659633-9Km5nhzg";
- const BACKEND_API_URL = "https://guildmaster.zeabur.app";
+// ==========================================
+// 1. 全域常數與狀態變數宣告
+// ==========================================
+const MY_LIFF_ID = "2011659633-9Km5nhzg";
+const BACKEND_API_URL = "https://guildmaster.zeabur.app";
 
- let customClassList = []; // 遊戲職業清單（由 API 動態載入）
+let customClassList = [];        // 存完整物件：[{ className: "法師", colorTheme: "purple" }, ...]
+let customClassNamesOnly = [];   // 存純字串：["法師", "騎士", ...] 供下拉選單使用
 
- // 從後端非同步載入遊戲職業清單
- async function loadCustomClasses() {
- try {
- const res = await fetch(`${BACKEND_API_URL}/api/admin/classes`);
- const data = await res.json();
- if (data.status === "success" && data.classes) {
- customClassList = data.classes;
- }
- } catch (err) {
- console.error("載入職業清單失敗:", err);
- }
- }
+// 從後端非同步載入遊戲職業清單
+async function loadCustomClasses() {
+    try {
+        const res = await fetch(`${BACKEND_API_URL}/api/admin/classes`);
+        const data = await res.json();
+        if (data.status === "success" && data.classes) {
+            customClassList = data.classes;
+            // 同步產生純字串陣列，給下拉選單使用
+            customClassNamesOnly = data.classes.map(c => typeof c === 'string' ? c : c.className);
+        }
+    } catch (err) {
+        console.error("載入職業清單失敗:", err);
+    }
+}
 
- let currentAdminUser = { lineUserId: "", gameNickname: "", gameClass: "", guildRole: "", accountStatus: "" };
- let membersData = [], leavesData = [], leaveRulesData = [], eventsData = [], broadcastSchedules = [], manuallyArchivedGroups = [];
- let currentMainSection = "members", currentMemberSubTab = "pending", currentGroupSubTab = "active";
- let currentLeaveSubTab = "rank", currentLeaveMetric = "all";
- let currentEventSubTab = "active", currentSettingSubTab = "line";
- let currentViewingEventId = null;
- let selectedCycleDays = [];
- let activeTimeWheelTarget = null; // 記錄目前時間滾輪的操作目標 ('rule' 或 'bc')
+let currentAdminUser = { lineUserId: "", gameNickname: "", gameClass: "", guildRole: "", accountStatus: "" };
+let membersData = [], leavesData = [], leaveRulesData = [], eventsData = [], broadcastSchedules = [], manuallyArchivedGroups = [];
+let currentMainSection = "members", currentMemberSubTab = "pending", currentGroupSubTab = "active";
+let currentLeaveSubTab = "rank", currentLeaveMetric = "all";
+let currentEventSubTab = "active", currentSettingSubTab = "line";
+let currentViewingEventId = null;
+let selectedCycleDays = [];
+let activeTimeWheelTarget = null; // 記錄目前時間滾輪的操作目標 ('rule' 或 'bc')
 
- const TODAY_STR = new Date().toISOString().split('T')[0];
+const TODAY_STR = new Date().toISOString().split('T')[0];
 
  // ==========================================
  // 2. 網頁載入與 LIFF 身分驗證
