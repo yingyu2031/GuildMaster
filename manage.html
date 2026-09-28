@@ -1693,31 +1693,29 @@ async function saveGroupSettings() {
     }
 }
 
-// 20 種精選 Tailwind 顏色清單
-// 20 種高辨識度、色相分明且互不重複的精選顏色清單
+// 20 種簡短代號的精選顏色清單
 const AVAILABLE_COLORS = [
-    { name: 'red', bg: 'bg-red-500', border: 'border-red-600' },         // 紅色 (如十字軍)
-    { name: 'blue', bg: 'bg-blue-600', border: 'border-blue-700' },       // 深藍色 (如德魯伊)
-    { name: 'emerald', bg: 'bg-emerald-500', border: 'border-emerald-600' }, // 翠綠色 (如補師)
-    { name: 'purple', bg: 'bg-purple-600', border: 'border-purple-700' },   // 紫色 (如刺客)
-    { name: 'amber', bg: 'bg-amber-600', border: 'border-amber-700' },       // 棕琥珀色 (如鐵匠/創造者)
-    { name: 'sky', bg: 'bg-sky-400', border: 'border-sky-500' },             // 天藍色 (如法師)
-    { name: 'rose', bg: 'bg-rose-500', border: 'border-rose-600' },         // 玫瑰紅
-    { name: 'indigo', bg: 'bg-indigo-600', border: 'border-indigo-700' },   // 靛藍色
-    { name: 'teal', bg: 'bg-teal-600', border: 'border-teal-700' },         // 青綠色
-    { name: 'orange', bg: 'bg-orange-500', border: 'border-orange-600' },   // 亮橘色
-    { name: 'pink', bg: 'bg-pink-500', border: 'border-pink-600' },         // 粉紅色 (如搞笑藝人)
-    { name: 'violet', bg: 'bg-violet-500', border: 'border-violet-600' },   // 紫羅蘭色
-    { name: 'cyan', bg: 'bg-cyan-500', border: 'border-cyan-600' },         // 青色
-    { name: 'yellow', bg: 'bg-yellow-400', border: 'border-yellow-500' },   // 明黃色
-    { name: 'lime', bg: 'bg-lime-500', border: 'border-lime-600' },         // 萊姆綠
-    { name: 'fuchsia', bg: 'bg-fuchsia-500', border: 'border-fuchsia-600' }, // 紫紅色 (如舞姬)
-    { name: 'zinc', bg: 'bg-zinc-500', border: 'border-zinc-600' },         // 鋅灰色
-    { name: 'stone', bg: 'bg-stone-500', border: 'border-stone-600' },       // 石灰色
-    { name: 'slate', bg: 'bg-slate-600', border: 'border-slate-700' },       // 深石板灰
-    { name: 'teal-dark', bg: 'bg-teal-900', border: 'border-teal-950' }     // 極深青
+    { name: 'red', bg: 'bg-red-700', border: 'border-red-800' },             // 深紅
+    { name: 'pink', bg: 'bg-pink-400', border: 'border-pink-500' },           // 粉紅
+    { name: 'blue', bg: 'bg-blue-700', border: 'border-blue-800' },           // 深藍
+    { name: 'skyblue', bg: 'bg-sky-300', border: 'border-sky-400' },         // 淺藍
+    { name: 'yellow', bg: 'bg-amber-500', border: 'border-amber-600' },       // 深黃
+    { name: 'lightyellow', bg: 'bg-yellow-200', border: 'border-yellow-300' }, // 淺黃
+    { name: 'orange', bg: 'bg-orange-600', border: 'border-orange-700' },     // 深橘
+    { name: 'lightorange', bg: 'bg-orange-300', border: 'border-orange-400' }, // 淺橘
+    { name: 'brown', bg: 'bg-stone-700', border: 'border-stone-800' },         // 深咖
+    { name: 'lightbrown', bg: 'bg-stone-300', border: 'border-stone-400' },   // 淺咖
+    { name: 'teal', bg: 'bg-teal-700', border: 'border-teal-800' },           // 深藍綠
+    { name: 'lightteal', bg: 'bg-teal-300', border: 'border-teal-400' },       // 淺藍綠
+    { name: 'green', bg: 'bg-emerald-700', border: 'border-emerald-800' },     // 深綠
+    { name: 'lightgreen', bg: 'bg-emerald-300', border: 'border-emerald-400' }, // 淺綠
+    { name: 'purple', bg: 'bg-purple-700', border: 'border-purple-800' },     // 深紫
+    { name: 'lightpurple', bg: 'bg-purple-300', border: 'border-purple-400' }, // 淺紫
+    { name: 'gray', bg: 'bg-slate-700', border: 'border-slate-800' },         // 深灰
+    { name: 'lightgray', bg: 'bg-slate-300', border: 'border-slate-400' },   // 淺灰
+    { name: 'black', bg: 'bg-zinc-950', border: 'border-black' },             // 黑
+    { name: 'white', bg: 'bg-white', border: 'border-slate-300' }             // 白
 ];
-
 
 // 初始化渲染 20 色色盤
 function renderColorPalettes() {
