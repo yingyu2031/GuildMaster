@@ -1098,19 +1098,24 @@ function renderMembersList() {
                     <button onclick="openMemberModal('edit', '${m.lineUserId}')" class="px-3 bg-sky-50 text-sky-800 border border-sky-200 font-bold text-xs py-1.5 rounded-xl cursor-pointer">編輯</button>
                 </div>
             `;
-        } else {
+       } else {
             const isRetired = role === "退會";
             card.innerHTML = `
                 <div class="flex items-center justify-between">
                     <div class="space-y-1">
+                        <!-- 第一行：身分標籤 (幹部 / 現任 / 退會) -->
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <span class="text-[10px] px-2 py-0.5 rounded font-black ${roleBadgeClass}">${role}</span>
+                        </div>
+                        
+                        <!-- 第二行：遊戲暱稱、實心飽和職業標籤、團體、遊戲ID -->
                         <div class="flex items-center gap-1.5 flex-wrap">
                             <h3 class="text-sm font-black text-slate-900">${m.gameNickname}</h3>
-                            <!-- 實心飽和職業標籤 -->
                             ${m.gameClass ? `<span class="text-[10px] font-bold px-2 py-0.5 rounded-md border shadow-xs ${badgeStyle}">${m.gameClass}</span>` : ''}
+                            ${m.teamGroup ? `<span class="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.2 rounded font-bold">${m.teamGroup}</span>` : ''}
                             ${m.gameId ? `<span class="text-xs font-bold text-slate-400">${m.gameId}</span>` : ''}
-                            <span class="text-[10px] px-1.5 py-0.5 rounded font-black ${roleBadgeClass}">${role}</span>
-                            ${m.teamGroup ? `<span class="text-[10px] bg-slate-100 text-slate-600 px-1 py-0.2 rounded font-bold">${m.teamGroup}</span>` : ''}
                         </div>
+
                         <div class="text-xs text-slate-500 font-bold">LINE: ${m.lineDisplayName || '-'}</div>
                         <div class="flex items-center gap-1">${lineTag} ${dcTag}</div>
                     </div>
