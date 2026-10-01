@@ -1037,83 +1037,93 @@ function syncAllClassDropdowns() {
  }
 
  // ==========================================
- // 5. 會員名冊清單渲染
- // ==========================================
- function renderMembersList() {
- const container = document.getElementById('memberListContainer');
- container.innerHTML = "";
- const keyword = document.getElementById('memberSearchInput').value.trim().toLowerCase();
- const classFilter = document.getElementById('memberClassFilter').value;
+// 5. 會員名冊清單渲染
+// ==========================================
+function renderMembersList() {
+    const container = document.getElementById('memberListContainer');
+    container.innerHTML = "";
+    const keyword = document.getElementById('memberSearchInput').value.trim().toLowerCase();
+    const classFilter = document.getElementById('memberClassFilter').value;
 
- let list = membersData.filter(m => {
- if (currentMemberSubTab === 'pending') return m.accountStatus === "待審核" && m.guildRole !== "退會";
- if (currentMemberSubTab === 'active') return m.accountStatus === "已審核" && m.guildRole !== "退會";
- return m.guildRole === "退會";
- }).filter(m => {
- const matchKey = (m.gameNickname && m.gameNickname.toLowerCase().includes(keyword)) || (m.lineDisplayName && m.lineDisplayName.toLowerCase().includes(keyword));
- const matchClass = !classFilter || (m.gameClass === classFilter);
- return matchKey && matchClass;
- });
+    let list = membersData.filter(m => {
+        if (currentMemberSubTab === 'pending') return m.accountStatus === "待審核" && m.guildRole !== "退會";
+        if (currentMemberSubTab === 'active') return m.accountStatus === "已審核" && m.guildRole !== "退會";
+        return m.guildRole === "退會";
+    }).filter(m => {
+        const matchKey = (m.gameNickname && m.gameNickname.toLowerCase().includes(keyword)) || (m.lineDisplayName && m.lineDisplayName.toLowerCase().includes(keyword));
+        const matchClass = !classFilter || (m.gameClass === classFilter);
+        return matchKey && matchClass;
+    });
 
- if (currentMemberSubTab === 'active') {
- document.getElementById('activeMemberCountText').textContent = `共 ${list.length} 名會員`;
- }
+    if (currentMemberSubTab === 'active') {
+        document.getElementById('activeMemberCountText').textContent = `共 ${list.length} 名會員`;
+    }
 
- if (list.length === 0) {
- container.innerHTML = `<div class="bg-[#F8FAFC] rounded-2xl p-6 text-center text-xs text-slate-400 font-bold border border-sky-100">查無相符成員資料</div>`;
- return;
- }
+    if (list.length === 0) {
+        container.innerHTML = `<div class="bg-[#F8FAFC] rounded-2xl p-6 text-center text-xs text-slate-400 font-bold border border-sky-100">查無相符成員資料</div>`;
+        return;
+    }
 
- list.forEach(m => {
- const card = document.createElement('div');
- card.className = "bg-white rounded-2xl p-3.5 border border-sky-100 soft-sky-shadow fade-in text-left";
- 
- let roleBadgeClass = "bg-emerald-100 text-emerald-800";
- const role = m.guildRole || '現任';
- if (role === '幹部') roleBadgeClass = "bg-sky-100 text-sky-800";
- if (role === '退會') roleBadgeClass = "bg-slate-100 text-slate-600";
+    list.forEach(m => {
+        const card = document.createElement('div');
+        card.className = "bg-white rounded-2xl p-3.5 border border-sky-100 soft-sky-shadow fade-in text-left";
+        
+        let roleBadgeClass = "bg-emerald-100 text-emerald-800";
+        const role = m.guildRole || '現任';
+        if (role === '幹部') roleBadgeClass = "bg-sky-100 text-sky-800";
+        if (role === '退會') roleBadgeClass = "bg-slate-100 text-slate-600";
 
- const lineTag = (m.joinedLineGroup === 'Y') ? '<span class="bg-emerald-50 text-emerald-700 text-[9px] font-bold px-1.5 py-0.2 rounded border border-emerald-100">已入LINE群</span>' : '<span class="bg-slate-50 text-slate-400 text-[9px] px-1.5 py-0.2 rounded border border-slate-100">未入LINE群</span>';
- const dcTag = (m.joinedDc === 'Y') ? '<span class="bg-indigo-50 text-indigo-700 text-[9px] font-bold px-1.5 py-0.2 rounded border border-indigo-100">已入DC</span>' : '<span class="bg-slate-50 text-slate-400 text-[9px] px-1.5 py-0.2 rounded border border-slate-100">未入DC</span>';
+        const lineTag = (m.joinedLineGroup === 'Y') ? '<span class="bg-emerald-50 text-emerald-700 text-[9px] font-bold px-1.5 py-0.2 rounded border border-emerald-100">已入LINE群</span>' : '<span class="bg-slate-50 text-slate-400 text-[9px] px-1.5 py-0.2 rounded border border-slate-100">未入LINE群</span>';
+        const dcTag = (m.joinedDc === 'Y') ? '<span class="bg-indigo-50 text-indigo-700 text-[9px] font-bold px-1.5 py-0.2 rounded border border-indigo-100">已入DC</span>' : '<span class="bg-slate-50 text-slate-400 text-[9px] px-1.5 py-0.2 rounded border border-slate-100">未入DC</span>';
 
- if (currentMemberSubTab === 'pending') {
- card.innerHTML = `
- <div class="flex items-start justify-between">
- <div>
- <span class="bg-rose-50 text-rose-700 text-[10px] font-black px-2 py-0.5 rounded border border-rose-100">新申請待審</span>
- <h3 class="text-sm font-black text-slate-900 mt-1">${m.gameNickname}</h3>
- <p class="text-xs font-bold text-slate-500">${m.gameClass} · LINE: ${m.lineDisplayName || '-'}</p>
- <div class="flex items-center gap-1 mt-1.5">${lineTag} ${dcTag}</div>
- </div>
- </div>
- <div class="flex items-center gap-2 pt-2.5 border-t border-slate-100 mt-2.5">
- <button onclick="promptApproveMember('${m.lineUserId}', '${m.gameNickname}')" class="flex-1 bg-sky-500 hover:bg-sky-600 text-white font-bold text-xs py-1.5 rounded-xl transition cursor-pointer">核准入會</button>
- <button onclick="openMemberModal('edit', '${m.lineUserId}')" class="px-3 bg-sky-50 text-sky-800 border border-sky-200 font-bold text-xs py-1.5 rounded-xl cursor-pointer">編輯</button>
- </div>
- `;
- } else {
- const isRetired = role === "退會";
- card.innerHTML = `
- <div class="flex items-center justify-between">
- <div>
- <div class="flex items-center gap-1.5">
- <h3 class="text-sm font-black text-slate-900">${m.gameNickname}</h3>
- <span class="text-[10px] px-1.5 py-0.5 rounded font-black ${roleBadgeClass}">${role}</span>
- ${m.teamGroup ? `<span class="text-[10px] bg-slate-100 text-slate-600 px-1 py-0.2 rounded font-bold">${m.teamGroup}</span>` : ''}
- </div>
- <div class="text-xs text-slate-500 font-bold mt-0.5">${m.gameClass} · LINE: ${m.lineDisplayName || '-'}</div>
- <div class="flex items-center gap-1 mt-1.5">${lineTag} ${dcTag}</div>
- </div>
- <div class="flex items-center gap-1">
- <button onclick="openMemberModal('edit', '${m.lineUserId}')" class="bg-sky-50 text-sky-800 border border-sky-200 text-xs font-bold px-2 py-1 rounded-lg cursor-pointer">編輯</button>
- ${!isRetired ? `<button onclick="promptRetireMember('${m.lineUserId}', '${m.gameNickname}')" class="bg-rose-50 text-rose-700 border border-rose-200 text-xs font-bold px-2 py-1 rounded-lg cursor-pointer">退會</button>` : ''}
- </div>
- </div>
- `;
- }
- container.appendChild(card);
- });
- }
+        // 💡 取得該職業在後台設定的實心飽和代表色標籤樣式
+        const badgeStyle = getBadgeStyleByClass(m.gameClass);
+
+        if (currentMemberSubTab === 'pending') {
+            card.innerHTML = `
+                <div class="flex items-start justify-between">
+                    <div>
+                        <span class="bg-rose-50 text-rose-700 text-[10px] font-black px-2 py-0.5 rounded border border-rose-100">新申請待審</span>
+                        <div class="flex items-center gap-1.5 mt-1 flex-wrap">
+                            <h3 class="text-sm font-black text-slate-900">${m.gameNickname}</h3>
+                            ${m.gameClass ? `<span class="text-[10px] font-bold px-2 py-0.5 rounded-md border shadow-xs ${badgeStyle}">${m.gameClass}</span>` : ''}
+                            ${m.gameId ? `<span class="text-xs font-bold text-slate-400">${m.gameId}</span>` : ''}
+                        </div>
+                        <p class="text-xs font-bold text-slate-500 mt-0.5">LINE: ${m.lineDisplayName || '-'}</p>
+                        <div class="flex items-center gap-1 mt-1.5">${lineTag} ${dcTag}</div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 pt-2.5 border-t border-slate-100 mt-2.5">
+                    <button onclick="promptApproveMember('${m.lineUserId}', '${m.gameNickname}')" class="flex-1 bg-sky-500 hover:bg-sky-600 text-white font-bold text-xs py-1.5 rounded-xl transition cursor-pointer">核准入會</button>
+                    <button onclick="openMemberModal('edit', '${m.lineUserId}')" class="px-3 bg-sky-50 text-sky-800 border border-sky-200 font-bold text-xs py-1.5 rounded-xl cursor-pointer">編輯</button>
+                </div>
+            `;
+        } else {
+            const isRetired = role === "退會";
+            card.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <div class="space-y-1">
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <h3 class="text-sm font-black text-slate-900">${m.gameNickname}</h3>
+                            <!-- 實心飽和職業標籤 -->
+                            ${m.gameClass ? `<span class="text-[10px] font-bold px-2 py-0.5 rounded-md border shadow-xs ${badgeStyle}">${m.gameClass}</span>` : ''}
+                            ${m.gameId ? `<span class="text-xs font-bold text-slate-400">${m.gameId}</span>` : ''}
+                            <span class="text-[10px] px-1.5 py-0.5 rounded font-black ${roleBadgeClass}">${role}</span>
+                            ${m.teamGroup ? `<span class="text-[10px] bg-slate-100 text-slate-600 px-1 py-0.2 rounded font-bold">${m.teamGroup}</span>` : ''}
+                        </div>
+                        <div class="text-xs text-slate-500 font-bold">LINE: ${m.lineDisplayName || '-'}</div>
+                        <div class="flex items-center gap-1">${lineTag} ${dcTag}</div>
+                    </div>
+                    <div class="flex items-center gap-1 shrink-0">
+                        <button onclick="openMemberModal('edit', '${m.lineUserId}')" class="bg-sky-50 text-sky-800 border border-sky-200 text-xs font-bold px-2 py-1 rounded-lg cursor-pointer">編輯</button>
+                        ${!isRetired ? `<button onclick="promptRetireMember('${m.lineUserId}', '${m.gameNickname}')" class="bg-rose-50 text-rose-700 border border-rose-200 text-xs font-bold px-2 py-1 rounded-lg cursor-pointer">退會</button>` : ''}
+                    </div>
+                </div>
+            `;
+        }
+        container.appendChild(card);
+    });
+}
 
  // ==========================================
  // 6. 請假紀錄與統計排名邏輯
