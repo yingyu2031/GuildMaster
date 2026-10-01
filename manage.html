@@ -1101,27 +1101,33 @@ function renderMembersList() {
        } else {
             const isRetired = role === "退會";
             card.innerHTML = `
-                <div class="flex items-center justify-between">
-                    <div class="space-y-1">
-                        <!-- 第一行：身分標籤 (幹部 / 現任 / 退會) -->
-                        <div class="flex items-center gap-1.5 flex-wrap">
-                            <span class="text-[10px] px-2 py-0.5 rounded font-black ${roleBadgeClass}">${role}</span>
-                        </div>
-                        
-                        <!-- 第二行：遊戲暱稱、實心飽和職業標籤、團體、遊戲ID -->
-                        <div class="flex items-center gap-1.5 flex-wrap">
+                <div class="flex items-start justify-between">
+                    <!-- 左側：主要個人資訊 -->
+                    <div class="space-y-1.5 flex-1 pr-2">
+                        <!-- 第一行：暱稱、職業標籤、ID -->
+                        <div class="flex items-center gap-2 flex-wrap">
                             <h3 class="text-sm font-black text-slate-900">${m.gameNickname}</h3>
                             ${m.gameClass ? `<span class="text-[10px] font-bold px-2 py-0.5 rounded-md border shadow-xs ${badgeStyle}">${m.gameClass}</span>` : ''}
-                            ${m.teamGroup ? `<span class="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.2 rounded font-bold">${m.teamGroup}</span>` : ''}
                             ${m.gameId ? `<span class="text-xs font-bold text-slate-400">${m.gameId}</span>` : ''}
+                            ${m.teamGroup ? `<span class="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-bold">${m.teamGroup}</span>` : ''}
+                        </div>
+                        
+                        <!-- 第二行：LINE 資訊 -->
+                        <div class="text-xs text-slate-500 font-bold">
+                            LINE: <span class="text-slate-700">${m.lineDisplayName || '-'}</span>
                         </div>
 
-                        <div class="text-xs text-slate-500 font-bold">LINE: ${m.lineDisplayName || '-'}</div>
-                        <div class="flex items-center gap-1">${lineTag} ${dcTag}</div>
+                        <!-- 第三行：群組綁定狀態 -->
+                        <div class="flex items-center gap-1.5 pt-0.5">${lineTag} ${dcTag}</div>
                     </div>
-                    <div class="flex items-center gap-1 shrink-0">
-                        <button onclick="openMemberModal('edit', '${m.lineUserId}')" class="bg-sky-50 text-sky-800 border border-sky-200 text-xs font-bold px-2 py-1 rounded-lg cursor-pointer">編輯</button>
-                        ${!isRetired ? `<button onclick="promptRetireMember('${m.lineUserId}', '${m.gameNickname}')" class="bg-rose-50 text-rose-700 border border-rose-200 text-xs font-bold px-2 py-1 rounded-lg cursor-pointer">退會</button>` : ''}
+
+                    <!-- 右側：身分標籤與操作按鈕 -->
+                    <div class="flex flex-col items-end gap-2 shrink-0">
+                        <span class="text-[10px] px-2 py-0.5 rounded-full font-black ${roleBadgeClass}">${role}</span>
+                        <div class="flex items-center gap-1 mt-1">
+                            <button onclick="openMemberModal('edit', '${m.lineUserId}')" class="bg-sky-50 text-sky-800 border border-sky-200 text-xs font-bold px-2.5 py-1 rounded-lg cursor-pointer">編輯</button>
+                            ${!isRetired ? `<button onclick="promptRetireMember('${m.lineUserId}', '${m.gameNickname}')" class="bg-rose-50 text-rose-700 border border-rose-200 text-xs font-bold px-2.5 py-1 rounded-lg cursor-pointer">退會</button>` : ''}
+                        </div>
                     </div>
                 </div>
             `;
