@@ -20,11 +20,19 @@ app.use((req, res, next) => {
 
 app.use(express.static(path.join(__dirname, 'public')));
 
+// 自動取得環境變數的 DATABASE_URL，並將最後面的資料庫名稱強制替換為 LV
+let dbUrl = process.env.DATABASE_URL || '';
+if (dbUrl) {
+  // 將連線字串結尾（例如 /guildmaster_db 或 /postgres）替換為 /LV
+  dbUrl = dbUrl.replace(/\/[^/?]+(\?.*)?$/, '/LV$1');
+}
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: dbUrl,
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
   options: '-c timezone=Asia/Taipei'
 });
+
 
 // ==========================================
 // 初始化資料庫與預設職業表
