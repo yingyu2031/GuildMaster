@@ -21,12 +21,8 @@ app.use((req, res, next) => {
 app.use(express.static(path.join(__dirname, 'Public')));
 
 
-let dbUrl = process.env.DATABASE_URL || '';
-
-/*if (dbUrl) {
-  // 將連線字串結尾替換,把LV改成新的資料庫
-  dbUrl = dbUrl.replace(/\/[^/?]+(\?.*)?$/, '/LV$1');
-}*/
+// PostgreSQL 連線設定 (結合您提供的連線參數與時區設定)
+let dbUrl = process.env.DATABASE_URL || 'postgresql://root:123@localhost:5432/LV';
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
