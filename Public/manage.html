@@ -1527,7 +1527,6 @@ function openEventModal(mode, eventId = null) {
         document.getElementById('formEventSignupStartTime').value = "12:00";
         document.getElementById('formEventSignupEndDate').value = TODAY_STR;
         document.getElementById('formEventSignupEndTime').value = "19:00";
-        document.getElementById('formEventStatus').value = "報名中";
         deleteWrapper.classList.add('hidden');
     } else {
         document.getElementById('eventModalTitle').textContent = "編輯活動內容";
@@ -1550,13 +1549,12 @@ function openEventModal(mode, eventId = null) {
         }
 
         document.getElementById('formEventMaxLimit').value = evt.maxLimit || "";
-        document.getElementById('formEventStatus').value = evt.status;
         document.getElementById('formEventDesc').value = evt.desc || "";
         deleteWrapper.classList.remove('hidden');
     }
     modal.classList.remove('hidden');
 }
-
+ 
 // 刪除活動 API
 async function deleteCurrentEvent() {
     const eventId = document.getElementById('formEventId').value;
