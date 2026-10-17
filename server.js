@@ -807,6 +807,125 @@ app.get('/api/admin/leave-rules', async (req, res) => {
   }
 });
 
+// ==========================================
+// 公告專區 API 串接邏輯
+// ==========================================
+
+// 1. 取得所有公告與已閱名單 (GET)
+app.get('/api/admin/bulletins', async (req, res) => {
+  try {
+    const postsResult = await pool.query('SELECT * FROM bulletins ORDER BY is_pinned DESC, date DESC');
+    const readsResult = await pool.query('SELECT * FROM bulletin_reads');
+
+    const bulletins = postsResult.rows.map(post => {
+      const readUsers = readsResult.rows
+        .filter(r => r.post_id === post.post_id)
+        .map(r => ({
+          uid: r.line_user_id,
+          nick: r.game_nickname,
+          class: r.game_class,
+          time: r.read_time
+        }));
+
+      return {
+        id: post.post_id,
+        category: post.category,
+        isPinned: post.is_pinned === 1,
+        title: post.title,
+        author: post.author,
+        date: post.date,
+        imageUrl: post.image_url || "",
+        content: post.content,
+        linkText: post.link_text || "",
+        linkUrl: post.link_url || "",
+        readUsers: readUsers
+      };
+    });
+
+    res.json({ status: "success", bulletins });
+  } catch (err) {
+    res.status(500).json({ status: "error", message: err.message });
+  }
+});
+
+// 2. 建立或編輯公告 (POST)
+app.post('/api/admin/bulletins/save', async (req, res) => {
+  const { id, category, title, imageUrl, content, linkText, linkUrl, isPinned, author } = req.body;
+  
+  const now = new Date();
+  const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  
+  const postId = id || ("POST_" + Date.now());
+  const pinnedVal = isPinned ? 1 : 0;
+
+  try {
+    await pool.query(`
+      INSERT INTO bulletins (post_id, category, title, image_url, content, link_text, link_url, is_pinned, author, date)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      ON CONFLICT (post_id) 
+      DO UPDATE SET 
+        category = EXCLUDED.category,
+        title = EXCLUDED.title,
+        image_url = EXCLUDED.image_url,
+        content = EXCLUDED.content,
+        link_text = EXCLUDED.link_text,
+        link_url = EXCLUDED.link_url,
+        is_pinned = EXCLUDED.is_pinned
+    `, [postId, category, title, imageUrl, content, linkText, linkUrl, pinnedVal, author, dateStr]);
+
+    res.json({ status: "success" });
+  } catch (err) {
+    res.status(500).json({ status: "error", message: err.message });
+  }
+});
+
+// 3. 刪除公告 (DELETE)
+app.delete('/api/admin/bulletins/:id', async (req, res) => {
+  const postId = req.params.id;
+  try {
+    await pool.query('DELETE FROM bulletins WHERE post_id = $1', [postId]);
+    res.json({ status: "success" });
+  } catch (err) {
+    res.status(500).json({ status: "error", message: err.message });
+  }
+});
+
+// 4. 點擊已閱 / 取消已閱切換 (POST)
+app.post('/api/bulletins/read', async (req, res) => {
+  const { postId, lineUserId, gameNickname, gameClass } = req.body;
+
+  try {
+    // 檢查是否已經點過已閱
+    const checkResult = await pool.query(
+      'SELECT * FROM bulletin_reads WHERE post_id = $1 AND line_user_id = $2',
+      [postId, lineUserId]
+    );
+
+    if (checkResult.rows.length > 0) {
+      // 如果已經讀過，再次點擊代表「取消已閱」
+      await pool.query(
+        'DELETE FROM bulletin_reads WHERE post_id = $1 AND line_user_id = $2',
+        [postId, lineUserId]
+      );
+      res.json({ status: "success", action: "removed" });
+    } else {
+      // 尚未讀過，寫入已閱紀錄
+      const now = new Date();
+      const timeStr = `${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+      await pool.query(`
+        INSERT INTO bulletin_reads (post_id, line_user_id, game_nickname, game_class, read_time)
+        VALUES ($1, $2, $3, $4, $5)
+      `, [postId, lineUserId, gameNickname, gameClass, timeStr]);
+
+      res.json({ status: "success", action: "added" });
+    }
+  } catch (err) {
+    res.status(500).json({ status: "error", message: err.message });
+  }
+});
+
+
 // 推播排程 API
 app.get('/api/admin/broadcasts', async (req, res) => {
   try {
