@@ -393,6 +393,9 @@
             const container = document.getElementById('eventCardListContainer');
             container.innerHTML = "";
 
+            const now = new Date(); // 取得當前時間
+
+            // 這裡可以根據需求決定是否要顯示已截止的活動，或是只針對開放中活動做按鈕控制
             const openEvents = eventsDatabase.filter(evt => {
                 if (evt.isArchived || evt.status === "已結束") return false;
                 return true;
@@ -415,8 +418,25 @@
                 const isFull = evt.maxLimit && evt.maxLimit > 0 && attendeesCount >= evt.maxLimit;
                 const isUserJoined = attendees.some(a => a.lineUserId === currentUser.userId);
 
+                // 檢查是否已過報名截止時間
+                let isSignupEnded = false;
+                if (evt.signupEnd) {
+                    const signupEndTime = new Date(evt.signupEnd);
+                    if (now > signupEndTime) {
+                        isSignupEnded = true;
+                    }
+                }
+
                 let actionBtnHtml = "";
-                if (isUserJoined) {
+                
+                // 優先判斷是否已經截止
+                if (isSignupEnded) {
+                    actionBtnHtml = `
+                        <button disabled class="w-full bg-slate-100 text-slate-400 font-bold text-xs py-2.5 rounded-xl cursor-not-allowed">
+                            報名已截止（無法變更）
+                        </button>
+                    `;
+                } else if (isUserJoined) {
                     actionBtnHtml = `
                         <button onclick="handleCancelSignup('${evt.id}')" class="w-full bg-emerald-500 hover:bg-emerald-600 active:scale-98 text-white font-black text-xs py-2.5 rounded-xl transition shadow-md shadow-emerald-200 flex items-center justify-center gap-1.5 cursor-pointer">
                             <span>✓ 已報名成功</span>
