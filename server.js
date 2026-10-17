@@ -22,7 +22,7 @@ app.use(express.static(path.join(__dirname, 'Public')));
 
 
 // PostgreSQL 連線設定 (結合您提供的連線參數與時區設定)
-let dbUrl = process.env.DATABASE_URL || 'postgresql://root:123@localhost:5432/LV';
+let dbUrl = process.env.DATABASE_URL || 'postgresql://root:123@db:5432/LV';
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
