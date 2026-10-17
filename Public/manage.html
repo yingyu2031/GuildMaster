@@ -459,14 +459,6 @@ input[type="date"], input[type="time"], select {
  <label class="block mb-1 text-slate-800">人數上限</label>
  <input type="number" id="formEventMaxLimit" placeholder="不填代表無限制" class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
  </div>
- <div>
- <label class="block mb-1 text-slate-800">活動狀態</label>
- <select id="formEventStatus" class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900 cursor-pointer">
- <option value="報名中">報名中</option>
- <option value="已截止">已截止</option>
- <option value="已結束">已結束</option>
- </select>
- </div>
  </div>
  <div>
  <label class="block mb-1 text-slate-800">備註說明</label>
@@ -1374,16 +1366,41 @@ function switchEventSubTab(tab) {
     }
     renderEventsList();
 }
+// 動態計算活動狀態的共用函式
+function computeEventStatus(evt) {
+  // 如果已被手動封存，保持已結束或封存
+  if (evt.isArchived) return "已結束";
 
+  const now = new Date();
+  const signupStart = evt.signupStart ? new Date(evt.signupStart) : null;
+  const signupEnd = evt.signupEnd ? new Date(evt.signupEnd) : null;
+  const eventDate = new Date(evt.date);
+
+  // 如果活動日期已經過去，視為已結束
+  if (evt.date < TODAY_STR) {
+    return "已結束";
+  }
+
+  // 判斷報名區間
+  if (signupEnd && now > signupEnd) {
+    return "已截止";
+  } else if (signupStart && now < signupStart) {
+    return "尚未開始";
+  } else {
+    return "報名中";
+  }
+}
+ 
 function renderEventsList() {
     const container = document.getElementById('eventListContainer');
     if (!container) return;
     container.innerHTML = "";
 
+    // 遍歷所有活動，自動計算並覆蓋狀態
     eventsData.forEach(evt => {
-        if (evt.date < TODAY_STR) {
+        evt.status = computeEventStatus(evt);
+        if (evt.status === "已結束" && evt.date < TODAY_STR) {
             evt.isArchived = true;
-            evt.status = "已結束";
         }
     });
 
