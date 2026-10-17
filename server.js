@@ -18,7 +18,7 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.static(path.join(__dirname, '.')));
+app.use(express.static(path.join(__dirname, 'Public')));
 
 
 let dbUrl = process.env.DATABASE_URL || '';
