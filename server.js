@@ -124,6 +124,31 @@ async function initDatabase() {
         content TEXT NOT NULL,
         active INT DEFAULT 1
       );
+      
+      -- 公告主表
+  CREATE TABLE IF NOT EXISTS bulletins (
+    post_id VARCHAR(50) PRIMARY KEY,
+    category VARCHAR(50) NOT NULL DEFAULT '重要公告',
+    title VARCHAR(255) NOT NULL,
+    image_url TEXT,
+    content TEXT NOT NULL,
+    link_text VARCHAR(100),
+    link_url TEXT,
+    is_pinned INT DEFAULT 0, -- 1 代表置頂，0 代表一般
+    author VARCHAR(100) NOT NULL,
+    date VARCHAR(50) NOT NULL
+);
+
+-- 公告已閱紀錄表
+    CREATE TABLE IF NOT EXISTS bulletin_reads (
+    post_id VARCHAR(50) REFERENCES bulletins(post_id) ON DELETE CASCADE,
+    line_user_id VARCHAR(100) NOT NULL,
+    game_nickname VARCHAR(100) NOT NULL,
+    game_class VARCHAR(100) NOT NULL,
+    read_time VARCHAR(50) NOT NULL,
+    PRIMARY KEY (post_id, line_user_id)
+);
+
 
       CREATE TABLE IF NOT EXISTS system_configs (
         config_key VARCHAR(255) PRIMARY KEY,
