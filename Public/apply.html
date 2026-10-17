@@ -393,9 +393,9 @@
             const container = document.getElementById('eventCardListContainer');
             container.innerHTML = "";
 
-            const now = new Date(); // 取得當前時間
+            const now = new Date();
 
-            // 這裡可以根據需求決定是否要顯示已截止的活動，或是只針對開放中活動做按鈕控制
+            // 過濾掉已結束或已封存的活動（保留報名中與已截止的活動供檢視）
             const openEvents = eventsDatabase.filter(evt => {
                 if (evt.isArchived || evt.status === "已結束") return false;
                 return true;
@@ -418,8 +418,8 @@
                 const isFull = evt.maxLimit && evt.maxLimit > 0 && attendeesCount >= evt.maxLimit;
                 const isUserJoined = attendees.some(a => a.lineUserId === currentUser.userId);
 
-                // 檢查是否已過報名截止時間
-                let isSignupEnded = false;
+                // 嚴格檢查是否已過報名截止時間，或者狀態直接就是「已截止」
+                let isSignupEnded = (evt.status === "已截止");
                 if (evt.signupEnd) {
                     const signupEndTime = new Date(evt.signupEnd);
                     if (now > signupEndTime) {
@@ -465,7 +465,7 @@
                 card.innerHTML = `
                     <div class="flex items-start justify-between">
                         <div>
-                            <span class="bg-amber-500 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full shadow-xs">${evt.status || '報名中'}</span>
+                            <span class="bg-amber-500 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full shadow-xs">${isSignupEnded ? '已截止' : (evt.status || '報名中')}</span>
                             <h3 class="text-base font-black text-slate-900 mt-1.5">${evt.title}</h3>
                             <div class="text-xs text-slate-600 font-bold mt-0.5">
                                 活動時間：<span class="text-amber-900 font-black font-mono">${evt.date} ${evt.time}</span>
