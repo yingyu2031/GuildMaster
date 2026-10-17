@@ -18,7 +18,7 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.static(path.join(__dirname, 'Public')));
+app.use(express.static(path.join(__dirname, '.')));
 
 
 // PostgreSQL 連線設定 (結合您提供的連線參數與時區設定)
