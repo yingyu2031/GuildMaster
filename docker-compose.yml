@@ -41,7 +41,7 @@ services:
     environment:
       - PORT=8081
       - NODE_ENV=production
-      - DATABASE_URL=postgresql://root:123@db:5432/LV
+      - DATABASE_URL=postgresql://root:123@db:5432/wanwangee
     depends_on:
       - db
     restart: always
