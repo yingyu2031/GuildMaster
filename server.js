@@ -29,8 +29,9 @@ let dbUrl = process.env.DATABASE_URL || '';
 }*/
 
 const pool = new Pool({
-  connectionString: dbUrl,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  connectionString: process.env.DATABASE_URL,
+  // 移除強制 SSL，改為如果連線字串有需要才啟用，或者直接關閉
+  ssl: false,
   options: '-c timezone=Asia/Taipei'
 });
 
