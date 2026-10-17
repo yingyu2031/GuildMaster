@@ -1593,7 +1593,7 @@ document.getElementById('eventForm').addEventListener('submit', async (e) => {
         signupStart: signupStartVal,
         signupEnd: signupEndVal,
         maxLimit: parseInt(document.getElementById('formEventMaxLimit').value) || null,
-        status: document.getElementById('formEventStatus').value,
+        // status 不再由前端下拉選單決定，可以不傳，或傳空值讓後端依時間運算
         desc: document.getElementById('formEventDesc').value.trim(),
         isArchived: (eventDateVal < TODAY_STR)
     };
@@ -1606,7 +1606,7 @@ document.getElementById('eventForm').addEventListener('submit', async (e) => {
         });
         const result = await res.json();
         if (result.status === "success") {
-            await fetchAllBackendData(); // 重新同步後端最新資料
+            await fetchAllBackendData(); 
             closeModal('eventModal');
             renderEventsList();
         } else {
