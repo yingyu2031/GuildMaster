@@ -460,13 +460,35 @@ app.delete('/api/admin/leave-rules/:event', async (req, res) => {
 // ==========================================
 // 活動列表 API
 // ==========================================
+
+// 共用的時間檢查與狀態計算函式
+function getComputedStatus(evt) {
+  // 如果已經手動封存或狀態為已結束，保持原狀
+  if (evt.is_archived === 1 || evt.status === '已結束') {
+    return evt.status;
+  }
+  
+  const now = new Date();
+  const signupEnd = new Date(evt.signup_end);
+  const signupStart = new Date(evt.signup_start);
+
+  if (now > signupEnd) {
+    return '已截止';
+  } else if (now >= signupStart) {
+    return '報名中';
+  } else {
+    return '尚未開始';
+  }
+}
+
+// ==========================================
 // 1. 取得所有活動與報名名單 API (GET)
+// ==========================================
 app.get('/api/admin/events', async (req, res) => {
   try {
     const eventsResult = await pool.query('SELECT * FROM events ORDER BY date ASC');
     const attendeesResult = await pool.query('SELECT * FROM event_attendees');
     
-    // 將報名名單對應組合進對應的活動物件中
     const events = eventsResult.rows.map(evt => {
       const attendees = attendeesResult.rows
         .filter(a => a.event_id === evt.event_id)
@@ -477,6 +499,9 @@ app.get('/api/admin/events', async (req, res) => {
           signupTime: a.signup_time
         }));
 
+      // 動態計算當前真實狀態
+      const computedStatus = getComputedStatus(evt);
+
       return {
         id: evt.event_id,
         title: evt.title,
@@ -485,7 +510,7 @@ app.get('/api/admin/events', async (req, res) => {
         signupStart: evt.signup_start,
         signupEnd: evt.signup_end,
         maxLimit: evt.max_limit,
-        status: evt.status,
+        status: computedStatus, // 採用動態計算後的狀態
         isArchived: evt.is_archived === 1,
         desc: evt.description,
         attendees: attendees
@@ -498,14 +523,28 @@ app.get('/api/admin/events', async (req, res) => {
   }
 });
 
-// 2. 進行報名 API (POST)
+// ==========================================
+// 2. 進行報名 API (POST) - 增加截止檢查
+// ==========================================
 app.post('/api/events/signup', async (req, res) => {
   const { eventId, lineUserId, gameNickname, gameClass } = req.body;
-  // 取得當前格式化時間字串
-  const now = new Date();
-  const signupTime = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
   
   try {
+    // 檢查活動是否存在以及是否已過報名截止時間
+    const eventResult = await pool.query('SELECT * FROM events WHERE event_id = $1', [eventId]);
+    if (eventResult.rows.length === 0) {
+      return res.status(404).json({ status: "error", message: "找不到此活動" });
+    }
+
+    const event = eventResult.rows[0];
+    const now = new Date();
+    if (now > new Date(event.signup_end)) {
+      return res.status(400).json({ status: "error", message: "報名已截止，無法進行報名" });
+    }
+
+    // 進行報名寫入
+    const signupTime = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    
     await pool.query(`
       INSERT INTO event_attendees (event_id, line_user_id, game_nickname, game_class, signup_time)
       VALUES ($1, $2, $3, $4, $5)
@@ -519,11 +558,25 @@ app.post('/api/events/signup', async (req, res) => {
   }
 });
 
-
-// 3. 取消報名 API (DELETE)
+// ==========================================
+// 3. 取消報名 API (DELETE) - 增加截止檢查
+// ==========================================
 app.delete('/api/events/signup', async (req, res) => {
   const { eventId, lineUserId } = req.body;
+  
   try {
+    // 檢查是否已過報名截止時間（若過期則不允許會員自行取消）
+    const eventResult = await pool.query('SELECT * FROM events WHERE event_id = $1', [eventId]);
+    if (eventResult.rows.length === 0) {
+      return res.status(404).json({ status: "error", message: "找不到此活動" });
+    }
+
+    const event = eventResult.rows[0];
+    const now = new Date();
+    if (now > new Date(event.signup_end)) {
+      return res.status(400).json({ status: "error", message: "報名已截止，無法自行取消報名" });
+    }
+
     await pool.query(`
       DELETE FROM event_attendees WHERE event_id = $1 AND line_user_id = $2
     `, [eventId, lineUserId]);
