@@ -1633,20 +1633,28 @@ function viewAttendees(eventId) {
     } else {
         attendees.forEach((a, i) => {
             const row = document.createElement('div');
-            row.className = "flex items-center justify-between p-2.5 rounded-xl bg-[#F8FAFC] border border-sky-100";
+            // 調整區塊讓內容能垂直排列，容納備註
+            row.className = "flex items-start justify-between p-2.5 rounded-xl bg-[#F8FAFC] border border-sky-100 gap-2";
             
             let signupTimeFormatted = a.signupTime || "-";
             if (signupTimeFormatted.length > 16) signupTimeFormatted = signupTimeFormatted.substring(0, 16).replace('T', ' ');
 
+            // 如果有填寫備註，就產生顯示備註的 HTML 標籤
+            let noteHtml = "";
+            if (a.note && a.note.trim() !== "") {
+                noteHtml = `<div class="text-[11px] text-amber-800 bg-amber-50 border border-amber-200/60 rounded-lg px-2 py-1 mt-1 font-medium break-words">備註：${a.note}</div>`;
+            }
+
             row.innerHTML = `
-                <div class="flex items-center gap-2">
-                    <span class="w-5 h-5 bg-sky-100 text-sky-800 rounded-full flex items-center justify-center font-bold text-[10px]">${i+1}</span>
-                    <div>
+                <div class="flex items-start gap-2 min-w-0 flex-1">
+                    <span class="w-5 h-5 bg-sky-100 text-sky-800 rounded-full flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">${i+1}</span>
+                    <div class="min-w-0 flex-1">
                         <div class="font-black text-slate-800">${a.gameNickname}</div>
                         <div class="text-[10px] text-slate-400 font-bold">${a.gameClass} · ${signupTimeFormatted}</div>
+                        ${noteHtml}
                     </div>
                 </div>
-                <button onclick="removeAttendee('${a.lineUserId || a.gameNickname}')" class="text-xs font-bold text-rose-600 hover:text-rose-700 bg-rose-50 border border-rose-200 px-2 py-1 rounded-lg transition cursor-pointer">
+                <button onclick="removeAttendee('${a.lineUserId || a.gameNickname}')" class="text-xs font-bold text-rose-600 hover:text-rose-700 bg-rose-50 border border-rose-200 px-2 py-1 rounded-lg transition shrink-0 cursor-pointer">
                     移除
                 </button>
             `;
