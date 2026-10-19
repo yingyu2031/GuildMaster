@@ -613,7 +613,6 @@
                     ` : ''}
 
                     <div class="pt-2 border-t border-amber-100/80 flex items-center justify-between gap-2">
-                        // 修改後：如果已讀，則加上 disabled 並反灰，不執行 toggleRead
                         <button ${isRead ? 'disabled' : `onclick="toggleRead('${item.id}')"`} 
                                 class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-black transition border ${isRead ? 'bg-emerald-600 text-white border-emerald-600 opacity-90 cursor-not-allowed shadow-xs' : 'bg-white text-slate-700 border-slate-200 hover:bg-emerald-50 cursor-pointer'}">
                             <span>👁️</span>
