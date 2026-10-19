@@ -110,7 +110,7 @@ async function initDatabase() {
         game_nickname VARCHAR(255) NOT NULL,
         game_class VARCHAR(255) NOT NULL,
         signup_time VARCHAR(50) NOT NULL,
-        note TEXT,
+        note TEXT DEFAULT '',
         CONSTRAINT unique_event_user UNIQUE (event_id, line_user_id)
      );
 
