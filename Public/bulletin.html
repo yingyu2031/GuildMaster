@@ -601,10 +601,11 @@
                 
                 if (imgUrls.length > 0) {
                     const slides = imgUrls.map(imgUrl => `
-                        <div class="ig-slide shrink-0 w-full h-64 bg-slate-900">
-                            <img src="${imgUrl}" alt="公告圖片" class="w-full h-full object-cover">
-                        </div>
+                   <div class="ig-slide shrink-0 w-full bg-slate-950 flex items-center justify-center">
+                    <img src="${imgUrl}" alt="公告圖片" class="w-full max-h-96 object-contain">
+                    </div>
                     `).join('');
+
                 
                     imagesHtml = `
                         <div class="relative rounded-xl overflow-hidden border border-amber-200/80 bg-amber-50">
