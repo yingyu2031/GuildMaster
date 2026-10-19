@@ -827,6 +827,14 @@ app.get('/api/admin/bulletins', async (req, res) => {
           time: r.read_time
         }));
 
+      // 支援多張圖片解析（若原本是字串或 JSON）
+      let parsedImages = [];
+      try {
+        parsedImages = post.image_urls ? JSON.parse(post.image_urls) : (post.image_url ? [post.image_url] : []);
+      } catch (e) {
+        parsedImages = post.image_url ? [post.image_url] : [];
+      }
+
       return {
         id: post.post_id,
         category: post.category,
@@ -834,7 +842,7 @@ app.get('/api/admin/bulletins', async (req, res) => {
         title: post.title,
         author: post.author,
         date: post.date,
-        imageUrl: post.image_url || "",
+        imageUrls: parsedImages, // 支援多圖陣列
         content: post.content,
         linkText: post.link_text || "",
         linkUrl: post.link_url || "",
@@ -850,34 +858,37 @@ app.get('/api/admin/bulletins', async (req, res) => {
 
 // 2. 建立或編輯公告 (POST)
 app.post('/api/admin/bulletins/save', async (req, res) => {
-  const { id, category, title, imageUrl, content, linkText, linkUrl, isPinned, author } = req.body;
+  const { id, category, title, imageUrls, content, linkText, linkUrl, isPinned, author } = req.body;
   
   const now = new Date();
   const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
   
   const postId = id || ("POST_" + Date.now());
   const pinnedVal = isPinned ? 1 : 0;
+  const imagesJson = JSON.stringify(imageUrls || []);
 
   try {
+    // 確保您的 bulletins 資料庫表中有 image_urls 欄位 (TEXT 類型)
     await pool.query(`
-      INSERT INTO bulletins (post_id, category, title, image_url, content, link_text, link_url, is_pinned, author, date)
+      INSERT INTO bulletins (post_id, category, title, image_urls, content, link_text, link_url, is_pinned, author, date)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       ON CONFLICT (post_id) 
       DO UPDATE SET 
         category = EXCLUDED.category,
         title = EXCLUDED.title,
-        image_url = EXCLUDED.image_url,
+        image_urls = EXCLUDED.image_urls,
         content = EXCLUDED.content,
         link_text = EXCLUDED.link_text,
         link_url = EXCLUDED.link_url,
         is_pinned = EXCLUDED.is_pinned
-    `, [postId, category, title, imageUrl, content, linkText, linkUrl, pinnedVal, author, dateStr]);
+    `, [postId, category, title, imagesJson, content, linkText, linkUrl, pinnedVal, author, dateStr]);
 
     res.json({ status: "success" });
   } catch (err) {
     res.status(500).json({ status: "error", message: err.message });
   }
 });
+
 
 // 3. 刪除公告 (DELETE)
 app.delete('/api/admin/bulletins/:id', async (req, res) => {
