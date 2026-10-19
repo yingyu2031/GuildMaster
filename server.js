@@ -130,7 +130,7 @@ async function initDatabase() {
     post_id VARCHAR(50) PRIMARY KEY,
     category VARCHAR(50) NOT NULL DEFAULT '重要公告',
     title VARCHAR(255) NOT NULL,
-    image_url TEXT,
+    image_urls TEXT,
     content TEXT NOT NULL,
     link_text VARCHAR(100),
     link_url TEXT,
