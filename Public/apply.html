@@ -189,6 +189,11 @@
         };
 
         let eventsDatabase = [];
+        
+        function escapeHtml(text) {
+        if (!text) return '';
+            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
 
         async function queryMemberFromBackend(uid) {
             try {
@@ -452,8 +457,8 @@
                     userNoteBlockHtml = `
                         <div class="bg-emerald-50/80 border border-emerald-200 rounded-xl p-2.5 text-xs text-emerald-900 flex items-start justify-between gap-2">
                             <div class="min-w-0">
-                                <span class="font-black">我的報名備註：</span>
-                                <span class="font-medium break-words">${userNote ? escapeHtml(userNote) : '<span class="text-slate-400 italic">無備註</span>'}</span>
+                                <span class="font-black">報名備註：</span>
+                                <span class="font-medium break-words">${userNote ? userNote : '<span class="text-slate-400 italic">無</span>'}</span>
                             </div>
                             <button onclick="handleJoinSignup('${evt.id}')" class="shrink-0 text-[11px] font-bold text-emerald-700 hover:text-emerald-900 underline cursor-pointer">
                                 修改
