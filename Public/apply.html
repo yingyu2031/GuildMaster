@@ -28,8 +28,8 @@
         }
         
         .auto-break-text {
-        white-space: pre-line;
-        word-break: break-all;
+            white-space: pre-line;
+            word-break: break-word;
         }
     </style>
 </head>
@@ -139,27 +139,6 @@
         <p class="text-[11px] text-amber-900/40 text-center mt-6">&copy; 2026 GuildMaster 活動報名系統</p>
     </main>
 
-    <!-- 彈窗：已報名會員明細 Modal -->
-    <div id="attendeesModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
-        <div class="bg-white w-full max-w-md rounded-[28px] p-6 border-2 border-amber-200 soft-amber-shadow max-h-[85vh] flex flex-col">
-            <div class="flex items-center justify-between pb-3 border-b border-amber-100 mb-3">
-                <div>
-                    <h3 id="modalEventTitle" class="text-base font-black text-slate-900">活動名稱</h3>
-                    <p id="modalEventSub" class="text-[11px] text-amber-800 font-bold mt-0.5">已報名會員明細</p>
-                </div>
-                <button onclick="closeAttendeesModal()" class="text-slate-400 hover:text-slate-600 text-sm font-bold cursor-pointer">關閉</button>
-            </div>
-            
-            <div id="classSummaryBar" class="text-[11px] font-bold text-slate-700 bg-amber-50/60 p-2 rounded-xl border border-amber-100 mb-2.5 flex flex-wrap gap-1.5">
-            </div>
-
-            <div id="modalAttendeesList" class="flex-1 overflow-y-auto space-y-2 pr-1 text-xs text-left">
-            </div>
-            <button onclick="closeAttendeesModal()" class="mt-4 w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 rounded-xl text-xs transition cursor-pointer">
-                返回活動列表
-            </button>
-        </div>
-    </div>
 <!-- 琥珀橘圓角風格：確認報名 Modal -->
 <div id="eventSignupConfirmModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
   <div class="bg-white w-full max-w-xs rounded-[28px] p-6 border-2 border-amber-200 soft-amber-shadow text-center">
@@ -186,8 +165,6 @@
   </div>
 </div>
 
-
-
     <script>
         const MY_LIFF_ID = "2011659633-Alx51wVG";
         const BACKEND_API_URL = "https://guildmaster-lv.duckdns.org";
@@ -204,7 +181,6 @@
         };
 
         let eventsDatabase = [];
-        let currentViewingEventId = null;
 
         async function queryMemberFromBackend(uid) {
             try {
@@ -399,7 +375,6 @@
 
             const now = new Date();
 
-            // 過濾掉已結束或已封存的活動（保留報名中與已截止的活動供檢視）
             const openEvents = eventsDatabase.filter(evt => {
                 if (evt.isArchived || evt.status === "已結束") return false;
                 return true;
@@ -422,7 +397,6 @@
                 const isFull = evt.maxLimit && evt.maxLimit > 0 && attendeesCount >= evt.maxLimit;
                 const isUserJoined = attendees.some(a => a.lineUserId === currentUser.userId);
 
-                // 嚴格檢查是否已過報名截止時間，或者狀態直接就是「已截止」
                 let isSignupEnded = (evt.status === "已截止");
                 if (evt.signupEnd) {
                     const signupEndTime = new Date(evt.signupEnd);
@@ -433,7 +407,6 @@
 
                 let actionBtnHtml = "";
                 
-                // 優先判斷是否已經截止
                 if (isSignupEnded) {
                     actionBtnHtml = `
                         <button disabled class="w-full bg-slate-100 text-slate-400 font-bold text-xs py-2.5 rounded-xl cursor-not-allowed">
@@ -488,177 +461,107 @@
                         </div>
                     </div>
 
-                    <p class="text-xs text-slate-600 bg-[#FFFDF7] p-2.5 rounded-xl border border-amber-100 leading-relaxed font-medium whitespace-pre-line break-all">${(evt.desc || '無備註。').trim()}</p>
+                    <p class="text-xs text-slate-600 bg-[#FFFDF7] p-2.5 rounded-xl border border-amber-100 leading-relaxed font-medium whitespace-pre-line break-words">${(evt.desc || '無備註。').trim()}</p>
+                    
                     <div>
                         <div class="flex justify-between text-xs font-bold mb-1">
                             <span class="text-slate-500">已報名人數</span>
-                            <span class="text-slate-900 font-mono">${limitText}</span>
+                            <span class="text-slate-900 font-mono font-black">${limitText}</span>
                         </div>
                         <div class="w-full h-2 bg-amber-100 rounded-full overflow-hidden">
                             <div class="h-full bg-gradient-to-r from-amber-400 to-orange-500 rounded-full transition-all duration-300" style="width: ${percent}%"></div>
                         </div>
                     </div>
 
-                    <div class="pt-1 space-y-2">
+                    <div class="pt-1">
                         ${actionBtnHtml}
-                        <button onclick="viewAttendeesModal('${evt.id}')" class="w-full bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 text-xs font-black py-1.5 rounded-xl transition cursor-pointer">
-                            查看已報名會員 (${attendeesCount})
-                        </button>
                     </div>
                 `;
                 container.appendChild(card);
             });
         }
 
-        let currentSelectedEventId = null;
-
-// 點擊「立即報名參加」時觸發
-function handleJoinSignup(eventId) {
-    const evt = eventsDatabase.find(e => e.id === eventId);
-    if (!evt) return;
-
-    document.getElementById('eventSignupTargetId').value = eventId;
-    document.getElementById('eventSignupConfirmText').textContent = `確定要報名參加【${evt.title}】嗎？\n請確認當日時間可準時出席！`;
-    document.getElementById('eventSignupConfirmModal').classList.remove('hidden');
-}
-
-// 點擊圓角 Modal 中的「確認報名」後送出 API
-async function executeEventSignup() {
-    const eventId = document.getElementById('eventSignupTargetId').value;
-    const evt = eventsDatabase.find(e => e.id === eventId);
-    if (!evt) return;
-
-    closeModal('eventSignupConfirmModal');
-
-    try {
-        const res = await fetch(`${BACKEND_API_URL}/api/events/signup`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                eventId: evt.id,
-                lineUserId: currentUser.userId,
-                gameNickname: currentUser.gameNickname,
-                gameClass: currentUser.gameClass
-            })
-        });
-        const result = await res.json();
-
-        if (result.status === "success") {
-            await fetchEventsFromBackend(); // 重新載入活動狀態並更新畫面
-        } else {
-            alert("報名失敗: " + result.message);
-        }
-    } catch (err) {
-        console.error(err);
-        alert("網路異常，報名失敗");
-    }
-}
-
-
-
-// 點擊「點此取消」時觸發
-function handleCancelSignup(eventId) {
-    const evt = eventsDatabase.find(e => e.id === eventId);
-    if (!evt) return;
-
-    document.getElementById('eventCancelTargetId').value = eventId;
-    document.getElementById('eventCancelConfirmText').textContent = `確定要取消【${evt.title}】的報名嗎？\n取消後名額將釋出給其他夥伴。`;
-    document.getElementById('eventCancelConfirmModal').classList.remove('hidden');
-}
-
-// 點擊圓角 Modal 中的「確認取消」後送出 DELETE API
-async function executeEventCancel() {
-    const eventId = document.getElementById('eventCancelTargetId').value;
-    const evt = eventsDatabase.find(e => e.id === eventId);
-    if (!evt) return;
-
-    closeModal('eventCancelConfirmModal');
-
-    try {
-        const res = await fetch(`${BACKEND_API_URL}/api/events/signup`, {
-            method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                eventId: evt.id,
-                lineUserId: currentUser.userId
-            })
-        });
-        const result = await res.json();
-
-        if (result.status === "success") {
-            await fetchEventsFromBackend(); // 重新載入活動狀態並更新畫面
-        } else {
-            alert("取消失敗: " + result.message);
-        }
-    } catch (err) {
-        console.error(err);
-        alert("網路異常，取消失敗");
-    }
-}
-
-        function viewAttendeesModal(eventId) {
-            currentViewingEventId = eventId;
+        function handleJoinSignup(eventId) {
             const evt = eventsDatabase.find(e => e.id === eventId);
             if (!evt) return;
 
-            const attendees = evt.attendees || [];
-            document.getElementById('modalEventTitle').textContent = evt.title;
-            document.getElementById('modalEventSub').textContent = `已報名 ${attendees.length} 人 · 集合時間 ${evt.date} ${evt.time}`;
-
-            const classCounts = {};
-            attendees.forEach(a => {
-                classCounts[a.gameClass] = (classCounts[a.gameClass] || 0) + 1;
-            });
-            const summaryContainer = document.getElementById('classSummaryBar');
-            summaryContainer.innerHTML = "";
-            Object.keys(classCounts).forEach(cls => {
-                const badge = document.createElement('span');
-                badge.className = "bg-white border border-amber-200 px-2 py-0.5 rounded-lg text-[10px] text-amber-900 font-bold";
-                badge.textContent = `${cls}: ${classCounts[cls]}人`;
-                summaryContainer.appendChild(badge);
-            });
-
-            const listContainer = document.getElementById('modalAttendeesList');
-            listContainer.innerHTML = "";
-
-            if (attendees.length === 0) {
-                listContainer.innerHTML = `<div class="py-6 text-center text-xs text-slate-400 font-bold">目前尚無會員報名</div>`;
-            } else {
-                attendees.forEach((a, i) => {
-                    const row = document.createElement('div');
-                    row.className = "flex items-center justify-between p-2.5 rounded-xl bg-amber-50/40 border border-amber-100";
-                    const isSelf = a.lineUserId === currentUser.userId;
-
-                    let signupTimeFormatted = a.signupTime || "-";
-                    if (signupTimeFormatted.length > 16) signupTimeFormatted = signupTimeFormatted.substring(0, 16).replace('T', ' ');
-
-                    row.innerHTML = `
-                        <div class="flex items-center gap-2">
-                            <span class="w-5 h-5 bg-amber-200 text-amber-900 rounded-full flex items-center justify-center font-black text-[10px]">${i+1}</span>
-                            <div>
-                                <div class="font-black text-slate-800 flex items-center gap-1">
-                                    <span>${a.gameNickname}</span>
-                                    ${isSelf ? `<span class="text-[9px] bg-emerald-100 text-emerald-800 px-1 py-0.2 rounded font-bold">你自己</span>` : ''}
-                                </div>
-                                <div class="text-[10px] text-slate-400 font-bold">${a.gameClass} · ${signupTimeFormatted}</div>
-                            </div>
-                        </div>
-                    `;
-                    listContainer.appendChild(row);
-                });
-            }
-
-            document.getElementById('attendeesModal').classList.remove('hidden');
+            document.getElementById('eventSignupTargetId').value = eventId;
+            document.getElementById('eventSignupConfirmText').textContent = `確定要報名參加【${evt.title}】嗎？\n請確認當日時間可準時出席！`;
+            document.getElementById('eventSignupConfirmModal').classList.remove('hidden');
         }
 
-        function closeAttendeesModal() {
-            document.getElementById('attendeesModal').classList.add('hidden');
+        async function executeEventSignup() {
+            const eventId = document.getElementById('eventSignupTargetId').value;
+            const evt = eventsDatabase.find(e => e.id === eventId);
+            if (!evt) return;
+
+            closeModal('eventSignupConfirmModal');
+
+            try {
+                const res = await fetch(`${BACKEND_API_URL}/api/events/signup`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        eventId: evt.id,
+                        lineUserId: currentUser.userId,
+                        gameNickname: currentUser.gameNickname,
+                        gameClass: currentUser.gameClass
+                    })
+                });
+                const result = await res.json();
+
+                if (result.status === "success") {
+                    await fetchEventsFromBackend();
+                } else {
+                    alert("報名失敗: " + result.message);
+                }
+            } catch (err) {
+                console.error(err);
+                alert("網路異常，報名失敗");
+            }
+        }
+
+        function handleCancelSignup(eventId) {
+            const evt = eventsDatabase.find(e => e.id === eventId);
+            if (!evt) return;
+
+            document.getElementById('eventCancelTargetId').value = eventId;
+            document.getElementById('eventCancelConfirmText').textContent = `確定要取消【${evt.title}】的報名嗎？\n取消後名額將釋出給其他夥伴。`;
+            document.getElementById('eventCancelConfirmModal').classList.remove('hidden');
+        }
+
+        async function executeEventCancel() {
+            const eventId = document.getElementById('eventCancelTargetId').value;
+            const evt = eventsDatabase.find(e => e.id === eventId);
+            if (!evt) return;
+
+            closeModal('eventCancelConfirmModal');
+
+            try {
+                const res = await fetch(`${BACKEND_API_URL}/api/events/signup`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        eventId: evt.id,
+                        lineUserId: currentUser.userId
+                    })
+                });
+                const result = await res.json();
+
+                if (result.status === "success") {
+                    await fetchEventsFromBackend();
+                } else {
+                    alert("取消失敗: " + result.message);
+                }
+            } catch (err) {
+                console.error(err);
+                alert("網路異常，取消失敗");
+            }
         }
         
         function closeModal(modalId) {
-    document.getElementById(modalId).classList.add('hidden');
-}
-
+            document.getElementById(modalId).classList.add('hidden');
+        }
     </script>
 </body>
 </html>
