@@ -1457,7 +1457,7 @@ function renderEventsList() {
                 <div>報名開放：${evt.signupStart || '無限制'}</div>
                 <div>報名截止：${evt.signupEnd || '活動開始前'}</div>
             </div>
-            <p class="text-xs text-slate-600 bg-[#F8FAFC] p-2.5 rounded-xl border border-sky-100 leading-relaxed whitespace-pre-line break-all">${evt.desc || '無備註'}</p>
+            <p class="text-xs text-slate-600 bg-[#F8FAFC] p-2.5 rounded-xl border border-sky-100 leading-relaxed whitespace-pre-line break-all">${(evt.desc || '無備註').trim()}</p>
             <div>
                 <div class="flex justify-between text-xs font-bold mb-1">
                     <span class="text-slate-500">報名進度</span>
