@@ -921,6 +921,24 @@ app.post('/api/bulletins/read', async (req, res) => {
   }
 });
 
+function syncGuildMembers() {
+  const url = "https://guildmaster-lv.duckdns.org/api/sheet/members?token=您的密碼";
+  const response = UrlFetchApp.fetch(url);
+  const data = JSON.parse(response.getContentText());
+
+  if (data.status === "success") {
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("會員清單");
+    sheet.clearContents(); // 清空舊資料
+
+    // 寫入標題與資料
+    let rows = [["LINE ID", "遊戲暱稱", "遊戲職業", "帳號狀態", "公會身分", "更新時間"]];
+    data.members.forEach(m => {
+      rows.push([m.lineUserId, m.gameNickname, m.gameClass, m.accountStatus, m.guildRole, m.updatedAt]);
+    });
+
+    sheet.getRange(1, 1, rows.length, rows[0].setValues).setValues(rows); // 寫入試算表
+  }
+}
 
 // 推播排程 API
 app.get('/api/admin/broadcasts', async (req, res) => {
