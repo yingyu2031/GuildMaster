@@ -36,22 +36,22 @@
         overflow-wrap: break-word;
     }
     
-    /* IG 風格橫向滑動容器 */
-        .ig-slider {
-            display: flex;
-            overflow-x: auto;
-            scroll-snap-type: x mandatory;
-            scrollbar-width: none;
-        }
-        .ig-slider::-webkit-scrollbar {
-            display: none;
-        }
-        .ig-slide {
-            flex: 0 0 100%;
-            width: 100%;
-            scroll-snap-align: start;
-        }
-
+    /* Instagram 風格橫向滑動容器 */
+    .ig-slider {
+        display: flex;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+    }
+    .ig-slider::-webkit-scrollbar {
+        display: none;
+    }
+    .ig-slide {
+        flex: 0 0 100%;
+        width: 100%;
+        scroll-snap-align: start;
+    }
 </style>
 </head>
 <body class="bg-[#FFFDF7] text-slate-800 antialiased selection:bg-amber-200 selection:text-amber-900 min-h-screen flex flex-col justify-between py-6 px-3 sm:px-4">
@@ -177,7 +177,7 @@
 
             <!-- 關鍵字查詢列 -->
             <div class="relative">
-                <input type="text" id="bulletinSearchInput" oninput="handleSearchInput()" placeholder="搜尋公告標題或內文關鍵字..."
+                <input type="text" id="bulletinSearchInput" oninput="handleSearchInput()" placeholder="搜尋公告標題關鍵字..."
                        class="w-full h-[40px] bg-white border-2 border-amber-200/80 rounded-xl px-3 text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition box-border">
             </div>
 
@@ -190,10 +190,9 @@
                 </button>
             </div>
 
-
-                <!-- 公告列表容器 -->
-                <div id="bulletinListContainer" class="space-y-4"></div>
-
+            <!-- 公告列表容器 -->
+            <div id="bulletinListContainer" class="space-y-4"></div>
+        </div>
     </main>
 
     <!-- 彈窗 1：幹部 發布/編輯公告 Modal -->
@@ -205,7 +204,6 @@
             </div>
             <form id="postForm" class="space-y-3.5 text-left text-xs font-bold text-slate-700">
                 <input type="hidden" id="formPostId">
-                <input type="hidden" id="formPostImageBase64">
 
                 <div class="grid grid-cols-3 gap-2">
                     <div class="col-span-1">
@@ -224,21 +222,18 @@
                 </div>
 
                 <div>
-                    <label class="block mb-1 text-slate-800">上傳公告圖檔 (選填)</label>
-                    <input type="file" id="formPostFileInput" accept="image/*" class="hidden" onchange="handleImageFileSelect(event)">
+                    <label class="block mb-1 text-slate-800">上傳公告圖檔 (最多 5 張)</label>
+                    <input type="file" id="formPostFileInput" accept="image/*" multiple class="hidden" onchange="handleImageFileSelect(event)">
                     
                     <div id="imageUploadBox" onclick="document.getElementById('formPostFileInput').click()" 
                          class="border-2 border-dashed border-amber-300 rounded-2xl p-4 bg-amber-50/40 hover:bg-amber-100/50 cursor-pointer text-center transition">
-                        <div class="text-xs font-black text-amber-950">點擊選擇手機相簿圖檔 / 拍照</div>
-                        <div class="text-[10px] text-amber-800/60 mt-0.5">支援jpg,png,gif,webp等</div>
+                        <div class="text-xs font-black text-amber-950">📷 點擊選擇手機相簿圖檔 (最多5張)</div>
+                        <div class="text-[10px] text-amber-800/60 mt-0.5">支援jpg, png, webp等格式</div>
                     </div>
 
-                    <div id="imagePreviewContainer" class="hidden relative mt-2 rounded-2xl overflow-hidden border-2 border-amber-200 bg-slate-900">
-                        <img id="imagePreviewImg" src="" alt="圖片預覽" class="w-full max-h-48 object-contain">
-                        <button type="button" onclick="clearSelectedImage()" 
-                                class="absolute top-2 right-2 bg-slate-900/70 hover:bg-rose-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold transition shadow-md cursor-pointer">
-                            ✕
-                        </button>
+                    <!-- 多圖預覽容器 -->
+                    <div id="imagePreviewContainer" class="hidden grid grid-cols-5 gap-2 mt-2">
+                        <!-- 動態塞入預覽縮圖 -->
                     </div>
                 </div>
 
@@ -273,7 +268,7 @@
                     <button type="submit" id="formPostSubmitBtn" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 rounded-xl transition shadow-md shadow-amber-200 cursor-pointer">發布公告</button>
                 </div>
 
-                                <!-- 編輯表單內的刪除按鈕 -->
+                <!-- 編輯表單內的刪除按鈕 -->
                 <div id="deletePostBtnWrapper" class="pt-2 border-t border-slate-100 hidden">
                     <button type="button" onclick="openPostDeleteConfirm()" class="w-full bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold py-2.5 rounded-xl text-xs transition cursor-pointer">
                         刪除此公告
@@ -334,6 +329,7 @@
 
         let bulletinsData = [];
         let currentSelectedCategory = "全部";
+        let selectedImagesArray = []; // 儲存最多 5 張圖片的陣列
 
         async function queryMemberFromBackend(uid) {
             try {
@@ -572,9 +568,7 @@
 
             if (keyword) {
                 list = list.filter(b => 
-                    b.title.toLowerCase().includes(keyword) || 
-                    b.content.toLowerCase().includes(keyword) ||
-                    b.author.toLowerCase().includes(keyword)
+                    b.title.toLowerCase().includes(keyword)
                 );
             }
 
@@ -601,6 +595,31 @@
             list.forEach(item => {
                 const isRead = item.readUsers.some(u => u.uid === currentUser.userId);
 
+                // 處理多圖滑動輪播 HTML
+                let imagesHtml = '';
+                const imgUrls = item.imageUrls || (item.imageUrl ? [item.imageUrl] : []);
+                
+                if (imgUrls.length > 0) {
+                    const slides = imgUrls.map(imgUrl => `
+                        <div class="ig-slide shrink-0 w-full h-64 bg-slate-900">
+                            <img src="${imgUrl}" alt="公告圖片" class="w-full h-full object-cover">
+                        </div>
+                    `).join('');
+                
+                    imagesHtml = `
+                        <div class="relative rounded-xl overflow-hidden border border-amber-200/80 bg-amber-50">
+                            <div id="slider-${item.id}" onscroll="updateSliderCounter('${item.id}', ${imgUrls.length})" class="ig-slider">
+                                ${slides}
+                            </div>
+                            ${imgUrls.length > 1 ? `
+                                <div id="counter-${item.id}" class="absolute top-2 right-2 bg-slate-900/70 text-white text-[10px] font-black px-2 py-0.5 rounded-full pointer-events-none shadow-sm">
+                                    1 / ${imgUrls.length}
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                }
+
                 const card = document.createElement('div');
                 card.className = `bg-white rounded-2xl p-4 border-2 ${item.isPinned ? 'border-amber-400 bg-gradient-to-b from-amber-50/20 to-white' : 'border-amber-200/70'} text-left soft-amber-shadow fade-in space-y-3`;
 
@@ -625,20 +644,18 @@
                         ${item.title}
                     </h2>
 
-                    ${item.imageUrl ? `
-                        <div class="rounded-xl overflow-hidden border border-amber-200/80 max-h-64 bg-amber-50">
-                            <img src="${item.imageUrl}" alt="公告圖片" class="w-full h-full object-cover">
-                        </div>
-                    ` : ''}
+                    ${imagesHtml}
 
                     <div class="text-xs text-slate-700 leading-relaxed font-medium bg-[#FFFDF7] p-3 rounded-xl border border-amber-100 whitespace-pre-line break-word">
                         ${(item.content || '').trim()}
                     </div>
+
                     ${item.linkUrl && item.linkText ? `
                         <div class="pt-0.5">
                             <a href="${item.linkUrl}" target="_blank" class="inline-flex items-center gap-1.5 text-xs font-black text-amber-900 bg-amber-100/80 hover:bg-amber-200 border border-amber-300 px-3 py-2 rounded-xl transition">
                                 <span>🔗</span>
                                 <span>${item.linkText}</span>
+                                <span class="text-amber-600 text-[10px]">➜</span>
                             </a>
                         </div>
                     ` : ''}
@@ -658,6 +675,18 @@
 
                 container.appendChild(card);
             });
+        }
+
+        function updateSliderCounter(postId, totalCount) {
+            const slider = document.getElementById(`slider-${postId}`);
+            const counter = document.getElementById(`counter-${postId}`);
+            if (!slider || !counter) return;
+            
+            const scrollLeft = slider.scrollLeft;
+            const slideWidth = slider.clientWidth;
+            const currentIndex = Math.round(scrollLeft / slideWidth) + 1;
+            
+            counter.textContent = `${currentIndex} / ${totalCount}`;
         }
 
         async function toggleRead(postId) {
@@ -709,36 +738,73 @@
         }
 
         function handleImageFileSelect(event) {
-            const file = event.target.files[0];
-            if (!file) return;
+            const files = Array.from(event.target.files);
+            if (files.length === 0) return;
 
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const base64Data = e.target.result;
-                document.getElementById('formPostImageBase64').value = base64Data;
-                showImagePreview(base64Data);
-            };
-            reader.readAsDataURL(file);
+            const remainingSlots = 5 - selectedImagesArray.length;
+            const filesToProcess = files.slice(0, remainingSlots);
+
+            if (files.length > remainingSlots) {
+                alert("最多只能上傳 5 張圖片！");
+            }
+
+            filesToProcess.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    selectedImagesArray.push(e.target.result);
+                    renderImagePreviews();
+                };
+                reader.readAsDataURL(file);
+            });
+            
+            event.target.value = "";
         }
 
-        function showImagePreview(src) {
-            document.getElementById('imagePreviewImg').src = src;
-            document.getElementById('imagePreviewContainer').classList.remove('hidden');
-            document.getElementById('imageUploadBox').classList.add('hidden');
+        function renderImagePreviews() {
+            const container = document.getElementById('imagePreviewContainer');
+            const uploadBox = document.getElementById('imageUploadBox');
+            
+            if (selectedImagesArray.length > 0) {
+                container.classList.remove('hidden');
+                if (selectedImagesArray.length >= 5) {
+                    uploadBox.classList.add('hidden');
+                } else {
+                    uploadBox.classList.remove('hidden');
+                }
+            } else {
+                container.classList.add('hidden');
+                uploadBox.classList.remove('hidden');
+            }
+
+            container.innerHTML = selectedImagesArray.map((src, index) => `
+                <div class="relative rounded-xl overflow-hidden border-2 border-amber-300 aspect-square bg-slate-900">
+                    <img src="${src}" alt="預覽圖" class="w-full h-full object-cover">
+                    <button type="button" onclick="removeImage(${index})" 
+                            class="absolute top-1 right-1 bg-slate-900/80 hover:bg-rose-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold transition shadow-md cursor-pointer">
+                        ✕
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function removeImage(index) {
+            selectedImagesArray.splice(index, 1);
+            renderImagePreviews();
         }
 
         function clearSelectedImage() {
+            selectedImagesArray = [];
             document.getElementById('formPostFileInput').value = "";
-            document.getElementById('formPostImageBase64').value = "";
-            document.getElementById('imagePreviewImg').src = "";
-            document.getElementById('imagePreviewContainer').classList.add('hidden');
-            document.getElementById('imageUploadBox').classList.remove('hidden');
+            renderImagePreviews();
         }
 
         function openPostModal(mode, postId = null) {
             const modal = document.getElementById('postModal');
             document.getElementById('postForm').reset();
-            clearSelectedImage();
+            
+            selectedImagesArray = [];
+            renderImagePreviews();
+
             const deleteWrapper = document.getElementById('deletePostBtnWrapper');
 
             if (mode === 'create') {
@@ -761,10 +827,12 @@
                 document.getElementById('formPostLinkUrl').value = post.linkUrl || "";
                 document.getElementById('formPostPin').checked = post.isPinned || false;
 
-                if (post.imageUrl) {
-                    document.getElementById('formPostImageBase64').value = post.imageUrl;
-                    showImagePreview(post.imageUrl);
+                if (post.imageUrls && Array.isArray(post.imageUrls)) {
+                    selectedImagesArray = [...post.imageUrls];
+                } else if (post.imageUrl) {
+                    selectedImagesArray = [post.imageUrl];
                 }
+                renderImagePreviews();
 
                 deleteWrapper.classList.remove('hidden');
             }
@@ -772,16 +840,10 @@
             modal.classList.remove('hidden');
         }
 
-        // 1. 點擊「刪除此公告」時打開確認 Modal
         function openPostDeleteConfirm() {
-            // 關閉原本的編輯 Modal（如果需要的話，或者保留疊加）
-            // closeModal('postModal'); 
-            
-            // 打開刪除確認 Modal
             document.getElementById('postDeleteConfirmModal').classList.remove('hidden');
         }
         
-        // 2. 在確認 Modal 點擊「確認刪除」後執行的 API 刪除邏輯
         async function executePostDelete() {
             const postId = document.getElementById('formPostId').value;
             if (!postId) return;
@@ -795,8 +857,8 @@
                 const result = await res.json();
                 
                 if (result.status === "success") {
-                    await fetchBulletinsFromBackend(); // 重新載入公告清單
-                    closeModal('postModal');          // 關閉編輯 Modal
+                    await fetchBulletinsFromBackend();
+                    closeModal('postModal');
                 } else {
                     alert("刪除公告失敗: " + result.message);
                 }
@@ -805,18 +867,16 @@
                 alert("網路異常，刪除失敗");
             }
         }
-        
 
         document.getElementById('postForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const postId = document.getElementById('formPostId').value;
-            const imageFinalSrc = document.getElementById('formPostImageBase64').value;
 
             const data = {
                 id: postId || "",
                 category: document.getElementById('formPostCategory').value,
                 title: document.getElementById('formPostTitle').value.trim(),
-                imageUrl: imageFinalSrc,
+                imageUrls: selectedImagesArray, // 傳送多張圖片陣列
                 content: document.getElementById('formPostContent').value.trim(),
                 linkText: document.getElementById('formPostLinkText').value.trim(),
                 linkUrl: document.getElementById('formPostLinkUrl').value.trim(),
