@@ -12,24 +12,30 @@
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800;900&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
     <!-- LIFF SDK -->
     <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-    <style>
-        body { 
-            font-family: 'M PLUS Rounded 1c', 'Noto Sans TC', sans-serif; 
-        }
-        .soft-amber-shadow {
-            box-shadow: 0 16px 32px -8px rgba(245, 158, 11, 0.15), 0 4px 12px -2px rgba(0, 0, 0, 0.04);
-        }
-        .fade-in { 
-            animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards; 
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(4px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        input, select, textarea {
-            box-sizing: border-box;
-        }
-    </style>
+<style>
+    body { 
+        font-family: 'M PLUS Rounded 1c', 'Noto Sans TC', sans-serif; 
+    }
+    .soft-amber-shadow {
+        box-shadow: 0 16px 32px -8px rgba(245, 158, 11, 0.15), 0 4px 12px -2px rgba(0, 0, 0, 0.04);
+    }
+    .fade-in { 
+        animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards; 
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(4px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    input, select, textarea {
+        box-sizing: border-box;
+    }
+
+    .auto-break-text {
+        white-space: pre-line;
+        word-break: break-all;
+        overflow-wrap: break-word;
+    }
+</style>
 </head>
 <body class="bg-[#FFFDF7] text-slate-800 antialiased selection:bg-amber-200 selection:text-amber-900 min-h-screen flex flex-col justify-between py-6 px-3 sm:px-4">
 
@@ -167,13 +173,11 @@
                 </button>
             </div>
 
-            <!-- 公告列表容器 -->
-            <div id="bulletinListContainer" class="space-y-4">
-            </div>
-        </div>
 
-        <!-- 底部版權 -->
-        <p class="text-[11px] text-amber-900/40 text-center mt-8">&copy; 2026 GuildMaster 公會資訊中心</p>
+                <!-- 公告列表容器 -->
+                <div id="bulletinListContainer" class="space-y-4 whitespace-pre-line break-words">
+                </div>
+
     </main>
 
     <!-- 彈窗 1：幹部 發布/編輯公告 Modal -->
