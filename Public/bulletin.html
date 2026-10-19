@@ -10,6 +10,8 @@
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800;900&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <!-- LIFF SDK -->
+    <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
         body { 
             font-family: 'M PLUS Rounded 1c', 'Noto Sans TC', sans-serif; 
@@ -32,68 +34,142 @@
 <body class="bg-[#FFFDF7] text-slate-800 antialiased selection:bg-amber-200 selection:text-amber-900 min-h-screen flex flex-col justify-between py-6 px-3 sm:px-4">
 
     <main class="max-w-md w-full mx-auto">
-        <!-- 頂部標題區 (置中排版) -->
+        <!-- 頂部標題區 -->
         <div class="text-center mb-5 pt-1">
-            <div class="inline-block bg-amber-100 text-amber-900 text-xs font-black px-4 py-1 rounded-full mb-2.5 border border-amber-200/60">
-                公會佈告欄
+            <div id="topBadge" class="inline-block bg-amber-100 text-amber-900 text-xs font-black px-4 py-1 rounded-full mb-2.5 border border-amber-200/60">
+                身分確認中
             </div>
-            <h1 class="text-2xl font-black text-amber-950 tracking-tight mb-1.5">公會最新公告</h1>
-            <p class="text-[13px] font-bold text-amber-900/70">重要公告、聯賽名單與攻略心得</p>
+            <h1 id="pageMainTitle" class="text-2xl font-black text-amber-950 tracking-tight mb-1.5">公會最新公告</h1>
+            <p id="pageSubTitle" class="text-[13px] font-bold text-amber-900/70">正在連線核對資料...</p>
         </div>
 
-        <!-- 會員資訊小卡 -->
-        <div class="bg-amber-50/50 border-2 border-amber-200/80 rounded-2xl p-3.5 mb-4 flex items-center justify-between soft-amber-shadow text-left">
-            <div class="flex items-center gap-3 min-w-0">
-                <div class="relative shrink-0">
-                    <img id="userAvatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&h=120&q=80" 
-                         alt="Avatar" class="w-12 h-12 rounded-full object-cover border-2 border-white shadow-xs">
-                    <span class="absolute -bottom-1 -right-1 bg-[#06C755] text-white text-[9px] font-black px-1 py-0.2 rounded-full border border-white leading-tight">
-                        LINE
-                    </span>
+        <!-- 狀態 1：預覽讀取畫面 -->
+        <div id="loadingCard" class="bg-white rounded-[32px] p-8 border-2 border-amber-200/80 soft-amber-shadow text-center">
+            <div id="loadingSpinner" class="relative w-16 h-16 mx-auto mb-4">
+                <div class="absolute inset-0 rounded-full border-4 border-amber-200 border-t-amber-500 animate-spin"></div>
+                <div class="w-full h-full rounded-full flex items-center justify-center text-xl">
+                    📋
                 </div>
-                <div class="min-w-0">
-                    <div class="flex items-center gap-2">
-                        <span id="userGameNickname" class="text-base font-black text-slate-900 truncate">超級法神</span>
-                        <span id="userGuildRole" class="bg-sky-100 text-sky-800 text-[11px] font-black px-2 py-0.5 rounded-full border border-sky-200 shrink-0">
-                            幹部
+            </div>
+            <h3 id="loadingTitle" class="text-sm font-black text-amber-950 mb-1">正在連線會員資料...</h3>
+            <p id="loadingDesc" class="text-xs text-amber-800/60">正在確認身分，請稍候</p>
+            
+            <div id="errorBox" class="hidden mt-4 text-left">
+                <div class="text-xs font-bold text-rose-700 mb-1">提示與操作：</div>
+                <div id="errorDetail" class="text-[11px] text-rose-600 bg-rose-50 border border-rose-200 p-3 rounded-xl font-mono break-all leading-relaxed"></div>
+                <button onclick="closeLiffWindow()" class="w-full mt-3 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold py-2.5 rounded-xl shadow-md transition cursor-pointer">
+                    關閉視窗重新載入
+                </button>
+            </div>
+        </div>
+
+        <!-- 狀態 2：審核中專屬卡片 -->
+        <div id="pendingReviewCard" class="hidden bg-white rounded-[32px] p-6 sm:p-7 border-2 border-amber-200/80 soft-amber-shadow text-center relative">
+            <div class="w-14 h-14 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-3 border-2 border-amber-200 text-2xl">
+                ⏳
+            </div>
+            <p class="text-xs text-amber-900/70 leading-relaxed mb-5">
+                您的會員資料尚在審核階段，目前無法瀏覽公告專區。<br>待幹部審核通過後即可正常查看！
+            </p>
+            <div class="bg-[#FFFDF9] rounded-2xl p-4 border border-amber-200/80 text-left text-sm space-y-2 mb-6 text-amber-950 shadow-inner">
+                <div class="flex items-center justify-between">
+                    <span class="text-amber-800/80 font-bold">遊戲暱稱：</span>
+                    <span id="pendingNickname" class="font-bold text-amber-950">-</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-amber-800/80 font-bold">遊戲職業：</span>
+                    <span id="pendingClass" class="font-bold text-amber-950">-</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-amber-800/80 font-bold">LINE 暱稱：</span>
+                    <span id="pendingLineName" class="font-bold text-amber-950">-</span>
+                </div>
+            </div>
+            <button onclick="closeLiffWindow()" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold py-3.5 rounded-2xl text-sm shadow-md transition cursor-pointer">
+                稍後再回來確認
+            </button>
+        </div>
+
+        <!-- 狀態 3：退會/權限受限專屬卡片 -->
+        <div id="rejectedCard" class="hidden bg-white rounded-[32px] p-6 sm:p-7 border-2 border-amber-200/80 soft-amber-shadow text-center relative">
+            <div class="w-14 h-14 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-3 border-2 border-rose-200 text-2xl">
+                ⚠️
+            </div>
+            <h3 class="text-base font-black text-rose-950 mb-1">帳號狀態異常或已退會</h3>
+            <p class="text-xs text-amber-900/70 leading-relaxed mb-5">
+                您的帳號目前已被標記為退會或無權限狀態。
+            </p>
+            <button onclick="closeLiffWindow()" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-3.5 rounded-2xl text-sm transition cursor-pointer">
+                關閉視窗
+            </button>
+        </div>
+
+        <!-- 狀態 4：未登記成員卡片 -->
+        <div id="unregisteredCard" class="hidden bg-white rounded-[32px] p-6 sm:p-7 border-2 border-amber-200/80 soft-amber-shadow text-center relative">
+            <div class="w-14 h-14 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-3 border-2 border-amber-200 text-2xl">
+                📝
+            </div>
+            <h3 class="text-base font-black text-amber-950 mb-1">尚未完成會員登記</h3>
+            <p class="text-xs text-amber-900/70 leading-relaxed mb-5">
+                請先填寫公會會員資料並通過審核，才能查看公會公告喔！
+            </p>
+            <button onclick="closeLiffWindow()" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold py-3.5 rounded-2xl text-sm shadow-md transition cursor-pointer">
+                關閉視窗
+            </button>
+        </div>
+
+        <!-- 狀態 5：驗證通過後的「公告專區主介面」 -->
+        <div id="mainContentArea" class="hidden space-y-4">
+            <!-- 會員資訊小卡 -->
+            <div class="bg-amber-50/50 border-2 border-amber-200/80 rounded-2xl p-3.5 flex items-center justify-between soft-amber-shadow text-left">
+                <div class="flex items-center gap-3 min-w-0">
+                    <div class="relative shrink-0">
+                        <img id="userAvatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&h=120&q=80" 
+                             alt="Avatar" class="w-12 h-12 rounded-full object-cover border-2 border-white shadow-xs">
+                        <span class="absolute -bottom-1 -right-1 bg-[#06C755] text-white text-[9px] font-black px-1 py-0.2 rounded-full border border-white leading-tight">
+                            LINE
                         </span>
                     </div>
-                    <div id="userGameClass" class="text-xs font-bold text-slate-600 truncate mt-0.5">
-                        超魔導士
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-2">
+                            <span id="userGameNickname" class="text-base font-black text-slate-900 truncate">讀取中...</span>
+                            <span id="userGuildRole" class="bg-sky-100 text-sky-800 text-[11px] font-black px-2 py-0.5 rounded-full border border-sky-200 shrink-0">
+                                檢查中
+                            </span>
+                        </div>
+                        <div id="userGameClass" class="text-xs font-bold text-slate-600 truncate mt-0.5">
+                            -
+                        </div>
                     </div>
                 </div>
             </div>
-            
-            <button onclick="toggleAdminRoleSimulate()" id="btnRoleToggle" class="text-[10px] font-bold text-amber-700 bg-white border border-amber-200 px-2 py-1 rounded-xl shadow-xs shrink-0">
-                身分：幹部 (切換)
-            </button>
-        </div>
 
-        <!-- 分類頁籤式快速篩選 -->
-        <div class="grid grid-cols-4 gap-1 p-1 bg-amber-100/70 rounded-xl border border-amber-200/80 text-xs font-bold mb-3 select-none">
-            <button id="catTabAll" onclick="filterCategory('全部')" class="py-1.5 rounded-lg bg-white text-amber-950 shadow-xs font-black transition">全部</button>
-            <button id="catTabNotice" onclick="filterCategory('重要公告')" class="py-1.5 rounded-lg text-amber-900/70 hover:text-amber-950 transition">重要公告</button>
-            <button id="catTabLeague" onclick="filterCategory('聯賽名單')" class="py-1.5 rounded-lg text-amber-900/70 hover:text-amber-950 transition">聯賽名單</button>
-            <button id="catTabGuide" onclick="filterCategory('攻略分享')" class="py-1.5 rounded-lg text-amber-900/70 hover:text-amber-950 transition">攻略分享</button>
-        </div>
+            <!-- 分類頁籤式快速篩選 -->
+            <div class="grid grid-cols-4 gap-1 p-1 bg-amber-100/70 rounded-xl border border-amber-200/80 text-xs font-bold select-none">
+                <button id="catTabAll" onclick="filterCategory('全部')" class="py-1.5 rounded-lg bg-white text-amber-950 shadow-xs font-black transition cursor-pointer">全部</button>
+                <button id="catTabNotice" onclick="filterCategory('重要公告')" class="py-1.5 rounded-lg text-amber-900/70 hover:text-amber-950 transition cursor-pointer">重要公告</button>
+                <button id="catTabLeague" onclick="filterCategory('聯賽名單')" class="py-1.5 rounded-lg text-amber-900/70 hover:text-amber-950 transition cursor-pointer">聯賽名單</button>
+                <button id="catTabGuide" onclick="filterCategory('攻略分享')" class="py-1.5 rounded-lg text-amber-900/70 hover:text-amber-950 transition cursor-pointer">攻略分享</button>
+            </div>
 
-        <!-- 關鍵字查詢列 -->
-        <div class="relative mb-3">
-            <input type="text" id="bulletinSearchInput" oninput="handleSearchInput()" placeholder="搜尋公告標題或內文關鍵字..."
-                   class="w-full h-[40px] bg-white border-2 border-amber-200/80 rounded-xl px-3 text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition box-border">
-        </div>
+            <!-- 關鍵字查詢列 -->
+            <div class="relative">
+                <input type="text" id="bulletinSearchInput" oninput="handleSearchInput()" placeholder="搜尋公告標題或內文關鍵字..."
+                       class="w-full h-[40px] bg-white border-2 border-amber-200/80 rounded-xl px-3 text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition box-border">
+            </div>
 
-        <!-- 置左「共 N 則公告」，置右「+ 新增公告」 -->
-        <div class="flex items-center justify-between px-1 mb-4">
-            <span id="bulletinCountText" class="text-xs font-black text-amber-950">共 0 則公告</span>
-            <button id="adminCreatePostBtn" onclick="openPostModal('create')" 
-                    class="bg-amber-500 hover:bg-amber-600 active:scale-95 text-white text-xs font-black px-3 py-1.5 rounded-xl shadow-xs transition">
-                + 新增公告
-            </button>
-        </div>
+            <!-- 置左「共 N 則公告」，置右「+ 新增公告」(依幹部權限隱藏/顯示) -->
+            <div class="flex items-center justify-between px-1">
+                <span id="bulletinCountText" class="text-xs font-black text-amber-950">共 0 則公告</span>
+                <button id="adminCreatePostBtn" onclick="openPostModal('create')" 
+                        class="hidden bg-amber-500 hover:bg-amber-600 active:scale-95 text-white text-xs font-black px-3 py-1.5 rounded-xl shadow-xs transition cursor-pointer">
+                    + 新增公告
+                </button>
+            </div>
 
-        <!-- 公告列表容器 -->
-        <div id="bulletinListContainer" class="space-y-4">
+            <!-- 公告列表容器 -->
+            <div id="bulletinListContainer" class="space-y-4">
+            </div>
         </div>
 
         <!-- 底部版權 -->
@@ -105,7 +181,7 @@
         <div class="bg-white w-full max-w-md rounded-[28px] p-6 border-2 border-amber-200 soft-amber-shadow max-h-[90vh] overflow-y-auto">
             <div class="flex items-center justify-between pb-3 border-b border-amber-100 mb-4">
                 <h3 id="postModalTitle" class="text-base font-black text-slate-900">發布新公告</h3>
-                <button onclick="closeModal('postModal')" class="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-400 hover:text-slate-700 flex items-center justify-center font-black text-sm transition">✕</button>
+                <button onclick="closeModal('postModal')" class="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-400 hover:text-slate-700 flex items-center justify-center font-black text-sm transition cursor-pointer">✕</button>
             </div>
             <form id="postForm" class="space-y-3.5 text-left text-xs font-bold text-slate-700">
                 <input type="hidden" id="formPostId">
@@ -114,7 +190,7 @@
                 <div class="grid grid-cols-3 gap-2">
                     <div class="col-span-1">
                         <label class="block mb-1 text-slate-800">類別</label>
-                        <select id="formPostCategory" class="w-full h-[40px] bg-amber-50/40 border border-amber-200 rounded-xl px-2.5 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-amber-400">
+                        <select id="formPostCategory" class="w-full h-[40px] bg-amber-50/40 border border-amber-200 rounded-xl px-2.5 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-amber-400 cursor-pointer">
                             <option value="重要公告">重要公告</option>
                             <option value="聯賽名單">聯賽名單</option>
                             <option value="攻略分享">攻略分享</option>
@@ -127,23 +203,20 @@
                     </div>
                 </div>
 
-                <!-- 圖片上傳區塊 (無相機符號、無網址輸入框) -->
                 <div>
                     <label class="block mb-1 text-slate-800">上傳公告圖檔 (選填)</label>
                     <input type="file" id="formPostFileInput" accept="image/*" class="hidden" onchange="handleImageFileSelect(event)">
                     
-                    <!-- 點擊上傳卡片 -->
                     <div id="imageUploadBox" onclick="document.getElementById('formPostFileInput').click()" 
                          class="border-2 border-dashed border-amber-300 rounded-2xl p-4 bg-amber-50/40 hover:bg-amber-100/50 cursor-pointer text-center transition">
                         <div class="text-xs font-black text-amber-950">點擊選擇手機相簿圖檔 / 拍照</div>
                         <div class="text-[10px] text-amber-800/60 mt-0.5">支援jpg,png,gif,webp等</div>
                     </div>
 
-                    <!-- 圖片預覽區 -->
                     <div id="imagePreviewContainer" class="hidden relative mt-2 rounded-2xl overflow-hidden border-2 border-amber-200 bg-slate-900">
                         <img id="imagePreviewImg" src="" alt="圖片預覽" class="w-full max-h-48 object-contain">
                         <button type="button" onclick="clearSelectedImage()" 
-                                class="absolute top-2 right-2 bg-slate-900/70 hover:bg-rose-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold transition shadow-md">
+                                class="absolute top-2 right-2 bg-slate-900/70 hover:bg-rose-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold transition shadow-md cursor-pointer">
                             ✕
                         </button>
                     </div>
@@ -170,19 +243,18 @@
 
                 <div class="pt-1">
                     <label class="flex items-center gap-2 p-2.5 bg-amber-50/60 border border-amber-200 rounded-xl cursor-pointer">
-                        <input type="checkbox" id="formPostPin" class="w-4 h-4 accent-amber-500 rounded">
+                        <input type="checkbox" id="formPostPin" class="w-4 h-4 accent-amber-500 rounded cursor-pointer">
                         <span class="text-xs font-black text-amber-950">將此公告置頂於最上方 📌</span>
                     </label>
                 </div>
 
                 <div class="grid grid-cols-2 gap-3 pt-2">
-                    <button type="button" onclick="closeModal('postModal')" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 rounded-xl transition">取消</button>
-                    <button type="submit" id="formPostSubmitBtn" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 rounded-xl transition shadow-md shadow-amber-200">發布公告</button>
+                    <button type="button" onclick="closeModal('postModal')" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 rounded-xl transition cursor-pointer">取消</button>
+                    <button type="submit" id="formPostSubmitBtn" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 rounded-xl transition shadow-md shadow-amber-200 cursor-pointer">發布公告</button>
                 </div>
 
-                <!-- 刪除此公告按鈕 -->
-                <div id="deletePostBtnWrapper" class="pt-2 border-t border-slate-100">
-                    <button type="button" onclick="deleteCurrentPost()" class="w-full bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold py-2.5 rounded-xl text-xs transition">
+                <div id="deletePostBtnWrapper" class="pt-2 border-t border-slate-100 hidden">
+                    <button type="button" onclick="deleteCurrentPost()" class="w-full bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold py-2.5 rounded-xl text-xs transition cursor-pointer">
                         刪除此公告
                     </button>
                 </div>
@@ -199,115 +271,236 @@
                     <p id="readersModalSub" class="text-[11px] text-amber-800 font-bold mt-1">共 0 位會員已閱</p>
                 </div>
                 <button onclick="closeModal('readersModal')" 
-                        class="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 active:scale-90 text-slate-400 hover:text-slate-700 flex items-center justify-center font-black text-sm transition shrink-0">
+                        class="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 active:scale-90 text-slate-400 hover:text-slate-700 flex items-center justify-center font-black text-sm transition shrink-0 cursor-pointer">
                     ✕
                 </button>
             </div>
             
             <div id="readersListContent" class="flex-1 overflow-y-auto space-y-1.5 pr-1 text-xs text-left">
             </div>
-            <button onclick="closeModal('readersModal')" class="mt-4 w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 rounded-xl text-xs transition">
+            <button onclick="closeModal('readersModal')" class="mt-4 w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 rounded-xl text-xs transition cursor-pointer">
                 關閉
             </button>
         </div>
     </div>
 
     <script>
+        const MY_LIFF_ID = "2011659633-BhsSqo9O";
+        const BACKEND_API_URL = "https://guildmaster-lv.duckdns.org";
+
         let currentUser = {
-            lineUserId: "U1001",
-            gameNickname: "超級法神",
-            gameClass: "超魔導士",
-            guildRole: "幹部",
+            userId: "",
+            displayName: "",
+            pictureUrl: "",
+            gameNickname: "",
+            gameClass: "",
+            accountStatus: "",
+            guildRole: "現任",
+            isRegistered: false
         };
 
-        let bulletinsData = [
-            {
-                id: "POST_01",
-                category: "聯賽名單",
-                isPinned: true,
-                title: "【本週六GVG要塞戰】主力一隊與二隊名單公布！請參戰成員閱畢點擊確認",
-                author: "會長 / 超級法神",
-                date: "2026-09-20 21:00",
-                imageUrl: "https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=800&q=80",
-                content: `各位公會戰友注意：\n今晚聯賽主戰與副戰名單已由幹部群確認完畢！\n\n📌 攻擊一隊（左路破門）：超級法神、暗夜殺手、冷豔舞姬、十字刺客\n📌 防守核心（守城內圈）：神官團、聖殿十字軍\n\n請有在名單內的戰友務必於下方點擊【已閱】確認會準時到場！無法參加者請速至請假系統送單。`,
-                linkText: "檢視完整排陣試算表",
-                linkUrl: "https://docs.google.com/spreadsheets",
-                readUsers: [
-                    { uid: "U1001", nick: "超級法神", class: "超魔導士", time: "09-20 21:05" },
-                    { uid: "U2b228d4c5915", nick: "克蘿伊", class: "冷豔舞姬（舞孃）", time: "09-20 21:20" },
-                    { uid: "U1005", nick: "鐵拳無敵", class: "武術宗師", time: "09-20 22:00" }
-                ]
-            },
-            {
-                id: "POST_02",
-                category: "重要公告",
-                isPinned: false,
-                title: "【幹部重要提醒】近期群組發言規範與臨時請假注意事項",
-                author: "幹部群",
-                date: "2026-09-19 18:30",
-                imageUrl: "",
-                content: `各位夥伴好，近期發現有少數成員在活動開打前 10 分鐘才臨時告知不克出席，造成整組陣容臨時缺人。\n\n⚠️ 提醒大家公會規章：\n1. 活動若要請假，請最晚於「當日 20:00 前」透過系統填單完成。\n2. 大群交流請互相尊重，避免情緒性或出格的人身攻擊字眼。\n\n請所有公會夥伴看過此篇後點擊【已閱】確認知悉，感謝大家的配合維護良好遊戲環境！`,
-                linkText: "",
-                linkUrl: "",
-                readUsers: [
-                    { uid: "U1003", nick: "舞力全開", class: "冷豔舞姬（舞孃）", time: "09-19 19:10" },
-                    { uid: "U1001", nick: "超級法神", class: "超魔導士", time: "09-20 23:59" }
-                ]
-            },
-            {
-                id: "POST_03",
-                category: "攻略分享",
-                isPinned: false,
-                title: "【副本心得】週常高難公會副本站位與轉職技能配置指南",
-                author: "暗夜殺手",
-                date: "2026-09-14 12:00",
-                imageUrl: "https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=800&q=80",
-                content: `針對最新公會副本尾王機制，分享各職配置建議：\n\n🛡️ 坦職：開場拉至 11 點鐘方向背對人群。\n🪄 法系：於外圈 3 點鐘保持最大距離輸出，注意避開地裂。\n🌿 補師：神聖之光常駐、維持全團光盾。\n\n歡迎有疑問的隊員留言討論，看完請按【已閱】。`,
-                linkText: "查看完整技能配點圖",
-                linkUrl: "#",
-                readUsers: [
-                    { uid: "U1001", nick: "超級法神", class: "超魔導士", time: "09-14 12:05" },
-                    { uid: "U1002", nick: "暗夜殺手", class: "十字刺客", time: "09-14 12:15" }
-                ]
-            }
-        ];
-
+        let bulletinsData = [];
         let currentSelectedCategory = "全部";
 
-        window.addEventListener("DOMContentLoaded", () => {
-            renderUserCard();
-            renderBulletins();
-        });
+        async function queryMemberFromBackend(uid) {
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-        function renderUserCard() {
-            document.getElementById('userGameNickname').textContent = currentUser.gameNickname;
-            document.getElementById('userGameClass').textContent = currentUser.gameClass;
-            const roleBadge = document.getElementById('userGuildRole');
-            roleBadge.textContent = currentUser.guildRole;
-            
-            if (currentUser.guildRole === '幹部') {
-                roleBadge.className = "bg-sky-100 text-sky-800 text-[11px] font-black px-2 py-0.5 rounded-full border border-sky-200 shrink-0";
-                document.getElementById('adminCreatePostBtn').classList.remove('hidden');
-                document.getElementById('btnRoleToggle').textContent = "身分：幹部 (切換)";
-            } else {
-                roleBadge.className = "bg-emerald-100 text-emerald-800 text-[11px] font-black px-2 py-0.5 rounded-full border border-emerald-200 shrink-0";
-                document.getElementById('adminCreatePostBtn').classList.add('hidden');
-                document.getElementById('btnRoleToggle').textContent = "身分：現任 (切換)";
+                const response = await fetch(`${BACKEND_API_URL}/api/members/${encodeURIComponent(uid)}`, {
+                    method: 'GET',
+                    headers: { 'Accept': 'application/json' },
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+
+                if (!response.ok) return { status: "error" };
+                return await response.json();
+            } catch (err) {
+                return { status: "error" };
             }
         }
 
-        function toggleAdminRoleSimulate() {
-            if (currentUser.guildRole === '幹部') {
-                currentUser.guildRole = '現任';
-                currentUser.gameNickname = '克蘿伊';
-                currentUser.gameClass = '冷豔舞姬（舞孃）';
-            } else {
-                currentUser.guildRole = '幹部';
-                currentUser.gameNickname = '超級法神';
-                currentUser.gameClass = '超魔導士';
+        async function initApp() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const queryUid = urlParams.get('uid') || urlParams.get('userId');
+            const queryName = urlParams.get('name') || urlParams.get('displayName');
+
+            let isLiffReady = false;
+            let liffErrorDetail = "";
+
+            if (MY_LIFF_ID && typeof liff !== 'undefined') {
+                try {
+                    await liff.init({ liffId: MY_LIFF_ID });
+                    if (liff.isLoggedIn()) {
+                        const profile = await liff.getProfile();
+                        currentUser.userId = profile.userId;
+                        currentUser.displayName = profile.displayName;
+                        currentUser.pictureUrl = profile.pictureUrl || "";
+                        isLiffReady = true;
+                    } else {
+                        document.getElementById('loadingSpinner').classList.add('hidden');
+                        document.getElementById('loadingTitle').textContent = "需要登入 LINE";
+                        document.getElementById('loadingDesc').textContent = "請點擊下方按鈕進行驗證授權";
+                        const errBox = document.getElementById('errorBox');
+                        const errDetail = document.getElementById('errorDetail');
+                        errDetail.innerHTML = `<button onclick="liff.login()" class="w-full bg-[#06C755] text-white font-bold py-2.5 rounded-xl shadow-md cursor-pointer">點擊登入 LINE 帳號</button>`;
+                        errBox.classList.remove('hidden');
+                        return;
+                    }
+                } catch (err) {
+                    liffErrorDetail = err.message || JSON.stringify(err);
+                }
             }
-            renderUserCard();
-            renderBulletins();
+
+            if (!isLiffReady && queryUid) {
+                currentUser.userId = queryUid;
+                if (queryName) currentUser.displayName = decodeURIComponent(queryName);
+            }
+
+            await verifyAndDisplayView(liffErrorDetail);
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initApp);
+        } else {
+            initApp();
+        }
+
+        async function verifyAndDisplayView(errorMsg) {
+            if (!currentUser.userId) {
+                document.getElementById('loadingSpinner').classList.add('hidden');
+                document.getElementById('loadingTitle').textContent = "無法辨識 LINE 身分";
+                document.getElementById('loadingDesc').textContent = "請確認您是點擊 LINE 官方專用連結開啟";
+                const errBox = document.getElementById('errorBox');
+                const errDetail = document.getElementById('errorDetail');
+                errDetail.textContent = errorMsg || "LIFF 未能取得 Profile。";
+                errBox.classList.remove('hidden');
+                return;
+            }
+
+            const result = await queryMemberFromBackend(currentUser.userId);
+            
+            if (result && (result.status === "timeout" || result.status === "error")) {
+                document.getElementById('loadingSpinner').classList.add('hidden');
+                document.getElementById('loadingTitle').textContent = "連線後台逾時";
+                document.getElementById('loadingDesc').textContent = "伺服器回應較慢，請點擊下方重試";
+                const errBox = document.getElementById('errorBox');
+                const errDetail = document.getElementById('errorDetail');
+                errDetail.textContent = "請確認網路是否正常";
+                errBox.classList.remove('hidden');
+                return;
+            }
+
+            if (result && result.status === "found") {
+                currentUser.gameNickname = result.gameNickname || "";
+                currentUser.gameClass = result.gameClass || "";
+                currentUser.displayName = result.lineDisplayName || currentUser.displayName;
+                currentUser.accountStatus = String(result.accountStatus || "").trim();
+                currentUser.guildRole = String(result.guildRole || "現任").trim();
+                currentUser.isRegistered = true;
+            }
+
+            document.getElementById('loadingCard').classList.add('hidden');
+
+            const isRetired = currentUser.guildRole.includes("退會");
+
+            if (!currentUser.isRegistered) {
+                applyUnregisteredUI();
+            } else if (isRetired) {
+                applyRejectedUI();
+            } else if (currentUser.accountStatus.includes("待審")) {
+                applyPendingReviewUI();
+            } else if (currentUser.accountStatus === "已審核") {
+                applyMainAppUI();
+            } else {
+                applyUnregisteredUI();
+            }
+        }
+
+        function applyPendingReviewUI() {
+            document.getElementById('topBadge').textContent = "資格審核";
+            document.getElementById('pageMainTitle').textContent = "入會申請處理中";
+            document.getElementById('pageSubTitle').textContent = "幹部正在核對名冊，目前無法瀏覽公告";
+
+            document.getElementById('pendingNickname').textContent = currentUser.gameNickname || "-";
+            document.getElementById('pendingClass').textContent = currentUser.gameClass || "-";
+            document.getElementById('pendingLineName').textContent = currentUser.displayName || "-";
+
+            const pendingCard = document.getElementById('pendingReviewCard');
+            pendingCard.classList.remove('hidden');
+            pendingCard.classList.add('fade-in');
+        }
+
+        function applyRejectedUI() {
+            document.getElementById('topBadge').textContent = "狀態異常";
+            document.getElementById('pageMainTitle').textContent = "權限受限";
+            document.getElementById('pageSubTitle').textContent = "您的帳號已退會或無存取權限";
+
+            const rejectedCard = document.getElementById('rejectedCard');
+            rejectedCard.classList.remove('hidden');
+            rejectedCard.classList.add('fade-in');
+        }
+
+        function applyUnregisteredUI() {
+            document.getElementById('topBadge').textContent = "未登記會員";
+            document.getElementById('pageMainTitle').textContent = "查無會員身分";
+            document.getElementById('pageSubTitle').textContent = "請先綁定會員身分並待審核通過後再行使用";
+
+            const unregCard = document.getElementById('unregisteredCard');
+            unregCard.classList.remove('hidden');
+            unregCard.classList.add('fade-in');
+        }
+
+        async function applyMainAppUI() {
+            document.getElementById('mainContentArea').classList.remove('hidden');
+            document.getElementById('mainContentArea').classList.add('fade-in');
+
+            document.getElementById('topBadge').textContent = "公告專區";
+            document.getElementById('pageMainTitle').textContent = "公會最新公告";
+            document.getElementById('pageSubTitle').textContent = "重要公告、聯賽名單與攻略心得";
+
+            if (currentUser.pictureUrl) {
+                document.getElementById('userAvatar').src = currentUser.pictureUrl;
+            }
+            document.getElementById('userGameNickname').textContent = currentUser.gameNickname;
+            document.getElementById('userGameClass').textContent = currentUser.gameClass;
+
+            const roleBadge = document.getElementById('userGuildRole');
+            roleBadge.textContent = currentUser.guildRole;
+            
+            const isAdmin = (currentUser.guildRole === '幹部');
+
+            if (isAdmin) {
+                roleBadge.className = "bg-sky-100 text-sky-800 text-[11px] font-black px-2 py-0.5 rounded-full border border-sky-200 shrink-0";
+                document.getElementById('adminCreatePostBtn').classList.remove('hidden');
+            } else {
+                roleBadge.className = "bg-emerald-100 text-emerald-800 text-[11px] font-black px-2 py-0.5 rounded-full border border-emerald-200 shrink-0";
+                document.getElementById('adminCreatePostBtn').classList.add('hidden');
+            }
+
+            await fetchBulletinsFromBackend();
+        }
+
+        function closeLiffWindow() {
+            if (typeof liff !== 'undefined' && liff.closeWindow) {
+                liff.closeWindow();
+            } else {
+                window.close();
+            }
+        }
+
+        async function fetchBulletinsFromBackend() {
+            try {
+                const res = await fetch(`${BACKEND_API_URL}/api/admin/bulletins`);
+                const data = await res.json();
+                if (data.status === "success" && data.bulletins) {
+                    bulletinsData = data.bulletins;
+                }
+                renderBulletins();
+            } catch (err) {
+                console.error("載入公告失敗:", err);
+            }
         }
 
         function filterCategory(cat) {
@@ -321,9 +514,9 @@
 
             Object.keys(tabMap).forEach(k => {
                 if (k === cat) {
-                    tabMap[k].className = "py-1.5 rounded-lg bg-white text-amber-950 shadow-xs font-black transition";
+                    tabMap[k].className = "py-1.5 rounded-lg bg-white text-amber-950 shadow-xs font-black transition cursor-pointer";
                 } else {
-                    tabMap[k].className = "py-1.5 rounded-lg text-amber-900/70 hover:text-amber-950 transition";
+                    tabMap[k].className = "py-1.5 rounded-lg text-amber-900/70 hover:text-amber-950 transition cursor-pointer";
                 }
             });
             renderBulletins();
@@ -338,7 +531,6 @@
             container.innerHTML = "";
 
             const keyword = document.getElementById('bulletinSearchInput').value.trim().toLowerCase();
-
             let list = [...bulletinsData];
 
             if (currentSelectedCategory !== "全部") {
@@ -374,7 +566,7 @@
             const isAdmin = (currentUser.guildRole === '幹部');
 
             list.forEach(item => {
-                const isRead = item.readUsers.some(u => u.uid === currentUser.lineUserId);
+                const isRead = item.readUsers.some(u => u.uid === currentUser.userId);
 
                 const card = document.createElement('div');
                 card.className = `bg-white rounded-2xl p-4 border-2 ${item.isPinned ? 'border-amber-400 bg-gradient-to-b from-amber-50/20 to-white' : 'border-amber-200/70'} text-left soft-amber-shadow fade-in space-y-3`;
@@ -389,7 +581,7 @@
                         
                         ${isAdmin ? `
                             <div class="shrink-0">
-                                <button onclick="openPostModal('edit', '${item.id}')" class="text-xs font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg hover:bg-amber-100 transition">
+                                <button onclick="openPostModal('edit', '${item.id}')" class="text-xs font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg hover:bg-amber-100 transition cursor-pointer">
                                     編輯
                                 </button>
                             </div>
@@ -422,12 +614,12 @@
 
                     <div class="pt-2 border-t border-amber-100/80 flex items-center justify-between gap-2">
                         <button onclick="toggleRead('${item.id}')" 
-                                class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-black transition border ${isRead ? 'bg-emerald-500 text-white border-emerald-500 shadow-xs' : 'bg-white text-slate-700 border-slate-200 hover:bg-emerald-50'}">
+                                class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-black transition border cursor-pointer ${isRead ? 'bg-emerald-500 text-white border-emerald-500 shadow-xs' : 'bg-white text-slate-700 border-slate-200 hover:bg-emerald-50'}">
                             <span>👁️</span>
                             <span>${isRead ? '已閱完畢' : '點擊已閱'} (${item.readUsers.length})</span>
                         </button>
 
-                        <button onclick="viewInteractionList('${item.id}')" class="text-[11px] font-bold text-amber-800 hover:text-amber-900 underline">
+                        <button onclick="viewInteractionList('${item.id}')" class="text-[11px] font-bold text-amber-800 hover:text-amber-900 underline cursor-pointer">
                             查看已閱名單
                         </button>
                     </div>
@@ -437,24 +629,26 @@
             });
         }
 
-        function toggleRead(postId) {
-            const post = bulletinsData.find(b => b.id === postId);
-            if (!post) return;
-
-            const existingIdx = post.readUsers.findIndex(u => u.uid === currentUser.lineUserId);
-            if (existingIdx >= 0) {
-                post.readUsers.splice(existingIdx, 1);
-            } else {
-                const now = new Date();
-                const timeStr = `${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-                post.readUsers.push({
-                    uid: currentUser.lineUserId,
-                    nick: currentUser.gameNickname,
-                    class: currentUser.gameClass,
-                    time: timeStr
+        async function toggleRead(postId) {
+            try {
+                const res = await fetch(`${BACKEND_API_URL}/api/bulletins/read`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        postId: postId,
+                        lineUserId: currentUser.userId,
+                        gameNickname: currentUser.gameNickname,
+                        gameClass: currentUser.gameClass
+                    })
                 });
+                const result = await res.json();
+                if (result.status === "success") {
+                    await fetchBulletinsFromBackend();
+                }
+            } catch (err) {
+                console.error(err);
+                alert("網路異常，操作失敗");
             }
-            renderBulletins();
         }
 
         function viewInteractionList(postId) {
@@ -547,27 +741,32 @@
             modal.classList.remove('hidden');
         }
 
-        function deleteCurrentPost() {
+        async function deleteCurrentPost() {
             const postId = document.getElementById('formPostId').value;
             const target = bulletinsData.find(b => b.id === postId);
             if (!target) return;
 
             if (confirm(`確定要刪除公告【${target.title}】嗎？此動作無法復原！`)) {
-                bulletinsData = bulletinsData.filter(b => b.id !== postId);
-                closeModal('postModal');
-                renderBulletins();
+                try {
+                    await fetch(`${BACKEND_API_URL}/api/admin/bulletins/${encodeURIComponent(postId)}`, {
+                        method: 'DELETE'
+                    });
+                    await fetchBulletinsFromBackend();
+                    closeModal('postModal');
+                } catch (err) {
+                    console.error(err);
+                    alert("網路異常，刪除失敗");
+                }
             }
         }
 
-        document.getElementById('postForm').addEventListener('submit', (e) => {
+        document.getElementById('postForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const postId = document.getElementById('formPostId').value;
             const imageFinalSrc = document.getElementById('formPostImageBase64').value;
-            
-            const now = new Date();
-            const timeStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
 
             const data = {
+                id: postId || "",
                 category: document.getElementById('formPostCategory').value,
                 title: document.getElementById('formPostTitle').value.trim(),
                 imageUrl: imageFinalSrc,
@@ -578,18 +777,23 @@
                 author: currentUser.gameNickname
             };
 
-            if (postId) {
-                const target = bulletinsData.find(b => b.id === postId);
-                if (target) Object.assign(target, data);
-            } else {
-                data.id = "POST_" + Date.now();
-                data.date = timeStr;
-                data.readUsers = [];
-                bulletinsData.unshift(data);
+            try {
+                const res = await fetch(`${BACKEND_API_URL}/api/admin/bulletins/save`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await res.json();
+                if (result.status === "success") {
+                    await fetchBulletinsFromBackend();
+                    closeModal('postModal');
+                } else {
+                    alert("儲存公告失敗: " + result.message);
+                }
+            } catch (err) {
+                console.error(err);
+                alert("網路連線異常，儲存失敗");
             }
-
-            closeModal('postModal');
-            renderBulletins();
         });
 
         function closeModal(id) {
