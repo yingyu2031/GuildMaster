@@ -253,8 +253,9 @@
                     <button type="submit" id="formPostSubmitBtn" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 rounded-xl transition shadow-md shadow-amber-200 cursor-pointer">發布公告</button>
                 </div>
 
+                                <!-- 編輯表單內的刪除按鈕 -->
                 <div id="deletePostBtnWrapper" class="pt-2 border-t border-slate-100 hidden">
-                    <button type="button" onclick="deleteCurrentPost()" class="w-full bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold py-2.5 rounded-xl text-xs transition cursor-pointer">
+                    <button type="button" onclick="openPostDeleteConfirm()" class="w-full bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold py-2.5 rounded-xl text-xs transition cursor-pointer">
                         刪除此公告
                     </button>
                 </div>
@@ -282,6 +283,18 @@
                 關閉
             </button>
         </div>
+    </div>
+
+    <!-- 琥珀橘圓角風格：確認刪除公告 Modal -->
+    <div id="postDeleteConfirmModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
+      <div class="bg-white w-full max-w-xs rounded-[28px] p-6 border-2 border-amber-200 soft-amber-shadow text-center">
+        <h3 class="text-base font-black text-slate-900 mb-1 mt-2">確定刪除公告？</h3>
+        <p id="postDeleteConfirmText" class="text-xs text-slate-500 mb-5">確定要刪除此公告嗎？此動作無法復原！</p>
+        <div class="grid grid-cols-2 gap-2">
+          <button onclick="closeModal('postDeleteConfirmModal')" class="bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold py-2.5 rounded-xl transition cursor-pointer">取消</button>
+          <button onclick="executePostDelete()" class="bg-gradient-to-r from-rose-500 to-red-500 hover:from-rose-600 hover:to-red-600 text-white text-xs font-bold py-2.5 rounded-xl transition shadow-md cursor-pointer">確認刪除</button>
+        </div>
+      </div>
     </div>
 
     <script>
@@ -741,24 +754,40 @@
             modal.classList.remove('hidden');
         }
 
-        async function deleteCurrentPost() {
+        // 1. 點擊「刪除此公告」時打開確認 Modal
+        function openPostDeleteConfirm() {
+            // 關閉原本的編輯 Modal（如果需要的話，或者保留疊加）
+            // closeModal('postModal'); 
+            
+            // 打開刪除確認 Modal
+            document.getElementById('postDeleteConfirmModal').classList.remove('hidden');
+        }
+        
+        // 2. 在確認 Modal 點擊「確認刪除」後執行的 API 刪除邏輯
+        async function executePostDelete() {
             const postId = document.getElementById('formPostId').value;
-            const target = bulletinsData.find(b => b.id === postId);
-            if (!target) return;
-
-            if (confirm(`確定要刪除公告【${target.title}】嗎？此動作無法復原！`)) {
-                try {
-                    await fetch(`${BACKEND_API_URL}/api/admin/bulletins/${encodeURIComponent(postId)}`, {
-                        method: 'DELETE'
-                    });
-                    await fetchBulletinsFromBackend();
-                    closeModal('postModal');
-                } catch (err) {
-                    console.error(err);
-                    alert("網路異常，刪除失敗");
+            if (!postId) return;
+        
+            closeModal('postDeleteConfirmModal');
+        
+            try {
+                const res = await fetch(`${BACKEND_API_URL}/api/admin/bulletins/${encodeURIComponent(postId)}`, {
+                    method: 'DELETE'
+                });
+                const result = await res.json();
+                
+                if (result.status === "success") {
+                    await fetchBulletinsFromBackend(); // 重新載入公告清單
+                    closeModal('postModal');          // 關閉編輯 Modal
+                } else {
+                    alert("刪除公告失敗: " + result.message);
                 }
+            } catch (err) {
+                console.error(err);
+                alert("網路異常，刪除失敗");
             }
         }
+        
 
         document.getElementById('postForm').addEventListener('submit', async (e) => {
             e.preventDefault();
