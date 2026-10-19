@@ -615,15 +615,13 @@
                     ` : ''}
 
                     <div class="text-xs text-slate-700 leading-relaxed font-medium bg-[#FFFDF7] p-3 rounded-xl border border-amber-100 whitespace-pre-line break-word">
-                        ${item.content}
+                        ${(item.content || '').trim()}
                     </div>
-
                     ${item.linkUrl && item.linkText ? `
                         <div class="pt-0.5">
                             <a href="${item.linkUrl}" target="_blank" class="inline-flex items-center gap-1.5 text-xs font-black text-amber-900 bg-amber-100/80 hover:bg-amber-200 border border-amber-300 px-3 py-2 rounded-xl transition">
                                 <span>🔗</span>
                                 <span>${item.linkText}</span>
-                                <span class="text-amber-600 text-[10px]">➜</span>
                             </a>
                         </div>
                     ` : ''}
