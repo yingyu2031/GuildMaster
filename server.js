@@ -890,7 +890,7 @@ app.delete('/api/admin/bulletins/:id', async (req, res) => {
   }
 });
 
-// 4. 點擊已閱 / 取消已閱切換 (POST)
+// 4. 點擊已閱 API (改為僅能新增，不可取消)
 app.post('/api/bulletins/read', async (req, res) => {
   const { postId, lineUserId, gameNickname, gameClass } = req.body;
 
@@ -901,25 +901,21 @@ app.post('/api/bulletins/read', async (req, res) => {
       [postId, lineUserId]
     );
 
+    // 如果已經讀過了，直接回傳成功（不執行刪除）
     if (checkResult.rows.length > 0) {
-      // 如果已經讀過，再次點擊代表「取消已閱」
-      await pool.query(
-        'DELETE FROM bulletin_reads WHERE post_id = $1 AND line_user_id = $2',
-        [postId, lineUserId]
-      );
-      res.json({ status: "success", action: "removed" });
-    } else {
-      // 尚未讀過，寫入已閱紀錄
-      const now = new Date();
-      const timeStr = `${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-
-      await pool.query(`
-        INSERT INTO bulletin_reads (post_id, line_user_id, game_nickname, game_class, read_time)
-        VALUES ($1, $2, $3, $4, $5)
-      `, [postId, lineUserId, gameNickname, gameClass, timeStr]);
-
-      res.json({ status: "success", action: "added" });
+      return res.json({ status: "success", message: "已經完成已閱，無法重複操作" });
     }
+
+    // 尚未讀過，寫入已閱紀錄
+    const now = new Date();
+    const timeStr = `${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+    await pool.query(`
+      INSERT INTO bulletin_reads (post_id, line_user_id, game_nickname, game_class, read_time)
+      VALUES ($1, $2, $3, $4, $5)
+    `, [postId, lineUserId, gameNickname, gameClass, timeStr]);
+
+    res.json({ status: "success", action: "added" });
   } catch (err) {
     res.status(500).json({ status: "error", message: err.message });
   }
