@@ -336,18 +336,42 @@ app.get('/api/admin/members', async (req, res) => {
   }
 });
 
-// 4. 幹部審核與狀態修改
+// 4. 幹部審核與狀態修改 (連動退會自動踢出 Discord)
 app.post('/api/admin/members/status', async (req, res) => {
   const { lineUserId, accountStatus, guildRole } = req.body;
   try {
+    // A. 先查詢該成員的 dcid 與暱稱
+    const userRes = await pool.query('SELECT dcid, game_nickname FROM members WHERE line_user_id = $1', [lineUserId]);
+    const dcId = userRes.rows[0]?.dcid;
+    const nickName = userRes.rows[0]?.game_nickname || lineUserId;
+
+    // B. 更新資料庫
     await pool.query('UPDATE members SET account_status = $1, guild_role = $2, update_time = CURRENT_TIMESTAMP WHERE line_user_id = $3', [accountStatus, guildRole, lineUserId]);
+
+    // C. 若設為「退會」且有綁定 DC，自動自伺服器踢出
+    if (guildRole === '退會' && dcId) {
+      try {
+        await fetch(`https://discord.com/api/v10/guilds/${DISCORD_GUILD_ID}/members/${dcId}`, {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bot ${DISCORD_BOT_TOKEN}`,
+            'X-Audit-Log-Reason': encodeURIComponent(`成員退會移出: ${nickName}`)
+          }
+        });
+        console.log(`[Discord] 退會成員 ${nickName} (${dcId}) 已移出伺服器`);
+      } catch (dcErr) {
+        console.error('[Discord 踢人異常]:', dcErr.message);
+      }
+    }
+
     res.json({ status: "success" });
   } catch (err) {
     res.status(500).json({ status: "error", message: err.message });
   }
 });
 
-// 5. 幹部編輯 / 新增會員 (已修正缺少反引號的語法錯誤)
+
+// 5. 幹部編輯 / 新增會員 (若編輯為退會同樣連動踢出)
 app.post('/api/admin/members/save', async (req, res) => {
   const {
     lineUserId, gameNickname, gameClass, lineDisplayName,
@@ -380,11 +404,30 @@ app.post('/api/admin/members/save', async (req, res) => {
       joinedLineGroup || 'N', joinedDc || 'N',
       tw || 'Y', dcid || null
     ]);
+
+    // 💡 關鍵防呆：若幹部在編輯彈窗中將該成員身分設為「退會」，也自動踢出 DC
+    const finalDcId = dcid;
+    if (guildRole === '退會' && finalDcId) {
+      try {
+        await fetch(`https://discord.com/api/v10/guilds/${DISCORD_GUILD_ID}/members/${finalDcId}`, {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bot ${DISCORD_BOT_TOKEN}`,
+            'X-Audit-Log-Reason': encodeURIComponent(`幹部手動編輯退會移出: ${gameNickname}`)
+          }
+        });
+        console.log(`[Discord] 編輯退會成員 ${gameNickname} (${finalDcId}) 已移出伺服器`);
+      } catch (dcErr) {
+        console.error('[Discord 踢人異常]:', dcErr.message);
+      }
+    }
+
     res.json({ status: "success" });
   } catch (err) {
     res.status(500).json({ status: "error", message: err.message });
   }
 });
+
 
 // 6. 會員修改紀錄
 app.get('/api/admin/members/logs/:uid', async (req, res) => {
@@ -398,14 +441,44 @@ app.get('/api/admin/members/logs/:uid', async (req, res) => {
   }
 });
 
-// 7. 刪除會員
+// 7. 刪除會員 (連動踢出 Discord 伺服器)
 app.delete('/api/admin/members/:uid', async (req, res) => {
   const lineUserId = req.params.uid;
   try {
+    // A. 先查詢該成員是否有綁定 dcid
+    const memberRes = await pool.query('SELECT dcid, game_nickname FROM members WHERE line_user_id = $1', [lineUserId]);
+    const dcId = memberRes.rows[0]?.dcid;
+    const nickName = memberRes.rows[0]?.game_nickname || lineUserId;
+
+    // B. 如果有綁定 Discord，呼叫 Discord API 踢出伺服器
+    if (dcId) {
+      try {
+        const kickRes = await fetch(`https://discord.com/api/v10/guilds/${DISCORD_GUILD_ID}/members/${dcId}`, {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bot ${DISCORD_BOT_TOKEN}`,
+            'X-Audit-Log-Reason': encodeURIComponent(`公會名冊刪除成員: ${nickName}`)
+          }
+        });
+
+        if (kickRes.status === 204) {
+          console.log(`[Discord] 已將刪除的成員 ${nickName} (${dcId}) 移出伺服器`);
+        } else {
+          const kickErr = await kickRes.text();
+          console.warn(`[Discord 踢人未成功] 狀態碼: ${kickRes.status}, 回應: ${kickErr}`);
+        }
+      } catch (dcErr) {
+        console.error('[Discord 踢人連線異常]:', dcErr.message);
+      }
+    }
+
+    // C. 刪除資料庫資料與稽核紀錄
     await pool.query('DELETE FROM members WHERE line_user_id = $1', [lineUserId]);
     await pool.query('DELETE FROM member_audit_logs WHERE line_user_id = $1', [lineUserId]);
+
     res.json({ status: "success" });
   } catch (err) {
+    console.error('[Database] 刪除會員失敗:', err);
     res.status(500).json({ status: "error", message: err.message });
   }
 });
