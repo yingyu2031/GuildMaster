@@ -641,12 +641,19 @@ app.post('/api/admin/events/save', async (req, res) => {
 app.delete('/api/admin/events/:id', async (req, res) => {
   const eventId = req.params.id;
   try {
-    await pool.query('DELETE FROM events WHERE id = $1', [eventId]);
-    res.json({ status: "success" });
+    // 1. 先刪除該活動底下的所有報名成員紀錄
+    await pool.query('DELETE FROM event_attendees WHERE event_id = $1', [eventId]);
+
+    // 2. 刪除活動主檔 (欄位是 event_id)
+    await pool.query('DELETE FROM events WHERE event_id = $1', [eventId]);
+
+    res.json({ status: "success", message: "活動已成功刪除" });
   } catch (err) {
+    console.error('[Database] 刪除活動失敗:', err);
     res.status(500).json({ status: "error", message: err.message });
   }
 });
+
 
 
 // ==========================================
