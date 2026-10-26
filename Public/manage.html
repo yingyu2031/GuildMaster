@@ -1562,18 +1562,26 @@ async function deleteCurrentEvent() {
 
     if (confirm("確定要刪除此活動嗎？")) {
         try {
-            await fetch(`${BACKEND_API_URL}/api/admin/events/${encodeURIComponent(eventId)}`, {
+            const res = await fetch(`${BACKEND_API_URL}/api/admin/events/${encodeURIComponent(eventId)}`, {
                 method: 'DELETE'
             });
-            eventsData = eventsData.filter(e => e.id !== eventId);
-            closeModal('eventModal');
-            renderEventsList();
+            const result = await res.json();
+
+            if (res.ok && result.status === "success") {
+                // 資料庫確認刪除成功後，才更新畫面
+                eventsData = eventsData.filter(e => e.id !== eventId);
+                closeModal('eventModal');
+                renderEventsList();
+            } else {
+                alert("刪除活動失敗: " + (result.message || "伺服器錯誤"));
+            }
         } catch (err) {
             console.error("刪除活動失敗:", err);
             alert("網路異常，刪除失敗");
         }
     }
 }
+
 
 // 儲存/建立活動表單送出 API
 document.getElementById('eventForm').addEventListener('submit', async (e) => {
