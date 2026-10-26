@@ -299,92 +299,95 @@ input[type="date"], input[type="time"], select {
 
 <!-- 彈窗 1：成員 新增/編輯 Modal -->
 <div id="memberModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
- <div class="bg-white w-full max-w-md rounded-[28px] p-6 border-2 border-sky-200 soft-sky-shadow max-h-[90vh] overflow-y-auto">
- <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
- <h3 id="memberModalTitle" class="text-base font-black text-slate-900">編輯成員資料</h3>
- <button onclick="closeModal('memberModal')" class="text-slate-400 hover:text-slate-600 text-sm font-bold cursor-pointer">關閉</button>
- </div>
- <form id="memberForm" class="space-y-3 text-left text-xs font-bold text-slate-700">
- <input type="hidden" id="formMemberUid">
-
- <div>
- <label class="block mb-1 text-slate-800">遊戲角色暱稱 <span class="text-rose-500">*</span></label>
- <input type="text" id="formGameNick" required class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-sky-400">
- </div>
- <div>
- <label class="block mb-1 text-slate-800">遊戲職業 <span class="text-rose-500">*</span></label>
- <select id="formGameClass" required class="w-full h-[40px] leading-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-sky-400 cursor-pointer">
- </select>
- </div>
- <div class="grid grid-cols-2 gap-3">
- <div>
- <label class="block mb-1 text-slate-800">LINE 暱稱</label>
- <input type="text" id="formLineName" class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
- </div>
- <div>
- <label class="block mb-1 text-slate-800">會員狀態</label>
- <select id="formGuildRole" class="w-full h-[40px] leading-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900 cursor-pointer">
- <option value="現任">現任</option>
- <option value="幹部">幹部</option>
- <option value="退會">退會</option>
- </select>
- </div>
- </div>
- <div class="grid grid-cols-2 gap-3">
- <div>
- <label class="block mb-1 text-slate-800">團體</label>
- <input type="text" id="formTeamGroup" placeholder="例如：冠廷家族" class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
- </div>
- <div>
- <label class="block mb-1 text-slate-800">審核狀態</label>
- <select id="formAccountStatus" class="w-full h-[40px] leading-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900 cursor-pointer">
- <option value="已審核">已審核</option>
- <option value="待審核">待審核</option>
- </select>
- </div>
- </div>
-
- <div class="space-y-2 pt-1">
- <label class="flex items-center justify-between p-3 rounded-2xl bg-slate-100 border border-slate-200 opacity-80 cursor-not-allowed">
- <div>
- <div class="text-xs font-black text-slate-600">開放查詢 <span class="text-[10px] font-normal text-slate-400">(會員自行設定)</span></div>
- <div class="text-[10px] text-slate-400 font-normal mt-0.5">是否允許其他會員查詢角色與 LINE 資訊</div>
- </div>
- <input type="checkbox" id="formAllowSearch" disabled class="w-5 h-5 accent-sky-500 cursor-not-allowed">
- </label>
- <div class="grid grid-cols-2 gap-2">
- <label class="flex items-center justify-between p-2.5 rounded-xl bg-[#F8FAFC] border border-sky-100 cursor-pointer">
- <span class="text-[11px] font-black text-slate-800">已加入 LINE 群</span>
- <input type="checkbox" id="formJoinedLineGroup" class="w-4 h-4 accent-sky-500 cursor-pointer">
- </label>
- <label class="flex items-center justify-between p-2.5 rounded-xl bg-[#F8FAFC] border border-sky-100 cursor-pointer">
- <span class="text-[11px] font-black text-slate-800">已加入 DC</span>
- <input type="checkbox" id="formJoinedDc" class="w-4 h-4 accent-sky-500 cursor-pointer">
- </label>
- </div>
- </div>
-
- <!-- 資料異動歷程明細 -->
- <div id="auditLogSection" class="pt-2">
- <div class="flex items-center justify-between mb-1.5">
- <span class="text-xs font-black text-slate-800">資料異動歷程明細</span>
- <span id="auditLogCount" class="text-[10px] text-slate-400">共 0 筆紀錄</span>
- </div>
- <div id="auditLogContainer" class="space-y-1.5 max-h-36 overflow-y-auto p-2 bg-[#F8FAFC] border border-sky-100 rounded-xl text-[11px]"></div>
- </div>
-
- <div class="grid grid-cols-2 gap-3 pt-3">
- <button type="button" onclick="closeModal('memberModal')" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 rounded-xl transition cursor-pointer">取消</button>
- <button type="submit" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-2.5 rounded-xl transition shadow-md shadow-sky-200 cursor-pointer">儲存變更</button>
- </div>
-
- <div id="deleteMemberBtnWrapper" class="pt-2 border-t border-slate-100">
- <button type="button" onclick="promptDeleteMember()" class="w-full bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold py-2.5 rounded-xl text-xs transition cursor-pointer">
- 刪除此成員資料
- </button>
- </div>
- </form>
- </div>
+<div class="bg-white w-full max-w-md rounded-[28px] p-6 border-2 border-sky-200 soft-sky-shadow max-h-[90vh] overflow-y-auto">
+<div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+<h3 id="memberModalTitle" class="text-base font-black text-slate-900">編輯成員資料</h3>
+<button onclick="closeModal('memberModal')" class="text-slate-400 hover:text-slate-600 text-sm font-bold cursor-pointer">關閉</button>
+</div>
+<form id="memberForm" class="space-y-3 text-left text-xs font-bold text-slate-700">
+<input type="hidden" id="formMemberUid">
+<div>
+<label class="block mb-1 text-slate-800">遊戲角色暱稱 <span class="text-rose-500"></span></label>
+<input type="text" id="formGameNick" required class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-sky-400">
+</div>
+<div>
+<label class="block mb-1 text-slate-800">遊戲職業 <span class="text-rose-500"></span></label>
+<select id="formGameClass" required class="w-full h-[40px] leading-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-sky-400 cursor-pointer">
+</select>
+</div>
+<div class="grid grid-cols-2 gap-3">
+<div>
+<label class="block mb-1 text-slate-800">社群暱稱 (LINE/DC)</label>
+<input type="text" id="formLineName" class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
+</div>
+<div>
+<label class="block mb-1 text-slate-800">公會身分</label>
+<select id="formGuildRole" class="w-full h-[40px] leading-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900 cursor-pointer">
+<option value="現任">現任</option>
+<option value="幹部">幹部</option>
+<option value="退會">退會</option>
+</select>
+</div>
+</div>
+<!-- 新增：地區分類與審核狀態 -->
+<div class="grid grid-cols-2 gap-3">
+<div>
+<label class="block mb-1 text-slate-800">地區通道 (TW)</label>
+<select id="formMemberTw" class="w-full h-[40px] leading-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-sky-400 cursor-pointer">
+<option value="Y">台灣 (LINE通道)</option>
+<option value="N">大陸 (DC專屬通道)</option>
+</select>
+</div>
+<div>
+<label class="block mb-1 text-slate-800">審核狀態</label>
+<select id="formAccountStatus" class="w-full h-[40px] leading-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900 cursor-pointer">
+<option value="已審核">已審核</option>
+<option value="待審核">待審核</option>
+</select>
+</div>
+</div>
+<div>
+<label class="block mb-1 text-slate-800">隸屬團隊 / 家族</label>
+<input type="text" id="formTeamGroup" placeholder="例如：冠廷家族、主攻一團" class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
+</div>
+<div class="space-y-2 pt-1">
+<label class="flex items-center justify-between p-3 rounded-2xl bg-slate-100 border border-slate-200 opacity-80 cursor-not-allowed">
+<div>
+<div class="text-xs font-black text-slate-600">開放查詢 <span class="text-[10px] font-normal text-slate-400">(會員自行設定)</span></div>
+<div class="text-[10px] text-slate-400 font-normal mt-0.5">是否允許其他會員查詢角色與通訊資訊</div>
+</div>
+<input type="checkbox" id="formAllowSearch" disabled class="w-5 h-5 accent-sky-500 cursor-not-allowed">
+</label>
+<div class="grid grid-cols-2 gap-2">
+<label class="flex items-center justify-between p-2.5 rounded-xl bg-[#F8FAFC] border border-sky-100 cursor-pointer">
+<span class="text-[11px] font-black text-slate-800">已加入 LINE 群</span>
+<input type="checkbox" id="formJoinedLineGroup" class="w-4 h-4 accent-sky-500 cursor-pointer">
+</label>
+<label class="flex items-center justify-between p-2.5 rounded-xl bg-[#F8FAFC] border border-sky-100 cursor-pointer">
+<span class="text-[11px] font-black text-slate-800">已加入 DC 語音群</span>
+<input type="checkbox" id="formJoinedDc" class="w-4 h-4 accent-sky-500 cursor-pointer">
+</label>
+</div>
+</div>
+<!-- 資料異動歷程明細 -->
+<div id="auditLogSection" class="pt-2">
+<div class="flex items-center justify-between mb-1.5">
+<span class="text-xs font-black text-slate-800">資料異動歷程明細</span>
+<span id="auditLogCount" class="text-[10px] text-slate-400">共 0 筆紀錄</span>
+</div>
+<div id="auditLogContainer" class="space-y-1.5 max-h-36 overflow-y-auto p-2 bg-[#F8FAFC] border border-sky-100 rounded-xl text-[11px]"></div>
+</div>
+<div class="grid grid-cols-2 gap-3 pt-3">
+<button type="button" onclick="closeModal('memberModal')" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 rounded-xl transition cursor-pointer">取消</button>
+<button type="submit" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-2.5 rounded-xl transition shadow-md shadow-sky-200 cursor-pointer">儲存變更</button>
+</div>
+<div id="deleteMemberBtnWrapper" class="pt-2 border-t border-slate-100">
+<button type="button" onclick="promptDeleteMember()" class="w-full bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold py-2.5 rounded-xl text-xs transition cursor-pointer">
+刪除此成員資料
+</button>
+</div>
+</form>
+</div>
 </div>
 
 <!-- 彈窗 2：快速新增團體 Modal -->
