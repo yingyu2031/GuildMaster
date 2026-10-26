@@ -499,26 +499,34 @@ app.get('/api/auth/discord/callback', async (req, res) => {
       ? `https://cdn.discordapp.com/avatars/${dcId}/${dcUser.avatar}.png`
       : `https://cdn.discordapp.com/embed/avatars/0.png`;
 
-    // C. 自動拉進 Discord 伺服器 (附帶詳細狀態回傳記錄)
+    // C. 自動拉進 Discord 伺服器 (僅新加入時賦予身分組)
     try {
+      const MEMBER_ROLE_ID = '1471192518036164651'; // 成員身分組 ID
+
       const joinRes = await fetch(`https://discord.com/api/v10/guilds/${DISCORD_GUILD_ID}/members/${dcId}`, {
         method: 'PUT',
         headers: {
           Authorization: `Bot ${DISCORD_BOT_TOKEN}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ access_token: userAccessToken })
+        body: JSON.stringify({ 
+          access_token: userAccessToken,
+          roles: [MEMBER_ROLE_ID] // 👈 只有新加入進群時才會帶上身分組
+        })
       });
+
       const resText = await joinRes.text();
       console.log(`[Discord 加群回應] 狀態碼: ${joinRes.status}, 回應: ${resText}`);
+
       if (joinRes.status === 201) {
-        console.log(`[Discord] 🎉 成功將成員 ${dcName} (${dcId}) 拉進公會伺服器！`);
+        console.log(`[Discord] 🎉 成功將新成員 ${dcName} (${dcId}) 拉進公會並賦予身分組！`);
       } else if (joinRes.status === 204) {
-        console.log(`[Discord] ℹ️ 成員 ${dcName} (${dcId}) 原先就已經在伺服器內。`);
+        console.log(`[Discord] ℹ️ 成員 ${dcName} (${dcId}) 原先就已經在伺服器內，不另外變更身分組。`);
       }
     } catch (botErr) {
       console.error('[Discord 自動加群異常]:', botErr.message);
     }
+
 
     // D. 依據來源分流處理
     const targetLineUid = state ? decodeURIComponent(state) : 'login_only';
