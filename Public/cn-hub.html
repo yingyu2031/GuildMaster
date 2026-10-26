@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
-    <title>GuildMaster - 大陸成員專屬中心</title>
+    <title>LV - 大陸成員專屬中心</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@700;800;900&family=Noto+Sans+TC:wght@500;700;900&display=swap" rel="stylesheet">
@@ -18,11 +18,15 @@
             from { opacity: 0; transform: translateY(6px); }
             to { opacity: 1; transform: translateY(0); }
         }
+        input[type="date"] {
+            -webkit-appearance: none;
+            appearance: none;
+        }
     </style>
 </head>
 <body class="bg-[#FFFDF7] text-slate-800 antialiased selection:bg-amber-200 selection:text-amber-900 min-h-screen flex flex-col justify-between py-6 px-3 sm:px-4">
 
-    <main class="max-w-md w-full mx-auto space-y-4">
+    <main class="max-w-md w-full mx-auto space-y-4 relative">
         
         <!-- 狀態 0：未授權 / 缺少參數提示卡片 -->
         <div id="unauthCard" class="hidden bg-white rounded-3xl p-8 border-2 border-indigo-200 text-center soft-shadow space-y-4">
@@ -32,7 +36,7 @@
             <span class="inline-block bg-indigo-100 text-indigo-700 text-xs font-black px-3.5 py-1 rounded-full">Discord 成員通道</span>
             <h1 class="text-xl font-black text-slate-900">公會會員專區</h1>
             <p class="text-xs text-slate-500 leading-relaxed text-left bg-indigo-50/50 p-3.5 rounded-2xl border border-indigo-100">
-                本系統為公會大陸成員專用入口。請先透過 Discord 授權驗證，系統會自動將您加入公會語音伺服器並同步權限！
+                本系統為公會大陸成員專用入口。請先透過 Discord 授權驗證，系統會自動將您加入公會伺服器並同步名冊權限！
             </p>
             <a href="/api/auth/discord" class="inline-flex items-center justify-center gap-2 w-full bg-[#5865F2] hover:bg-[#4752C4] text-white font-bold py-3.5 rounded-2xl shadow-md transition cursor-pointer">
                 使用 Discord 帳號進入
@@ -49,7 +53,7 @@
             <p class="text-xs text-amber-800/60">正在連線公會資料庫，請稍候</p>
         </div>
 
-        <!-- 狀態 2：已授權之頂部身分卡 -->
+        <!-- 狀態 2：頂部會員資訊卡片 -->
         <div id="userHeaderCard" class="hidden bg-white rounded-2xl p-3.5 border-2 border-amber-200/80 soft-shadow flex items-center justify-between">
             <div class="flex items-center gap-3 min-w-0">
                 <div class="relative shrink-0">
@@ -69,7 +73,7 @@
             <span class="text-[10px] font-black bg-indigo-50 text-indigo-600 border border-indigo-200 px-2.5 py-1 rounded-full shrink-0">大陸專區</span>
         </div>
 
-        <!-- 導航切換 Tab (純三合一：身分、活動、請假) -->
+        <!-- 導航切換 Tab (三合一：身分、活動、請假) -->
         <div id="tabNav" class="hidden grid grid-cols-3 gap-1 bg-amber-100/70 p-1 rounded-2xl border border-amber-200/80 text-xs font-bold text-center select-none">
             <button onclick="switchTab('profile')" id="tabBtn_profile" class="py-2 rounded-xl bg-white text-amber-950 font-black shadow-xs transition cursor-pointer">身分管理</button>
             <button onclick="switchTab('events')" id="tabBtn_events" class="py-2 rounded-xl text-amber-900/70 hover:text-amber-950 transition cursor-pointer">活動報名</button>
@@ -80,8 +84,7 @@
         <!-- 模組 1：身分管理 (登記、待審核與修改) -->
         <!-- ========================================== -->
         <section id="panel_profile" class="hidden space-y-4">
-            
-            <!-- 審核中專屬提示卡片 (未通過審核前顯示) -->
+            <!-- 待審核提示 -->
             <div id="pendingReviewNotice" class="hidden bg-amber-50/70 rounded-2xl p-4 border border-amber-200 text-left space-y-1">
                 <div class="flex items-center gap-2 text-amber-900 font-black text-xs">
                     <span>⏳</span>
@@ -96,7 +99,7 @@
             <div class="bg-white rounded-3xl p-5 border-2 border-amber-200/80 soft-shadow space-y-4 text-left">
                 <div class="border-b border-amber-100 pb-2">
                     <h2 class="text-sm font-black text-slate-900">遊戲身分資料登記</h2>
-                    <p class="text-[11px] text-slate-400 mt-0.5">請確認遊戲角色暱稱與職業正確，以便幹部排定活動名單</p>
+                    <p class="text-[11px] text-slate-400 mt-0.5">請確認角色暱稱與職業正確，以便幹部排定攻城與活動名單</p>
                 </div>
 
                 <form id="bindForm" class="space-y-3.5 text-xs font-bold text-slate-700">
@@ -106,7 +109,6 @@
                                class="w-full h-11 border border-amber-200 rounded-xl px-3 bg-[#FFFDF9] text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-400">
                     </div>
 
-                    <!-- 遊戲職業動態下拉選單 (取自 API: /api/admin/classes) -->
                     <div>
                         <label class="block mb-1 text-slate-800">遊戲職業 <span class="text-rose-500">*</span></label>
                         <div class="relative">
@@ -128,7 +130,7 @@
                         <label class="flex items-center justify-between p-3 rounded-xl bg-[#FFFDF9] border border-amber-200 cursor-pointer">
                             <div>
                                 <div class="text-xs font-black text-slate-800">開放名冊查詢</div>
-                                <div class="text-[10px] text-slate-400 mt-0.5">允許其他公會成員於通訊錄查詢您的角色</div>
+                                <div class="text-[10px] text-slate-400 mt-0.5">允許其他公會成員於名冊通訊錄查詢您的資料</div>
                             </div>
                             <input type="checkbox" id="inputAllowSearch" checked class="w-4 h-4 accent-amber-500 cursor-pointer">
                         </label>
@@ -151,12 +153,26 @@
         </section>
 
         <!-- ========================================== -->
-        <!-- 模組 3：請假專區 -->
+        <!-- 模組 3：請假專區 (免代請假、對接動態規則) -->
         <!-- ========================================== -->
         <section id="panel_leave" class="hidden bg-white rounded-3xl p-5 border-2 border-amber-200/80 soft-shadow space-y-4 text-left">
-            <div class="border-b border-amber-100 pb-2">
-                <h2 class="text-sm font-black text-slate-900">線上公會請假登記</h2>
-                <p class="text-[11px] text-slate-400 mt-0.5">聯賽、攻城等重大集體活動如無法出席請務必提前登記</p>
+            
+            <!-- 請假人員資訊列 (固定本人) -->
+            <div class="bg-[#FFF9EE] rounded-2xl p-4 border border-amber-200/80">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-bold text-amber-800/80">請假人員資訊</span>
+                    <span class="text-[10px] font-black bg-amber-200/70 text-amber-900 px-2 py-0.5 rounded-full">本人申請</span>
+                </div>
+                <div class="space-y-1.5 text-xs font-bold text-amber-950">
+                    <div class="flex justify-between items-center">
+                        <span class="text-amber-900/60 font-medium">角色暱稱：</span>
+                        <span id="leaveTargetNick">-</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-amber-900/60 font-medium">角色職業：</span>
+                        <span id="leaveTargetClass">-</span>
+                    </div>
+                </div>
             </div>
 
             <form id="leaveForm" class="space-y-3.5 text-xs font-bold text-slate-700">
@@ -166,35 +182,33 @@
                            class="w-full h-11 border border-amber-200 rounded-xl px-3 bg-[#FFFDF9] text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-400">
                 </div>
 
+                <!-- 請假活動 (動態取自 /api/admin/leave-rules) -->
                 <div>
                     <label class="block mb-1 text-slate-800">請假活動項目 <span class="text-rose-500">*</span></label>
                     <div class="relative">
                         <select id="leaveEvent" required 
                                 class="w-full h-11 border border-amber-200 rounded-xl px-3 bg-[#FFFDF9] text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-400 appearance-none cursor-pointer">
-                            <option value="公會聯賽">公會聯賽 (20:30)</option>
-                            <option value="攻城戰">攻城戰 (21:00)</option>
-                            <option value="黑白戰境">黑白戰境</option>
-                            <option value="其他活動">其他活動</option>
+                            <option value="" disabled selected>載入活動項目中...</option>
                         </select>
                         <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3.5 text-xs text-amber-700">▼</div>
                     </div>
                 </div>
 
                 <div>
-                    <label class="block mb-1 text-slate-800">請假事由 <span class="text-rose-500">*</span></label>
-                    <input type="text" id="leaveReason" required placeholder="例如：公司加班 / 家中有事 / 身體不適" 
-                           class="w-full h-11 border border-amber-200 rounded-xl px-3 bg-[#FFFDF9] text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-400">
+                    <label class="block mb-1 text-slate-800">請假原因 <span class="text-rose-500">*</span></label>
+                    <textarea id="leaveReason" rows="2.5" required placeholder="例如：加班、家庭聚會、身體不適..." 
+                              class="w-full bg-[#FFFDF9] border border-amber-200 rounded-xl p-3 text-xs font-bold text-slate-900 resize-none focus:outline-none focus:ring-2 focus:ring-amber-400 leading-relaxed"></textarea>
                 </div>
 
                 <div>
                     <label class="block mb-1 text-slate-800">備註說明 (選填)</label>
-                    <input type="text" id="leaveNote" placeholder="任何想先行交代幹部的事項" 
+                    <input type="text" id="leaveNote" placeholder="其他需要向幹部說明的補充事項" 
                            class="w-full h-11 border border-amber-200 rounded-xl px-3 bg-[#FFFDF9] text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-400">
                 </div>
 
                 <div class="pt-1">
-                    <button type="submit" id="submitLeaveBtn" class="w-full bg-rose-500 hover:bg-rose-600 text-white font-bold py-3.5 rounded-2xl shadow-md transition cursor-pointer text-xs">
-                        送出請假登記
+                    <button type="submit" id="submitLeaveBtn" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold py-3.5 rounded-2xl shadow-md transition cursor-pointer text-xs">
+                        確認送出請假單
                     </button>
                 </div>
             </form>
@@ -203,6 +217,28 @@
         <!-- 底部版權 -->
         <p class="text-[11px] text-amber-900/40 text-center mt-6">&copy; 2026 GuildMaster (Discord Channel)</p>
     </main>
+
+    <!-- 統一風格彈窗 1：請假成功 Modal -->
+    <div id="successLeaveModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
+        <div class="bg-white w-full max-w-xs rounded-[28px] p-6 border-2 border-amber-200 soft-shadow text-center">
+            <h3 class="text-base font-black text-amber-950 mb-1 mt-1">請假申請已登記</h3>
+            <p id="successLeaveText" class="text-xs text-amber-900/70 leading-relaxed mb-5">請假資料已成功寫入系統，感謝您的配合。</p>
+            <button onclick="document.getElementById('successLeaveModal').classList.add('hidden')" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-xs font-bold py-3 rounded-xl shadow-md transition cursor-pointer">
+                確定
+            </button>
+        </div>
+    </div>
+
+    <!-- 統一風格彈窗 2：重複請假警告 Modal -->
+    <div id="warningModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
+        <div class="bg-white w-full max-w-xs rounded-[28px] p-6 border-2 border-amber-200 soft-shadow text-center">
+            <h3 class="text-base font-black text-amber-950 mb-1 mt-1">重複請假提醒</h3>
+            <p id="warningModalText" class="text-xs text-amber-900/70 leading-relaxed mb-5">-</p>
+            <button onclick="document.getElementById('warningModal').classList.add('hidden')" class="w-full bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold py-3 rounded-xl shadow-md transition cursor-pointer">
+                我知道了
+            </button>
+        </div>
+    </div>
 
     <script>
         const BACKEND_API_URL = window.location.origin;
@@ -214,6 +250,7 @@
 
         let memberData = null;
         let eventsList = [];
+        let leaveRulesMap = {}; // 活動名稱 -> latest_time 截止時間對應字典
 
         window.onload = async () => {
             // 1. 若無 Discord 授權資訊，導向授權引導卡片
@@ -232,9 +269,12 @@
             const todayStr = new Date().toISOString().split('T')[0];
             document.getElementById('leaveDate').value = todayStr;
 
-            // 3. 先向後端載入職業清單，再取得會員資料回填
-            await loadGameClasses();
-            await fetchMemberProfile();
+            // 3. 平行載入職業清單、會員資料與請假規則 API
+            await Promise.all([
+                loadGameClasses(),
+                fetchMemberProfile(),
+                loadLeaveRules()
+            ]);
 
             document.getElementById('loadingCard').classList.add('hidden');
 
@@ -291,6 +331,33 @@
             }
         }
 
+        // 動態載入請假項目規則 (對接 /api/admin/leave-rules)
+        async function loadLeaveRules() {
+            try {
+                const res = await fetch(`${BACKEND_API_URL}/api/admin/leave-rules`);
+                const data = await res.json();
+                const selectEl = document.getElementById('leaveEvent');
+                if (!selectEl) return;
+
+                selectEl.innerHTML = '<option value="" disabled selected>請選擇活動項目</option>';
+                leaveRulesMap = {};
+
+                if (data.status === "success" && data.rules) {
+                    data.rules.forEach(rule => {
+                        if (rule.enabled === 1 || rule.enabled === true) {
+                            leaveRulesMap[rule.event] = rule.latest_time; // 儲存該活動截止時間
+                            const opt = document.createElement('option');
+                            opt.value = rule.event;
+                            opt.textContent = rule.event;
+                            selectEl.appendChild(opt);
+                        }
+                    });
+                }
+            } catch (err) {
+                console.error("載入請假規則失敗:", err);
+            }
+        }
+
         // 讀取會員資料
         async function fetchMemberProfile() {
             try {
@@ -300,15 +367,22 @@
                 if (data.status === 'found') {
                     memberData = data;
                     const nick = data.gameNickname || decodeURIComponent(currentName || 'DC成員');
-                    document.getElementById('userGameNickname').textContent = nick;
-                    document.getElementById('userGameClass').textContent = (data.gameClass && data.gameClass !== '未設定') ? data.gameClass : '尚未設定職業';
+                    const gClass = (data.gameClass && data.gameClass !== '未設定') ? data.gameClass : '尚未設定職業';
 
+                    document.getElementById('userGameNickname').textContent = nick;
+                    document.getElementById('userGameClass').textContent = gClass;
+
+                    // 身分管理表單回填
                     document.getElementById('inputNickname').value = data.gameNickname || '';
                     if (data.gameClass && data.gameClass !== '未設定') {
                         document.getElementById('inputClass').value = data.gameClass;
                     }
                     document.getElementById('inputDcName').value = data.lineDisplayName || decodeURIComponent(currentName || '');
                     document.getElementById('inputAllowSearch').checked = (data.allowSearch === 'Y');
+
+                    // 請假專區資訊同步
+                    document.getElementById('leaveTargetNick').textContent = nick;
+                    document.getElementById('leaveTargetClass').textContent = gClass;
 
                     const badge = document.getElementById('userStatusBadge');
                     const pendingNotice = document.getElementById('pendingReviewNotice');
@@ -352,9 +426,9 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        lineUserId: currentUid, // 後端主鍵對應 DC ID
-                        dcid: currentUid,       // 同步寫入 dcid
-                        tw: 'N',                // 標記大陸成員
+                        lineUserId: currentUid,
+                        dcid: currentUid,
+                        tw: 'N',
                         lineDisplayName: dcName,
                         gameNickname,
                         gameClass,
@@ -363,7 +437,7 @@
                 });
                 const result = await res.json();
                 if (result.status === 'success') {
-                    alert('🎉 會員資料登記成功！幹部完成資格審核後即可參與所有活動。');
+                    alert('🎉 會員資料登記成功！幹部完成資格審核後即可參與所有活動與請假。');
                     await fetchMemberProfile();
                 } else {
                     alert('登記失敗：' + (result.message || '系統異常'));
@@ -499,55 +573,113 @@
             }
         }
 
-        // 請假登記
+        // ==========================================
+        // 線上請假登記 (含防重複檢查與逾時臨時判定)
+        // ==========================================
         document.getElementById('leaveForm').addEventListener('submit', async (e) => {
             e.preventDefault();
+
             if (!memberData || !memberData.gameNickname || memberData.accountStatus !== '已審核') {
-                alert("⚠️ 您尚未完成登記或未審核通過，目前無法請假！");
+                alert("⚠️ 您尚未完成登記或未通過審核，目前無法請假！");
                 switchTab('profile');
                 return;
             }
 
-            const leaveDate = document.getElementById('leaveDate').value;
-            const leaveEvent = document.getElementById('leaveEvent').value;
-            const leaveReason = document.getElementById('leaveReason').value.trim();
-            const note = document.getElementById('leaveNote').value.trim();
+            const submitBtn = document.getElementById('submitLeaveBtn');
+            if (submitBtn.disabled) return;
 
-            const btn = document.getElementById('submitLeaveBtn');
-            btn.textContent = "傳送中...";
-            btn.disabled = true;
+            const leaveDateVal = document.getElementById('leaveDate').value;
+            const leaveEventVal = document.getElementById('leaveEvent').value;
+            const leaveReasonVal = document.getElementById('leaveReason').value.trim();
+            const leaveNoteVal = document.getElementById('leaveNote').value.trim();
+
+            if (!leaveEventVal) {
+                return alert("請選擇請假活動項目！");
+            }
+
+            submitBtn.textContent = "檢查重複請假中...";
+            submitBtn.disabled = true;
 
             try {
-                const res = await fetch(`${BACKEND_API_URL}/api/leaves`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        leaveDate,
-                        leaveEvent,
-                        targetUid: currentUid,
-                        gameNickname: memberData.gameNickname,
-                        gameClass: memberData.gameClass || '',
-                        leaveReason,
-                        note,
-                        isUrgent: 'N',
-                        operatorUid: currentUid,
-                        operatorName: memberData.gameNickname
-                    })
+                // 1. 先呼叫後端 API 檢查該成員同天是否已請過此活動
+                const checkRes = await fetch(`${BACKEND_API_URL}/api/leaves/check?targetUid=${encodeURIComponent(currentUid)}&leaveDate=${encodeURIComponent(leaveDateVal)}&leaveEvent=${encodeURIComponent(leaveEventVal)}`);
+                const checkData = await checkRes.json();
+
+                if (checkData.status === "exists") {
+                    document.getElementById('warningModalText').textContent = `您在 ${leaveDateVal} 當天已經登記過【${leaveEventVal}】的請假了！`;
+                    document.getElementById('warningModal').classList.remove('hidden');
+                    submitBtn.textContent = "確認送出請假單";
+                    submitBtn.disabled = false;
+                    return;
+                }
+
+                submitBtn.textContent = "傳送中...";
+
+                // 2. 比對規則截止時間，判定是否為臨時請假 (isUrgent)
+                let isUrgent = "N";
+                const latestTimeStr = leaveRulesMap[leaveEventVal];
+
+                if (latestTimeStr) {
+                    const now = new Date();
+                    let deadline;
+                    if (latestTimeStr.includes(" ")) {
+                        deadline = new Date(latestTimeStr);
+                    } else {
+                        deadline = new Date(`${leaveDateVal}T${latestTimeStr}:00`);
+                    }
+                    if (now > deadline) {
+                        isUrgent = "Y";
+                    }
+                }
+
+                // 3. 打包送出請假資料 (固定為本人申請)
+                const payload = {
+                    leaveDate: leaveDateVal,
+                    leaveEvent: leaveEventVal,
+                    targetUid: currentUid,
+                    gameNickname: memberData.gameNickname,
+                    gameClass: memberData.gameClass || '',
+                    leaveReason: leaveReasonVal,
+                    note: leaveNoteVal,
+                    isUrgent: isUrgent,
+                    operatorUid: currentUid,
+                    operatorName: memberData.gameNickname || decodeURIComponent(currentName || '本人')
+                };
+
+                const postRes = await fetch(`${BACKEND_API_URL}/api/leaves`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
                 });
 
-                const data = await res.json();
-                if (data.status === 'success') {
-                    alert("✓ 請假申請已成功送出並同步至後台名冊！");
-                    document.getElementById('leaveReason').value = '';
-                    document.getElementById('leaveNote').value = '';
-                } else {
-                    alert("送出失敗：" + (data.message || "請稍後重試"));
+                const postResult = await postRes.json();
+
+                if (postResult.status === "error") {
+                    document.getElementById('warningModalText').textContent = "送出失敗：" + (postResult.message || "系統異常");
+                    document.getElementById('warningModal').classList.remove('hidden');
+                    submitBtn.textContent = "確認送出請假單";
+                    submitBtn.disabled = false;
+                    return;
                 }
+
+                // 4. 請假成功提示
+                if (isUrgent === "Y") {
+                    document.getElementById('successLeaveText').textContent = "偵測到超過截止時間，系統標記為【臨時請假】，下回記得提早登記喔！";
+                } else {
+                    document.getElementById('successLeaveText').textContent = "請假資料已成功寫入系統，感謝您的配合。";
+                }
+
+                document.getElementById('successLeaveModal').classList.remove('hidden');
+                document.getElementById('leaveReason').value = '';
+                document.getElementById('leaveNote').value = '';
+
             } catch (err) {
-                alert("網路連線異常，請假登記失敗");
+                console.error("請假提交失敗:", err);
+                document.getElementById('warningModalText').textContent = "網路異常或伺服器忙碌中，請稍後再試";
+                document.getElementById('warningModal').classList.remove('hidden');
             } finally {
-                btn.textContent = "送出請假登記";
-                btn.disabled = false;
+                submitBtn.textContent = "確認送出請假單";
+                submitBtn.disabled = false;
             }
         });
     </script>
