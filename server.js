@@ -489,16 +489,20 @@ app.delete('/api/admin/leave-rules/:event', async (req, res) => {
 
 // 共用的時間檢查與狀態計算函式
 function getComputedStatus(evt) {
-  // 如果已經手動封存或狀態為已結束，保持原狀
+  // 如果已經手動封存或狀態已被設為已結束，保持原狀
   if (evt.is_archived === 1 || evt.status === '已結束') {
     return evt.status;
   }
   
   const now = new Date();
+  const eventDateTime = new Date(`${evt.date} ${evt.time || '23:59:59'}`);
   const signupEnd = new Date(evt.signup_end);
   const signupStart = new Date(evt.signup_start);
 
-  if (now > signupEnd) {
+  // 1. 如果活動時間已經過去，自動判定為「已結束」
+  if (now > eventDateTime) {
+    return '已結束';
+  } else if (now > signupEnd) {
     return '已截止';
   } else if (now >= signupStart) {
     return '報名中';
