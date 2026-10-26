@@ -33,7 +33,7 @@
             <div class="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mx-auto text-2xl font-black">
                 🎮
             </div>
-            <span class="inline-block bg-indigo-100 text-indigo-700 text-xs font-black px-3.5 py-1 rounded-full">Discord 通道</span>
+            <span class="inline-block bg-indigo-100 text-indigo-700 text-xs font-black px-3.5 py-1 rounded-full">Discord 成員通道</span>
             <h1 class="text-xl font-black text-slate-900">公會會員專區</h1>
             <p class="text-xs text-slate-500 leading-relaxed text-left bg-indigo-50/50 p-3.5 rounded-2xl border border-indigo-100">
                 本系統為LV公會大陸成員專用入口。請先透過 Discord 授權驗證，系統會自動將您加入公會伺服器並同步名冊權限！
@@ -126,17 +126,7 @@
                                class="w-full h-11 border border-amber-200 rounded-xl px-3 bg-amber-50/20 text-xs font-bold text-slate-700">
                     </div>
 
-                    <div class="pt-1">
-                        <label class="flex items-center justify-between p-3 rounded-xl bg-[#FFFDF9] border border-amber-200 cursor-pointer">
-                            <div>
-                                <div class="text-xs font-black text-slate-800">開放名冊查詢</div>
-                                <div class="text-[10px] text-slate-400 mt-0.5">允許其他公會成員於名冊通訊錄查詢您的資料</div>
-                            </div>
-                            <input type="checkbox" id="inputAllowSearch" checked class="w-4 h-4 accent-amber-500 cursor-pointer">
-                        </label>
-                    </div>
-
-                    <button type="submit" id="submitBindBtn" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3.5 rounded-2xl shadow-md transition cursor-pointer text-xs">
+                    <button type="submit" id="submitBindBtn" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3.5 rounded-2xl shadow-md transition cursor-pointer text-xs mt-2">
                         儲存並送出登記
                     </button>
                 </form>
@@ -144,7 +134,7 @@
         </section>
 
         <!-- ========================================== -->
-        <!-- 模組 2：活動報名專區 (已結束自動排除) -->
+        <!-- 模組 2：活動報名專區 -->
         <!-- ========================================== -->
         <section id="panel_events" class="hidden space-y-3">
             <div id="eventsListContainer" class="space-y-3">
@@ -153,7 +143,7 @@
         </section>
 
         <!-- ========================================== -->
-        <!-- 模組 3：請假專區 (已移除上方資訊列) -->
+        <!-- 模組 3：請假專區 -->
         <!-- ========================================== -->
         <section id="panel_leave" class="hidden bg-white rounded-3xl p-5 border-2 border-amber-200/80 soft-shadow space-y-4 text-left">
             <div class="border-b border-amber-100 pb-2">
@@ -168,7 +158,6 @@
                            class="w-full h-11 border border-amber-200 rounded-xl px-3 bg-[#FFFDF9] text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-400">
                 </div>
 
-                <!-- 請假活動 (動態取自 /api/admin/leave-rules) -->
                 <div>
                     <label class="block mb-1 text-slate-800">請假活動項目 <span class="text-rose-500">*</span></label>
                     <div class="relative">
@@ -354,7 +343,6 @@
                         document.getElementById('inputClass').value = data.gameClass;
                     }
                     document.getElementById('inputDcName').value = data.lineDisplayName || decodeURIComponent(currentName || '');
-                    document.getElementById('inputAllowSearch').checked = (data.allowSearch === 'Y');
 
                     const badge = document.getElementById('userStatusBadge');
                     const pendingNotice = document.getElementById('pendingReviewNotice');
@@ -382,7 +370,6 @@
             const gameNickname = document.getElementById('inputNickname').value.trim();
             const gameClass = document.getElementById('inputClass').value;
             const dcName = document.getElementById('inputDcName').value.trim();
-            const allowSearch = document.getElementById('inputAllowSearch').checked ? 'Y' : 'N';
 
             if (!gameNickname || !gameClass) {
                 return alert("請完整填寫遊戲暱稱與選擇職業！");
@@ -403,7 +390,7 @@
                         lineDisplayName: dcName,
                         gameNickname,
                         gameClass,
-                        allowSearch
+                        allowSearch: 'N' // 大陸成員預設不給予查詢
                     })
                 });
                 const result = await res.json();
@@ -433,7 +420,7 @@
 
                 const now = new Date();
 
-                // 核心過濾：排除已封存、狀態為已結束，以及集合時間已過去的活動
+                // 排除已封存、狀態為已結束，以及集合時間已過去的活動
                 const openEvents = eventsList.filter(ev => {
                     if (ev.isArchived || ev.status === '已結束') return false;
                     if (ev.date) {
