@@ -607,10 +607,10 @@ app.get('/api/auth/discord/callback', async (req, res) => {
               <h2 class="text-base font-black text-slate-900">此 Discord 帳號已綁定台灣成員</h2>
               <p class="text-xs text-slate-500 leading-relaxed text-left bg-rose-50/50 p-3.5 rounded-2xl border border-rose-100">
                 親愛的 <b>${twUser.game_nickname || '公會成員'}</b>：<br>
-                系統偵測到此 Discord 帳號已綁定於您的 <b>LINE 會員身分</b>。<br><br>
-                為避免產生重複紀錄，<b>請直接使用 LINE 點開公會專區進行各項操作</b>，無須使用大陸專屬通道註冊。
+                系統偵測到此 Discord 帳號已綁定於 <b>LINE 會員身分</b>。<br><br>
+                為避免產生重複紀錄，<b>請直接使用 LINE 管理系統進行各項操作</b>，無須使用大陸專屬通道註冊。
               </p>
-              <a href="https://line.me" class="inline-block w-full bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold py-3 rounded-xl transition">
+              <a href="https://lin.ee/pAPeNUT" class="inline-block w-full bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold py-3 rounded-xl transition">
                 返回 LINE 使用系統
               </a>
             </div>
