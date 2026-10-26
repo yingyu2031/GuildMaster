@@ -3,306 +3,507 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <title>GuildMaster - 大陸成員專屬中心</title>
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@700;800;900&family=Noto+Sans+TC:wght@500;700;900&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'M PLUS Rounded 1c', sans-serif; }
-        .soft-shadow { box-shadow: 0 10px 25px -5px rgba(245, 158, 11, 0.15); }
+        body { font-family: 'M PLUS Rounded 1c', 'Noto Sans TC', sans-serif; }
+        .soft-shadow { box-shadow: 0 12px 28px -6px rgba(245, 158, 11, 0.15), 0 4px 12px -2px rgba(0, 0, 0, 0.04); }
+        .fade-in { animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
-<body class="bg-[#FFFDF7] text-slate-800 min-h-screen p-4 pb-20">
+<body class="bg-[#FFFDF7] text-slate-800 antialiased selection:bg-amber-200 selection:text-amber-900 min-h-screen flex flex-col justify-between py-6 px-3 sm:px-4">
 
-    <!-- 頂部身分登入檢查卡片 -->
     <main class="max-w-md w-full mx-auto space-y-4">
         
-        <!-- 未登入畫面 -->
-        <div id="unauthCard" class="hidden bg-white rounded-3xl p-6 border-2 border-amber-200 text-center soft-shadow space-y-4">
+        <!-- 狀態 0：未授權 / 缺少參數提示卡片 -->
+        <div id="unauthCard" class="hidden bg-white rounded-3xl p-8 border-2 border-indigo-200 text-center soft-shadow space-y-4">
+            <div class="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mx-auto text-2xl font-black">
+                🎮
+            </div>
             <span class="inline-block bg-indigo-100 text-indigo-700 text-xs font-black px-3.5 py-1 rounded-full">Discord 成員通道</span>
-            <h1 class="text-xl font-black text-slate-900">公會會員中心</h1>
-            <p class="text-xs text-slate-500 leading-relaxed">請先點擊下方按鈕登入您的 Discord 帳號，系統將自動完成身分驗證並加入公會語音伺服器！</p>
-            <a href="/api/auth/discord" class="inline-flex items-center justify-center gap-2 w-full bg-[#5865F2] hover:bg-[#4752C4] text-white font-bold py-3.5 rounded-2xl shadow-md transition">
+            <h1 class="text-xl font-black text-slate-900">公會會員專區</h1>
+            <p class="text-xs text-slate-500 leading-relaxed text-left bg-indigo-50/50 p-3.5 rounded-2xl border border-indigo-100">
+                本系統為公會大陸成員專用入口。請先透過 Discord 授權驗證，系統會自動將您加入公會語音伺服器並同步權限！
+            </p>
+            <a href="/api/auth/discord" class="inline-flex items-center justify-center gap-2 w-full bg-[#5865F2] hover:bg-[#4752C4] text-white font-bold py-3.5 rounded-2xl shadow-md transition cursor-pointer">
                 使用 Discord 帳號進入
             </a>
         </div>
 
-        <!-- 已登入頂部身分小卡 -->
-        <div id="userHeaderCard" class="hidden bg-white rounded-2xl p-4 border-2 border-amber-200 soft-shadow flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <img id="userAvatar" src="" class="w-12 h-12 rounded-full border-2 border-amber-200 object-cover">
-                <div>
-                    <div class="flex items-center gap-1.5">
-                        <span id="userNickname" class="font-black text-slate-900 text-sm">載入中...</span>
-                        <span id="userStatusBadge" class="text-[10px] font-black px-2 py-0.5 rounded-full border bg-slate-100 text-slate-600">驗證中</span>
+        <!-- 狀態 1：載入中卡片 -->
+        <div id="loadingCard" class="bg-white rounded-[32px] p-8 border-2 border-amber-200/80 soft-shadow text-center">
+            <div class="relative w-14 h-14 mx-auto mb-3">
+                <div class="absolute inset-0 rounded-full border-4 border-amber-200 border-t-amber-500 animate-spin"></div>
+                <div class="w-full h-full rounded-full flex items-center justify-center text-xl">⏳</div>
+            </div>
+            <h3 class="text-sm font-black text-amber-950 mb-1">正在核對會員身分...</h3>
+            <p class="text-xs text-amber-800/60">正在連線公會資料庫，請稍候</p>
+        </div>
+
+        <!-- 狀態 2：已授權之頂部身分卡 -->
+        <div id="userHeaderCard" class="hidden bg-white rounded-2xl p-3.5 border-2 border-amber-200/80 soft-shadow flex items-center justify-between">
+            <div class="flex items-center gap-3 min-w-0">
+                <div class="relative shrink-0">
+                    <img id="userAvatar" src="" alt="Discord Avatar" class="w-12 h-12 rounded-full border-2 border-indigo-200 object-cover bg-indigo-50">
+                    <span class="absolute -bottom-1 -right-1 bg-[#5865F2] text-white text-[9px] font-black px-1.5 py-0.2 rounded-full border border-white leading-tight">
+                        DC
+                    </span>
+                </div>
+                <div class="min-w-0 text-left">
+                    <div class="flex items-center gap-2">
+                        <span id="userGameNickname" class="text-base font-black text-slate-900 truncate">載入中...</span>
+                        <span id="userStatusBadge" class="text-[10px] font-black px-2 py-0.5 rounded-full border bg-slate-100 text-slate-600 shrink-0">驗證中</span>
                     </div>
-                    <div id="userClassText" class="text-xs text-slate-500 font-bold mt-0.5">-</div>
+                    <div id="userGameClass" class="text-xs font-bold text-slate-500 truncate mt-0.5">-</div>
                 </div>
             </div>
-            <span class="text-[10px] font-black bg-indigo-50 text-indigo-600 border border-indigo-200 px-2.5 py-1 rounded-full">DC 專區</span>
+            <span class="text-[10px] font-black bg-indigo-50 text-indigo-600 border border-indigo-200 px-2.5 py-1 rounded-full shrink-0">大陸專區</span>
         </div>
 
-        <!-- 導航切換 Tab -->
-        <div id="tabNav" class="hidden grid grid-cols-4 gap-1 bg-amber-100/70 p-1 rounded-2xl border border-amber-200/80 text-xs font-bold text-center">
-            <button onclick="switchTab('profile')" id="tabBtn_profile" class="py-2 rounded-xl bg-white text-amber-950 font-black shadow-xs transition">身分</button>
-            <button onclick="switchTab('bulletin')" id="tabBtn_bulletin" class="py-2 rounded-xl text-amber-900/70 hover:text-amber-950 transition">公告</button>
-            <button onclick="switchTab('events')" id="tabBtn_events" class="py-2 rounded-xl text-amber-900/70 hover:text-amber-950 transition">活動</button>
-            <button onclick="switchTab('leave')" id="tabBtn_leave" class="py-2 rounded-xl text-amber-900/70 hover:text-amber-950 transition">請假</button>
+        <!-- 導航切換 Tab (純三合一：身分、活動、請假) -->
+        <div id="tabNav" class="hidden grid grid-cols-3 gap-1 bg-amber-100/70 p-1 rounded-2xl border border-amber-200/80 text-xs font-bold text-center select-none">
+            <button onclick="switchTab('profile')" id="tabBtn_profile" class="py-2 rounded-xl bg-white text-amber-950 font-black shadow-xs transition cursor-pointer">身分管理</button>
+            <button onclick="switchTab('events')" id="tabBtn_events" class="py-2 rounded-xl text-amber-900/70 hover:text-amber-950 transition cursor-pointer">活動報名</button>
+            <button onclick="switchTab('leave')" id="tabBtn_leave" class="py-2 rounded-xl text-amber-900/70 hover:text-amber-950 transition cursor-pointer">請假登記</button>
         </div>
 
-        <!-- 模組 1：身分登記 / 審核資料 -->
-        <section id="panel_profile" class="hidden bg-white rounded-3xl p-5 border-2 border-amber-200 soft-shadow space-y-4">
-            <div class="border-b border-amber-100 pb-2">
-                <h2 class="text-sm font-black text-slate-900">遊戲身分資料登記</h2>
-                <p class="text-[11px] text-slate-400">請填寫正確遊戲內角色暱稱，方便幹部審核與排定聯賽攻城名單</p>
+        <!-- ========================================== -->
+        <!-- 模組 1：身分管理 (登記、待審核與修改) -->
+        <!-- ========================================== -->
+        <section id="panel_profile" class="hidden space-y-4">
+            
+            <!-- 審核中專屬提示卡片 (未通過審核前顯示) -->
+            <div id="pendingReviewNotice" class="hidden bg-amber-50/70 rounded-2xl p-4 border border-amber-200 text-left space-y-1">
+                <div class="flex items-center gap-2 text-amber-900 font-black text-xs">
+                    <span>⏳</span>
+                    <span>資料審核中</span>
+                </div>
+                <p class="text-[11px] text-amber-800/80 leading-relaxed">
+                    您的資料已登記，幹部正在進行名冊審核。審核通過前暫時無法進行公會活動報名與請假，請耐心等候！
+                </p>
             </div>
-            <form id="bindForm" class="space-y-3 text-xs font-bold text-slate-700">
-                <div>
-                    <label class="block mb-1">遊戲角色暱稱 <span class="text-rose-500">*</span></label>
-                    <input type="text" id="inputNickname" required placeholder="請填寫遊戲完整暱稱" class="w-full h-10 border border-amber-200 rounded-xl px-3 bg-amber-50/20">
+
+            <!-- 身分資料表單卡片 -->
+            <div class="bg-white rounded-3xl p-5 border-2 border-amber-200/80 soft-shadow space-y-4 text-left">
+                <div class="border-b border-amber-100 pb-2">
+                    <h2 class="text-sm font-black text-slate-900">遊戲身分資料登記</h2>
+                    <p class="text-[11px] text-slate-400 mt-0.5">請確認遊戲角色暱稱與職業正確，以便幹部排定活動名單</p>
                 </div>
-                <div>
-                    <label class="block mb-1">遊戲職業 <span class="text-rose-500">*</span></label>
-                    <input type="text" id="inputClass" required placeholder="例：咒術師 / 狂戰士" class="w-full h-10 border border-amber-200 rounded-xl px-3 bg-amber-50/20">
-                </div>
-                <button type="submit" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 rounded-2xl shadow-md transition cursor-pointer">
-                    儲存並送出審核
-                </button>
-            </form>
+
+                <form id="bindForm" class="space-y-3.5 text-xs font-bold text-slate-700">
+                    <div>
+                        <label class="block mb-1 text-slate-800">遊戲角色暱稱 <span class="text-rose-500">*</span></label>
+                        <input type="text" id="inputNickname" required placeholder="請填寫遊戲完整暱稱" 
+                               class="w-full h-11 border border-amber-200 rounded-xl px-3 bg-[#FFFDF9] text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-400">
+                    </div>
+
+                    <!-- 遊戲職業動態下拉選單 (取自 API: /api/admin/classes) -->
+                    <div>
+                        <label class="block mb-1 text-slate-800">遊戲職業 <span class="text-rose-500">*</span></label>
+                        <div class="relative">
+                            <select id="inputClass" required 
+                                    class="w-full h-11 border border-amber-200 rounded-xl px-3 bg-[#FFFDF9] text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-400 appearance-none cursor-pointer">
+                                <option value="" disabled selected>載入職業清單中...</option>
+                            </select>
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3.5 text-xs text-amber-700">▼</div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block mb-1 text-slate-800">Discord 顯示名稱</label>
+                        <input type="text" id="inputDcName" placeholder="Discord 暱稱" 
+                               class="w-full h-11 border border-amber-200 rounded-xl px-3 bg-amber-50/20 text-xs font-bold text-slate-700">
+                    </div>
+
+                    <div class="pt-1">
+                        <label class="flex items-center justify-between p-3 rounded-xl bg-[#FFFDF9] border border-amber-200 cursor-pointer">
+                            <div>
+                                <div class="text-xs font-black text-slate-800">開放名冊查詢</div>
+                                <div class="text-[10px] text-slate-400 mt-0.5">允許其他公會成員於通訊錄查詢您的角色</div>
+                            </div>
+                            <input type="checkbox" id="inputAllowSearch" checked class="w-4 h-4 accent-amber-500 cursor-pointer">
+                        </label>
+                    </div>
+
+                    <button type="submit" id="submitBindBtn" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3.5 rounded-2xl shadow-md transition cursor-pointer text-xs">
+                        儲存並送出登記
+                    </button>
+                </form>
+            </div>
         </section>
 
-        <!-- 模組 2：公告專區 -->
-        <section id="panel_bulletin" class="hidden space-y-3">
-            <div id="bulletinList" class="space-y-3">
-                <div class="text-center text-xs text-slate-400 py-6">正在讀取最新公告...</div>
-            </div>
-        </section>
-
-        <!-- 模組 3：活動報名專區 -->
+        <!-- ========================================== -->
+        <!-- 模組 2：活動報名專區 -->
+        <!-- ========================================== -->
         <section id="panel_events" class="hidden space-y-3">
-            <div id="eventsList" class="space-y-3">
-                <div class="text-center text-xs text-slate-400 py-6">正在載入公會活動...</div>
+            <div id="eventsListContainer" class="space-y-3">
+                <div class="bg-white rounded-2xl p-6 text-center text-xs text-slate-400 border border-amber-100">正在載入活動名冊...</div>
             </div>
         </section>
 
-        <!-- 模組 4：請假專區 -->
-        <section id="panel_leave" class="hidden bg-white rounded-3xl p-5 border-2 border-amber-200 soft-shadow space-y-4">
+        <!-- ========================================== -->
+        <!-- 模組 3：請假專區 -->
+        <!-- ========================================== -->
+        <section id="panel_leave" class="hidden bg-white rounded-3xl p-5 border-2 border-amber-200/80 soft-shadow space-y-4 text-left">
             <div class="border-b border-amber-100 pb-2">
-                <h2 class="text-sm font-black text-slate-900">線上請假登記</h2>
-                <p class="text-[11px] text-slate-400">聯賽、攻城或公會重大活動無法上線請提前登記</p>
+                <h2 class="text-sm font-black text-slate-900">線上公會請假登記</h2>
+                <p class="text-[11px] text-slate-400 mt-0.5">聯賽、攻城等重大集體活動如無法出席請務必提前登記</p>
             </div>
-            <form id="leaveForm" class="space-y-3 text-xs font-bold text-slate-700">
+
+            <form id="leaveForm" class="space-y-3.5 text-xs font-bold text-slate-700">
                 <div>
-                    <label class="block mb-1">請假日期 <span class="text-rose-500">*</span></label>
-                    <input type="date" id="leaveDate" required class="w-full h-10 border border-amber-200 rounded-xl px-3 bg-amber-50/20">
+                    <label class="block mb-1 text-slate-800">請假日期 <span class="text-rose-500">*</span></label>
+                    <input type="date" id="leaveDate" required 
+                           class="w-full h-11 border border-amber-200 rounded-xl px-3 bg-[#FFFDF9] text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-400">
                 </div>
+
                 <div>
-                    <label class="block mb-1">請假活動項目 <span class="text-rose-500">*</span></label>
-                    <select id="leaveEvent" required class="w-full h-10 border border-amber-200 rounded-xl px-3 bg-amber-50/20">
-                        <option value="公會聯賽">公會聯賽 (20:30)</option>
-                        <option value="攻城戰">攻城戰 (21:00)</option>
-                        <option value="黑白戰境">黑白戰境</option>
-                        <option value="其他活動">其他活動</option>
-                    </select>
+                    <label class="block mb-1 text-slate-800">請假活動項目 <span class="text-rose-500">*</span></label>
+                    <div class="relative">
+                        <select id="leaveEvent" required 
+                                class="w-full h-11 border border-amber-200 rounded-xl px-3 bg-[#FFFDF9] text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-400 appearance-none cursor-pointer">
+                            <option value="公會聯賽">公會聯賽 (20:30)</option>
+                            <option value="攻城戰">攻城戰 (21:00)</option>
+                            <option value="黑白戰境">黑白戰境</option>
+                            <option value="其他活動">其他活動</option>
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3.5 text-xs text-amber-700">▼</div>
+                    </div>
                 </div>
+
                 <div>
-                    <label class="block mb-1">請假原因 <span class="text-rose-500">*</span></label>
-                    <input type="text" id="leaveReason" required placeholder="例：加班 / 身體不適 / 家中有事" class="w-full h-10 border border-amber-200 rounded-xl px-3 bg-amber-50/20">
+                    <label class="block mb-1 text-slate-800">請假事由 <span class="text-rose-500">*</span></label>
+                    <input type="text" id="leaveReason" required placeholder="例如：公司加班 / 家中有事 / 身體不適" 
+                           class="w-full h-11 border border-amber-200 rounded-xl px-3 bg-[#FFFDF9] text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-400">
                 </div>
+
                 <div>
-                    <label class="block mb-1">補充備註 (選填)</label>
-                    <input type="text" id="leaveNote" placeholder="任何想告訴幹部的細節" class="w-full h-10 border border-amber-200 rounded-xl px-3 bg-amber-50/20">
+                    <label class="block mb-1 text-slate-800">備註說明 (選填)</label>
+                    <input type="text" id="leaveNote" placeholder="任何想先行交代幹部的事項" 
+                           class="w-full h-11 border border-amber-200 rounded-xl px-3 bg-[#FFFDF9] text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-400">
                 </div>
-                <button type="submit" class="w-full bg-rose-500 hover:bg-rose-600 text-white font-bold py-3 rounded-2xl shadow-md transition cursor-pointer">
-                    送出請假登記
-                </button>
+
+                <div class="pt-1">
+                    <button type="submit" id="submitLeaveBtn" class="w-full bg-rose-500 hover:bg-rose-600 text-white font-bold py-3.5 rounded-2xl shadow-md transition cursor-pointer text-xs">
+                        送出請假登記
+                    </button>
+                </div>
             </form>
         </section>
 
+        <!-- 底部版權 -->
+        <p class="text-[11px] text-amber-900/40 text-center mt-6">&copy; 2026 GuildMaster (Discord Channel)</p>
     </main>
 
     <script>
+        const BACKEND_API_URL = window.location.origin;
+
         const urlParams = new URLSearchParams(window.location.search);
         const currentUid = urlParams.get('uid');
         const currentName = urlParams.get('name');
         const currentAvatar = urlParams.get('avatar');
 
         let memberData = null;
+        let eventsList = [];
 
         window.onload = async () => {
+            // 1. 若無 Discord 授權資訊，導向授權引導卡片
             if (!currentUid) {
+                document.getElementById('loadingCard').classList.add('hidden');
                 document.getElementById('unauthCard').classList.remove('hidden');
                 return;
             }
 
+            // 2. 顯示頂部卡片與導航 Tab
             document.getElementById('userHeaderCard').classList.remove('hidden');
             document.getElementById('tabNav').classList.remove('hidden');
             document.getElementById('userAvatar').src = currentAvatar ? decodeURIComponent(currentAvatar) : "https://cdn.discordapp.com/embed/avatars/0.png";
 
-            // 抓取會員現有資料
+            // 設定預設請假日期為今天
+            const todayStr = new Date().toISOString().split('T')[0];
+            document.getElementById('leaveDate').value = todayStr;
+
+            // 3. 先向後端載入職業清單，再取得會員資料回填
+            await loadGameClasses();
             await fetchMemberProfile();
-            // 預設進入公告或身分頁籤
-            switchTab('bulletin');
-            // 設定請假預設今天日期
-            document.getElementById('leaveDate').value = new Date().toISOString().split('T')[0];
+
+            document.getElementById('loadingCard').classList.add('hidden');
+
+            // 預設進入活動報名或身分管理
+            if (!memberData || memberData.accountStatus !== '已審核') {
+                switchTab('profile');
+            } else {
+                switchTab('events');
+            }
         };
 
         // 頁籤切換
         function switchTab(tabKey) {
-            ['profile', 'bulletin', 'events', 'leave'].forEach(key => {
-                document.getElementById(`panel_${key}`).classList.add('hidden');
+            ['profile', 'events', 'leave'].forEach(key => {
+                const panel = document.getElementById(`panel_${key}`);
                 const btn = document.getElementById(`tabBtn_${key}`);
-                btn.className = "py-2 rounded-xl text-amber-900/70 hover:text-amber-950 transition";
+                if (panel) panel.classList.add('hidden');
+                if (btn) btn.className = "py-2 rounded-xl text-amber-900/70 hover:text-amber-950 transition cursor-pointer";
             });
 
-            document.getElementById(`panel_${tabKey}`).classList.remove('hidden');
+            const activePanel = document.getElementById(`panel_${tabKey}`);
             const activeBtn = document.getElementById(`tabBtn_${tabKey}`);
-            activeBtn.className = "py-2 rounded-xl bg-white text-amber-950 font-black shadow-xs transition";
+            if (activePanel) {
+                activePanel.classList.remove('hidden');
+                activePanel.classList.add('fade-in');
+            }
+            if (activeBtn) {
+                activeBtn.className = "py-2 rounded-xl bg-white text-amber-950 font-black shadow-xs transition cursor-pointer";
+            }
 
-            if (tabKey === 'bulletin') loadBulletins();
             if (tabKey === 'events') loadEvents();
         }
 
-        // 1. 取得會員資料
+        // 動態載入職業選單 (對接 /api/admin/classes)
+        async function loadGameClasses() {
+            try {
+                const res = await fetch(`${BACKEND_API_URL}/api/admin/classes`);
+                const data = await res.json();
+                const selectEl = document.getElementById('inputClass');
+                if (!selectEl) return;
+
+                selectEl.innerHTML = '<option value="" disabled selected>請選擇職業</option>';
+                if (data.status === "success" && data.classes) {
+                    data.classes.forEach(item => {
+                        const cName = typeof item === 'string' ? item : (item.className || item.class_name);
+                        const opt = document.createElement('option');
+                        opt.value = cName;
+                        opt.textContent = cName;
+                        selectEl.appendChild(opt);
+                    });
+                }
+            } catch (err) {
+                console.error("載入職業清單失敗:", err);
+            }
+        }
+
+        // 讀取會員資料
         async function fetchMemberProfile() {
             try {
-                const res = await fetch(`/api/members/${encodeURIComponent(currentUid)}`);
+                const res = await fetch(`${BACKEND_API_URL}/api/members/${encodeURIComponent(currentUid)}`);
                 const data = await res.json();
+
                 if (data.status === 'found') {
                     memberData = data;
-                    document.getElementById('userNickname').textContent = data.gameNickname || decodeURIComponent(currentName || 'DC會員');
-                    document.getElementById('userClassText').textContent = data.gameClass || '尚未設定職業';
+                    const nick = data.gameNickname || decodeURIComponent(currentName || 'DC成員');
+                    document.getElementById('userGameNickname').textContent = nick;
+                    document.getElementById('userGameClass').textContent = (data.gameClass && data.gameClass !== '未設定') ? data.gameClass : '尚未設定職業';
+
                     document.getElementById('inputNickname').value = data.gameNickname || '';
-                    document.getElementById('inputClass').value = data.gameClass === '未設定' ? '' : data.gameClass;
+                    if (data.gameClass && data.gameClass !== '未設定') {
+                        document.getElementById('inputClass').value = data.gameClass;
+                    }
+                    document.getElementById('inputDcName').value = data.lineDisplayName || decodeURIComponent(currentName || '');
+                    document.getElementById('inputAllowSearch').checked = (data.allowSearch === 'Y');
 
                     const badge = document.getElementById('userStatusBadge');
+                    const pendingNotice = document.getElementById('pendingReviewNotice');
+
                     if (data.accountStatus === '已審核') {
                         badge.textContent = "已通過審核";
-                        badge.className = "text-[10px] font-black px-2 py-0.5 rounded-full border bg-emerald-100 text-emerald-700 border-emerald-200";
+                        badge.className = "text-[10px] font-black px-2 py-0.5 rounded-full border bg-emerald-100 text-emerald-700 border-emerald-200 shrink-0";
+                        pendingNotice.classList.add('hidden');
+                        document.getElementById('submitBindBtn').textContent = "儲存修改資料";
                     } else {
-                        badge.textContent = "審核中";
-                        badge.className = "text-[10px] font-black px-2 py-0.5 rounded-full border bg-amber-100 text-amber-700 border-amber-200";
+                        badge.textContent = "待審核";
+                        badge.className = "text-[10px] font-black px-2 py-0.5 rounded-full border bg-amber-100 text-amber-700 border-amber-200 shrink-0";
+                        pendingNotice.classList.remove('hidden');
                     }
+                } else {
+                    document.getElementById('inputDcName').value = decodeURIComponent(currentName || '');
                 }
             } catch (e) {
                 console.error("載入身分失敗", e);
             }
         }
 
-        // 2. 登記或修改角色
+        // 身分登記 / 修改送出
         document.getElementById('bindForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const gameNickname = document.getElementById('inputNickname').value.trim();
-            const gameClass = document.getElementById('inputClass').value.trim();
+            const gameClass = document.getElementById('inputClass').value;
+            const dcName = document.getElementById('inputDcName').value.trim();
+            const allowSearch = document.getElementById('inputAllowSearch').checked ? 'Y' : 'N';
 
-            const res = await fetch('/api/members/bind', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    lineUserId: currentUid,
-                    lineDisplayName: decodeURIComponent(currentName || ''),
-                    gameNickname,
-                    gameClass,
-                    allowSearch: 'Y'
-                })
-            });
-            const result = await res.json();
-            if (result.status === 'success') {
-                alert('🎉 身分登記已更新，幹部確認後即可獲得完整權限！');
-                await fetchMemberProfile();
-            } else {
-                alert('更新失敗：' + result.message);
+            if (!gameNickname || !gameClass) {
+                return alert("請完整填寫遊戲暱稱與選擇職業！");
+            }
+
+            const btn = document.getElementById('submitBindBtn');
+            btn.textContent = "資料送出中...";
+            btn.disabled = true;
+
+            try {
+                const res = await fetch(`${BACKEND_API_URL}/api/members/bind`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        lineUserId: currentUid, // 後端主鍵對應 DC ID
+                        dcid: currentUid,       // 同步寫入 dcid
+                        tw: 'N',                // 標記大陸成員
+                        lineDisplayName: dcName,
+                        gameNickname,
+                        gameClass,
+                        allowSearch
+                    })
+                });
+                const result = await res.json();
+                if (result.status === 'success') {
+                    alert('🎉 會員資料登記成功！幹部完成資格審核後即可參與所有活動。');
+                    await fetchMemberProfile();
+                } else {
+                    alert('登記失敗：' + (result.message || '系統異常'));
+                }
+            } catch (err) {
+                alert('網路異常，送出失敗');
+            } finally {
+                btn.textContent = "儲存並送出登記";
+                btn.disabled = false;
             }
         });
 
-        // 3. 載入公告清單
-        async function loadBulletins() {
-            const container = document.getElementById('bulletinList');
-            try {
-                const res = await fetch('/api/admin/bulletins');
-                const data = await res.json();
-                if (data.status === 'success' && data.bulletins.length > 0) {
-                    container.innerHTML = data.bulletins.map(b => `
-                        <div class="bg-white rounded-2xl p-4 border border-amber-200/80 soft-shadow space-y-2 text-left">
-                            <div class="flex items-center justify-between">
-                                <span class="text-[10px] font-black px-2 py-0.5 rounded-full ${b.isPinned ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-800'}">${b.category}</span>
-                                <span class="text-[10px] text-slate-400 font-bold">${b.date}</span>
-                            </div>
-                            <h3 class="text-sm font-black text-slate-900">${b.title}</h3>
-                            <p class="text-xs text-slate-600 whitespace-pre-line leading-relaxed">${b.content}</p>
-                            ${b.linkUrl ? `<a href="${b.linkUrl}" target="_blank" class="inline-block text-xs font-bold text-indigo-600 hover:underline pt-1">${b.linkText || '查看連結'} ↗</a>` : ''}
-                        </div>
-                    `).join('');
-                } else {
-                    container.innerHTML = `<div class="bg-white rounded-2xl p-6 text-center text-xs text-slate-400">目前尚無公會公告</div>`;
-                }
-            } catch (err) {
-                container.innerHTML = `<div class="text-center text-xs text-rose-500 py-4">公告載入失敗</div>`;
-            }
-        }
-
-        // 4. 載入活動清單與報名
+        // 載入活動列表
         async function loadEvents() {
-            const container = document.getElementById('eventsList');
+            const container = document.getElementById('eventsListContainer');
+            container.innerHTML = '<div class="bg-white rounded-2xl p-6 text-center text-xs text-slate-400">正在整理公會活動中...</div>';
+
             try {
-                const res = await fetch('/api/events');
+                const res = await fetch(`${BACKEND_API_URL}/api/admin/events`);
                 const data = await res.json();
-                const events = data.events || [];
-                if (events.length > 0) {
-                    container.innerHTML = events.map(ev => `
-                        <div class="bg-white rounded-2xl p-4 border border-amber-200/80 soft-shadow space-y-2 text-left">
+                eventsList = (data.status === 'success' && data.events) ? data.events : [];
+
+                if (eventsList.length === 0) {
+                    container.innerHTML = `
+                        <div class="bg-white rounded-2xl p-8 text-center border-2 border-amber-200/80 soft-shadow">
+                            <div class="text-3xl mb-2">⚔️</div>
+                            <div class="text-xs font-black text-slate-800">目前尚無排定的公會活動</div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = eventsList.map(ev => {
+                    const attendees = ev.attendees || [];
+                    const isSignedUp = attendees.some(a => a.lineUserId === currentUid);
+                    const isClosed = (ev.status === '已截止' || ev.status === '已結束');
+
+                    return `
+                        <div class="bg-white rounded-2xl p-4 border-2 border-amber-200/80 soft-shadow space-y-3 text-left">
                             <div class="flex items-center justify-between">
                                 <span class="text-xs font-black text-slate-900">${ev.title}</span>
-                                <span class="text-[10px] font-bold bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full border border-amber-200">${ev.status}</span>
+                                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                                    ev.status === '報名中' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-600 border-slate-200'
+                                }">${ev.status}</span>
                             </div>
-                            <div class="text-xs text-slate-500">時間：${ev.date} ${ev.time}</div>
-                            <p class="text-xs text-slate-600">${ev.description || '無特別說明'}</p>
-                            <button onclick="handleEventSignup('${ev.event_id}')" class="w-full mt-2 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold py-2 rounded-xl transition">
-                                立即報名活動
-                            </button>
+
+                            <div class="text-xs text-slate-500 font-bold">
+                                📅 時間：${ev.date} ${ev.time}
+                            </div>
+
+                            ${ev.desc ? `<p class="text-xs text-slate-600 bg-amber-50/40 p-2.5 rounded-xl border border-amber-100 whitespace-pre-line leading-relaxed">${ev.desc}</p>` : ''}
+
+                            <div class="flex items-center justify-between pt-1 border-t border-amber-100 text-xs text-slate-500 font-bold">
+                                <span>已報名：${attendees.length} 人 ${ev.maxLimit > 0 ? `/ 上限 ${ev.maxLimit} 人` : ''}</span>
+                                
+                                ${isSignedUp ? `
+                                    <button onclick="handleCancelSignup('${ev.id}')" class="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 px-3 py-1.5 rounded-xl transition cursor-pointer font-bold">
+                                        取消報名
+                                    </button>
+                                ` : `
+                                    <button onclick="handleEventSignup('${ev.id}')" ${isClosed ? 'disabled' : ''} class="px-4 py-1.5 rounded-xl text-white font-bold transition ${
+                                        isClosed ? 'bg-slate-300 cursor-not-allowed' : 'bg-emerald-500 hover:bg-emerald-600 shadow-xs cursor-pointer'
+                                    }">
+                                        ${isClosed ? '已截止' : '立即報名'}
+                                    </button>
+                                `}
+                            </div>
                         </div>
-                    `).join('');
-                } else {
-                    container.innerHTML = `<div class="bg-white rounded-2xl p-6 text-center text-xs text-slate-400">目前無進行中的活動報名</div>`;
-                }
+                    `;
+                }).join('');
             } catch (err) {
-                container.innerHTML = `<div class="text-center text-xs text-rose-500 py-4">活動列表載入失敗</div>`;
+                container.innerHTML = `<div class="text-center text-xs text-rose-500 py-4">活動載入失敗，請稍後重試</div>`;
             }
         }
 
+        // 活動報名
         async function handleEventSignup(eventId) {
-            if (!memberData || !memberData.gameNickname) {
-                alert("請先至「身分」標籤完成遊戲角色暱稱登記！");
+            if (!memberData || !memberData.gameNickname || memberData.accountStatus !== '已審核') {
+                alert("⚠️ 您尚未通過公會幹部審核，審核通過後方可報名活動！");
                 switchTab('profile');
                 return;
             }
-            const note = prompt("請輸入報名備註 (例如：準時到 / 支援第二輪)：", "");
+
+            const note = prompt("請輸入報名備註 (選填，如：準時到 / 支援第二隊)：", "");
             if (note === null) return;
 
-            const res = await fetch('/api/events/signup', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    eventId,
-                    lineUserId: currentUid,
-                    gameNickname: memberData.gameNickname,
-                    gameClass: memberData.gameClass || '未設定',
-                    note: note.trim()
-                })
-            });
-            const data = await res.json();
-            if (data.status === 'success') {
-                alert("🎉 活動報名成功！");
-                loadEvents();
-            } else {
-                alert("報名失敗：" + (data.message || "系統錯誤"));
+            try {
+                const res = await fetch(`${BACKEND_API_URL}/api/events/signup`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        eventId,
+                        lineUserId: currentUid,
+                        gameNickname: memberData.gameNickname,
+                        gameClass: memberData.gameClass || '未設定',
+                        note: note.trim()
+                    })
+                });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    alert("🎉 活動報名成功！");
+                    loadEvents();
+                } else {
+                    alert("報名失敗：" + (data.message || "系統錯誤"));
+                }
+            } catch (err) {
+                alert("網路異常，報名失敗");
             }
         }
 
-        // 5. 請假登記表單送出
+        // 取消活動報名
+        async function handleCancelSignup(eventId) {
+            if (!confirm("確定要取消此活動的報名嗎？")) return;
+
+            try {
+                const res = await fetch(`${BACKEND_API_URL}/api/events/signup`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        eventId,
+                        lineUserId: currentUid
+                    })
+                });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    alert("已取消報名。");
+                    loadEvents();
+                } else {
+                    alert("取消失敗：" + (data.message || "系統錯誤"));
+                }
+            } catch (err) {
+                alert("網路異常，操作失敗");
+            }
+        }
+
+        // 請假登記
         document.getElementById('leaveForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            if (!memberData || !memberData.gameNickname) {
-                alert("請先至「身分」標籤登記遊戲暱稱，才能請假喔！");
+            if (!memberData || !memberData.gameNickname || memberData.accountStatus !== '已審核') {
+                alert("⚠️ 您尚未完成登記或未審核通過，目前無法請假！");
                 switchTab('profile');
                 return;
             }
@@ -312,30 +513,41 @@
             const leaveReason = document.getElementById('leaveReason').value.trim();
             const note = document.getElementById('leaveNote').value.trim();
 
-            const res = await fetch('/api/leaves', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    leaveDate,
-                    leaveEvent,
-                    targetUid: currentUid,
-                    gameNickname: memberData.gameNickname,
-                    gameClass: memberData.gameClass || '',
-                    leaveReason,
-                    note,
-                    isUrgent: 'N',
-                    operatorUid: currentUid,
-                    operatorName: memberData.gameNickname
-                })
-            });
+            const btn = document.getElementById('submitLeaveBtn');
+            btn.textContent = "傳送中...";
+            btn.disabled = true;
 
-            const data = await res.json();
-            if (data.status === 'success') {
-                alert("✓ 請假申請已成功送出並同步至後台！");
-                document.getElementById('leaveReason').value = '';
-                document.getElementById('leaveNote').value = '';
-            } else {
-                alert("送出失敗：" + (data.message || "請稍後重試"));
+            try {
+                const res = await fetch(`${BACKEND_API_URL}/api/leaves`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        leaveDate,
+                        leaveEvent,
+                        targetUid: currentUid,
+                        gameNickname: memberData.gameNickname,
+                        gameClass: memberData.gameClass || '',
+                        leaveReason,
+                        note,
+                        isUrgent: 'N',
+                        operatorUid: currentUid,
+                        operatorName: memberData.gameNickname
+                    })
+                });
+
+                const data = await res.json();
+                if (data.status === 'success') {
+                    alert("✓ 請假申請已成功送出並同步至後台名冊！");
+                    document.getElementById('leaveReason').value = '';
+                    document.getElementById('leaveNote').value = '';
+                } else {
+                    alert("送出失敗：" + (data.message || "請稍後重試"));
+                }
+            } catch (err) {
+                alert("網路連線異常，請假登記失敗");
+            } finally {
+                btn.textContent = "送出請假登記";
+                btn.disabled = false;
             }
         });
     </script>
