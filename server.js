@@ -361,6 +361,145 @@ app.delete('/api/admin/members/:uid', async (req, res) => {
   }
 });
 
+
+// ==========================================
+// 大陸成員專屬 Discord OAuth2 端點 (含台灣成員綁定防呆)
+// ==========================================
+const DISCORD_CLIENT_ID = '1561789656478130337';
+const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET || 'YlFXNoWW9F5iGa6yk3Z075zOPp7-OVy7';
+const DISCORD_REDIRECT_URI = 'https://guildmaster-lv.duckdns.org/api/auth/discord/callback';
+
+const DISCORD_BOT_TOKEN = process.env.DISCORD_BOT_TOKEN || 'MTU2MTc4OTY1NjQ3ODEzMDMzNw.GSjvoT.nTJB8MvPJ_ZFx2I3w';
+const DISCORD_GUILD_ID = process.env.DISCORD_GUILD_ID || '請填入公會伺服器ID';
+
+// 1. 發起 Discord 授權跳轉
+app.get('/api/auth/discord', (req, res) => {
+    const scope = encodeURIComponent('identify guilds guilds.join');
+    const authUrl = `https://discord.com/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&response_type=code&redirect_uri=${encodeURIComponent(DISCORD_REDIRECT_URI)}&scope=${scope}`;
+    res.redirect(authUrl);
+});
+
+// 2. 接收 Discord 授權回調
+app.get('/api/auth/discord/callback', async (req, res) => {
+    const { code } = req.query;
+    if (!code) return res.status(400).send("授權失敗：未取得驗證碼");
+
+    try {
+        // A. 交換 Token
+        const tokenParams = new URLSearchParams({
+            client_id: DISCORD_CLIENT_ID,
+            client_secret: DISCORD_CLIENT_SECRET,
+            grant_type: 'authorization_code',
+            code: code,
+            redirect_uri: DISCORD_REDIRECT_URI,
+        });
+
+        const tokenRes = await fetch('https://discord.com/api/oauth2/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: tokenParams.toString()
+        });
+
+        if (!tokenRes.ok) {
+            const errTxt = await tokenRes.text();
+            throw new Error(`Token 交換失敗: ${errTxt}`);
+        }
+
+        const tokenData = await tokenRes.json();
+        const userAccessToken = tokenData.access_token;
+
+        // B. 取得 Discord 個人身分
+        const userRes = await fetch('https://discord.com/api/v10/users/@me', {
+            headers: { Authorization: `Bearer ${userAccessToken}` }
+        });
+        const dcUser = await userRes.json();
+        const dcId = String(dcUser.id);
+        const dcName = dcUser.global_name || dcUser.username;
+        const dcAvatar = dcUser.avatar
+            ? `https://cdn.discordapp.com/avatars/${dcId}/${dcUser.avatar}.png`
+            : `https://cdn.discordapp.com/embed/avatars/0.png`;
+
+        // ----------------------------------------------------
+        // 【核心防呆檢查】防止台灣成員從 DC 通道重複建立帳號
+        // ----------------------------------------------------
+        // 條件：dcid 已經存在，且 (tw = 'Y' 或者是原生的 LINE UID)
+        const checkExistingTw = await pool.query(
+            "SELECT line_user_id, game_nickname, tw FROM members WHERE dcid = $1 AND (tw = 'Y' OR line_user_id != $1)",
+            [dcId]
+        );
+
+        if (checkExistingTw.rows.length > 0) {
+            const twUser = checkExistingTw.rows[0];
+            return res.status(403).send(`
+                <!DOCTYPE html>
+                <html lang="zh-Hant">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>帳號登入限制</title>
+                    <script src="https://cdn.tailwindcss.com"></script>
+                </head>
+                <body class="bg-[#FFFDF7] min-h-screen flex items-center justify-center p-4 text-slate-800">
+                    <div class="max-w-md w-full bg-white rounded-3xl p-6 border-2 border-rose-200 shadow-xl text-center space-y-4">
+                        <div class="w-12 h-12 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto text-2xl font-black">⚠️</div>
+                        <h2 class="text-base font-black text-slate-900">此 Discord 帳號已綁定台灣成員</h2>
+                        <p class="text-xs text-slate-500 leading-relaxed text-left bg-rose-50/50 p-3.5 rounded-2xl border border-rose-100">
+                            親愛的 <b>${twUser.game_nickname || '公會成員'}</b>：<br>
+                            系統偵測到此 Discord 帳號已綁定於您的 <b>LINE 會員身分</b>。<br><br>
+                            為避免產生重複紀錄，<b>請直接使用 LINE 點開公會專區進行各項操作</b>，無須使用大陸專屬通道註冊。
+                        </p>
+                        <a href="https://line.me/R/ti/p/@您的官方帳號" class="inline-block w-full bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold py-3 rounded-xl transition">
+                            返回 LINE 使用系統
+                        </a>
+                    </div>
+                </body>
+                </html>
+            `);
+        }
+
+        // C. 自動拉進 Discord 伺服器
+        try {
+            await fetch(`https://discord.com/api/v10/guilds/${DISCORD_GUILD_ID}/members/${dcId}`, {
+                method: 'PUT',
+                headers: {
+                    Authorization: `Bot ${DISCORD_BOT_TOKEN}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ access_token: userAccessToken })
+            });
+            console.log(`[Discord] 已將大陸成員 ${dcName} (${dcId}) 拉進公會伺服器`);
+        } catch (botErr) {
+            console.warn('[Discord 自動加群異常]:', botErr.message);
+        }
+
+        // D. 寫入資料庫：line_user_id 放 dcId, dcid 放 dcId, tw 設為 'N'
+        const existCheck = await pool.query('SELECT * FROM members WHERE line_user_id = $1', [dcId]);
+
+        if (existCheck.rows.length === 0) {
+            await pool.query(`
+                INSERT INTO members (line_user_id, dcid, tw, game_nickname, game_class, line_display_name, joined_dc, account_status, update_time)
+                VALUES ($1, $1, 'N', $2, '未設定', $2, 'Y', '待審核', CURRENT_TIMESTAMP)
+                ON CONFLICT (line_user_id) DO NOTHING
+            `, [dcId, dcName]);
+        } else {
+            // 大陸舊成員再次登入
+            await pool.query(`
+                UPDATE members 
+                SET dcid = $1, tw = 'N', joined_dc = 'Y', update_time = CURRENT_TIMESTAMP 
+                WHERE line_user_id = $1
+            `, [dcId]);
+        }
+
+        // E. 跳轉至大陸成員專用的一站式頁面 (cn-hub.html)
+        res.redirect(`/cn-hub.html?uid=${encodeURIComponent(dcId)}&name=${encodeURIComponent(dcName)}&avatar=${encodeURIComponent(dcAvatar)}`);
+
+    } catch (err) {
+        console.error('[Discord OAuth2 回調失敗]:', err.message);
+        res.status(500).send("Discord 帳號授權失敗，請返回重試。");
+    }
+});
+
+
 // ==========================================
 // 請假表單 API
 // ==========================================
