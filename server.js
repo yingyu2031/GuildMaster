@@ -448,7 +448,7 @@ const DISCORD_CLIENT_ID = '1561789656478130337';
 const DISCORD_CLIENT_SECRET = 'YlFXNoWW9F5iGa6yk3Z0' + '75zOPp7-OVy7';
 const DISCORD_BOT_TOKEN = 'MTU2MTc4OTY1NjQ3ODEzMDMzNw' + '.' + 'GSjvoT' + '.' + 'nTJB8MvPJ_zeg5g3dkDn2QfJP5ZA_i-ZFx2I3w';
 const DISCORD_REDIRECT_URI = 'https://guildmaster-lv.duckdns.org/api/auth/discord/callback';
-const DISCORD_GUILD_ID = '1563947532072001768';
+const DISCORD_GUILD_ID = '1471191307736186931';
 
 // 1. 發起 Discord 授權跳轉
 app.get('/api/auth/discord', (req, res) => {
