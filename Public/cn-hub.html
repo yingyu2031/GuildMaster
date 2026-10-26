@@ -33,10 +33,10 @@
             <div class="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mx-auto text-2xl font-black">
                 🎮
             </div>
-            <span class="inline-block bg-indigo-100 text-indigo-700 text-xs font-black px-3.5 py-1 rounded-full">Discord 成員通道</span>
+            <span class="inline-block bg-indigo-100 text-indigo-700 text-xs font-black px-3.5 py-1 rounded-full">Discord 通道</span>
             <h1 class="text-xl font-black text-slate-900">公會會員專區</h1>
             <p class="text-xs text-slate-500 leading-relaxed text-left bg-indigo-50/50 p-3.5 rounded-2xl border border-indigo-100">
-                本系統為公會大陸成員專用入口。請先透過 Discord 授權驗證，系統會自動將您加入公會伺服器並同步名冊權限！
+                本系統為LV公會大陸成員專用入口。請先透過 Discord 授權驗證，系統會自動將您加入公會伺服器並同步名冊權限！
             </p>
             <a href="/api/auth/discord" class="inline-flex items-center justify-center gap-2 w-full bg-[#5865F2] hover:bg-[#4752C4] text-white font-bold py-3.5 rounded-2xl shadow-md transition cursor-pointer">
                 使用 Discord 帳號進入
@@ -144,7 +144,7 @@
         </section>
 
         <!-- ========================================== -->
-        <!-- 模組 2：活動報名專區 -->
+        <!-- 模組 2：活動報名專區 (已結束自動排除) -->
         <!-- ========================================== -->
         <section id="panel_events" class="hidden space-y-3">
             <div id="eventsListContainer" class="space-y-3">
@@ -153,26 +153,12 @@
         </section>
 
         <!-- ========================================== -->
-        <!-- 模組 3：請假專區 (免代請假、對接動態規則) -->
+        <!-- 模組 3：請假專區 (已移除上方資訊列) -->
         <!-- ========================================== -->
         <section id="panel_leave" class="hidden bg-white rounded-3xl p-5 border-2 border-amber-200/80 soft-shadow space-y-4 text-left">
-            
-            <!-- 請假人員資訊列 (固定本人) -->
-            <div class="bg-[#FFF9EE] rounded-2xl p-4 border border-amber-200/80">
-                <div class="flex items-center justify-between mb-2">
-                    <span class="text-xs font-bold text-amber-800/80">請假人員資訊</span>
-                    <span class="text-[10px] font-black bg-amber-200/70 text-amber-900 px-2 py-0.5 rounded-full">本人申請</span>
-                </div>
-                <div class="space-y-1.5 text-xs font-bold text-amber-950">
-                    <div class="flex justify-between items-center">
-                        <span class="text-amber-900/60 font-medium">角色暱稱：</span>
-                        <span id="leaveTargetNick">-</span>
-                    </div>
-                    <div class="flex justify-between items-center">
-                        <span class="text-amber-900/60 font-medium">角色職業：</span>
-                        <span id="leaveTargetClass">-</span>
-                    </div>
-                </div>
+            <div class="border-b border-amber-100 pb-2">
+                <h2 class="text-sm font-black text-slate-900">線上公會請假登記</h2>
+                <p class="text-[11px] text-slate-400 mt-0.5">聯賽、攻城等重大集體活動如無法出席請務必提前登記</p>
             </div>
 
             <form id="leaveForm" class="space-y-3.5 text-xs font-bold text-slate-700">
@@ -250,26 +236,22 @@
 
         let memberData = null;
         let eventsList = [];
-        let leaveRulesMap = {}; // 活動名稱 -> latest_time 截止時間對應字典
+        let leaveRulesMap = {};
 
         window.onload = async () => {
-            // 1. 若無 Discord 授權資訊，導向授權引導卡片
             if (!currentUid) {
                 document.getElementById('loadingCard').classList.add('hidden');
                 document.getElementById('unauthCard').classList.remove('hidden');
                 return;
             }
 
-            // 2. 顯示頂部卡片與導航 Tab
             document.getElementById('userHeaderCard').classList.remove('hidden');
             document.getElementById('tabNav').classList.remove('hidden');
             document.getElementById('userAvatar').src = currentAvatar ? decodeURIComponent(currentAvatar) : "https://cdn.discordapp.com/embed/avatars/0.png";
 
-            // 設定預設請假日期為今天
             const todayStr = new Date().toISOString().split('T')[0];
             document.getElementById('leaveDate').value = todayStr;
 
-            // 3. 平行載入職業清單、會員資料與請假規則 API
             await Promise.all([
                 loadGameClasses(),
                 fetchMemberProfile(),
@@ -278,7 +260,6 @@
 
             document.getElementById('loadingCard').classList.add('hidden');
 
-            // 預設進入活動報名或身分管理
             if (!memberData || memberData.accountStatus !== '已審核') {
                 switchTab('profile');
             } else {
@@ -286,7 +267,6 @@
             }
         };
 
-        // 頁籤切換
         function switchTab(tabKey) {
             ['profile', 'events', 'leave'].forEach(key => {
                 const panel = document.getElementById(`panel_${key}`);
@@ -308,7 +288,6 @@
             if (tabKey === 'events') loadEvents();
         }
 
-        // 動態載入職業選單 (對接 /api/admin/classes)
         async function loadGameClasses() {
             try {
                 const res = await fetch(`${BACKEND_API_URL}/api/admin/classes`);
@@ -331,7 +310,6 @@
             }
         }
 
-        // 動態載入請假項目規則 (對接 /api/admin/leave-rules)
         async function loadLeaveRules() {
             try {
                 const res = await fetch(`${BACKEND_API_URL}/api/admin/leave-rules`);
@@ -345,7 +323,7 @@
                 if (data.status === "success" && data.rules) {
                     data.rules.forEach(rule => {
                         if (rule.enabled === 1 || rule.enabled === true) {
-                            leaveRulesMap[rule.event] = rule.latest_time; // 儲存該活動截止時間
+                            leaveRulesMap[rule.event] = rule.latest_time;
                             const opt = document.createElement('option');
                             opt.value = rule.event;
                             opt.textContent = rule.event;
@@ -358,7 +336,6 @@
             }
         }
 
-        // 讀取會員資料
         async function fetchMemberProfile() {
             try {
                 const res = await fetch(`${BACKEND_API_URL}/api/members/${encodeURIComponent(currentUid)}`);
@@ -372,17 +349,12 @@
                     document.getElementById('userGameNickname').textContent = nick;
                     document.getElementById('userGameClass').textContent = gClass;
 
-                    // 身分管理表單回填
                     document.getElementById('inputNickname').value = data.gameNickname || '';
                     if (data.gameClass && data.gameClass !== '未設定') {
                         document.getElementById('inputClass').value = data.gameClass;
                     }
                     document.getElementById('inputDcName').value = data.lineDisplayName || decodeURIComponent(currentName || '');
                     document.getElementById('inputAllowSearch').checked = (data.allowSearch === 'Y');
-
-                    // 請假專區資訊同步
-                    document.getElementById('leaveTargetNick').textContent = nick;
-                    document.getElementById('leaveTargetClass').textContent = gClass;
 
                     const badge = document.getElementById('userStatusBadge');
                     const pendingNotice = document.getElementById('pendingReviewNotice');
@@ -405,7 +377,6 @@
             }
         }
 
-        // 身分登記 / 修改送出
         document.getElementById('bindForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const gameNickname = document.getElementById('inputNickname').value.trim();
@@ -450,7 +421,7 @@
             }
         });
 
-        // 載入活動列表
+        // 載入活動列表 (排除已結束與時間已過活動)
         async function loadEvents() {
             const container = document.getElementById('eventsListContainer');
             container.innerHTML = '<div class="bg-white rounded-2xl p-6 text-center text-xs text-slate-400">正在整理公會活動中...</div>';
@@ -460,50 +431,88 @@
                 const data = await res.json();
                 eventsList = (data.status === 'success' && data.events) ? data.events : [];
 
-                if (eventsList.length === 0) {
+                const now = new Date();
+
+                // 核心過濾：排除已封存、狀態為已結束，以及集合時間已過去的活動
+                const openEvents = eventsList.filter(ev => {
+                    if (ev.isArchived || ev.status === '已結束') return false;
+                    if (ev.date) {
+                        const eventDateTime = new Date(`${ev.date} ${ev.time || '23:59:59'}`);
+                        if (now > eventDateTime) return false;
+                    }
+                    return true;
+                });
+
+                if (openEvents.length === 0) {
                     container.innerHTML = `
                         <div class="bg-white rounded-2xl p-8 text-center border-2 border-amber-200/80 soft-shadow">
-                            <div class="text-3xl mb-2">⚔️</div>
-                            <div class="text-xs font-black text-slate-800">目前尚無排定的公會活動</div>
+                            <div class="text-3xl mb-2">📅</div>
+                            <div class="text-xs font-black text-slate-800">目前沒有開放報名中的活動</div>
+                            <div class="text-[11px] text-amber-800/60 mt-1 font-bold">請留意幹部發布之最新消息</div>
                         </div>
                     `;
                     return;
                 }
 
-                container.innerHTML = eventsList.map(ev => {
+                container.innerHTML = openEvents.map(ev => {
                     const attendees = ev.attendees || [];
                     const isSignedUp = attendees.some(a => a.lineUserId === currentUid);
-                    const isClosed = (ev.status === '已截止' || ev.status === '已結束');
+                    
+                    let isSignupEnded = (ev.status === '已截止');
+                    if (ev.signupEnd) {
+                        const signupEndTime = new Date(ev.signupEnd);
+                        if (now > signupEndTime) isSignupEnded = true;
+                    }
+
+                    let actionBtnHtml = "";
+                    if (isSignupEnded) {
+                        actionBtnHtml = `
+                            <button disabled class="w-full bg-slate-100 text-slate-400 font-bold text-xs py-2.5 rounded-xl cursor-not-allowed">
+                                報名已截止（無法變更）
+                            </button>
+                        `;
+                    } else if (isSignedUp) {
+                        actionBtnHtml = `
+                            <button onclick="handleCancelSignup('${ev.id}')" class="w-full bg-emerald-500 hover:bg-emerald-600 active:scale-98 text-white font-black text-xs py-2.5 rounded-xl transition shadow-md shadow-emerald-200 flex items-center justify-center gap-1.5 cursor-pointer">
+                                <span>✓ 已報名成功</span>
+                                <span class="text-[11px] font-normal opacity-90">(點此取消)</span>
+                            </button>
+                        `;
+                    } else if (ev.maxLimit && ev.maxLimit > 0 && attendees.length >= ev.maxLimit) {
+                        actionBtnHtml = `
+                            <button disabled class="w-full bg-slate-100 text-slate-400 font-bold text-xs py-2.5 rounded-xl cursor-not-allowed">
+                                名額已滿無法報名
+                            </button>
+                        `;
+                    } else {
+                        actionBtnHtml = `
+                            <button onclick="handleEventSignup('${ev.id}')" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 active:scale-98 text-white font-black text-xs py-2.5 rounded-xl transition shadow-md shadow-orange-200 cursor-pointer">
+                                立即報名參加
+                            </button>
+                        `;
+                    }
 
                     return `
                         <div class="bg-white rounded-2xl p-4 border-2 border-amber-200/80 soft-shadow space-y-3 text-left">
                             <div class="flex items-center justify-between">
                                 <span class="text-xs font-black text-slate-900">${ev.title}</span>
                                 <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                                    ev.status === '報名中' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-600 border-slate-200'
-                                }">${ev.status}</span>
+                                    isSignupEnded ? 'bg-slate-100 text-slate-600 border-slate-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                }">${isSignupEnded ? '已截止' : (ev.status || '報名中')}</span>
                             </div>
 
                             <div class="text-xs text-slate-500 font-bold">
                                 📅 時間：${ev.date} ${ev.time}
                             </div>
 
-                            ${ev.desc ? `<p class="text-xs text-slate-600 bg-amber-50/40 p-2.5 rounded-xl border border-amber-100 whitespace-pre-line leading-relaxed">${ev.desc}</p>` : ''}
+                            ${ev.desc ? `<p class="text-xs text-slate-600 bg-amber-50/40 p-2.5 rounded-xl border border-amber-100 whitespace-pre-line leading-relaxed">${ev.desc.trim()}</p>` : ''}
 
-                            <div class="flex items-center justify-between pt-1 border-t border-amber-100 text-xs text-slate-500 font-bold">
+                            <div class="flex items-center justify-between text-xs text-slate-500 font-bold">
                                 <span>已報名：${attendees.length} 人 ${ev.maxLimit > 0 ? `/ 上限 ${ev.maxLimit} 人` : ''}</span>
-                                
-                                ${isSignedUp ? `
-                                    <button onclick="handleCancelSignup('${ev.id}')" class="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 px-3 py-1.5 rounded-xl transition cursor-pointer font-bold">
-                                        取消報名
-                                    </button>
-                                ` : `
-                                    <button onclick="handleEventSignup('${ev.id}')" ${isClosed ? 'disabled' : ''} class="px-4 py-1.5 rounded-xl text-white font-bold transition ${
-                                        isClosed ? 'bg-slate-300 cursor-not-allowed' : 'bg-emerald-500 hover:bg-emerald-600 shadow-xs cursor-pointer'
-                                    }">
-                                        ${isClosed ? '已截止' : '立即報名'}
-                                    </button>
-                                `}
+                            </div>
+
+                            <div class="pt-1">
+                                ${actionBtnHtml}
                             </div>
                         </div>
                     `;
@@ -513,7 +522,6 @@
             }
         }
 
-        // 活動報名
         async function handleEventSignup(eventId) {
             if (!memberData || !memberData.gameNickname || memberData.accountStatus !== '已審核') {
                 alert("⚠️ 您尚未通過公會幹部審核，審核通過後方可報名活動！");
@@ -548,7 +556,6 @@
             }
         }
 
-        // 取消活動報名
         async function handleCancelSignup(eventId) {
             if (!confirm("確定要取消此活動的報名嗎？")) return;
 
@@ -573,9 +580,7 @@
             }
         }
 
-        // ==========================================
-        // 線上請假登記 (含防重複檢查與逾時臨時判定)
-        // ==========================================
+        // 請假登記 (表單送出)
         document.getElementById('leaveForm').addEventListener('submit', async (e) => {
             e.preventDefault();
 
@@ -601,7 +606,6 @@
             submitBtn.disabled = true;
 
             try {
-                // 1. 先呼叫後端 API 檢查該成員同天是否已請過此活動
                 const checkRes = await fetch(`${BACKEND_API_URL}/api/leaves/check?targetUid=${encodeURIComponent(currentUid)}&leaveDate=${encodeURIComponent(leaveDateVal)}&leaveEvent=${encodeURIComponent(leaveEventVal)}`);
                 const checkData = await checkRes.json();
 
@@ -615,7 +619,6 @@
 
                 submitBtn.textContent = "傳送中...";
 
-                // 2. 比對規則截止時間，判定是否為臨時請假 (isUrgent)
                 let isUrgent = "N";
                 const latestTimeStr = leaveRulesMap[leaveEventVal];
 
@@ -632,7 +635,6 @@
                     }
                 }
 
-                // 3. 打包送出請假資料 (固定為本人申請)
                 const payload = {
                     leaveDate: leaveDateVal,
                     leaveEvent: leaveEventVal,
@@ -662,7 +664,6 @@
                     return;
                 }
 
-                // 4. 請假成功提示
                 if (isUrgent === "Y") {
                     document.getElementById('successLeaveText').textContent = "偵測到超過截止時間，系統標記為【臨時請假】，下回記得提早登記喔！";
                 } else {
