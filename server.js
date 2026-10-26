@@ -50,6 +50,8 @@ async function initDatabase() {
         account_status VARCHAR(50) DEFAULT '待審核',
         guild_role VARCHAR(50) DEFAULT '現任',
         team_group VARCHAR(255) DEFAULT '',
+        dcid VARCHAR(255),
+        tw VARCHAR(10) DEFAULT 'Y',
         update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
 
