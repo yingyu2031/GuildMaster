@@ -370,7 +370,7 @@ const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET || 'YlFXNoWW9F5i
 const DISCORD_REDIRECT_URI = 'https://guildmaster-lv.duckdns.org/api/auth/discord/callback';
 
 const DISCORD_BOT_TOKEN = process.env.DISCORD_BOT_TOKEN || 'MTU2MTc4OTY1NjQ3ODEzMDMzNw.GSjvoT.nTJB8MvPJ_ZFx2I3w';
-const DISCORD_GUILD_ID = process.env.DISCORD_GUILD_ID || '請填入公會伺服器ID';
+const DISCORD_GUILD_ID = process.env.DISCORD_GUILD_ID || '1563947532072001768';
 
 // 1. 發起 Discord 授權跳轉
 app.get('/api/auth/discord', (req, res) => {
