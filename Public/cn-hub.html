@@ -33,8 +33,8 @@
             <div class="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mx-auto text-2xl font-black">
                 🎮
             </div>
-            <span class="inline-block bg-indigo-100 text-indigo-700 text-xs font-black px-3.5 py-1 rounded-full">Discord 成員通道</span>
-            <h1 class="text-xl font-black text-slate-900">公會會員專區</h1>
+            <span class="inline-block bg-indigo-100 text-indigo-700 text-xs font-black px-3.5 py-1 rounded-full">Discord 專屬通道</span>
+            <h1 class="text-xl font-black text-slate-900">LV公會成員專區</h1>
             <p class="text-xs text-slate-500 leading-relaxed text-left bg-indigo-50/50 p-3.5 rounded-2xl border border-indigo-100">
                 本系統為LV公會大陸成員專用入口。請先透過 Discord 授權驗證，系統會自動將您加入公會伺服器並同步名冊權限！
             </p>
@@ -347,16 +347,23 @@
                     const badge = document.getElementById('userStatusBadge');
                     const pendingNotice = document.getElementById('pendingReviewNotice');
 
-                    if (data.accountStatus === '已審核') {
-                        badge.textContent = "已通過審核";
-                        badge.className = "text-[10px] font-black px-2 py-0.5 rounded-full border bg-emerald-100 text-emerald-700 border-emerald-200 shrink-0";
-                        pendingNotice.classList.add('hidden');
-                        document.getElementById('submitBindBtn').textContent = "儲存修改資料";
-                    } else {
-                        badge.textContent = "待審核";
-                        badge.className = "text-[10px] font-black px-2 py-0.5 rounded-full border bg-amber-100 text-amber-700 border-amber-200 shrink-0";
-                        pendingNotice.classList.remove('hidden');
-                    }
+                        // 替換後：
+                        const userRole = data.guildRole || data.guild_role || '現任';
+                        
+                        if (data.accountStatus === '已審核') {
+                            badge.textContent = userRole; // 顯示「現任」或「幹部」
+                            if (userRole === '幹部') {
+                                badge.className = "text-[10px] font-black px-2 py-0.5 rounded-full border border-sky-200 bg-sky-100 text-sky-800 shrink-0";
+                            } else {
+                                badge.className = "text-[10px] font-black px-2 py-0.5 rounded-full border border-emerald-200 bg-emerald-100 text-emerald-800 shrink-0";
+                            }
+                            pendingNotice.classList.add('hidden');
+                            document.getElementById('submitBindBtn').textContent = "儲存修改資料";
+                        } else {
+                            badge.textContent = "待審核";
+                            badge.className = "text-[10px] font-black px-2 py-0.5 rounded-full border border-amber-200 bg-amber-100 text-amber-700 shrink-0";
+                            pendingNotice.classList.remove('hidden');
+                        }
                 } else {
                     document.getElementById('inputDcName').value = decodeURIComponent(currentName || '');
                 }
