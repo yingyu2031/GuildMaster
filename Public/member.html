@@ -472,14 +472,24 @@ async function loadGameClasses() {
             pendingCard.classList.add('fade-in');
         }
 
-                    // 點擊觸發綁定跳轉（帶上當前會員的 LINE UID）
             function startDiscordBind() {
                 if (!currentUser.userId) {
                     alert("尚未取得您的 LINE 會員身分，請重新整理頁面！");
                     return;
                 }
-                // 導向後端 Discord OAuth2 端點，並把目前登入的 lineUserId 帶過去
-                window.location.href = `${BACKEND_API_URL}/api/auth/discord?uid=${encodeURIComponent(currentUser.userId)}`;
+            
+                // 帶上目前成員的 LINE User ID 作為辨識
+                const authUrl = `${BACKEND_API_URL}/api/auth/discord?uid=${encodeURIComponent(currentUser.userId)}`;
+            
+                // 💡 關鍵解法：強制使用手機外部瀏覽器 (Safari / Chrome) 開啟
+                if (typeof liff !== 'undefined' && liff.openWindow) {
+                    liff.openWindow({
+                        url: authUrl,
+                        external: true 
+                    });
+                } else {
+                    window.open(authUrl, '_blank');
+                }
             }
             
             // 在載入會員資料（verifyAndDisplayView）時切換按鈕顯示：
