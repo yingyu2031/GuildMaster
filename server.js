@@ -1324,15 +1324,145 @@ app.post('/api/bulletins/read', async (req, res) => {
 });
 
 
-// 推播排程 API
+// ==========================================
+// 推播排程 API (儲存、刪除與自動發送引擎)
+// ==========================================
+
+// 1. 取得所有推播排程列表 (GET) - 你原本已有的部分
 app.get('/api/admin/broadcasts', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM broadcast_schedules');
+    const result = await pool.query('SELECT * FROM broadcast_schedules ORDER BY broadcast_id ASC');
     res.json({ status: "success", broadcasts: result.rows });
   } catch (err) {
     res.status(500).json({ status: "error", message: err.message });
   }
 });
+
+// 2. 儲存或更新推播排程 (POST)
+app.post('/api/admin/broadcasts/save', async (req, res) => {
+  const { id, item, freq, cycle, time, content, active } = req.body;
+  const broadcastId = id || ('BC_' + Date.now());
+  const activeVal = (active === 1 || active === true) ? 1 : 0;
+
+  try {
+    await pool.query(`
+      INSERT INTO broadcast_schedules (broadcast_id, item, freq, cycle, time, content, active)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      ON CONFLICT (broadcast_id)
+      DO UPDATE SET
+        item = EXCLUDED.item,
+        freq = EXCLUDED.freq,
+        cycle = EXCLUDED.cycle,
+        time = EXCLUDED.time,
+        content = EXCLUDED.content,
+        active = EXCLUDED.active
+    `, [broadcastId, item, freq || 'Weekly', cycle || '', time || '20:00', content, activeVal]);
+
+    res.json({ status: "success", message: "推播排程已成功儲存" });
+  } catch (err) {
+    console.error('[Database] 儲存推播排程失敗:', err);
+    res.status(500).json({ status: "error", message: err.message });
+  }
+});
+
+// 3. 刪除推播排程 (DELETE)
+app.delete('/api/admin/broadcasts/:id', async (req, res) => {
+  const broadcastId = req.params.id;
+  try {
+    await pool.query('DELETE FROM broadcast_schedules WHERE broadcast_id = $1', [broadcastId]);
+    res.json({ status: "success", message: "排程已成功刪除" });
+  } catch (err) {
+    console.error('[Database] 刪除推播排程失敗:', err);
+    res.status(500).json({ status: "error", message: err.message });
+  }
+});
+
+// ==========================================
+// 4. 定時推播排程器（每分鐘自動執行，免 n8n）
+// ==========================================
+let isCheckingBroadcast = false;
+
+async function checkAndSendBroadcasts() {
+  if (isCheckingBroadcast) return; // 避免任務重疊
+  isCheckingBroadcast = true;
+
+  try {
+    // 取得精準的台灣時間 (UTC+8)
+    const nowTaipei = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Taipei" }));
+    const currentHours = String(nowTaipei.getHours()).padStart(2, '0');
+    const currentMinutes = String(nowTaipei.getMinutes()).padStart(2, '0');
+    const currentTimeStr = `${currentHours}:${currentMinutes}`; // 例如 "20:00"
+
+    // 取得今天星期幾（0代表週日、1代表週一...）
+    const dayMap = ['日', '一', '二', '三', '四', '五', '六'];
+    const currentDay = dayMap[nowTaipei.getDay()];
+
+    // 查詢「已啟用」且「時間吻合」的排程
+    const result = await pool.query(
+      'SELECT * FROM broadcast_schedules WHERE active = 1 AND time = $1',
+      [currentTimeStr]
+    );
+
+    if (result.rows.length === 0) {
+      isCheckingBroadcast = false;
+      return;
+    }
+
+    // 從系統設定讀取目標推播的 LINE 群組 ID
+    const configRes = await pool.query("SELECT config_value FROM system_configs WHERE config_key = 'guild_group_id'");
+    const targetGroupId = configRes.rows.length > 0 ? configRes.rows[0].config_value : null;
+
+    if (!targetGroupId) {
+      console.warn('[推播排程] 未設定目標 LINE 群組 ID (guild_group_id)');
+      isCheckingBroadcast = false;
+      return;
+    }
+
+    // 逐筆比對星期並推播
+    for (const item of result.rows) {
+      let shouldSend = false;
+
+      // 檢查是否包含今天的星期（支援逗號、分號分割，如 "一,三,五"）
+      if (item.cycle && (item.cycle.includes(currentDay) || item.cycle === 'Everyday')) {
+        shouldSend = true;
+      } else if (item.freq && (item.freq.includes('Daily') || item.freq.includes('每天'))) {
+        shouldSend = true;
+      }
+
+      if (shouldSend) {
+        console.log(`[推播排程] 觸發定時推播: 【${item.item}】 正在發送...`);
+
+        // 使用 Node.js 原生 fetch 發送 LINE 推播
+        const lineRes = await fetch('https://api.line.me/v2/bot/message/push', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.LINE_ACCESS_TOKEN || ''}`
+          },
+          body: JSON.stringify({
+            to: targetGroupId,
+            messages: [{ type: 'text', text: item.content }]
+          })
+        });
+
+        if (lineRes.ok) {
+          console.log(`[推播排程] 【${item.item}】 推播發送成功！`);
+        } else {
+          const errData = await lineRes.json();
+          console.error(`[推播排程] 【${item.item}】 LINE API 發送失敗:`, errData);
+        }
+      }
+    }
+  } catch (err) {
+    console.error('[推播排程執行異常]:', err.message);
+  } finally {
+    isCheckingBroadcast = false;
+  }
+}
+
+// 伺服器啟動時，啟動每 60 秒的定時檢查輪詢
+setInterval(checkAndSendBroadcasts, 60 * 1000);
+
 
 app.listen(PORT, () => {
   console.log(`[Server] 伺服器已在連接埠 ${PORT} 上運行`);
