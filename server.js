@@ -750,7 +750,6 @@ app.get('/api/auth/discord/callback', async (req, res) => {
 // ==========================================
 // 請假表單 API
 // ==========================================
-
 app.post('/api/leaves', async (req, res) => {
   const { leaveDate, leaveEvent, targetUid, gameNickname, gameClass, leaveReason, note, isUrgent, operatorUid, operatorName } = req.body;
   
@@ -785,6 +784,59 @@ app.post('/api/leaves', async (req, res) => {
       operatorName || '本人',
       nowTaipei 
     ]);
+
+    // ----------------------------------------------------
+    // 判定超時請假：立即發送推播通知至幹部群
+    // ----------------------------------------------------
+    if (isUrgent === 'Y') {
+      try {
+        // 1. 檢查該活動規則是否有開啟超時推播開關 (enabled)
+        const ruleCheck = await pool.query('SELECT enabled FROM leave_rules WHERE event = $1', [leaveEvent]);
+        const isRuleEnabled = ruleCheck.rows.length > 0 ? (ruleCheck.rows[0].enabled === 1) : true;
+
+        if (isRuleEnabled) {
+          // 2. 從資料庫系統設定中取得幹部群 ID
+          const configRes = await pool.query("SELECT config_value FROM system_configs WHERE config_key = 'admin_group_id'");
+          const adminGroupId = configRes.rows.length > 0 ? configRes.rows[0].config_value : null;
+
+          if (adminGroupId) {
+            const timeStr = nowTaipei.toLocaleString("zh-TW", { 
+              timeZone: "Asia/Taipei", 
+              month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false 
+            });
+
+            const urgentMessage = 
+              `🚨【成員超時/臨時請假通知】\n\n` +
+              `• 請假活動：${leaveEvent}\n` +
+              `• 遊戲暱稱：${gameNickname} (${gameClass || '無職業'})\n` +
+              `• 活動日期：${leaveDate}\n` +
+              `• 請假原因：${finalReason}\n` +
+              `• 登記人員：${operatorName || '本人'}\n` +
+              `• 填單時間：${timeStr}\n\n` +
+              `⚠️ 備註：該成員已超過此活動設定的最晚截止時間，系統已標記為【臨時請假】，請幹部儘速調整名單！`;
+
+            // 使用原生 fetch 發送推播
+            await fetch('https://api.line.me/v2/bot/message/push', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${process.env.LINE_ACCESS_TOKEN || LINE_ACCESS_TOKEN}`
+              },
+              body: JSON.stringify({
+                to: adminGroupId,
+                messages: [{ type: 'text', text: urgentMessage }]
+              })
+            });
+
+            console.log(`[LINE 推播] 🚨 已將成員【${gameNickname}】的臨時請假即時推播至幹部群`);
+          } else {
+            console.warn('[LINE 推播] 尚未設定幹部群 ID (admin_group_id)，略過臨時請假推播');
+          }
+        }
+      } catch (pushErr) {
+        console.error('[LINE 推播幹部群失敗]:', pushErr.message);
+      }
+    }
 
     res.json({ status: "success", message: "請假申請已成功送出並記錄", leaveId });
   } catch (err) {
