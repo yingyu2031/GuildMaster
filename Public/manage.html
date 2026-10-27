@@ -897,10 +897,11 @@ async function closeAuthModal() {
   renderMembersList();
   renderLeavesContent();
   renderUrgentRules();
+  fetchBroadcastsFromBackend();
 }
 
 // ==========================================
-/ * 3. 資料非同步同步與 API 互動函式 * /
+/* 3. 資料非同步同步與 API 互動函式 */
 // ==========================================
  async function fetchAllBackendData() {
  try {
@@ -2098,7 +2099,6 @@ async function executeDeleteClass() {
 // ==========================================
 // 推播排程管理前端完整邏輯 (修正對齊版)
 // ==========================================
-let broadcastSchedules = []; // 全域排程資料陣列
 
 // 1. 週期文字格式化
 function formatCycleText(bc) {
