@@ -1484,7 +1484,7 @@ app.post('/webhook', async (req, res) => {
       await replyLineMessage(ev.replyToken, [
         {
           type: 'text',
-          text: `👋 大家好！公會管理系統已就緒。\n\n若要將此群組綁定為通知目標，請在此輸入：\n👉「/大群ID」設為公會大群\n`
+          text: `👋 大家好！公會管理系統已就緒。\n\n若要將此群組綁定為通知目標，請在此輸入：\n👉「/大群ID」設為公會大群`
         }
       ]);
     }
@@ -1519,7 +1519,7 @@ async function replyLineMessage(replyToken, messages) {
 
 
 // ==========================================
-// 4. 定時推播排程器（每分鐘自動執行，免 n8n）
+// 4. 定時推播排程器（自動加 @All 標註通知）
 // ==========================================
 let isCheckingBroadcast = false;
 
@@ -1528,13 +1528,13 @@ async function checkAndSendBroadcasts() {
   isCheckingBroadcast = true;
 
   try {
-    // 取得精準的台灣時間 (UTC+8)
+    // 取得精準台灣時間 (UTC+8)
     const nowTaipei = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Taipei" }));
     const currentHours = String(nowTaipei.getHours()).padStart(2, '0');
     const currentMinutes = String(nowTaipei.getMinutes()).padStart(2, '0');
     const currentTimeStr = `${currentHours}:${currentMinutes}`; // 例如 "20:00"
 
-    // 取得今天星期幾（0代表週日、1代表週一...）
+    // 取得今天星期幾（日、一、二...）
     const dayMap = ['日', '一', '二', '三', '四', '五', '六'];
     const currentDay = dayMap[nowTaipei.getDay()];
 
@@ -1549,7 +1549,7 @@ async function checkAndSendBroadcasts() {
       return;
     }
 
-    // 從系統設定讀取目標推播的 LINE 群組 ID
+    // 讀取公會大群 ID
     const configRes = await pool.query("SELECT config_value FROM system_configs WHERE config_key = 'guild_group_id'");
     const targetGroupId = configRes.rows.length > 0 ? configRes.rows[0].config_value : null;
 
@@ -1563,7 +1563,7 @@ async function checkAndSendBroadcasts() {
     for (const item of result.rows) {
       let shouldSend = false;
 
-      // 檢查是否包含今天的星期（支援逗號、分號分割，如 "一,三,五"）
+      // 比對今天星期是否符合
       if (item.cycle && (item.cycle.includes(currentDay) || item.cycle === 'Everyday')) {
         shouldSend = true;
       } else if (item.freq && (item.freq.includes('Daily') || item.freq.includes('每天'))) {
@@ -1571,9 +1571,9 @@ async function checkAndSendBroadcasts() {
       }
 
       if (shouldSend) {
-        console.log(`[推播排程] 觸發定時推播: 【${item.item}】 正在發送...`);
+        console.log(`[推播排程] 觸發推播: 【${item.item}】 正在以 @All 發送至群組...`);
 
-        // 使用 Node.js 原生 fetch 發送 LINE 推播
+        // 使用 LINE textV2 格式發送真正具備提醒力的 @All
         const lineRes = await fetch('https://api.line.me/v2/bot/message/push', {
           method: 'POST',
           headers: {
@@ -1582,12 +1582,25 @@ async function checkAndSendBroadcasts() {
           },
           body: JSON.stringify({
             to: targetGroupId,
-            messages: [{ type: 'text', text: item.content }]
+            messages: [
+              {
+                type: 'textV2',
+                text: '{all}\n' + item.content,
+                substitution: {
+                  all: {
+                    type: 'mention',
+                    mentionee: {
+                      type: 'all'
+                    }
+                  }
+                }
+              }
+            ]
           })
         });
 
         if (lineRes.ok) {
-          console.log(`[推播排程] 【${item.item}】 推播發送成功！`);
+          console.log(`[推播排程] 【${item.item}】 @All 推播發送成功！`);
         } else {
           const errData = await lineRes.json();
           console.error(`[推播排程] 【${item.item}】 LINE API 發送失敗:`, errData);
@@ -1601,7 +1614,7 @@ async function checkAndSendBroadcasts() {
   }
 }
 
-// 伺服器啟動時，啟動每 60 秒的定時檢查輪詢
+// 每 60 秒檢查一次
 setInterval(checkAndSendBroadcasts, 60 * 1000);
 
 
