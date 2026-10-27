@@ -1578,7 +1578,7 @@ async function checkAndSendBroadcasts() {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.LINE_ACCESS_TOKEN || ''}`
+            'Authorization': `Bearer ${LINE_ACCESS_TOKEN}`
           },
           body: JSON.stringify({
             to: targetGroupId,
