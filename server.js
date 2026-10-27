@@ -1454,7 +1454,7 @@ app.post('/webhook', async (req, res) => {
             await replyLineMessage(ev.replyToken, [
               {
                 type: 'text',
-                text: `👑【幹部專用群】設定成功！\n\n📌 群組 ID：\n${currentGroupId}\n\n已自動寫入後台設定，請假審核與臨時通知將發送至此群組。`
+                text: `👑【幹部專用群】設定成功！\n\n📌 群組 ID：\n${currentGroupId}\n\n已自動寫入後台設定，會員審核與臨時請假通知將發送至此群組。`
               }
             ]);
             console.log(`[LINE Bot] 成功綁定幹部群 ID: ${currentGroupId}`);
@@ -1484,7 +1484,7 @@ app.post('/webhook', async (req, res) => {
       await replyLineMessage(ev.replyToken, [
         {
           type: 'text',
-          text: `👋 大家好！公會管理系統已就緒。\n\n若要將此群組綁定為通知目標，請幹部在此輸入：\n👉「/大群ID」設為公會大群\n👉「/幹部群ID」設為幹部專用群`
+          text: `👋 大家好！公會管理系統已就緒。\n\n若要將此群組綁定為通知目標，請在此輸入：\n👉「/大群ID」設為公會大群\n`
         }
       ]);
     }
