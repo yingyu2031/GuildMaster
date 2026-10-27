@@ -1992,16 +1992,16 @@ async function executeDeleteClass() {
 }
 
 
- // ==========================================
-// 推播排程管理前端邏輯
 // ==========================================
- 
+// 推播排程管理前端邏輯（樣式比照請假規則）
+// ==========================================
+
+// 1. 渲染推播排程卡片清單
 function renderBroadcastSection() {
   const schedContainer = document.getElementById('scheduleBroadcastContainer');
   if (!schedContainer) return;
   schedContainer.innerHTML = "";
 
-  // 無資料時的提示
   if (!broadcastSchedules || broadcastSchedules.length === 0) {
     schedContainer.innerHTML = `
       <div class="text-center py-3 text-xs text-slate-400 font-bold">目前無設定推播排程</div>
@@ -2009,19 +2009,17 @@ function renderBroadcastSection() {
     return;
   }
 
-  // 走訪排程資料渲染卡片
   broadcastSchedules.forEach((bc) => {
     const isActive = (bc.active === 1 || bc.active === true);
     const bcId = bc.id || bc.broadcast_id;
     const timeVal = bc.time || '20:00';
     
-    // 週期文字格式化：轉成與請假規則相同的「 · 星期 二、四」
+    // 週期格式化為「 · 星期 二、四」
     const cycleText = bc.cycle 
       ? ` · 星期 ${bc.cycle.replace(/週/g, '').split(/[,;]/).join('、')}` 
       : '';
 
     const item = document.createElement('div');
-    // 與請假項目完全一致的外觀樣式
     item.className = "p-3 bg-[#F8FAFC] rounded-xl border border-sky-100 flex items-center justify-between text-xs";
     item.innerHTML = `
       <div>
@@ -2042,10 +2040,10 @@ function renderBroadcastSection() {
   });
 }
 
- // 點擊勾選框：先彈窗確認，避免誤觸
+// 2. 點擊開關打勾：彈窗確認切換
 function promptToggleBroadcast(bcId, checkboxEl) {
   const targetState = checkboxEl.checked ? 1 : 0;
-  checkboxEl.checked = !targetState; // 先復原狀態，等待確認
+  checkboxEl.checked = !targetState; // 先復原，待確認後才生效
 
   const bc = broadcastSchedules.find(x => (x.id === bcId || x.broadcast_id === bcId));
   const itemName = bc ? bc.item : "此項目";
@@ -2056,13 +2054,13 @@ function promptToggleBroadcast(bcId, checkboxEl) {
   document.getElementById('toggleBroadcastConfirmModal').classList.remove('hidden');
 }
 
-// 取消變更
+// 3. 取消切換推播狀態
 function cancelToggleBroadcast() {
   closeModal('toggleBroadcastConfirmModal');
   renderBroadcastSection();
 }
 
-// 確認變更並寫入後端
+// 4. 確認切換並更新資料庫
 async function executeToggleBroadcast() {
   const bcId = document.getElementById('toggleBroadcastId').value;
   const targetState = parseInt(document.getElementById('toggleBroadcastTargetState').value);
@@ -2097,19 +2095,7 @@ async function executeToggleBroadcast() {
   }
 }
 
-// 2. 週期文字格式化（僅顯示星期）
-function formatCycleText(bc) {
-  if (!bc.cycle) return '未設定';
-  return `星期 ${bc.cycle.replace(/[,;]/g, '、')}`;
-}
-
-// 3. 切換開關狀態
-function toggleScheduleActive(idx) {
-  broadcastSchedules[idx].active = !broadcastSchedules[idx].active;
-  renderBroadcastSection();
-}
-
-// 4. 打開新增 / 編輯彈窗（僅處理 標題、時間、星期、內容）
+// 5. 開啟新增 / 編輯彈窗（僅保留 標題、時間、星期、內容）
 function openBroadcastModal(mode, id = null) {
   const modal = document.getElementById('broadcastModal');
   document.getElementById('broadcastForm').reset();
@@ -2124,16 +2110,15 @@ function openBroadcastModal(mode, id = null) {
     document.getElementById('formBcContent').value = "";
   } else {
     document.getElementById('broadcastModalTitle').textContent = "編輯推播排程";
-    const bc = broadcastSchedules.find(x => x.id === id);
+    const bc = broadcastSchedules.find(x => (x.id === id || x.broadcast_id === id));
     if (!bc) return;
 
-    document.getElementById('formBroadcastId').value = bc.id;
+    document.getElementById('formBroadcastId').value = bc.id || bc.broadcast_id;
     document.getElementById('formBcTitle').value = bc.item || "";
     document.getElementById('formBcTime').value = bc.time || "20:00";
     document.getElementById('formBcTimeDisplay').textContent = bc.time || "20:00";
     document.getElementById('formBcContent').value = bc.content || "";
 
-    // 回填星期勾選 (支援逗號或分號分割)
     if (bc.cycle) {
       const days = bc.cycle.includes(';') ? bc.cycle.split(';') : bc.cycle.split(',');
       document.querySelectorAll('input[name="weekCheck"]').forEach(cb => {
@@ -2145,37 +2130,45 @@ function openBroadcastModal(mode, id = null) {
   modal.classList.remove('hidden');
 }
 
-// 5. 表單送出處理
-document.getElementById('broadcastForm').addEventListener('submit', (e) => {
+// 6. 表單送出處理（非同步存入後端資料庫）
+document.getElementById('broadcastForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const id = document.getElementById('formBroadcastId').value;
 
-  // 取得選取的星期
   const picked = Array.from(document.querySelectorAll('input[name="weekCheck"]:checked')).map(cb => cb.value);
   if (picked.length === 0) {
     alert("請至少勾選一個推播的星期！");
     return;
   }
-  const cycleVal = picked.join(';');
+  const cycleVal = picked.join(',');
 
-  const data = {
-    id: id || ("BC" + Date.now()),
+  const payload = {
+    id: id || ("BC_" + Date.now()),
     item: document.getElementById('formBcTitle').value.trim(),
+    freq: 'Weekly (每週固定)',
     time: document.getElementById('formBcTime').value,
     cycle: cycleVal,
     content: document.getElementById('formBcContent').value.trim(),
-    active: true
+    active: 1
   };
 
-  if (id) {
-    const target = broadcastSchedules.find(x => x.id === id);
-    if (target) Object.assign(target, data);
-  } else {
-    broadcastSchedules.push(data);
+  try {
+    const res = await fetch(`${BACKEND_API_URL}/api/admin/broadcasts/save`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const result = await res.json();
+    if (result.status === "success") {
+      closeModal('broadcastModal');
+      await fetchBroadcastsFromBackend();
+    } else {
+      alert("儲存排程失敗: " + result.message);
+    }
+  } catch (err) {
+    console.error("儲存排程異常:", err);
+    alert("網路連線異常，儲存失敗");
   }
-
-  closeModal('broadcastModal');
-  renderBroadcastSection();
 });
 
 // ==========================================
