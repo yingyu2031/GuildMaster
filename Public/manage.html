@@ -2102,68 +2102,6 @@ function renderBroadcastSection() {
   });
 }
 
-// 3. 打勾切換啟用狀態（彈窗確認）
-function promptToggleBroadcast(bcId, checkboxEl) {
-  const targetState = checkboxEl.checked ? 1 : 0;
-  checkboxEl.checked = !targetState;
-
-  const bc = broadcastSchedules.find(x => (x.id === bcId || x.broadcast_id === bcId));
-  const itemName = bc ? bc.item : "此項目";
-
-  const modal = document.getElementById('toggleBroadcastConfirmModal');
-  if (modal) {
-    document.getElementById('toggleBroadcastId').value = bcId;
-    document.getElementById('toggleBroadcastTargetState').value = targetState;
-    document.getElementById('toggleBroadcastConfirmText').textContent = `確定要將【${itemName}】的排程推播狀態改為 ${targetState === 1 ? '開啟' : '關閉'} 嗎？`;
-    modal.classList.remove('hidden');
-  } else {
-    // 若無確認彈窗則直接切換
-    executeToggleBroadcastDirect(bcId, targetState);
-  }
-}
-
-function cancelToggleBroadcast() {
-  closeModal('toggleBroadcastConfirmModal');
-  renderBroadcastSection();
-}
-
-async function executeToggleBroadcast() {
-  const bcId = document.getElementById('toggleBroadcastId').value;
-  const targetState = parseInt(document.getElementById('toggleBroadcastTargetState').value);
-  closeModal('toggleBroadcastConfirmModal');
-  await executeToggleBroadcastDirect(bcId, targetState);
-}
-
-async function executeToggleBroadcastDirect(bcId, targetState) {
-  const bc = broadcastSchedules.find(x => (x.id === bcId || x.broadcast_id === bcId));
-  if (!bc) return;
-
-  try {
-    const res = await fetch(`${BACKEND_API_URL}/api/admin/broadcasts/save`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        id: bc.id || bc.broadcast_id,
-        item: bc.item,
-        freq: 'Weekly (每週固定)',
-        cycle: bc.cycle,
-        time: bc.time,
-        content: bc.content,
-        active: targetState
-      })
-    });
-    const result = await res.json();
-    if (result.status === "success") {
-      await fetchBroadcastsFromBackend();
-    } else {
-      alert("狀態更新失敗: " + result.message);
-    }
-  } catch (err) {
-    console.error("更新排程狀態失敗:", err);
-    alert("網路異常，狀態更新失敗");
-  }
-}
-
 // 4. 打開新增 / 編輯彈窗
 function openBroadcastModal(mode, id = null) {
   const modal = document.getElementById('broadcastModal');
