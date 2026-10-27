@@ -234,6 +234,131 @@ app.get('/api/members/search', async (req, res) => {
   }
 });
 
+// ==========================================
+// LINE 官方帳號 Token 設定
+// ==========================================
+const LINE_ACCESS_TOKEN = process.env.LINE_ACCESS_TOKEN || '1h1lOg2oVMOyqfCsIDtwGNpncdhQC3PLqd8H2U4o9ZPx8/3iQULOZbW3NFwZDK4rv5RuueU0osY2TZg0vBd/geGUhFMHCxQvbmwUFSmC++nS0drLcHdePaZy2V/pheqis7g6g6ZY/Hsz2cg+CJ8B0gdB04t89/1O/w1cDnyilFU=';
+
+// ==========================================
+// LINE Messaging API Webhook 接收端點
+// ==========================================
+app.post('/webhook', async (req, res) => {
+  // ⚡ 收到請求立刻回覆 200 OK，LINE 後台點 Verify 就會立刻通過！
+  res.status(200).send('OK');
+
+  const events = req.body.events;
+  if (!events || !Array.isArray(events) || events.length === 0) return;
+
+  for (const ev of events) {
+    // ----------------------------------------------------
+    // 監聽群組指令：自動綁定 Group ID
+    // ----------------------------------------------------
+    if (ev.type === 'message' && ev.message.type === 'text') {
+      const userText = ev.message.text.trim();
+      const source = ev.source;
+
+      // 檢查發送來源是否為 LINE 群組
+      if (source && source.type === 'group') {
+        const currentGroupId = source.groupId;
+
+        // 1. 指令：/大群ID 或 /綁定大群
+        if (userText === '/大群ID' || userText === '/綁定大群') {
+          try {
+            await pool.query(`
+              INSERT INTO system_configs (config_key, config_value)
+              VALUES ('guild_group_id', $1)
+              ON CONFLICT (config_key)
+              DO UPDATE SET config_value = EXCLUDED.config_value
+            `, [currentGroupId]);
+
+            await replyLineMessage(ev.replyToken, [
+              {
+                type: 'text',
+                text: `✅【公會大群】設定成功！\n\n📌 群組 ID：\n${currentGroupId}\n\n已自動寫入後台設定，排程推播與活動將發送至此群組。`
+              }
+            ]);
+            console.log(`[LINE Bot] 成功綁定公會大群 ID: ${currentGroupId}`);
+          } catch (err) {
+            console.error('儲存公會大群 ID 失敗:', err);
+          }
+          continue;
+        }
+
+        // 2. 指令：/幹部群ID 或 /綁定幹部群
+        if (userText === '/幹部群ID' || userText === '/綁定幹部群') {
+          try {
+            await pool.query(`
+              INSERT INTO system_configs (config_key, config_value)
+              VALUES ('admin_group_id', $1)
+              ON CONFLICT (config_key)
+              DO UPDATE SET config_value = EXCLUDED.config_value
+            `, [currentGroupId]);
+
+            await replyLineMessage(ev.replyToken, [
+              {
+                type: 'text',
+                text: `👑【幹部專用群】設定成功！\n\n📌 群組 ID：\n${currentGroupId}\n\n已自動寫入後台設定，會員審核與臨時請假通知將發送至此群組。`
+              }
+            ]);
+            console.log(`[LINE Bot] 成功綁定幹部群 ID: ${currentGroupId}`);
+          } catch (err) {
+            console.error('儲存幹部群 ID 失敗:', err);
+          }
+          continue;
+        }
+
+        // 3. 純查詢指令：/群ID 或 /id
+        if (userText === '/群ID' || userText === '/id') {
+          await replyLineMessage(ev.replyToken, [
+            {
+              type: 'text',
+              text: `當前聊天室 Group ID 為：\n${currentGroupId}`
+            }
+          ]);
+          continue;
+        }
+      }
+    }
+
+    // ----------------------------------------------------
+    // Bot 剛被拉進群組時自動發送歡迎引導
+    // ----------------------------------------------------
+    if (ev.type === 'join' && ev.source && ev.source.type === 'group') {
+      await replyLineMessage(ev.replyToken, [
+        {
+          type: 'text',
+          text: `👋 大家好！公會管理系統已就緒。\n\n若要將此群組綁定為通知目標，請在此輸入：\n👉「/大群ID」設為公會大群`
+        }
+      ]);
+    }
+  }
+});
+
+// ==========================================
+// LINE Reply API 訊息回覆函式
+// ==========================================
+async function replyLineMessage(replyToken, messages) {
+  try {
+    const response = await fetch('https://api.line.me/v2/bot/message/reply', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${LINE_ACCESS_TOKEN}`
+      },
+      body: JSON.stringify({
+        replyToken: replyToken,
+        messages: messages
+      })
+    });
+
+    if (!response.ok) {
+      const err = await response.json();
+      console.error('[LINE Bot Reply 失敗]:', err);
+    }
+  } catch (err) {
+    console.error('[LINE Bot Reply 網路異常]:', err);
+  }
+}
 
 // ==========================================
 // 會員相關 API
@@ -1464,133 +1589,6 @@ app.delete('/api/admin/broadcasts/:id', async (req, res) => {
     res.status(500).json({ status: "error", message: err.message });
   }
 });
-
-// ==========================================
-// LINE 官方帳號 Token 設定
-// ==========================================
-const LINE_ACCESS_TOKEN = process.env.LINE_ACCESS_TOKEN || '1h1lOg2oVMOyqfCsIDtwGNpncdhQC3PLqd8H2U4o9ZPx8/3iQULOZbW3NFwZDK4rv5RuueU0osY2TZg0vBd/geGUhFMHCxQvbmwUFSmC++nS0drLcHdePaZy2V/pheqis7g6g6ZY/Hsz2cg+CJ8B0gdB04t89/1O/w1cDnyilFU=';
-
-// ==========================================
-// LINE Messaging API Webhook 接收端點
-// ==========================================
-app.post('/webhook', async (req, res) => {
-  // ⚡ 收到請求立刻回覆 200 OK，LINE 後台點 Verify 就會立刻通過！
-  res.status(200).send('OK');
-
-  const events = req.body.events;
-  if (!events || !Array.isArray(events) || events.length === 0) return;
-
-  for (const ev of events) {
-    // ----------------------------------------------------
-    // 監聽群組指令：自動綁定 Group ID
-    // ----------------------------------------------------
-    if (ev.type === 'message' && ev.message.type === 'text') {
-      const userText = ev.message.text.trim();
-      const source = ev.source;
-
-      // 檢查發送來源是否為 LINE 群組
-      if (source && source.type === 'group') {
-        const currentGroupId = source.groupId;
-
-        // 1. 指令：/大群ID 或 /綁定大群
-        if (userText === '/大群ID' || userText === '/綁定大群') {
-          try {
-            await pool.query(`
-              INSERT INTO system_configs (config_key, config_value)
-              VALUES ('guild_group_id', $1)
-              ON CONFLICT (config_key)
-              DO UPDATE SET config_value = EXCLUDED.config_value
-            `, [currentGroupId]);
-
-            await replyLineMessage(ev.replyToken, [
-              {
-                type: 'text',
-                text: `✅【公會大群】設定成功！\n\n📌 群組 ID：\n${currentGroupId}\n\n已自動寫入後台設定，排程推播與活動將發送至此群組。`
-              }
-            ]);
-            console.log(`[LINE Bot] 成功綁定公會大群 ID: ${currentGroupId}`);
-          } catch (err) {
-            console.error('儲存公會大群 ID 失敗:', err);
-          }
-          continue;
-        }
-
-        // 2. 指令：/幹部群ID 或 /綁定幹部群
-        if (userText === '/幹部群ID' || userText === '/綁定幹部群') {
-          try {
-            await pool.query(`
-              INSERT INTO system_configs (config_key, config_value)
-              VALUES ('admin_group_id', $1)
-              ON CONFLICT (config_key)
-              DO UPDATE SET config_value = EXCLUDED.config_value
-            `, [currentGroupId]);
-
-            await replyLineMessage(ev.replyToken, [
-              {
-                type: 'text',
-                text: `👑【幹部專用群】設定成功！\n\n📌 群組 ID：\n${currentGroupId}\n\n已自動寫入後台設定，會員審核與臨時請假通知將發送至此群組。`
-              }
-            ]);
-            console.log(`[LINE Bot] 成功綁定幹部群 ID: ${currentGroupId}`);
-          } catch (err) {
-            console.error('儲存幹部群 ID 失敗:', err);
-          }
-          continue;
-        }
-
-        // 3. 純查詢指令：/群ID 或 /id
-        if (userText === '/群ID' || userText === '/id') {
-          await replyLineMessage(ev.replyToken, [
-            {
-              type: 'text',
-              text: `當前聊天室 Group ID 為：\n${currentGroupId}`
-            }
-          ]);
-          continue;
-        }
-      }
-    }
-
-    // ----------------------------------------------------
-    // Bot 剛被拉進群組時自動發送歡迎引導
-    // ----------------------------------------------------
-    if (ev.type === 'join' && ev.source && ev.source.type === 'group') {
-      await replyLineMessage(ev.replyToken, [
-        {
-          type: 'text',
-          text: `👋 大家好！公會管理系統已就緒。\n\n若要將此群組綁定為通知目標，請在此輸入：\n👉「/大群ID」設為公會大群`
-        }
-      ]);
-    }
-  }
-});
-
-// ==========================================
-// LINE Reply API 訊息回覆函式
-// ==========================================
-async function replyLineMessage(replyToken, messages) {
-  try {
-    const response = await fetch('https://api.line.me/v2/bot/message/reply', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${LINE_ACCESS_TOKEN}`
-      },
-      body: JSON.stringify({
-        replyToken: replyToken,
-        messages: messages
-      })
-    });
-
-    if (!response.ok) {
-      const err = await response.json();
-      console.error('[LINE Bot Reply 失敗]:', err);
-    }
-  } catch (err) {
-    console.error('[LINE Bot Reply 網路異常]:', err);
-  }
-}
-
 
 // ==========================================
 // 4. 定時推播排程器（自動加 @All 標註通知）
