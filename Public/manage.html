@@ -550,9 +550,9 @@ input[type="date"], input[type="time"], select {
         <button type="submit" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-2.5 rounded-xl transition shadow-md shadow-sky-200 cursor-pointer">儲存排程</button>
       </div>
 
-      <!-- 彈窗底部刪除按鈕（編輯時由 JS 控制顯示） -->
-      <div id="deleteBcBtnWrapper" class="pt-2 border-t border-slate-100 mt-2 hidden">
-        <button type="button" onclick="deleteCurrentBroadcast()" class="w-full bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold py-2.5 rounded-xl text-xs transition cursor-pointer">
+      <!-- 彈窗最底部的刪除按鈕 (編輯模式下顯示) -->
+      <div id="deleteBcBtnWrapper" class="pt-2 border-t border-slate-100 hidden">
+        <button type="button" onclick="promptDeleteBroadcast()" class="w-full bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold py-2.5 rounded-xl text-xs transition cursor-pointer">
           刪除此推播排程
         </button>
       </div>
@@ -750,6 +750,44 @@ input[type="date"], input[type="time"], select {
     </div>
   </div>
 </div>
+<!-- 統一風格彈窗 1：推播排程狀態切換確認 Modal (天空藍風格) -->
+<div id="toggleBroadcastConfirmModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
+  <div class="bg-white w-full max-w-xs rounded-[28px] p-6 border-2 border-sky-200 soft-sky-shadow text-center">
+    <h3 class="text-base font-black text-slate-900 mb-1 mt-2">確認變更推播狀態？</h3>
+    <p id="toggleBroadcastConfirmText" class="text-xs text-slate-500 mb-5 leading-relaxed">
+      確定要切換此項目的推播狀態嗎？
+    </p>
+    <input type="hidden" id="toggleBroadcastId">
+    <input type="hidden" id="toggleBroadcastTargetState">
+    <div class="grid grid-cols-2 gap-2">
+      <button type="button" onclick="cancelToggleBroadcast()" class="bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold py-2.5 rounded-xl transition cursor-pointer">
+        取消
+      </button>
+      <button type="button" onclick="executeToggleBroadcast()" class="bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold py-2.5 rounded-xl transition shadow-md cursor-pointer">
+        確認變更
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- 統一風格彈窗 2：確認刪除推播排程 Modal (玫瑰紅警告風格) -->
+<div id="deleteBroadcastConfirmModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
+  <div class="bg-white w-full max-w-xs rounded-[28px] p-6 border-2 border-rose-200 soft-sky-shadow text-center">
+    <h3 class="text-base font-black text-slate-900 mb-1 mt-2">確認刪除推播排程？</h3>
+    <p id="deleteBroadcastConfirmText" class="text-xs text-slate-500 mb-5 leading-relaxed">
+      確定要刪除此排程嗎？此動作無法復原！
+    </p>
+    <input type="hidden" id="deleteBroadcastTargetId">
+    <div class="grid grid-cols-2 gap-2">
+      <button type="button" onclick="closeModal('deleteBroadcastConfirmModal')" class="bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold py-2.5 rounded-xl transition cursor-pointer">
+        取消
+      </button>
+      <button type="button" onclick="executeDeleteBroadcast()" class="bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold py-2.5 rounded-xl transition shadow-md cursor-pointer">
+        確認刪除
+      </button>
+    </div>
+  </div>
+</div>
 
 
 <script>
@@ -890,6 +928,7 @@ async function closeAuthModal() {
   renderMembersList();
   renderLeavesContent();
   renderUrgentRules();
+  await fetchBroadcastsFromBackend();
 }
 
 // ==========================================
@@ -2164,29 +2203,6 @@ function openBroadcastModal(mode, id = null) {
   modal.classList.remove('hidden');
 }
 
-// 5. 彈窗內刪除此排程
-async function deleteCurrentBroadcast() {
-  const bcId = document.getElementById('formBroadcastId').value;
-  if (!bcId) return;
-
-  if (!confirm("確定要刪除此推播排程嗎？此動作無法復原！")) return;
-
-  try {
-    const res = await fetch(`${BACKEND_API_URL}/api/admin/broadcasts/${encodeURIComponent(bcId)}`, {
-      method: 'DELETE'
-    });
-    const result = await res.json();
-    if (result.status === "success") {
-      closeModal('broadcastModal');
-      await fetchBroadcastsFromBackend();
-    } else {
-      alert("刪除失敗: " + result.message);
-    }
-  } catch (err) {
-    console.error("刪除失敗:", err);
-    alert("網路異常，刪除失敗");
-  }
-}
 
 // 6. 表單送出處理
 const bcFormEl = document.getElementById('broadcastForm');
@@ -2231,6 +2247,109 @@ if (bcFormEl) {
     }
   });
 }
+
+// ==========================================
+// 推播狀態切換（統一風格彈窗）
+// ==========================================
+
+// 1. 列表勾選框被點擊時：打開切換確認 Modal
+function promptToggleBroadcast(bcId, checkboxEl) {
+  const targetState = checkboxEl.checked ? 1 : 0;
+  checkboxEl.checked = !targetState; // 先復原勾選狀態，等待彈窗確認
+
+  const bc = broadcastSchedules.find(x => (x.id === bcId || x.broadcast_id === bcId));
+  const itemName = bc ? bc.item : "此項目";
+
+  document.getElementById('toggleBroadcastId').value = bcId;
+  document.getElementById('toggleBroadcastTargetState').value = targetState;
+  document.getElementById('toggleBroadcastConfirmText').textContent = `確定要將【${itemName}】的排程推播狀態改為 ${targetState === 1 ? '開啟' : '關閉'} 嗎？`;
+  document.getElementById('toggleBroadcastConfirmModal').classList.remove('hidden');
+}
+
+// 2. 取消切換
+function cancelToggleBroadcast() {
+  closeModal('toggleBroadcastConfirmModal');
+  renderBroadcastSection();
+}
+
+// 3. 執行狀態切換更新
+async function executeToggleBroadcast() {
+  const bcId = document.getElementById('toggleBroadcastId').value;
+  const targetState = parseInt(document.getElementById('toggleBroadcastTargetState').value);
+  closeModal('toggleBroadcastConfirmModal');
+
+  const bc = broadcastSchedules.find(x => (x.id === bcId || x.broadcast_id === bcId));
+  if (!bc) return;
+
+  try {
+    const res = await fetch(`${BACKEND_API_URL}/api/admin/broadcasts/save`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: bc.id || bc.broadcast_id,
+        item: bc.item,
+        freq: 'Weekly (每週固定)',
+        cycle: bc.cycle,
+        time: bc.time,
+        content: bc.content,
+        active: targetState
+      })
+    });
+    const result = await res.json();
+    if (result.status === "success") {
+      await fetchBroadcastsFromBackend();
+    } else {
+      alert("狀態更新失敗: " + result.message);
+    }
+  } catch (err) {
+    console.error("更新排程狀態失敗:", err);
+    alert("網路異常，狀態更新失敗");
+  }
+}
+
+// ==========================================
+// 推播刪除（統一風格彈窗）
+// ==========================================
+
+// 1. 點擊編輯彈窗底部的「刪除此推播排程」：打開刪除確認 Modal
+function promptDeleteBroadcast() {
+  const bcId = document.getElementById('formBroadcastId').value;
+  if (!bcId) return;
+
+  const bc = broadcastSchedules.find(x => (x.id === bcId || x.broadcast_id === bcId));
+  const itemName = bc ? bc.item : "此項目";
+
+  document.getElementById('deleteBroadcastTargetId').value = bcId;
+  document.getElementById('deleteBroadcastConfirmText').textContent = `確定要刪除排程【${itemName}】嗎？此動作無法復原！`;
+
+  // 關閉編輯彈窗，打開玫瑰紅刪除確認彈窗
+  closeModal('broadcastModal');
+  document.getElementById('deleteBroadcastConfirmModal').classList.remove('hidden');
+}
+
+// 2. 在確認 Modal 點擊「確認刪除」時：呼叫後端 API
+async function executeDeleteBroadcast() {
+  const bcId = document.getElementById('deleteBroadcastTargetId').value;
+  if (!bcId) return;
+
+  closeModal('deleteBroadcastConfirmModal');
+
+  try {
+    const res = await fetch(`${BACKEND_API_URL}/api/admin/broadcasts/${encodeURIComponent(bcId)}`, {
+      method: 'DELETE'
+    });
+    const result = await res.json();
+    if (result.status === "success") {
+      await fetchBroadcastsFromBackend(); // 重新載入列表
+    } else {
+      alert("刪除失敗: " + result.message);
+    }
+  } catch (err) {
+    console.error("刪除失敗:", err);
+    alert("網路異常，刪除失敗");
+  }
+}
+
 
 // ==========================================
 // 請假項目規則渲染與切換邏輯 
