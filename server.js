@@ -268,12 +268,13 @@ app.get('/api/members/:uid', async (req, res) => {
   }
 });
 
-// 2. 會員前台登記 / 更新資料 (已修正缺少反引號的語法錯誤)
+// 2. 會員前台登記 / 更新資料 (含新成員入會幹部群自動通知)
 app.post('/api/members/bind', async (req, res) => {
   const { lineUserId, lineDisplayName, gameNickname, gameClass, allowSearch, tw, dcid } = req.body;
   if (!lineUserId || !gameNickname || !gameClass) {
     return res.status(400).json({ status: "error", message: "缺少必要欄位" });
   }
+
   try {
     const oldRes = await pool.query('SELECT * FROM members WHERE line_user_id = $1', [lineUserId]);
     const oldMember = oldRes.rows[0];
@@ -282,6 +283,7 @@ app.post('/api/members/bind', async (req, res) => {
     const finalTw = oldMember ? (oldMember.tw || 'Y') : (tw || 'Y');
     const finalDcid = oldMember ? (oldMember.dcid || dcid || null) : (dcid || null);
 
+    // 寫入 / 更新會員主資料
     await pool.query(`
       INSERT INTO members (line_user_id, game_nickname, game_class, line_display_name, allow_search, account_status, tw, dcid, update_time)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP)
@@ -295,21 +297,36 @@ app.post('/api/members/bind', async (req, res) => {
         update_time = CURRENT_TIMESTAMP
     `, [lineUserId, gameNickname, gameClass, lineDisplayName, allowSearch || 'N', newAccountStatus, finalTw, finalDcid]);
 
+    // 判斷是否為「全新會員註冊」
     if (!oldMember) {
-      await pool.query('INSERT INTO member_audit_logs (line_user_id, field, old_value, new_value) VALUES ($1, $2, $3, $4)', [lineUserId, '新會員註冊', '-', `${gameNickname} (${gameClass})`]);
-    } else {
-      if (oldMember.game_nickname !== gameNickname) {
-        await pool.query('INSERT INTO member_audit_logs (line_user_id, field, old_value, new_value) VALUES ($1, $2, $3, $4)', [lineUserId, '遊戲暱稱', oldMember.game_nickname, gameNickname]);
-      }
-      if (oldMember.game_class !== gameClass) {
-        await pool.query('INSERT INTO member_audit_logs (line_user_id, field, old_value, new_value) VALUES ($1, $2, $3, $4)', [lineUserId, '遊戲職業', oldMember.game_class, gameClass]);
-      }
-    }
-    res.json({ status: "success", message: "會員資料已成功更新" });
-  } catch (err) {
-    res.status(500).json({ status: "error", message: err.message });
-  }
-});
+      // 1. 寫入審核歷程紀錄
+      await pool.query(
+        'INSERT INTO member_audit_logs (line_user_id, field, old_value, new_value) VALUES ($1, $2, $3, $4)', 
+        [lineUserId, '新會員註冊', '-', `${gameNickname} (${gameClass})`]
+      );
+
+      // 2. 💡 自動推播通知發送到幹部群
+      try {
+        const configRes = await pool.query("SELECT config_value FROM system_configs WHERE config_key = 'admin_group_id'");
+        const adminGroupId = configRes.rows.length > 0 ? configRes.rows[0].config_value : null;
+
+        if (adminGroupId) {
+          const currentTime = new Date().toLocaleString("zh-TW", { timeZone: "Asia/Taipei" });
+          const regionText = finalTw === 'N' ? '大陸通道(DC)' : '台灣(LINE)';
+
+          const notifyMessage = 
+            `🔔【新成員入會待審核】\n\n` +
+            `• 遊戲暱稱：${gameNickname}\n` + `• 遊戲職業：${gameClass}\n` +
+            `• 社群暱稱：${lineDisplayName \vert{}\vert{} '無'}\n` + `• 註冊管道：${regionText}\n` +
+            `• 申請時間：${currentTime}\n\n` + `👉 請幹部至【管理後台 ➔ 會員名冊】進行核對與審核。`;  await fetch('https://api.line.me/v2/bot/message/push', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.LINE_ACCESS_TOKEN || LINE_ACCESS_TOKEN}`
+            },
+            body: JSON.stringify({
+              to: adminGroupId,
+              messages: [{ type: 'text', text: notifyMessage }]
+            })
+          });
+
+          console.log(`[LINE 推播] 已成功向幹部群發
 
 // 3. 幹部後台會員清單
 app.get('/api/admin/members', async (req, res) => {
