@@ -1331,9 +1331,22 @@ app.post('/api/bulletins/read', async (req, res) => {
 // 1. 取得所有推播排程列表 (GET)
 app.get('/api/admin/broadcasts', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM broadcast_schedules ORDER BY broadcast_id ASC');
+    const result = await pool.query(`
+      SELECT 
+        broadcast_id AS id,
+        broadcast_id,
+        item,
+        freq,
+        cycle,
+        time,
+        content,
+        active
+      FROM broadcast_schedules 
+      ORDER BY broadcast_id ASC
+    `);
     res.json({ status: "success", broadcasts: result.rows });
   } catch (err) {
+    console.error('[API 錯誤] 讀取推播排程失敗:', err);
     res.status(500).json({ status: "error", message: err.message });
   }
 });
