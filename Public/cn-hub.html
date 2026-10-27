@@ -73,7 +73,7 @@
             <span class="text-[10px] font-black bg-indigo-50 text-indigo-600 border border-indigo-200 px-2.5 py-1 rounded-full shrink-0">大陸專區</span>
         </div>
 
-        <!-- 導航切換 Tab (三合一：身分、活動、請假) -->
+        <!-- 導航切換 Tab (根據身分動態顯示/隱藏活動與請假) -->
         <div id="tabNav" class="hidden grid grid-cols-3 gap-1 bg-amber-100/70 p-1 rounded-2xl border border-amber-200/80 text-xs font-bold text-center select-none">
             <button onclick="switchTab('profile')" id="tabBtn_profile" class="py-2 rounded-xl bg-white text-amber-950 font-black shadow-xs transition cursor-pointer">身分管理</button>
             <button onclick="switchTab('events')" id="tabBtn_events" class="py-2 rounded-xl text-amber-900/70 hover:text-amber-950 transition cursor-pointer">活動報名</button>
@@ -84,13 +84,13 @@
         <!-- 模組 1：身分管理 (登記、待審核與修改) -->
         <!-- ========================================== -->
         <section id="panel_profile" class="hidden space-y-4">
-            <!-- 待審核提示 -->
-            <div id="pendingReviewNotice" class="hidden bg-amber-50/70 rounded-2xl p-4 border border-amber-200 text-left space-y-1">
+            <!-- 待審核 / 退會提示 -->
+            <div id="pendingReviewNotice" class="hidden bg-amber-50/80 rounded-2xl p-4 border border-amber-200 text-left space-y-1">
                 <div class="flex items-center gap-2 text-amber-900 font-black text-xs">
-                    <span>⏳</span>
-                    <span>資料審核中</span>
+                    <span id="noticeIcon">⏳</span>
+                    <span id="noticeTitle">資料審核中</span>
                 </div>
-                <p class="text-[11px] text-amber-800/80 leading-relaxed">
+                <p id="noticeDesc" class="text-[11px] text-amber-800/80 leading-relaxed">
                     您的資料已登記，幹部正在進行名冊審核。審核通過前暫時無法進行公會活動報名與請假，請耐心等候！
                 </p>
             </div>
@@ -98,8 +98,8 @@
             <!-- 身分資料表單卡片 -->
             <div class="bg-white rounded-3xl p-5 border-2 border-amber-200/80 soft-shadow space-y-4 text-left">
                 <div class="border-b border-amber-100 pb-2">
-                    <h2 class="text-sm font-black text-slate-900">遊戲身分資料登記</h2>
-                    <p class="text-[11px] text-slate-400 mt-0.5">請確認角色暱稱與職業正確，以便幹部排定攻城與活動名單</p>
+                    <h2 id="formTitleText" class="text-sm font-black text-slate-900">遊戲身分資料登記</h2>
+                    <p id="formSubText" class="text-[11px] text-slate-400 mt-0.5">請確認角色暱稱與職業正確，以便幹部排定攻城與活動名單</p>
                 </div>
 
                 <form id="bindForm" class="space-y-3.5 text-xs font-bold text-slate-700">
@@ -193,7 +193,7 @@
         <p class="text-[11px] text-amber-900/40 text-center mt-6">&copy; 2026 GuildMaster (Discord Channel)</p>
     </main>
 
-    <!-- 統一風格彈窗 1：請假成功 Modal -->
+    <!-- 彈窗 1：請假成功 Modal -->
     <div id="successLeaveModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
         <div class="bg-white w-full max-w-xs rounded-[28px] p-6 border-2 border-amber-200 soft-shadow text-center">
             <h3 class="text-base font-black text-amber-950 mb-1 mt-1">請假申請已登記</h3>
@@ -204,7 +204,7 @@
         </div>
     </div>
 
-    <!-- 統一風格彈窗 2：重複請假警告 Modal -->
+    <!-- 彈窗 2：重複請假警告 Modal -->
     <div id="warningModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
         <div class="bg-white w-full max-w-xs rounded-[28px] p-6 border-2 border-amber-200 soft-shadow text-center">
             <h3 class="text-base font-black text-amber-950 mb-1 mt-1">重複請假提醒</h3>
@@ -235,7 +235,6 @@
             }
 
             document.getElementById('userHeaderCard').classList.remove('hidden');
-            document.getElementById('tabNav').classList.remove('hidden');
             document.getElementById('userAvatar').src = currentAvatar ? decodeURIComponent(currentAvatar) : "https://cdn.discordapp.com/embed/avatars/0.png";
 
             const todayStr = new Date().toISOString().split('T')[0];
@@ -249,14 +248,26 @@
 
             document.getElementById('loadingCard').classList.add('hidden');
 
-            if (!memberData || memberData.accountStatus !== '已審核') {
-                switchTab('profile');
-            } else {
+            const isRetired = (memberData && (memberData.guildRole === '退會' || memberData.guild_role === '退會'));
+            const isApproved = (memberData && memberData.accountStatus === '已審核' && !isRetired);
+
+            if (isApproved) {
                 switchTab('events');
+            } else {
+                switchTab('profile');
             }
         };
 
         function switchTab(tabKey) {
+            const isRetired = (memberData && (memberData.guildRole === '退會' || memberData.guild_role === '退會'));
+            const isPending = (!memberData || memberData.accountStatus !== '已審核');
+
+            // 嚴格阻擋：退會或待審核成員不可進入活動與請假
+            if ((isRetired || isPending) && (tabKey === 'events' || tabKey === 'leave')) {
+                alert("⚠️ 您目前處於「未入會 / 待審核」狀態，請先送出註冊並由幹部審核通過後，才能使用此功能！");
+                tabKey = 'profile';
+            }
+
             ['profile', 'events', 'leave'].forEach(key => {
                 const panel = document.getElementById(`panel_${key}`);
                 const btn = document.getElementById(`tabBtn_${key}`);
@@ -330,6 +341,16 @@
                 const res = await fetch(`${BACKEND_API_URL}/api/members/${encodeURIComponent(currentUid)}`);
                 const data = await res.json();
 
+                const tabNav = document.getElementById('tabNav');
+                const badge = document.getElementById('userStatusBadge');
+                const pendingNotice = document.getElementById('pendingReviewNotice');
+                const noticeIcon = document.getElementById('noticeIcon');
+                const noticeTitle = document.getElementById('noticeTitle');
+                const noticeDesc = document.getElementById('noticeDesc');
+                const submitBindBtn = document.getElementById('submitBindBtn');
+                const formTitleText = document.getElementById('formTitleText');
+                const formSubText = document.getElementById('formSubText');
+
                 if (data.status === 'found') {
                     memberData = data;
                     const nick = data.gameNickname || decodeURIComponent(currentName || 'DC成員');
@@ -344,28 +365,65 @@
                     }
                     document.getElementById('inputDcName').value = data.lineDisplayName || decodeURIComponent(currentName || '');
 
-                    const badge = document.getElementById('userStatusBadge');
-                    const pendingNotice = document.getElementById('pendingReviewNotice');
+                    const userRole = data.guildRole || data.guild_role || '現任';
+                    const isRetired = (userRole === '退會');
+                    const isPending = (data.accountStatus !== '已審核');
 
-                        // 替換後：
-                        const userRole = data.guildRole || data.guild_role || '現任';
-                        
-                        if (data.accountStatus === '已審核') {
-                            badge.textContent = userRole; // 顯示「現任」或「幹部」
-                            if (userRole === '幹部') {
-                                badge.className = "text-[10px] font-black px-2 py-0.5 rounded-full border border-sky-200 bg-sky-100 text-sky-800 shrink-0";
-                            } else {
-                                badge.className = "text-[10px] font-black px-2 py-0.5 rounded-full border border-emerald-200 bg-emerald-100 text-emerald-800 shrink-0";
-                            }
-                            pendingNotice.classList.add('hidden');
-                            document.getElementById('submitBindBtn').textContent = "儲存修改資料";
+                    if (isRetired) {
+                        // 1. 退會狀態：隱藏活動與請假 Tab，完全退回註冊模式
+                        tabNav.classList.add('hidden');
+                        badge.textContent = "已退會";
+                        badge.className = "text-[10px] font-black px-2 py-0.5 rounded-full border border-rose-200 bg-rose-50 text-rose-700 shrink-0";
+
+                        noticeIcon.textContent = "⚠️";
+                        noticeTitle.textContent = "公會帳號已退會";
+                        noticeDesc.textContent = "您目前為退會狀態，無法使用公會功能。如欲重新入會，請確認並重新提交下方資料進行審核。";
+                        pendingNotice.className = "bg-rose-50/80 rounded-2xl p-4 border border-rose-200 text-left space-y-1";
+                        pendingNotice.classList.remove('hidden');
+
+                        formTitleText.textContent = "重新申請入會 (註冊登記)";
+                        formSubText.textContent = "提交後將由公會幹部重新進行審核";
+                        submitBindBtn.textContent = "提交入會申請 (重新審核)";
+                        submitBindBtn.className = "w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold py-3.5 rounded-2xl shadow-md transition cursor-pointer text-xs mt-2";
+
+                    } else if (isPending) {
+                        // 2. 待審核狀態：隱藏活動與請假 Tab
+                        tabNav.classList.add('hidden');
+                        badge.textContent = "待審核";
+                        badge.className = "text-[10px] font-black px-2 py-0.5 rounded-full border border-amber-200 bg-amber-100 text-amber-700 shrink-0";
+
+                        noticeIcon.textContent = "⏳";
+                        noticeTitle.textContent = "資料審核中";
+                        noticeDesc.textContent = "您的資料已登記，幹部正在進行名冊審核。審核通過前暫時無法進行公會活動報名與請假，請耐心等候！";
+                        pendingNotice.className = "bg-amber-50/80 rounded-2xl p-4 border border-amber-200 text-left space-y-1";
+                        pendingNotice.classList.remove('hidden');
+
+                        formTitleText.textContent = "遊戲身分資料登記";
+                        formSubText.textContent = "審核通過前可隨時微調您的資料";
+                        submitBindBtn.textContent = "更新登記資料";
+
+                    } else {
+                        // 3. 正常已審核成員：開放導航分頁
+                        tabNav.classList.remove('hidden');
+                        badge.textContent = userRole;
+                        if (userRole === '幹部') {
+                            badge.className = "text-[10px] font-black px-2 py-0.5 rounded-full border border-sky-200 bg-sky-100 text-sky-800 shrink-0";
                         } else {
-                            badge.textContent = "待審核";
-                            badge.className = "text-[10px] font-black px-2 py-0.5 rounded-full border border-amber-200 bg-amber-100 text-amber-700 shrink-0";
-                            pendingNotice.classList.remove('hidden');
+                            badge.className = "text-[10px] font-black px-2 py-0.5 rounded-full border border-emerald-200 bg-emerald-100 text-emerald-800 shrink-0";
                         }
+                        pendingNotice.classList.add('hidden');
+                        formTitleText.textContent = "遊戲身分資料登記";
+                        formSubText.textContent = "請確認角色暱稱與職業正確，以便幹部排定攻城與活動名單";
+                        submitBindBtn.textContent = "儲存修改資料";
+                    }
+
                 } else {
+                    // 全新未登記成員
+                    tabNav.classList.add('hidden');
                     document.getElementById('inputDcName').value = decodeURIComponent(currentName || '');
+                    formTitleText.textContent = "新成員入會註冊";
+                    formSubText.textContent = "請填寫完整遊戲資訊以利幹部審核";
+                    submitBindBtn.textContent = "送出入會申請";
                 }
             } catch (e) {
                 console.error("載入身分失敗", e);
@@ -386,36 +444,50 @@
             btn.textContent = "資料送出中...";
             btn.disabled = true;
 
+            const isRetired = (memberData && (memberData.guildRole === '退會' || memberData.guild_role === '退會'));
+
             try {
+                // 若之前是退會狀態，送出時強制指定回到「現任」但「待審核」
+                const payload = {
+                    lineUserId: currentUid,
+                    dcid: currentUid,
+                    tw: 'N',
+                    lineDisplayName: dcName,
+                    gameNickname,
+                    gameClass,
+                    allowSearch: 'N'
+                };
+
+                if (isRetired) {
+                    payload.guildRole = '現任';
+                    payload.accountStatus = '待審核';
+                }
+
                 const res = await fetch(`${BACKEND_API_URL}/api/members/bind`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        lineUserId: currentUid,
-                        dcid: currentUid,
-                        tw: 'N',
-                        lineDisplayName: dcName,
-                        gameNickname,
-                        gameClass,
-                        allowSearch: 'N' // 大陸成員預設不給予查詢
-                    })
+                    body: JSON.stringify(payload)
                 });
                 const result = await res.json();
                 if (result.status === 'success') {
-                    alert('🎉 會員資料登記成功！幹部完成資格審核後即可參與所有活動與請假。');
+                    if (isRetired) {
+                        alert('🎉 重新入會申請已送出！請等待公會幹部重新審核。');
+                    } else {
+                        alert('🎉 會員資料登記成功！幹部完成資格審核後即可參與所有活動與請假。');
+                    }
                     await fetchMemberProfile();
+                    switchTab('profile');
                 } else {
                     alert('登記失敗：' + (result.message || '系統異常'));
                 }
             } catch (err) {
                 alert('網路異常，送出失敗');
             } finally {
-                btn.textContent = "儲存並送出登記";
                 btn.disabled = false;
             }
         });
 
-        // 載入活動列表 (排除已結束與時間已過活動)
+        // 載入活動列表
         async function loadEvents() {
             const container = document.getElementById('eventsListContainer');
             container.innerHTML = '<div class="bg-white rounded-2xl p-6 text-center text-xs text-slate-400">正在整理公會活動中...</div>';
@@ -427,7 +499,6 @@
 
                 const now = new Date();
 
-                // 排除已封存、狀態為已結束，以及集合時間已過去的活動
                 const openEvents = eventsList.filter(ev => {
                     if (ev.isArchived || ev.status === '已結束') return false;
                     if (ev.date) {
@@ -517,7 +588,8 @@
         }
 
         async function handleEventSignup(eventId) {
-            if (!memberData || !memberData.gameNickname || memberData.accountStatus !== '已審核') {
+            const isRetired = (memberData && (memberData.guildRole === '退會' || memberData.guild_role === '退會'));
+            if (!memberData || !memberData.gameNickname || memberData.accountStatus !== '已審核' || isRetired) {
                 alert("⚠️ 您尚未通過公會幹部審核，審核通過後方可報名活動！");
                 switchTab('profile');
                 return;
@@ -578,8 +650,9 @@
         document.getElementById('leaveForm').addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            if (!memberData || !memberData.gameNickname || memberData.accountStatus !== '已審核') {
-                alert("⚠️ 您尚未完成登記或未通過審核，目前無法請假！");
+            const isRetired = (memberData && (memberData.guildRole === '退會' || memberData.guild_role === '退會'));
+            if (!memberData || !memberData.gameNickname || memberData.accountStatus !== '已審核' || isRetired) {
+                alert("⚠️ 您尚未通過公會幹部審核，目前無法請假！");
                 switchTab('profile');
                 return;
             }
