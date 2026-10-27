@@ -1328,7 +1328,7 @@ app.post('/api/bulletins/read', async (req, res) => {
 // 推播排程 API (儲存、刪除與自動發送引擎)
 // ==========================================
 
-// 1. 取得所有推播排程列表 (GET) - 你原本已有的部分
+// 1. 取得所有推播排程列表 (GET)
 app.get('/api/admin/broadcasts', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM broadcast_schedules ORDER BY broadcast_id ASC');
@@ -1356,7 +1356,7 @@ app.post('/api/admin/broadcasts/save', async (req, res) => {
         time = EXCLUDED.time,
         content = EXCLUDED.content,
         active = EXCLUDED.active
-    `, [broadcastId, item, freq || 'Weekly', cycle || '', time || '20:00', content, activeVal]);
+    `, [broadcastId, item, freq || 'Weekly (每週固定)', cycle || '', time || '20:00', content, activeVal]);
 
     res.json({ status: "success", message: "推播排程已成功儲存" });
   } catch (err) {
