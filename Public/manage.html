@@ -912,6 +912,7 @@ async function closeAuthModal() {
   renderMembersList();
   renderLeavesContent();
   renderUrgentRules();
+  await fetchBroadcastsFromBackend();
 }
 
 // ==========================================
@@ -934,11 +935,6 @@ async function closeAuthModal() {
  } catch (err) { console.error(err); }
  }
 
- function renderAdminIdentity() {
- document.getElementById('adminNickName').textContent = currentAdminUser.gameNickname;
- document.getElementById('adminClass').textContent = currentAdminUser.gameClass;
- if (currentAdminUser.pictureUrl) document.getElementById('adminAvatar').src = currentAdminUser.pictureUrl;
- }
 
 // 同步更新頁面中所有的職業下拉選單內容
 function syncAllClassDropdowns() {
@@ -2047,6 +2043,7 @@ async function executeDeleteClass() {
  `;
  urgentContainer.appendChild(item);
  });
+ }
 
  function promptToggleRule(eventName, checkboxEl) {
  const targetState = checkboxEl.checked ? 1 : 0;
@@ -2275,7 +2272,7 @@ async function executeDeleteUrgentRule() {
         closeModal('deleteUrgentRuleConfirmModal');
         alert("網路連線異常，刪除失敗");
     }
-}
+
 
 // ==========================================
 // 固定推播排程管理前端邏輯
