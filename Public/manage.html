@@ -504,40 +504,27 @@ input[type="date"], input[type="time"], select {
     </div>
 
     <form id="broadcastForm" class="space-y-3.5 text-xs font-bold text-slate-700">
+      <!-- 隱藏 ID 與 啟用狀態（啟用狀態由外側勾選控制，新增時預設為 1） -->
       <input type="hidden" id="formBroadcastId">
+      <input type="hidden" id="formBcActive" value="1">
 
-      <!-- 項目名稱 -->
+      <!-- 1. 項目名稱 -->
       <div>
         <label class="block mb-1 text-slate-800">項目名稱 <span class="text-rose-500">*</span></label>
         <input type="text" id="formBcTitle" required placeholder="例如：提醒請假、聯賽開始" class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-400">
       </div>
 
-      <!-- 第一排：是否啟動開關 + 推播時間 -->
-      <div class="grid grid-cols-2 gap-3 items-center">
-        <!-- 是否啟動 ON / OFF Switch -->
-        <div>
-          <label class="block mb-1 text-slate-800">排程狀態</label>
-          <label class="flex items-center gap-2 cursor-pointer h-[40px] px-3 bg-[#F8FAFC] border border-sky-200 rounded-xl select-none">
-            <div class="relative">
-              <input type="checkbox" id="formBcActive" class="sr-only peer" checked onchange="updateBcActiveText(this.checked)">
-              <div class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
-            </div>
-            <span id="formBcActiveText" class="text-xs font-black text-emerald-600">已啟用 (ON)</span>
-          </label>
+      <!-- 2. 推播時間 (已拿掉 ON/OFF 開關) -->
+      <div>
+        <label class="block mb-1 text-slate-800">推播時間 <span class="text-rose-500">*</span></label>
+        <div onclick="openTimeWheelPicker('bc')" class="w-full h-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 flex items-center justify-between cursor-pointer font-bold text-slate-900">
+          <span id="formBcTimeDisplay">20:00</span>
+          <span class="text-slate-400 text-[10px]">▼</span>
         </div>
-
-        <!-- 推播時間 -->
-        <div>
-          <label class="block mb-1 text-slate-800">推播時間</label>
-          <div onclick="openTimeWheelPicker('bc')" class="w-full h-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 flex items-center justify-between cursor-pointer font-bold text-slate-900">
-            <span id="formBcTimeDisplay">20:00</span>
-            <span class="text-slate-400 text-[10px]">▼</span>
-          </div>
-          <input type="hidden" id="formBcTime" value="20:00">
-        </div>
+        <input type="hidden" id="formBcTime" value="20:00">
       </div>
 
-      <!-- 每週重複週期 (一 ~ 日) -->
+      <!-- 3. 重複週期 (可複選星期 一 ~ 日) -->
       <div>
         <label class="block mb-1 text-slate-800">重複週期 (可複選星期) <span class="text-rose-500">*</span></label>
         <div class="grid grid-cols-7 gap-1.5 text-center select-none">
@@ -551,21 +538,27 @@ input[type="date"], input[type="time"], select {
         </div>
       </div>
 
-      <!-- 推播內容 -->
+      <!-- 4. 推播內容 -->
       <div>
         <label class="block mb-1 text-slate-800">推播內容 <span class="text-rose-500">*</span></label>
         <textarea id="formBcContent" rows="3" required placeholder="輸入要在 LINE 群組推播的文案..." class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl p-3 text-xs font-bold text-slate-900 resize-none focus:outline-none focus:ring-2 focus:ring-sky-400"></textarea>
       </div>
 
-      <!-- 按鈕群 -->
+      <!-- 5. 儲存與取消按鈕 -->
       <div class="grid grid-cols-2 gap-3 pt-2">
         <button type="button" onclick="closeModal('broadcastModal')" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 rounded-xl transition cursor-pointer">取消</button>
         <button type="submit" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-2.5 rounded-xl transition shadow-md shadow-sky-200 cursor-pointer">儲存推播</button>
       </div>
+
+      <!-- 6. 彈窗最底部的刪除按鈕 (編輯模式下由 JS 自動顯示) -->
+      <div id="deleteBcBtnWrapper" class="pt-2 border-t border-slate-100 hidden">
+        <button type="button" onclick="deleteCurrentBroadcast()" class="w-full bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold py-2.5 rounded-xl text-xs transition cursor-pointer">
+          刪除此推播排程
+        </button>
+      </div>
     </form>
   </div>
 </div>
-
 
 <!-- 彈窗 6：請假項目編輯 Modal（含溫和說明的最晚截止時間） -->
 <div id="urgentRuleModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
@@ -745,6 +738,21 @@ input[type="date"], input[type="time"], select {
  </div>
  </div>
 </div>
+
+<!-- 統一風格彈窗：推播排程狀態切換確認 Modal -->
+<div id="toggleBroadcastConfirmModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
+  <div class="bg-white w-full max-w-xs rounded-[28px] p-6 border-2 border-sky-200 soft-sky-shadow text-center">
+    <h3 class="text-base font-black text-slate-900 mb-1 mt-2">確認變更推播狀態？</h3>
+    <p id="toggleBroadcastConfirmText" class="text-xs text-slate-500 mb-5">確定要切換此項目的推播狀態嗎？</p>
+    <input type="hidden" id="toggleBroadcastId">
+    <input type="hidden" id="toggleBroadcastTargetState">
+    <div class="grid grid-cols-2 gap-2">
+      <button onclick="cancelToggleBroadcast()" class="bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold py-2.5 rounded-xl transition cursor-pointer">取消</button>
+      <button onclick="executeToggleBroadcast()" class="bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold py-2.5 rounded-xl transition shadow-md cursor-pointer">確認變更</button>
+    </div>
+  </div>
+</div>
+  
 <!-- 統一風格彈窗：確認刪除請假項目 Modal -->
 <div id="deleteUrgentRuleConfirmModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
   <div class="bg-white w-full max-w-xs rounded-[28px] p-6 border-2 border-rose-200 soft-sky-shadow text-center">
@@ -757,7 +765,18 @@ input[type="date"], input[type="time"], select {
     </div>
   </div>
 </div>
-
+<!-- 統一風格彈窗：確認刪除推播排程 Modal -->
+<div id="deleteBroadcastConfirmModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
+  <div class="bg-white w-full max-w-xs rounded-[28px] p-6 border-2 border-rose-200 soft-sky-shadow text-center">
+    <h3 class="text-base font-black text-slate-900 mb-1 mt-2">確認刪除推播排程？</h3>
+    <p id="deleteBroadcastConfirmText" class="text-xs text-slate-500 mb-5">確定要刪除此排程嗎？此動作無法復原！</p>
+    <input type="hidden" id="deleteBroadcastTargetId">
+    <div class="grid grid-cols-2 gap-2">
+      <button type="button" onclick="closeModal('deleteBroadcastConfirmModal')" class="bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold py-2.5 rounded-xl transition cursor-pointer">取消</button>
+      <button type="button" onclick="executeDeleteBroadcast()" class="bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold py-2.5 rounded-xl transition shadow-md cursor-pointer">確認刪除</button>
+    </div>
+  </div>
+</div>
 
 <script>
 // ==========================================
@@ -897,11 +916,10 @@ async function closeAuthModal() {
   renderMembersList();
   renderLeavesContent();
   renderUrgentRules();
-  fetchBroadcastsFromBackend();
 }
 
 // ==========================================
-/* 3. 資料非同步同步與 API 互動函式 */
+/ * 3. 資料非同步同步與 API 互動函式 * /
 // ==========================================
  async function fetchAllBackendData() {
  try {
@@ -2007,6 +2025,9 @@ async function executeDeleteClass() {
     syncAllClassDropdowns();
 }
 
+ // ==========================================
+// 9. 請假規則與時間滾輪選擇器互動
+// ==========================================
 
  function renderBroadcastSection() {
  const urgentContainer = document.getElementById('urgentRuleContainer');
@@ -2030,39 +2051,6 @@ async function executeDeleteClass() {
  `;
  urgentContainer.appendChild(item);
  });
-
- const schedContainer = document.getElementById('scheduleBroadcastContainer');
- schedContainer.innerHTML = "";
-
- if (broadcastSchedules.length === 0) {
- schedContainer.innerHTML = `<div class="text-center py-2 text-xs text-slate-400 font-bold">目前無設定推播排程</div>`;
- return;
- }
-
- broadcastSchedules.forEach((bc, idx) => {
- const item = document.createElement('div');
- item.className = "p-3 bg-[#F8FAFC] rounded-xl border border-sky-100 space-y-2 text-xs";
- item.innerHTML = `
- <div class="flex items-center justify-between">
- <div class="flex items-center gap-1.5">
- <span class="font-black text-slate-900">${bc.item}</span>
- <span class="text-[10px] bg-sky-100 text-sky-800 px-1.5 py-0.2 rounded font-bold">${bc.freq}</span>
- <span class="text-[10px] text-slate-400 font-mono">${bc.time ? bc.time : '即時觸發'}</span>
- </div>
- <div class="flex items-center gap-1.5">
- <button onclick="openBroadcastModal('edit', '${bc.id}')" class="text-xs text-sky-700 hover:text-sky-800 font-bold cursor-pointer">編輯</button>
- <span class="text-slate-300">|</span>
- <input type="checkbox" ${bc.active ? 'checked' : ''} onchange="toggleScheduleActive(${idx})" class="w-4 h-4 accent-sky-500 cursor-pointer">
- </div>
- </div>
- <div class="text-[11px] text-slate-600 bg-white p-2 rounded-lg border border-slate-100 font-medium">
- ${bc.content}
- </div>
- <div class="text-[10px] text-slate-400">觸發條件 / 週期：${formatCycleText(bc)}</div>
- `;
- schedContainer.appendChild(item);
- });
- }
 
  function promptToggleRule(eventName, checkboxEl) {
  const targetState = checkboxEl.checked ? 1 : 0;
@@ -2096,252 +2084,6 @@ async function executeDeleteClass() {
  } catch (err) { alert("更新狀態失敗"); }
  }
 
-// ==========================================
-// 推播排程管理前端完整邏輯 (修正對齊版)
-// ==========================================
-
-// 1. 週期文字格式化
-function formatCycleText(bc) {
-  if (!bc.cycle) return '未設定星期';
-  // 將資料庫儲存的 "一,三,五" 或 "一;三;五" 轉成好讀的頓號格式
-  const formattedCycle = bc.cycle.replace(/[,;]/g, '、');
-  return `每週 ${formattedCycle}`;
-}
-
-// 2. 切換 Modal 內 ON / OFF 開關提示文字
-function updateBcActiveText(isChecked) {
-  const textEl = document.getElementById('formBcActiveText');
-  if (!textEl) return;
-  if (isChecked) {
-    textEl.textContent = '已啟用 (ON)';
-    textEl.className = 'text-xs font-black text-emerald-600';
-  } else {
-    textEl.textContent = '已停用 (OFF)';
-    textEl.className = 'text-xs font-black text-slate-400';
-  }
-}
-
-// 3. 從後端拉取最新推播排程
-async function fetchBroadcastsFromBackend() {
-  try {
-    const res = await fetch(`${BACKEND_API_URL}/api/admin/broadcasts`);
-    const data = await res.json();
-    if (data.status === "success" && data.broadcasts) {
-      broadcastSchedules = data.broadcasts.map(bc => ({
-        ...bc,
-        id: bc.id || bc.broadcast_id,
-        active: (bc.active === 1 || bc.active === true)
-      }));
-      renderBroadcastSection();
-    }
-  } catch (err) {
-    console.error("載入推播排程失敗:", err);
-  }
-}
-
-// 4. 渲染排程卡片清單 (正確對應 scheduleBroadcastContainer)
-function renderBroadcastSection() {
-  const container = document.getElementById('scheduleBroadcastContainer');
-  if (!container) return;
-
-  if (broadcastSchedules.length === 0) {
-    container.innerHTML = `
-      <div class="p-6 text-center text-slate-400 font-bold text-xs bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-        目前尚未建立任何推播排程
-      </div>
-    `;
-    return;
-  }
-
-  container.innerHTML = broadcastSchedules.map((bc) => {
-    const cycleText = formatCycleText(bc);
-    const isActive = bc.active;
-
-    return `
-      <div class="p-4 bg-white border border-sky-100 rounded-2xl soft-sky-shadow flex items-center justify-between gap-3 text-left">
-        <div class="space-y-1 min-w-0 flex-1">
-          <div class="flex items-center gap-2">
-            <span class="text-xs font-black text-slate-900 truncate">${bc.item}</span>
-            <span class="px-2 py-0.5 rounded-md text-[10px] font-black shrink-0 ${isActive ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-slate-100 text-slate-400'}">
-              ${isActive ? '已啟用' : '已停用'}
-            </span>
-          </div>
-          <div class="text-[11px] font-bold text-slate-500 flex items-center gap-2">
-            <span>${bc.time || '20:00'}</span>
-            <span>•</span>
-            <span>${cycleText}</span>
-          </div>
-          <div class="text-[11px] text-slate-600 font-medium line-clamp-1 break-all">
-            💬 ${bc.content}
-          </div>
-        </div>
-
-        <div class="flex items-center gap-1.5 shrink-0">
-          <!-- 啟用 / 停用 按鈕 -->
-          <button onclick="toggleScheduleActive('${bc.id}')" class="px-2 py-1 rounded-lg border text-[11px] font-bold transition cursor-pointer ${isActive ? 'border-amber-200 text-amber-600 bg-amber-50 hover:bg-amber-100' : 'border-emerald-200 text-emerald-600 bg-emerald-50 hover:bg-emerald-100'}">
-            ${isActive ? '停用' : '啟用'}
-          </button>
-          <!-- 編輯 按鈕 -->
-          <button onclick="openBroadcastModal('edit', '${bc.id}')" class="px-2 py-1 rounded-lg border border-sky-200 text-sky-600 bg-sky-50 hover:bg-sky-100 text-[11px] font-bold transition cursor-pointer">
-            編輯
-          </button>
-          <!-- 刪除 按鈕 -->
-          <button onclick="deleteBroadcast('${bc.id}')" class="px-2 py-1 rounded-lg border border-rose-200 text-rose-500 bg-rose-50 hover:bg-rose-100 text-[11px] font-bold transition cursor-pointer">
-            刪除
-          </button>
-        </div>
-      </div>
-    `;
-  }).join('');
-}
-
-// 5. 列表中快速切換開關 (修正變數名為 broadcastSchedules)
-async function toggleScheduleActive(bcId) {
-  const target = broadcastSchedules.find(x => (x.id === bcId || x.broadcast_id === bcId));
-  if (!target) return;
-
-  const newStatus = target.active ? 0 : 1;
-
-  try {
-    const res = await fetch(`${BACKEND_API_URL}/api/admin/broadcasts/save`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        id: target.broadcast_id || target.id,
-        item: target.item,
-        freq: 'Weekly (每週固定)',
-        cycle: target.cycle,
-        time: target.time,
-        content: target.content,
-        active: newStatus
-      })
-    });
-    const result = await res.json();
-    if (result.status === "success") {
-      await fetchBroadcastsFromBackend();
-    } else {
-      alert("狀態更新失敗: " + result.message);
-    }
-  } catch (err) {
-    console.error("更新排程狀態失敗:", err);
-    alert("網路異常，狀態更新失敗");
-  }
-}
-
-// 6. 刪除推播排程
-async function deleteBroadcast(bcId) {
-  if (!confirm("確定要刪除此推播排程嗎？")) return;
-
-  try {
-    const res = await fetch(`${BACKEND_API_URL}/api/admin/broadcasts/${encodeURIComponent(bcId)}`, {
-      method: 'DELETE'
-    });
-    const result = await res.json();
-    if (result.status === "success") {
-      await fetchBroadcastsFromBackend();
-    } else {
-      alert("刪除失敗: " + result.message);
-    }
-  } catch (err) {
-    console.error("刪除失敗:", err);
-    alert("網路異常，刪除失敗");
-  }
-}
-
-// 7. 打開新增 / 編輯彈窗 (修正變數名為 broadcastSchedules)
-function openBroadcastModal(mode, id = null) {
-  const modal = document.getElementById('broadcastModal');
-  document.getElementById('broadcastForm').reset();
-  
-  // 清空所有勾選的星期
-  document.querySelectorAll('input[name="weekCheck"]').forEach(cb => cb.checked = false);
-
-  if (mode === 'create') {
-    document.getElementById('broadcastModalTitle').textContent = "新增推播排程";
-    document.getElementById('formBroadcastId').value = "";
-    document.getElementById('formBcTime').value = "20:00";
-    document.getElementById('formBcTimeDisplay').textContent = "20:00";
-    document.getElementById('formBcActive').checked = true;
-    updateBcActiveText(true);
-  } else {
-    document.getElementById('broadcastModalTitle').textContent = "編輯推播排程";
-    const bc = broadcastSchedules.find(x => (x.id === id || x.broadcast_id === id));
-    if (!bc) return;
-
-    document.getElementById('formBroadcastId').value = bc.broadcast_id || bc.id;
-    document.getElementById('formBcTitle').value = bc.item || "";
-    document.getElementById('formBcTime').value = bc.time || "20:00";
-    document.getElementById('formBcTimeDisplay').textContent = bc.time || "20:00";
-    document.getElementById('formBcContent').value = bc.content || "";
-
-    // 回填啟用狀態
-    const isActive = (bc.active === 1 || bc.active === true);
-    document.getElementById('formBcActive').checked = isActive;
-    updateBcActiveText(isActive);
-
-    // 回填星期勾選 (相容逗號與分號分割)
-    if (bc.cycle) {
-      const days = bc.cycle.includes(';') ? bc.cycle.split(';') : bc.cycle.split(',');
-      document.querySelectorAll('input[name="weekCheck"]').forEach(cb => {
-        if (days.includes(cb.value)) cb.checked = true;
-      });
-    }
-  }
-
-  modal.classList.remove('hidden');
-}
-
-// 8. 儲存排程表單送出 (串接後端 API)
-document.getElementById('broadcastForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-
-  const id = document.getElementById('formBroadcastId').value;
-  const pickedDays = Array.from(document.querySelectorAll('input[name="weekCheck"]:checked'))
-                         .map(cb => cb.value);
-
-  if (pickedDays.length === 0) {
-    alert("請至少選擇一個重複推播的星期！");
-    return;
-  }
-
-  const payload = {
-    id: id || ("BC_" + Date.now()),
-    item: document.getElementById('formBcTitle').value.trim(),
-    freq: 'Weekly (每週固定)',
-    cycle: pickedDays.join(','), // 存成如 "一,三,五"
-    time: document.getElementById('formBcTime').value,
-    content: document.getElementById('formBcContent').value.trim(),
-    active: document.getElementById('formBcActive').checked ? 1 : 0
-  };
-
-  try {
-    const res = await fetch(`${BACKEND_API_URL}/api/admin/broadcasts/save`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-
-    if (!res.ok) {
-      alert(`伺服器回應錯誤 (HTTP ${res.status})`);
-      return;
-    }
-
-    const result = await res.json();
-    if (result.status === "success") {
-      closeModal('broadcastModal');
-      await fetchBroadcastsFromBackend(); // 重新拉取後端最新資料更新畫面
-    } else {
-      alert("儲存排程失敗: " + result.message);
-    }
-  } catch (err) {
-    console.error("儲存排程異常:", err);
-    alert("網路連線異常，儲存失敗");
-  }
-});
-
-// ==========================================
-// 9. 請假規則與時間滾輪選擇器互動
-// ==========================================
 async function renderUrgentRules() {
     try {
         const res = await fetch(`${BACKEND_API_URL}/api/admin/leave-rules`);
@@ -2539,6 +2281,254 @@ async function executeDeleteUrgentRule() {
     }
 }
 
+// ==========================================
+// 固定推播排程管理前端邏輯（外側勾選框 + 彈窗極簡版）
+// ==========================================
+
+// 1. 週期文字格式化
+function formatBroadcastCycleText(cycleStr) {
+  if (!cycleStr) return '未指定星期';
+  return `每週 ${cycleStr.replace(/[,;]/g, '、')}`;
+}
+
+// 2. 從後端抓取推播排程清單
+async function fetchBroadcastsFromBackend() {
+  try {
+    const res = await fetch(`${BACKEND_API_URL}/api/admin/broadcasts`);
+    const data = await res.json();
+    if (data.status === "success" && data.broadcasts) {
+      broadcastSchedules = data.broadcasts.map(bc => ({
+        ...bc,
+        id: bc.id || bc.broadcast_id,
+        active: (bc.active === 1 || bc.active === true)
+      }));
+      renderBroadcastSection();
+    }
+  } catch (err) {
+    console.error("載入推播排程失敗:", err);
+  }
+}
+
+// 3. 渲染推播卡片（比照請假規則：外面顯示 編輯 | [✓勾勾]）
+function renderBroadcastSection() {
+  const schedContainer = document.getElementById('scheduleBroadcastContainer');
+  if (!schedContainer) return;
+  schedContainer.innerHTML = "";
+
+  if (!broadcastSchedules || broadcastSchedules.length === 0) {
+    schedContainer.innerHTML = `<div class="p-3 text-center text-xs text-slate-400 font-bold bg-[#F8FAFC] rounded-xl border border-sky-100">目前無設定推播排程</div>`;
+    return;
+  }
+
+  schedContainer.innerHTML = broadcastSchedules.map((bc) => {
+    const cycleText = formatBroadcastCycleText(bc.cycle);
+    const isActive = (bc.active === 1 || bc.active === true);
+    const bcId = bc.id || bc.broadcast_id;
+
+    return `
+      <div class="p-3 bg-white border border-sky-100 rounded-2xl soft-sky-shadow flex items-center justify-between gap-3 text-left">
+        <div class="space-y-1 min-w-0 flex-1">
+          <div class="text-xs font-black text-slate-900 truncate">${bc.item}</div>
+          <div class="text-[11px] font-bold text-slate-500 flex items-center gap-2 font-mono">
+            <span> ${bc.time || '20:00'}</span>
+            <span>•</span>
+            <span> ${cycleText}</span>
+          </div>
+        </div>
+
+        <!-- 比照請假規則：編輯 | [✓勾選框] -->
+        <div class="flex items-center gap-2 shrink-0">
+          <button onclick="openBroadcastModal('edit', '${bcId}')" class="text-xs text-sky-700 hover:text-sky-800 font-bold cursor-pointer">編輯</button>
+          <span class="text-slate-300">|</span>
+          <input type="checkbox" ${isActive ? 'checked' : ''} onchange="promptToggleBroadcast('${bcId}', this)" class="w-4 h-4 accent-sky-500 cursor-pointer">
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// 4. 外側打勾勾：觸發確認切換彈窗
+function promptToggleBroadcast(bcId, checkboxEl) {
+  const targetState = checkboxEl.checked ? 1 : 0;
+  checkboxEl.checked = !targetState; // 先復原，等確認彈窗確認
+
+  const bc = broadcastSchedules.find(x => (x.id === bcId || x.broadcast_id === bcId));
+  const itemName = bc ? bc.item : "此項目";
+
+  document.getElementById('toggleBroadcastId').value = bcId;
+  document.getElementById('toggleBroadcastTargetState').value = targetState;
+  document.getElementById('toggleBroadcastConfirmText').textContent = `確定要將【${itemName}】的排程推播狀態改為 ${targetState === 1 ? '開啟' : '關閉'} 嗎？`;
+  document.getElementById('toggleBroadcastConfirmModal').classList.remove('hidden');
+}
+
+// 取消切換推播狀態
+function cancelToggleBroadcast() {
+  closeModal('toggleBroadcastConfirmModal');
+  renderBroadcastSection();
+}
+
+// 確認切換推播狀態
+async function executeToggleBroadcast() {
+  const bcId = document.getElementById('toggleBroadcastId').value;
+  const targetState = parseInt(document.getElementById('toggleBroadcastTargetState').value);
+  closeModal('toggleBroadcastConfirmModal');
+
+  const bc = broadcastSchedules.find(x => (x.id === bcId || x.broadcast_id === bcId));
+  if (!bc) return;
+
+  try {
+    const res = await fetch(`${BACKEND_API_URL}/api/admin/broadcasts/save`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: bc.id || bc.broadcast_id,
+        item: bc.item,
+        freq: bc.freq || 'Weekly (每週固定)',
+        cycle: bc.cycle,
+        time: bc.time,
+        content: bc.content,
+        active: targetState
+      })
+    });
+    const result = await res.json();
+    if (result.status === "success") {
+      await fetchBroadcastsFromBackend();
+    } else {
+      alert("狀態更新失敗: " + result.message);
+    }
+  } catch (err) {
+    console.error("更新排程狀態失敗:", err);
+    alert("網路異常，狀態更新失敗");
+  }
+}
+
+// 5. 開啟 Modal
+function openBroadcastModal(mode, id = null) {
+  const modal = document.getElementById('broadcastModal');
+  const deleteBtnWrapper = document.getElementById('deleteBcBtnWrapper');
+  document.getElementById('broadcastForm').reset();
+  document.querySelectorAll('input[name="weekCheck"]').forEach(cb => cb.checked = false);
+
+  if (mode === 'create') {
+    document.getElementById('broadcastModalTitle').textContent = "新增推播排程";
+    document.getElementById('formBroadcastId').value = "";
+    document.getElementById('formBcTime').value = "20:00";
+    document.getElementById('formBcTimeDisplay').textContent = "20:00";
+    document.getElementById('formBcActive').value = "1"; // 預設新增為啟用
+    if (deleteBtnWrapper) deleteBtnWrapper.classList.add('hidden');
+  } else {
+    document.getElementById('broadcastModalTitle').textContent = "編輯推播排程";
+    const bc = broadcastSchedules.find(x => (x.id === id || x.broadcast_id === id));
+    if (!bc) return;
+
+    document.getElementById('formBroadcastId').value = bc.broadcast_id || bc.id;
+    document.getElementById('formBcTitle').value = bc.item || "";
+    document.getElementById('formBcTime').value = bc.time || "20:00";
+    document.getElementById('formBcTimeDisplay').textContent = bc.time || "20:00";
+    document.getElementById('formBcContent').value = bc.content || "";
+    document.getElementById('formBcActive').value = (bc.active === 1 || bc.active === true) ? "1" : "0";
+
+    if (bc.cycle) {
+      const days = bc.cycle.includes(';') ? bc.cycle.split(';') : bc.cycle.split(',');
+      document.querySelectorAll('input[name="weekCheck"]').forEach(cb => {
+        if (days.includes(cb.value)) cb.checked = true;
+      });
+    }
+
+    if (deleteBtnWrapper) deleteBtnWrapper.classList.remove('hidden');
+  }
+
+  modal.classList.remove('hidden');
+}
+
+// 步驟 1：點擊編輯彈窗底部的「刪除此推播排程」按鈕時，打開專屬確認彈窗
+function deleteCurrentBroadcast() {
+  const bcId = document.getElementById('formBroadcastId').value;
+  if (!bcId) return;
+
+  const bc = broadcastSchedules.find(x => (x.id === bcId || x.broadcast_id === bcId));
+  const itemName = bc ? bc.item : "此項目";
+
+  document.getElementById('deleteBroadcastTargetId').value = bcId;
+  document.getElementById('deleteBroadcastConfirmText').textContent = `確定要刪除排程【${itemName}】嗎？此動作無法復原！`;
+
+  // 關閉編輯彈窗，打開確認彈窗
+  closeModal('broadcastModal');
+  document.getElementById('deleteBroadcastConfirmModal').classList.remove('hidden');
+}
+
+// 步驟 2：在確認彈窗點擊「確認刪除」時，才正式送出 DELETE 請求
+async function executeDeleteBroadcast() {
+  const bcId = document.getElementById('deleteBroadcastTargetId').value;
+  if (!bcId) return;
+
+  closeModal('deleteBroadcastConfirmModal');
+
+  try {
+    const res = await fetch(`${BACKEND_API_URL}/api/admin/broadcasts/${encodeURIComponent(bcId)}`, {
+      method: 'DELETE'
+    });
+    const result = await res.json();
+    if (result.status === "success") {
+      await fetchBroadcastsFromBackend(); // 重新整理列表
+    } else {
+      alert("刪除失敗: " + result.message);
+    }
+  } catch (err) {
+    console.error("刪除失敗:", err);
+    alert("網路異常，刪除失敗");
+  }
+}
+
+// 7. 儲存表單送出
+document.getElementById('broadcastForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const id = document.getElementById('formBroadcastId').value;
+  const pickedDays = Array.from(document.querySelectorAll('input[name="weekCheck"]:checked'))
+                         .map(cb => cb.value);
+
+  if (pickedDays.length === 0) {
+    alert("請至少選擇一個重複推播的星期！");
+    return;
+  }
+
+  const payload = {
+    id: id || ("BC_" + Date.now()),
+    item: document.getElementById('formBcTitle').value.trim(),
+    freq: 'Weekly (每週固定)',
+    cycle: pickedDays.join(','),
+    time: document.getElementById('formBcTime').value,
+    content: document.getElementById('formBcContent').value.trim(),
+    active: parseInt(document.getElementById('formBcActive').value) || 1
+  };
+
+  try {
+    const res = await fetch(`${BACKEND_API_URL}/api/admin/broadcasts/save`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) {
+      alert(`伺服器回應錯誤 (HTTP ${res.status})`);
+      return;
+    }
+
+    const result = await res.json();
+    if (result.status === "success") {
+      closeModal('broadcastModal');
+      await fetchBroadcastsFromBackend();
+    } else {
+      alert("儲存排程失敗: " + result.message);
+    }
+  } catch (err) {
+    console.error("儲存排程異常:", err);
+    alert("網路連線異常，儲存失敗");
+  }
+});
+  
+  
  // ==========================================
  // 10. 成員狀態管理與團體速查邏輯
  // ==========================================
