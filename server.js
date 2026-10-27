@@ -486,29 +486,30 @@ app.delete('/api/admin/members/:uid', async (req, res) => {
 // ==========================================
 // Google 試算表同步 API
 // ==========================================
-app.get('/api/sheet/members', async (req, res) => {
+app.get('/api/sheet/leaves', async (req, res) => {
   const secretKey = req.query.key;
-  if (secretKey !== 'gm-lv') {
+  if (secretKey !== 'gm-lv') { // 請保持與您原本的 key 一致
     return res.status(403).json({ status: "error", message: "無權存取" });
   }
+
   try {
-    const result = await pool.query('SELECT * FROM members ORDER BY update_time DESC');
-    const members = result.rows.map(m => ({
-      lineUserId: m.line_user_id,
-      gameNickname: m.game_nickname,
-      gameClass: m.game_class,
-      lineDisplayName: m.line_display_name || "",
-      allowSearch: m.allow_search || "N",
-      accountStatus: m.account_status || "待審核",
-      updateTime: m.update_time ? new Date(m.update_time).toISOString().replace('T', ' ').substring(0, 16) : "",
-      guildRole: m.guild_role || "現任",
-      teamGroup: m.team_group || "",
-      joinedLineGroup: m.joined_line_group || "N",
-      joinedDc: m.joined_dc || "N",
-      tw: m.tw || "Y",
-      dcid: m.dcid || ""
+    // 💡 改動這裡：將 DESC 改為 ASC（由早到晚 / 舊到新）
+    const result = await pool.query('SELECT * FROM leaves ORDER BY submit_time ASC');
+    
+    // 將資料庫欄位對應轉換成試算表 A ~ H 欄的格式
+    // 對應欄位：請假日期(A), 遊戲暱稱(B), 遊戲職業(C), 請假活動(D), 請假原因(E), 填單時間(F), 請假人(G), 註記(H)
+    const leaves = result.rows.map(l => ({
+      leaveDate: l.leave_date || "",
+      gameNickname: l.game_nickname || "",
+      gameClass: l.game_class || "",
+      leaveEvent: l.leave_event || "",
+      leaveReason: l.leave_reason || "",
+      submitTime: l.submit_time ? new Date(l.submit_time).toISOString().replace('T', ' ').substring(0, 16) : "",
+      operatorName: l.operator_name || "本人",
+      isUrgent: l.is_urgent === 'Y' ? '緊急' : ''
     }));
-    res.json({ status: "success", members });
+
+    res.json({ status: "success", leaves });
   } catch (err) {
     res.status(500).json({ status: "error", message: err.message });
   }
