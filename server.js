@@ -1435,6 +1435,54 @@ app.post('/webhook', async (req, res) => {
   if (!events || !Array.isArray(events) || events.length === 0) return;
 
   for (const ev of events) {
+        // ==========================================
+        // 監聽新成員加入 LINE 群組事件 (memberJoined)
+        // ==========================================
+        if (ev.type === 'memberJoined') {
+          const source = ev.source;
+          
+          // 1. 確保是在群組內發生
+          if (source && source.type === 'group') {
+            const currentGroupId = source.groupId;
+        
+            // 2. 讀取系統設定中的「公會大群 ID」
+            const configRes = await pool.query("SELECT config_value FROM system_configs WHERE config_key = 'guild_group_id'");
+            const guildGroupId = configRes.rows.length > 0 ? configRes.rows[0].config_value : null;
+        
+            // 3. 確認是公會大群（避免幹部群加人也誤判）
+            if (guildGroupId && currentGroupId === guildGroupId) {
+              const joinedMembers = ev.joined?.members || [];
+        
+              for (const m of joinedMembers) {
+                if (m.type === 'user' && m.userId) {
+                  const joinedUid = m.userId;
+                  console.log(`[LINE 群組] 偵測到新成員進大群！UID: ${joinedUid}`);
+        
+                  try {
+                    // 4. 自動將該 UID 在資料庫中的 joined_line_group 標記為 'Y'
+                    const updateRes = await pool.query(`
+                      UPDATE members 
+                      SET joined_line_group = 'Y', update_time = CURRENT_TIMESTAMP 
+                      WHERE line_user_id = $1 
+                      RETURNING game_nickname
+                    `, [joinedUid]);
+        
+                    if (updateRes.rows.length > 0) {
+                      const nick = updateRes.rows[0].game_nickname;
+                      console.log(`[Database] 已將公會成員【${nick}】(${joinedUid}) 的 LINE 入群狀態更新為 'Y'`);
+                    } else {
+                      console.log(`[Database] UID ${joinedUid} 尚未在名冊中完成註冊，等待其後續綁定`);
+                    }
+                  } catch (dbErr) {
+                    console.error('[Database] 更新入群狀態失敗:', dbErr);
+                  }
+                }
+              }
+            }
+          }
+          continue;
+        }
+
     // ----------------------------------------------------
     // 監聽群組指令：自動綁定 Group ID
     // ----------------------------------------------------
