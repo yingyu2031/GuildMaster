@@ -497,69 +497,61 @@ input[type="date"], input[type="time"], select {
 
 <!-- 彈窗 5：推播排程編輯 Modal -->
 <div id="broadcastModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
- <div class="bg-white w-full max-w-md rounded-[28px] p-6 border-2 border-sky-200 soft-sky-shadow max-h-[90vh] overflow-y-auto text-left">
- <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
- <h3 id="broadcastModalTitle" class="text-base font-black text-slate-900">編輯推播項目</h3>
- <button onclick="closeModal('broadcastModal')" class="text-slate-400 hover:text-slate-600 text-sm font-bold cursor-pointer">關閉</button>
- </div>
- <form id="broadcastForm" class="space-y-3 text-xs font-bold text-slate-700">
- <input type="hidden" id="formBroadcastId">
- <div>
- <label class="block mb-1 text-slate-800">項目名稱 <span class="text-rose-500">*</span></label>
- <input type="text" id="formBcTitle" required placeholder="例如：提醒請假、聯賽開始" class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
- </div>
- <div class="grid grid-cols-2 gap-3">
- <div>
- <label class="block mb-1 text-slate-800">推播頻率</label>
- <select id="formBcFreq" onchange="handleFrequencyChange()" class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900 cursor-pointer">
- <option value="Weekly">Weekly (每週固定)</option>
- <option value="Always">Always (即時觸發)</option>
- <option value="Daily">Daily (每日)</option>
- </select>
- </div>
- <div>
- <label class="block mb-1 text-slate-800">推播時間</label>
- <div onclick="openTimeWheelPicker('bc')" class="w-full h-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 flex items-center justify-between cursor-pointer font-bold text-slate-900">
- <span id="formBcTimeDisplay">20:00</span>
- <span class="text-slate-400 text-[10px]">▼</span>
- </div>
- <input type="hidden" id="formBcTime" value="20:00">
- </div>
- </div>
- <div>
- <label class="block mb-1 text-slate-800">觸發條件 / 重複週期</label>
- <div id="freqBoxAlways" class="hidden">
- <select id="formBcEventSelect" class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900 cursor-pointer">
- <option value="Join">Join (成員加入公會大群時)</option>
- </select>
- </div>
- <div id="freqBoxWeekly" class="space-y-1.5">
- <div class="grid grid-cols-7 gap-1 text-center select-none">
- <label class="cursor-pointer"><input type="checkbox" name="weekCheck" value="1" class="sr-only peer"><div class="p-1.5 bg-[#F8FAFC] border border-sky-200 rounded-lg text-slate-600 peer-checked:bg-sky-500 peer-checked:text-white font-bold text-[11px]">一</div></label>
- <label class="cursor-pointer"><input type="checkbox" name="weekCheck" value="2" class="sr-only peer"><div class="p-1.5 bg-[#F8FAFC] border border-sky-200 rounded-lg text-slate-600 peer-checked:bg-sky-500 peer-checked:text-white font-bold text-[11px]">二</div></label>
- <label class="cursor-pointer"><input type="checkbox" name="weekCheck" value="3" class="sr-only peer"><div class="p-1.5 bg-[#F8FAFC] border border-sky-200 rounded-lg text-slate-600 peer-checked:bg-sky-500 peer-checked:text-white font-bold text-[11px]">三</div></label>
- <label class="cursor-pointer"><input type="checkbox" name="weekCheck" value="4" class="sr-only peer"><div class="p-1.5 bg-[#F8FAFC] border border-sky-200 rounded-lg text-slate-600 peer-checked:bg-sky-500 peer-checked:text-white font-bold text-[11px]">四</div></label>
- <label class="cursor-pointer"><input type="checkbox" name="weekCheck" value="5" class="sr-only peer"><div class="p-1.5 bg-[#F8FAFC] border border-sky-200 rounded-lg text-slate-600 peer-checked:bg-sky-500 peer-checked:text-white font-bold text-[11px]">五</div></label>
- <label class="cursor-pointer"><input type="checkbox" name="weekCheck" value="6" class="sr-only peer"><div class="p-1.5 bg-[#F8FAFC] border border-sky-200 rounded-lg text-slate-600 peer-checked:bg-sky-500 peer-checked:text-white font-bold text-[11px]">六</div></label>
- <label class="cursor-pointer"><input type="checkbox" name="weekCheck" value="0" class="sr-only peer"><div class="p-1.5 bg-[#F8FAFC] border border-sky-200 rounded-lg text-slate-600 peer-checked:bg-sky-500 peer-checked:text-white font-bold text-[11px]">日</div></label>
- </div>
- </div>
- <div id="freqBoxDaily" class="hidden">
- <input type="text" disabled value="每日定時發送（無須額外事件）" class="w-full bg-slate-100 border border-slate-200 text-slate-400 rounded-xl px-3 text-xs font-bold cursor-not-allowed">
- </div>
- </div>
- <div>
- <label class="block mb-1 text-slate-800">推播內容 <span class="text-rose-500">*</span></label>
- <textarea id="formBcContent" rows="3" required placeholder="輸入要在 LINE 群組推播的文案..." class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl p-3 text-xs font-bold text-slate-900 resize-none"></textarea>
- </div>
- <div class="grid grid-cols-2 gap-3 pt-3">
- <button type="button" onclick="closeModal('broadcastModal')" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 rounded-xl transition cursor-pointer">取消</button>
- <button type="submit" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-2.5 rounded-xl transition shadow-md shadow-sky-200 cursor-pointer">儲存推播</button>
- </div>
- </form>
- </div>
-</div>
+  <div class="bg-white w-full max-w-md rounded-[28px] p-6 border-2 border-sky-200 soft-sky-shadow max-h-[90vh] overflow-y-auto text-left">
+    <!-- 標題列 -->
+    <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+      <h3 id="broadcastModalTitle" class="text-base font-black text-slate-900">新增推播排程</h3>
+      <button type="button" onclick="closeModal('broadcastModal')" class="text-slate-400 hover:text-slate-600 text-sm font-bold cursor-pointer">關閉</button>
+    </div>
 
+    <form id="broadcastForm" class="space-y-3.5 text-xs font-bold text-slate-700">
+      <input type="hidden" id="formBroadcastId">
+
+      <!-- 1. 標題 -->
+      <div>
+        <label class="block mb-1 text-slate-800">排程標題 <span class="text-rose-500">*</span></label>
+        <input type="text" id="formBcTitle" required placeholder="例如：聯賽提醒、公會戰請假通知" class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-400">
+      </div>
+
+      <!-- 2. 時間 -->
+      <div>
+        <label class="block mb-1 text-slate-800">推播時間 <span class="text-rose-500">*</span></label>
+        <div onclick="openTimeWheelPicker('bc')" class="w-full h-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 flex items-center justify-between cursor-pointer font-bold text-slate-900">
+          <span id="formBcTimeDisplay">20:00</span>
+          <span class="text-slate-400 text-[10px]">▼</span>
+        </div>
+        <input type="hidden" id="formBcTime" value="20:00">
+      </div>
+
+      <!-- 3. 星期 (可複選 一 ~ 日) -->
+      <div>
+        <label class="block mb-1 text-slate-800">推播星期 (可複選) <span class="text-rose-500">*</span></label>
+        <div class="grid grid-cols-7 gap-1.5 text-center select-none">
+          <label class="cursor-pointer"><input type="checkbox" name="weekCheck" value="一" class="sr-only peer"><div class="py-2 bg-[#F8FAFC] border border-sky-200 rounded-xl text-slate-600 peer-checked:bg-sky-500 peer-checked:text-white peer-checked:border-sky-500 font-bold text-xs transition">一</div></label>
+          <label class="cursor-pointer"><input type="checkbox" name="weekCheck" value="二" class="sr-only peer"><div class="py-2 bg-[#F8FAFC] border border-sky-200 rounded-xl text-slate-600 peer-checked:bg-sky-500 peer-checked:text-white peer-checked:border-sky-500 font-bold text-xs transition">二</div></label>
+          <label class="cursor-pointer"><input type="checkbox" name="weekCheck" value="三" class="sr-only peer"><div class="py-2 bg-[#F8FAFC] border border-sky-200 rounded-xl text-slate-600 peer-checked:bg-sky-500 peer-checked:text-white peer-checked:border-sky-500 font-bold text-xs transition">三</div></label>
+          <label class="cursor-pointer"><input type="checkbox" name="weekCheck" value="四" class="sr-only peer"><div class="py-2 bg-[#F8FAFC] border border-sky-200 rounded-xl text-slate-600 peer-checked:bg-sky-500 peer-checked:text-white peer-checked:border-sky-500 font-bold text-xs transition">四</div></label>
+          <label class="cursor-pointer"><input type="checkbox" name="weekCheck" value="五" class="sr-only peer"><div class="py-2 bg-[#F8FAFC] border border-sky-200 rounded-xl text-slate-600 peer-checked:bg-sky-500 peer-checked:text-white peer-checked:border-sky-500 font-bold text-xs transition">五</div></label>
+          <label class="cursor-pointer"><input type="checkbox" name="weekCheck" value="六" class="sr-only peer"><div class="py-2 bg-[#F8FAFC] border border-sky-200 rounded-xl text-slate-600 peer-checked:bg-sky-500 peer-checked:text-white peer-checked:border-sky-500 font-bold text-xs transition">六</div></label>
+          <label class="cursor-pointer"><input type="checkbox" name="weekCheck" value="日" class="sr-only peer"><div class="py-2 bg-[#F8FAFC] border border-sky-200 rounded-xl text-slate-600 peer-checked:bg-sky-500 peer-checked:text-white peer-checked:border-sky-500 font-bold text-xs transition">日</div></label>
+        </div>
+      </div>
+
+      <!-- 4. 內容 -->
+      <div>
+        <label class="block mb-1 text-slate-800">推播內容 <span class="text-rose-500">*</span></label>
+        <textarea id="formBcContent" rows="3" required placeholder="輸入要在群組推播的提醒文案..." class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl p-3 text-xs font-bold text-slate-900 resize-none focus:outline-none focus:ring-2 focus:ring-sky-400"></textarea>
+      </div>
+
+      <!-- 按鈕群 -->
+      <div class="grid grid-cols-2 gap-3 pt-2">
+        <button type="button" onclick="closeModal('broadcastModal')" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 rounded-xl transition cursor-pointer">取消</button>
+        <button type="submit" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-2.5 rounded-xl transition shadow-md shadow-sky-200 cursor-pointer">儲存排程</button>
+      </div>
+    </form>
+  </div>
+</div>
+  
 <!-- 彈窗 6：請假項目編輯 Modal（含溫和說明的最晚截止時間） -->
 <div id="urgentRuleModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
  <div class="bg-white w-full max-w-md rounded-[28px] p-6 border-2 border-sky-200 soft-sky-shadow max-h-[90vh] overflow-y-auto text-left">
@@ -893,7 +885,7 @@ async function closeAuthModal() {
 }
 
 // ==========================================
-/ * 3. 資料非同步同步與 API 互動函式 * /
+/* 3. 資料非同步同步與 API 互動函式 */
 // ==========================================
  async function fetchAllBackendData() {
  try {
@@ -2000,7 +1992,196 @@ async function executeDeleteClass() {
 }
 
 
- function renderBroadcastSection() {
+ // ==========================================
+// 推播排程管理前端邏輯
+// ==========================================
+ 
+function renderBroadcastSection() {
+  const schedContainer = document.getElementById('scheduleBroadcastContainer');
+  if (!schedContainer) return;
+  schedContainer.innerHTML = "";
+
+  // 無資料時的提示
+  if (!broadcastSchedules || broadcastSchedules.length === 0) {
+    schedContainer.innerHTML = `
+      <div class="text-center py-3 text-xs text-slate-400 font-bold">目前無設定推播排程</div>
+    `;
+    return;
+  }
+
+  // 走訪排程資料渲染卡片
+  broadcastSchedules.forEach((bc) => {
+    const isActive = (bc.active === 1 || bc.active === true);
+    const bcId = bc.id || bc.broadcast_id;
+    const timeVal = bc.time || '20:00';
+    
+    // 週期文字格式化：轉成與請假規則相同的「 · 星期 二、四」
+    const cycleText = bc.cycle 
+      ? ` · 星期 ${bc.cycle.replace(/週/g, '').split(/[,;]/).join('、')}` 
+      : '';
+
+    const item = document.createElement('div');
+    // 與請假項目完全一致的外觀樣式
+    item.className = "p-3 bg-[#F8FAFC] rounded-xl border border-sky-100 flex items-center justify-between text-xs";
+    item.innerHTML = `
+      <div>
+        <div class="font-black text-slate-900">${bc.item}</div>
+        <div class="text-[11px] text-slate-500 font-bold">
+          推播時間：<span class="font-mono text-sky-700 font-black">${timeVal}</span>${cycleText}
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button type="button" onclick="openBroadcastModal('edit', '${bcId}')" class="text-xs text-sky-700 hover:text-sky-800 font-bold cursor-pointer">
+          編輯
+        </button>
+        <span class="text-slate-300">|</span>
+        <input type="checkbox" ${isActive ? 'checked' : ''} onchange="promptToggleBroadcast('${bcId}', this)" class="w-4 h-4 accent-sky-500 cursor-pointer">
+      </div>
+    `;
+    schedContainer.appendChild(item);
+  });
+}
+
+ // 點擊勾選框：先彈窗確認，避免誤觸
+function promptToggleBroadcast(bcId, checkboxEl) {
+  const targetState = checkboxEl.checked ? 1 : 0;
+  checkboxEl.checked = !targetState; // 先復原狀態，等待確認
+
+  const bc = broadcastSchedules.find(x => (x.id === bcId || x.broadcast_id === bcId));
+  const itemName = bc ? bc.item : "此項目";
+
+  document.getElementById('toggleBroadcastId').value = bcId;
+  document.getElementById('toggleBroadcastTargetState').value = targetState;
+  document.getElementById('toggleBroadcastConfirmText').textContent = `確定要將【${itemName}】的排程推播狀態改為 ${targetState === 1 ? '開啟' : '關閉'} 嗎？`;
+  document.getElementById('toggleBroadcastConfirmModal').classList.remove('hidden');
+}
+
+// 取消變更
+function cancelToggleBroadcast() {
+  closeModal('toggleBroadcastConfirmModal');
+  renderBroadcastSection();
+}
+
+// 確認變更並寫入後端
+async function executeToggleBroadcast() {
+  const bcId = document.getElementById('toggleBroadcastId').value;
+  const targetState = parseInt(document.getElementById('toggleBroadcastTargetState').value);
+  closeModal('toggleBroadcastConfirmModal');
+
+  const bc = broadcastSchedules.find(x => (x.id === bcId || x.broadcast_id === bcId));
+  if (!bc) return;
+
+  try {
+    const res = await fetch(`${BACKEND_API_URL}/api/admin/broadcasts/save`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: bc.id || bc.broadcast_id,
+        item: bc.item,
+        freq: bc.freq || 'Weekly (每週固定)',
+        cycle: bc.cycle,
+        time: bc.time,
+        content: bc.content,
+        active: targetState
+      })
+    });
+    const result = await res.json();
+    if (result.status === "success") {
+      await fetchBroadcastsFromBackend();
+    } else {
+      alert("狀態更新失敗: " + result.message);
+    }
+  } catch (err) {
+    console.error("更新排程狀態失敗:", err);
+    alert("網路異常，狀態更新失敗");
+  }
+}
+
+// 2. 週期文字格式化（僅顯示星期）
+function formatCycleText(bc) {
+  if (!bc.cycle) return '未設定';
+  return `星期 ${bc.cycle.replace(/[,;]/g, '、')}`;
+}
+
+// 3. 切換開關狀態
+function toggleScheduleActive(idx) {
+  broadcastSchedules[idx].active = !broadcastSchedules[idx].active;
+  renderBroadcastSection();
+}
+
+// 4. 打開新增 / 編輯彈窗（僅處理 標題、時間、星期、內容）
+function openBroadcastModal(mode, id = null) {
+  const modal = document.getElementById('broadcastModal');
+  document.getElementById('broadcastForm').reset();
+  document.querySelectorAll('input[name="weekCheck"]').forEach(cb => cb.checked = false);
+
+  if (mode === 'create') {
+    document.getElementById('broadcastModalTitle').textContent = "新增推播排程";
+    document.getElementById('formBroadcastId').value = "";
+    document.getElementById('formBcTitle').value = "";
+    document.getElementById('formBcTime').value = "20:00";
+    document.getElementById('formBcTimeDisplay').textContent = "20:00";
+    document.getElementById('formBcContent').value = "";
+  } else {
+    document.getElementById('broadcastModalTitle').textContent = "編輯推播排程";
+    const bc = broadcastSchedules.find(x => x.id === id);
+    if (!bc) return;
+
+    document.getElementById('formBroadcastId').value = bc.id;
+    document.getElementById('formBcTitle').value = bc.item || "";
+    document.getElementById('formBcTime').value = bc.time || "20:00";
+    document.getElementById('formBcTimeDisplay').textContent = bc.time || "20:00";
+    document.getElementById('formBcContent').value = bc.content || "";
+
+    // 回填星期勾選 (支援逗號或分號分割)
+    if (bc.cycle) {
+      const days = bc.cycle.includes(';') ? bc.cycle.split(';') : bc.cycle.split(',');
+      document.querySelectorAll('input[name="weekCheck"]').forEach(cb => {
+        if (days.includes(cb.value)) cb.checked = true;
+      });
+    }
+  }
+
+  modal.classList.remove('hidden');
+}
+
+// 5. 表單送出處理
+document.getElementById('broadcastForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const id = document.getElementById('formBroadcastId').value;
+
+  // 取得選取的星期
+  const picked = Array.from(document.querySelectorAll('input[name="weekCheck"]:checked')).map(cb => cb.value);
+  if (picked.length === 0) {
+    alert("請至少勾選一個推播的星期！");
+    return;
+  }
+  const cycleVal = picked.join(';');
+
+  const data = {
+    id: id || ("BC" + Date.now()),
+    item: document.getElementById('formBcTitle').value.trim(),
+    time: document.getElementById('formBcTime').value,
+    cycle: cycleVal,
+    content: document.getElementById('formBcContent').value.trim(),
+    active: true
+  };
+
+  if (id) {
+    const target = broadcastSchedules.find(x => x.id === id);
+    if (target) Object.assign(target, data);
+  } else {
+    broadcastSchedules.push(data);
+  }
+
+  closeModal('broadcastModal');
+  renderBroadcastSection();
+});
+
+// ==========================================
+// 9. 請假規則與時間滾輪選擇器互動
+// ==========================================
+function renderBroadcastSection() {
  const urgentContainer = document.getElementById('urgentRuleContainer');
  urgentContainer.innerHTML = "";
 
@@ -2022,39 +2203,6 @@ async function executeDeleteClass() {
  `;
  urgentContainer.appendChild(item);
  });
-
- const schedContainer = document.getElementById('scheduleBroadcastContainer');
- schedContainer.innerHTML = "";
-
- if (broadcastSchedules.length === 0) {
- schedContainer.innerHTML = `<div class="text-center py-2 text-xs text-slate-400 font-bold">目前無設定推播排程</div>`;
- return;
- }
-
- broadcastSchedules.forEach((bc, idx) => {
- const item = document.createElement('div');
- item.className = "p-3 bg-[#F8FAFC] rounded-xl border border-sky-100 space-y-2 text-xs";
- item.innerHTML = `
- <div class="flex items-center justify-between">
- <div class="flex items-center gap-1.5">
- <span class="font-black text-slate-900">${bc.item}</span>
- <span class="text-[10px] bg-sky-100 text-sky-800 px-1.5 py-0.2 rounded font-bold">${bc.freq}</span>
- <span class="text-[10px] text-slate-400 font-mono">${bc.time ? bc.time : '即時觸發'}</span>
- </div>
- <div class="flex items-center gap-1.5">
- <button onclick="openBroadcastModal('edit', '${bc.id}')" class="text-xs text-sky-700 hover:text-sky-800 font-bold cursor-pointer">編輯</button>
- <span class="text-slate-300">|</span>
- <input type="checkbox" ${bc.active ? 'checked' : ''} onchange="toggleScheduleActive(${idx})" class="w-4 h-4 accent-sky-500 cursor-pointer">
- </div>
- </div>
- <div class="text-[11px] text-slate-600 bg-white p-2 rounded-lg border border-slate-100 font-medium">
- ${bc.content}
- </div>
- <div class="text-[10px] text-slate-400">觸發條件 / 週期：${formatCycleText(bc)}</div>
- `;
- schedContainer.appendChild(item);
- });
- }
 
  function promptToggleRule(eventName, checkboxEl) {
  const targetState = checkboxEl.checked ? 1 : 0;
@@ -2087,122 +2235,8 @@ async function executeDeleteClass() {
  await renderUrgentRules();
  } catch (err) { alert("更新狀態失敗"); }
  }
-
- function formatCycleText(bc) {
- if (bc.freq === 'Daily') return '每日固定時間';
- if (bc.freq === 'Always') return '成員加入大群 (Join)';
- return `星期 ${bc.cycle ? bc.cycle.replace(/;/g, '、') : '無'}`;
- }
-
- function toggleScheduleActive(idx) {
- broadcastSchedules[idx].active = !broadcastSchedules[idx].active;
- renderBroadcastSection();
- }
-
- function openBroadcastModal(mode, id = null) {
- const modal = document.getElementById('broadcastModal');
- document.getElementById('broadcastForm').reset();
- document.querySelectorAll('input[name="weekCheck"]').forEach(cb => cb.checked = false);
-
- if (mode === 'create') {
- document.getElementById('broadcastModalTitle').textContent = "新增推播排程";
- document.getElementById('formBroadcastId').value = "";
- document.getElementById('formBcFreq').value = "Weekly";
- document.getElementById('formBcTime').value = "20:00";
- document.getElementById('formBcTimeDisplay').textContent = "20:00";
- } else {
- document.getElementById('broadcastModalTitle').textContent = "編輯推播排程";
- const bc = broadcastSchedules.find(x => x.id === id);
- if (!bc) return;
- document.getElementById('formBroadcastId').value = bc.id;
- document.getElementById('formBcTitle').value = bc.item;
- document.getElementById('formBcFreq').value = bc.freq;
- document.getElementById('formBcTime').value = bc.time || "20:00";
- document.getElementById('formBcTimeDisplay').textContent = bc.time || "20:00";
- document.getElementById('formBcContent').value = bc.content;
-
- if (bc.freq === 'Weekly' && bc.cycle) {
- const days = bc.cycle.split(';');
- document.querySelectorAll('input[name="weekCheck"]').forEach(cb => {
- if (days.includes(cb.value)) cb.checked = true;
- });
- }
- }
-
- handleFrequencyChange();
- modal.classList.remove('hidden');
- }
-
- function handleFrequencyChange() {
- const freq = document.getElementById('formBcFreq').value;
- const boxAlways = document.getElementById('freqBoxAlways');
- const boxWeekly = document.getElementById('freqBoxWeekly');
- const boxDaily = document.getElementById('freqBoxDaily');
- const timeDisplayBox = document.getElementById('formBcTimeDisplay').closest('div');
-
- boxAlways.classList.add('hidden');
- boxWeekly.classList.add('hidden');
- boxDaily.classList.add('hidden');
-
- if (freq === 'Always') {
- boxAlways.classList.remove('hidden');
- timeDisplayBox.style.opacity = "0.5";
- timeDisplayBox.style.pointerEvents = "none";
- } else if (freq === 'Weekly') {
- boxWeekly.classList.remove('hidden');
- timeDisplayBox.style.opacity = "1";
- timeDisplayBox.style.pointerEvents = "auto";
- } else if (freq === 'Daily') {
- boxDaily.classList.remove('hidden');
- timeDisplayBox.style.opacity = "1";
- timeDisplayBox.style.pointerEvents = "auto";
- }
- }
-
- document.getElementById('broadcastForm').addEventListener('submit', (e) => {
- e.preventDefault();
- const id = document.getElementById('formBroadcastId').value;
- const freq = document.getElementById('formBcFreq').value;
- let cycleVal = "";
-
- if (freq === 'Always') {
- cycleVal = "Join";
- } else if (freq === 'Weekly') {
- const picked = Array.from(document.querySelectorAll('input[name="weekCheck"]:checked')).map(cb => cb.value);
- if (picked.length === 0) {
- alert("每週固定推播請至少勾選一個星期！");
- return;
- }
- cycleVal = picked.join(';');
- } else if (freq === 'Daily') {
- cycleVal = "Everyday";
- }
-
- const data = {
- id: id || ("BC" + Date.now()),
- item: document.getElementById('formBcTitle').value.trim(),
- freq: freq,
- time: document.getElementById('formBcTime').value,
- cycle: cycleVal,
- content: document.getElementById('formBcContent').value.trim(),
- active: true
- };
-
- if (id) {
- const target = broadcastSchedules.find(x => x.id === id);
- if (target) Object.assign(target, data);
- } else {
- broadcastSchedules.push(data);
- }
-
- closeModal('broadcastModal');
- renderBroadcastSection();
- });
-
-// ==========================================
-// 9. 請假規則與時間滾輪選擇器互動
-// ==========================================
-async function renderUrgentRules() {
+ 
+ async function renderUrgentRules() {
     try {
         const res = await fetch(`${BACKEND_API_URL}/api/admin/leave-rules`);
         if (res.ok) {
