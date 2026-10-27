@@ -506,6 +506,7 @@ input[type="date"], input[type="time"], select {
 
     <form id="broadcastForm" class="space-y-3.5 text-xs font-bold text-slate-700">
       <input type="hidden" id="formBroadcastId">
+      <input type="hidden" id="formBcActive" value="1">
 
       <!-- 1. 標題 -->
       <div>
@@ -547,6 +548,13 @@ input[type="date"], input[type="time"], select {
       <div class="grid grid-cols-2 gap-3 pt-2">
         <button type="button" onclick="closeModal('broadcastModal')" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 rounded-xl transition cursor-pointer">取消</button>
         <button type="submit" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-2.5 rounded-xl transition shadow-md shadow-sky-200 cursor-pointer">儲存排程</button>
+      </div>
+
+      <!-- 彈窗底部刪除按鈕（編輯時由 JS 控制顯示） -->
+      <div id="deleteBcBtnWrapper" class="pt-2 border-t border-slate-100 mt-2 hidden">
+        <button type="button" onclick="deleteCurrentBroadcast()" class="w-full bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold py-2.5 rounded-xl text-xs transition cursor-pointer">
+          刪除此推播排程
+        </button>
       </div>
     </form>
   </div>
@@ -1993,7 +2001,7 @@ async function executeDeleteClass() {
 
 
 // ==========================================
-// 推播排程管理前端邏輯（樣式比照請假規則）
+// 推播排程管理前端邏輯
 // ==========================================
 
 // 1. 渲染推播排程卡片清單
@@ -2172,258 +2180,253 @@ document.getElementById('broadcastForm').addEventListener('submit', async (e) =>
 });
 
 // ==========================================
-// 9. 請假規則與時間滾輪選擇器互動
+// 請假項目規則渲染與切換邏輯 (嚴格閉合無語法錯誤版)
 // ==========================================
-function renderBroadcastSection() {
- const urgentContainer = document.getElementById('urgentRuleContainer');
- urgentContainer.innerHTML = "";
 
- leaveRulesData.forEach((r, idx) => {
- const item = document.createElement('div');
- item.className = "p-3 bg-[#F8FAFC] rounded-xl border border-sky-100 flex items-center justify-between text-xs";
- let cycleText = r.cycle ? ` · 星期 ${r.cycle.replace(/週/g, '').split(',').join('、')}` : '';
+// 1. 渲染請假項目清單
+function renderUrgentRulesUI() {
+  const urgentContainer = document.getElementById('urgentRuleContainer');
+  if (!urgentContainer) return;
+  urgentContainer.innerHTML = "";
 
- item.innerHTML = `
- <div>
- <div class="font-black text-slate-900">${r.event}</div>
-<div class="text-[11px] text-slate-500 font-bold">最晚截止：<span class="font-mono text-sky-700">${r.latest_time || r.latestTime || r.time || ''}</span>${cycleText}</div>
- </div>
- <div class="flex items-center gap-2">
- <button onclick="openUrgentRuleModal('edit', '${r.event}', '${r.latest_time || r.latestTime || r.time || ''}', '${r.cycle || ''}', ${r.enabled})" class="text-xs text-sky-700 hover:text-sky-800 font-bold cursor-pointer">編輯</button>
- <span class="text-slate-300">|</span>
- <input type="checkbox" ${r.enabled === 1 ? 'checked' : ''} onchange="promptToggleRule('${r.event}', this)" class="w-4 h-4 accent-sky-500 cursor-pointer">
- </div>
- `;
- urgentContainer.appendChild(item);
- });
+  if (!leaveRulesData || leaveRulesData.length === 0) {
+    urgentContainer.innerHTML = `<div class="p-3 text-center text-xs text-slate-400 font-bold bg-[#F8FAFC] rounded-xl border border-sky-100">尚未設定任何請假項目</div>`;
+    return;
+  }
 
- function promptToggleRule(eventName, checkboxEl) {
- const targetState = checkboxEl.checked ? 1 : 0;
- checkboxEl.checked = !targetState; // 先恢復原開關狀態，等待彈窗確認
+  leaveRulesData.forEach((r) => {
+    const item = document.createElement('div');
+    item.className = "p-3 bg-[#F8FAFC] rounded-xl border border-sky-100 flex items-center justify-between text-xs";
+    const cycleText = r.cycle ? ` · 星期 ${r.cycle.replace(/週/g, '').split(/[,;]/).join('、')}` : '';
 
- document.getElementById('toggleRuleName').value = eventName;
- document.getElementById('toggleRuleTargetState').value = targetState;
- document.getElementById('toggleRuleConfirmText').textContent = `確定要將【${eventName}】的超時推播狀態改為 ${targetState === 1 ? '開啟' : '關閉'} 嗎？`;
- document.getElementById('toggleRuleConfirmModal').classList.remove('hidden');
- }
-
- function cancelToggleRule() {
- closeModal('toggleRuleConfirmModal');
- renderBroadcastSection();
- }
-
- async function executeToggleRule() {
- const eventName = document.getElementById('toggleRuleName').value;
- const targetState = parseInt(document.getElementById('toggleRuleTargetState').value);
- closeModal('toggleRuleConfirmModal');
-
- const rule = leaveRulesData.find(r => r.event === eventName);
- if (!rule) return;
- const timeVal = rule.latestTime || rule.time || "20:00";
- try {
- await fetch(`${BACKEND_API_URL}/api/admin/leave-rules/save`, {
- method: 'POST', headers: { 'Content-Type': 'application/json' },
- body: JSON.stringify({ originalEvent: eventName, event: eventName, latestTime: timeVal, cycle: rule.cycle, enabled: targetState })
- });
- await renderUrgentRules();
- } catch (err) { alert("更新狀態失敗"); }
- }
- 
- async function renderUrgentRules() {
-    try {
-        const res = await fetch(`${BACKEND_API_URL}/api/admin/leave-rules`);
-        if (res.ok) {
-            const data = await res.json();
-            leaveRulesData = data.rules || [];
-        }
-    } catch (err) { 
-        console.error(err); 
-    }
-    if (currentMainSection === 'settings' && currentSettingSubTab === 'broadcast') {
-        renderBroadcastSection();
-    }
+    item.innerHTML = `
+      <div>
+        <div class="font-black text-slate-900">${r.event}</div>
+        <div class="text-[11px] text-slate-500 font-bold">最晚截止：<span class="font-mono text-sky-700 font-black">${r.latest_time || r.latestTime || r.time || ''}</span>${cycleText}</div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button type="button" onclick="openUrgentRuleModal('edit', '${r.event}', '${r.latest_time || r.latestTime || r.time || ''}', '${r.cycle || ''}', ${r.enabled})" class="text-xs text-sky-700 hover:text-sky-800 font-bold cursor-pointer">編輯</button>
+        <span class="text-slate-300">|</span>
+        <input type="checkbox" ${r.enabled === 1 ? 'checked' : ''} onchange="promptToggleRule('${r.event}', this)" class="w-4 h-4 accent-sky-500 cursor-pointer">
+      </div>
+    `;
+    urgentContainer.appendChild(item);
+  });
 }
 
+// 2. 切換請假規則啟用狀態彈窗確認
+function promptToggleRule(eventName, checkboxEl) {
+  const targetState = checkboxEl.checked ? 1 : 0;
+  checkboxEl.checked = !targetState; // 先恢復原開關狀態，等待彈窗確認
+
+  document.getElementById('toggleRuleName').value = eventName;
+  document.getElementById('toggleRuleTargetState').value = targetState;
+  document.getElementById('toggleRuleConfirmText').textContent = `確定要將【${eventName}】的超時推播狀態改為 ${targetState === 1 ? '開啟' : '關閉'} 嗎？`;
+  document.getElementById('toggleRuleConfirmModal').classList.remove('hidden');
+}
+
+function cancelToggleRule() {
+  closeModal('toggleRuleConfirmModal');
+  renderUrgentRulesUI();
+}
+
+async function executeToggleRule() {
+  const eventName = document.getElementById('toggleRuleName').value;
+  const targetState = parseInt(document.getElementById('toggleRuleTargetState').value);
+  closeModal('toggleRuleConfirmModal');
+
+  const rule = leaveRulesData.find(r => r.event === eventName);
+  if (!rule) return;
+  const timeVal = rule.latestTime || rule.time || "20:00";
+  try {
+    await fetch(`${BACKEND_API_URL}/api/admin/leave-rules/save`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ originalEvent: eventName, event: eventName, latestTime: timeVal, cycle: rule.cycle, enabled: targetState })
+    });
+    await renderUrgentRules();
+  } catch (err) {
+    alert("更新狀態失敗");
+  }
+}
+
+// 3. 從後端載入請假規則
+async function renderUrgentRules() {
+  try {
+    const res = await fetch(`${BACKEND_API_URL}/api/admin/leave-rules`);
+    if (res.ok) {
+      const data = await res.json();
+      leaveRulesData = data.rules || [];
+    }
+  } catch (err) {
+    console.error(err);
+  }
+  renderUrgentRulesUI();
+}
+
+// 4. 時間滾輪相關共用函式
 function initTimeWheelSelects() {
-    const hSelect = document.getElementById('wheelHourSelect');
-    const mSelect = document.getElementById('wheelMinuteSelect');
-    if (!hSelect || !mSelect) return;
+  const hSelect = document.getElementById('wheelHourSelect');
+  const mSelect = document.getElementById('wheelMinuteSelect');
+  if (!hSelect || !mSelect) return;
 
-    hSelect.innerHTML = "";
-    mSelect.innerHTML = "";
+  hSelect.innerHTML = "";
+  mSelect.innerHTML = "";
 
-    for (let i = 0; i < 24; i++) {
-        const hs = String(i).padStart(2, '0');
-        hSelect.innerHTML += `<option value="${hs}">${hs}</option>`;
-    }
-    for (let i = 0; i < 60; i++) {
-        const ms = String(i).padStart(2, '0');
-        mSelect.innerHTML += `<option value="${ms}">${ms}</option>`;
-    }
+  for (let i = 0; i < 24; i++) {
+    const hs = String(i).padStart(2, '0');
+    hSelect.innerHTML += `<option value="${hs}">${hs}</option>`;
+  }
+  for (let i = 0; i < 60; i++) {
+    const ms = String(i).padStart(2, '0');
+    mSelect.innerHTML += `<option value="${ms}">${ms}</option>`;
+  }
 }
 
 function openTimeWheelPicker(targetType) {
-    activeTimeWheelTarget = targetType; // 'rule' 或 'bc'
-    const inputId = targetType === 'rule' ? 'ruleLatestTime' : 'formBcTime';
-    // 若沒有值，預設抓取目前畫面上顯示的，或者給個當前當下時間，絕不寫死 20:00
-    const currentVal = document.getElementById(inputId).value || document.getElementById('ruleLatestTimeDisplay').textContent || "12:00";
-    const parts = currentVal.split(':');
-    if (parts.length === 2) {
-        document.getElementById('wheelHourSelect').value = parts[0];
-        document.getElementById('wheelMinuteSelect').value = parts[1];
-    }
-    document.getElementById('timeWheelModal').classList.remove('hidden');
+  activeTimeWheelTarget = targetType; // 'rule' 或 'bc'
+  const inputId = targetType === 'rule' ? 'ruleLatestTime' : 'formBcTime';
+  const currentVal = document.getElementById(inputId).value || document.getElementById('ruleLatestTimeDisplay').textContent || "12:00";
+  const parts = currentVal.split(':');
+  if (parts.length === 2) {
+    document.getElementById('wheelHourSelect').value = parts[0];
+    document.getElementById('wheelMinuteSelect').value = parts[1];
+  }
+  document.getElementById('timeWheelModal').classList.remove('hidden');
 }
 
 function confirmTimeWheel() {
-    const h = document.getElementById('wheelHourSelect').value;
-    const m = document.getElementById('wheelMinuteSelect').value;
-    const finalTime = `${h}:${m}`;
+  const h = document.getElementById('wheelHourSelect').value;
+  const m = document.getElementById('wheelMinuteSelect').value;
+  const finalTime = `${h}:${m}`;
 
-    if (activeTimeWheelTarget === 'rule') {
-        const timeInput = document.getElementById('ruleLatestTime');
-        const timeDisplay = document.getElementById('ruleLatestTimeDisplay');
-        
-        if (timeInput) timeInput.value = finalTime;
-        if (timeDisplay) timeDisplay.textContent = finalTime;
-    } else if (activeTimeWheelTarget === 'bc') {
-        const bcInput = document.getElementById('formBcTime');
-        const bcDisplay = document.getElementById('formBcTimeDisplay');
-        
-        if (bcInput) bcInput.value = finalTime;
-        if (bcDisplay) bcDisplay.textContent = finalTime;
-    }
-    
-    closeModal('timeWheelModal');
+  if (activeTimeWheelTarget === 'rule') {
+    const timeInput = document.getElementById('ruleLatestTime');
+    const timeDisplay = document.getElementById('ruleLatestTimeDisplay');
+    if (timeInput) timeInput.value = finalTime;
+    if (timeDisplay) timeDisplay.textContent = finalTime;
+  } else if (activeTimeWheelTarget === 'bc') {
+    const bcInput = document.getElementById('formBcTime');
+    const bcDisplay = document.getElementById('formBcTimeDisplay');
+    if (bcInput) bcInput.value = finalTime;
+    if (bcDisplay) bcDisplay.textContent = finalTime;
+  }
+  closeModal('timeWheelModal');
 }
 
+// 5. 開啟請假項目 Modal
 function openUrgentRuleModal(mode, event = '', latestTime = '', cycle = '', enabled = 1) {
-    document.getElementById('ruleEventName').value = "";
-    selectedCycleDays = [];
-    
-    window.currentEditingRuleEnabled = enabled; // 暫存原本的啟用狀態
+  document.getElementById('ruleEventName').value = "";
+  selectedCycleDays = [];
+  window.currentEditingRuleEnabled = enabled;
 
-    if (mode === 'edit') {
-        document.getElementById('urgentRuleModalTitle').textContent = "編輯請假項目與時間";
-        document.getElementById('ruleOriginalEventName').value = event;
-        document.getElementById('ruleEventName').value = event;
-        
-        // 💡 直接使用從資料庫抓出來的真實時間 (例如 18:00 或 16:00)
-        const resolvedTime = latestTime && latestTime.includes(':') ? latestTime : "12:00";
-        document.getElementById('ruleLatestTime').value = resolvedTime;
-        document.getElementById('ruleLatestTimeDisplay').textContent = resolvedTime;
-        
-        if (cycle) {
-            selectedCycleDays = cycle.split(',').map(s => s.trim().replace('週', ''));
-        }
-    } else {
-        document.getElementById('urgentRuleModalTitle').textContent = "新增請假項目與時間";
-        document.getElementById('ruleOriginalEventName').value = "";
-        
-        // 預設帶入一個空狀態或當前預設時間，但不強迫 20:00
-        document.getElementById('ruleLatestTime').value = "";
-        document.getElementById('ruleLatestTimeDisplay').textContent = "請選擇時間";
-        
-        window.currentEditingRuleEnabled = 1; // 預設新增時啟用
-        selectedCycleDays = [];
+  if (mode === 'edit') {
+    document.getElementById('urgentRuleModalTitle').textContent = "編輯請假項目與時間";
+    document.getElementById('ruleOriginalEventName').value = event;
+    document.getElementById('ruleEventName').value = event;
+    const resolvedTime = latestTime && latestTime.includes(':') ? latestTime : "12:00";
+    document.getElementById('ruleLatestTime').value = resolvedTime;
+    document.getElementById('ruleLatestTimeDisplay').textContent = resolvedTime;
+    if (cycle) {
+      selectedCycleDays = cycle.split(',').map(s => s.trim().replace('週', ''));
     }
-    updateCycleButtonsUI();
-    document.getElementById('urgentRuleModal').classList.remove('hidden');
+  } else {
+    document.getElementById('urgentRuleModalTitle').textContent = "新增請假項目與時間";
+    document.getElementById('ruleOriginalEventName').value = "";
+    document.getElementById('ruleLatestTime').value = "";
+    document.getElementById('ruleLatestTimeDisplay').textContent = "請選擇時間";
+    window.currentEditingRuleEnabled = 1;
+    selectedCycleDays = [];
+  }
+  updateCycleButtonsUI();
+  document.getElementById('urgentRuleModal').classList.remove('hidden');
 }
 
 function toggleCycleDay(day) {
-    if (selectedCycleDays.includes(day)) {
-        selectedCycleDays = selectedCycleDays.filter(d => d !== day);
-    } else {
-        selectedCycleDays.push(day);
-    }
-    updateCycleButtonsUI();
+  if (selectedCycleDays.includes(day)) {
+    selectedCycleDays = selectedCycleDays.filter(d => d !== day);
+  } else {
+    selectedCycleDays.push(day);
+  }
+  updateCycleButtonsUI();
 }
 
 function updateCycleButtonsUI() {
-    const btns = document.querySelectorAll('.cycle-btn');
-    btns.forEach(btn => {
-        const day = btn.getAttribute('data-day');
-        if (selectedCycleDays.includes(day)) {
-            btn.className = "cycle-btn flex-1 py-2 rounded-xl border border-sky-400 text-xs font-black transition bg-sky-500 text-white shadow-xs cursor-pointer";
-        } else {
-            btn.className = "cycle-btn flex-1 py-2 rounded-xl border border-sky-200 text-xs font-black transition bg-white text-slate-600 cursor-pointer";
-        }
-    });
-    document.getElementById('ruleCycleValue').value = selectedCycleDays.map(d => '週' + d).join(', ');
+  const btns = document.querySelectorAll('.cycle-btn');
+  btns.forEach(btn => {
+    const day = btn.getAttribute('data-day');
+    if (selectedCycleDays.includes(day)) {
+      btn.className = "cycle-btn flex-1 py-2 rounded-xl border border-sky-400 text-xs font-black transition bg-sky-500 text-white shadow-xs cursor-pointer";
+    } else {
+      btn.className = "cycle-btn flex-1 py-2 rounded-xl border border-sky-200 text-xs font-black transition bg-white text-slate-600 cursor-pointer";
+    }
+  });
+  document.getElementById('ruleCycleValue').value = selectedCycleDays.map(d => '週' + d).join(', ');
 }
 
-// 請假項目表單送出（儲存）- 帶有必填檢查
+// 請假表單送出儲存
 document.getElementById('urgentRuleForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    const originalEvent = document.getElementById('ruleOriginalEventName').value;
-    const eventName = document.getElementById('ruleEventName').value.trim();
-    const latestTime = document.getElementById('ruleLatestTime').value.trim();
-    
-    // 💡 必填檢查：如果沒有時間，不予送出並跳出提示
-    if (!latestTime || !latestTime.includes(':') || latestTime === "請選擇時間") {
-        alert("請選擇最晚請假截止時間！");
-        return;
-    }
-    
-    const enabled = window.currentEditingRuleEnabled !== undefined ? window.currentEditingRuleEnabled : 1;
-    const cycle = document.getElementById('ruleCycleValue').value;
+  e.preventDefault();
+  const originalEvent = document.getElementById('ruleOriginalEventName').value;
+  const eventName = document.getElementById('ruleEventName').value.trim();
+  const latestTime = document.getElementById('ruleLatestTime').value.trim();
 
-    try {
-        const res = await fetch(`${BACKEND_API_URL}/api/admin/leave-rules/save`, {
-            method: 'POST', 
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ originalEvent, event: eventName, latestTime, cycle, enabled })
-        });
-        const result = await res.json();
-        if (result.status === "success") {
-            closeModal('urgentRuleModal');
-            await renderUrgentRules();
-        } else {
-            alert("儲存失敗: " + (result.message || '未知錯誤'));
-        }
-    } catch (err) { 
-        console.error("儲存發生錯誤:", err);
-        alert("網路連線異常，儲存失敗"); 
+  if (!latestTime || !latestTime.includes(':') || latestTime === "請選擇時間") {
+    alert("請選擇最晚請假截止時間！");
+    return;
+  }
+
+  const enabled = window.currentEditingRuleEnabled !== undefined ? window.currentEditingRuleEnabled : 1;
+  const cycle = document.getElementById('ruleCycleValue').value;
+
+  try {
+    const res = await fetch(`${BACKEND_API_URL}/api/admin/leave-rules/save`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ originalEvent, event: eventName, latestTime, cycle, enabled })
+    });
+    const result = await res.json();
+    if (result.status === "success") {
+      closeModal('urgentRuleModal');
+      await renderUrgentRules();
+    } else {
+      alert("儲存失敗: " + (result.message || '未知錯誤'));
     }
+  } catch (err) {
+    console.error("儲存發生錯誤:", err);
+    alert("網路連線異常，儲存失敗");
+  }
 });
 
-// 點擊刪除按鈕時觸發（開啟美觀確認 Modal）
 function promptDeleteUrgentRule() {
-    const eventName = document.getElementById('ruleOriginalEventName').value;
-    if (!eventName) return;
-    
-    document.getElementById('deleteUrgentRuleTargetName').value = eventName;
-    document.getElementById('deleteUrgentRuleConfirmText').textContent = `確定要刪除請假項目【${eventName}】嗎？`;
-    
-    closeModal('urgentRuleModal');
-    document.getElementById('deleteUrgentRuleConfirmModal').classList.remove('hidden');
+  const eventName = document.getElementById('ruleOriginalEventName').value;
+  if (!eventName) return;
+  document.getElementById('deleteUrgentRuleTargetName').value = eventName;
+  document.getElementById('deleteUrgentRuleConfirmText').textContent = `確定要刪除請假項目【${eventName}】嗎？`;
+  closeModal('urgentRuleModal');
+  document.getElementById('deleteUrgentRuleConfirmModal').classList.remove('hidden');
 }
 
-// 執行美觀 Modal 的確認刪除 API
 async function executeDeleteUrgentRule() {
-    const eventName = document.getElementById('deleteUrgentRuleTargetName').value;
-    if (!eventName) return;
+  const eventName = document.getElementById('deleteUrgentRuleTargetName').value;
+  if (!eventName) return;
 
-    try {
-        const response = await fetch(`${BACKEND_API_URL}/api/admin/leave-rules/${encodeURIComponent(eventName)}`, {
-            method: 'DELETE'
-        });
-        const result = await response.json();
-        
-        closeModal('deleteUrgentRuleConfirmModal');
-        
-        if (result.status === "success") {
-            await renderUrgentRules();
-        } else {
-            alert("刪除失敗: " + result.message);
-        }
-    } catch (err) {
-        console.error("刪除發生錯誤:", err);
-        closeModal('deleteUrgentRuleConfirmModal');
-        alert("網路連線異常，刪除失敗");
+  try {
+    const response = await fetch(`${BACKEND_API_URL}/api/admin/leave-rules/${encodeURIComponent(eventName)}`, {
+      method: 'DELETE'
+    });
+    const result = await response.json();
+    closeModal('deleteUrgentRuleConfirmModal');
+    if (result.status === "success") {
+      await renderUrgentRules();
+    } else {
+      alert("刪除失敗: " + result.message);
     }
+  } catch (err) {
+    console.error("刪除發生錯誤:", err);
+    closeModal('deleteUrgentRuleConfirmModal');
+    alert("網路連線異常，刪除失敗");
+  }
 }
 
  // ==========================================
