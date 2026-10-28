@@ -237,7 +237,7 @@ app.get('/api/members/search', async (req, res) => {
 // ==========================================
 // LINE 官方帳號 Token 設定
 // ==========================================
-const LINE_ACCESS_TOKEN = process.env.LINE_ACCESS_TOKEN || '1h1lOg2oVMOyqfCsIDtwGNpncdhQC3PLqd8H2U4o9ZPx8/3iQULOZbW3NFwZDK4rv5RuueU0osY2TZg0vBd/geGUhFMHCxQvbmwUFSmC++nS0drLcHdePaZy2V/pheqis7g6g6ZY/Hsz2cg+CJ8B0gdB04t89/1O/w1cDnyilFU=';
+const LINE_ACCESS_TOKEN = process.env.LINE_ACCESS_TOKEN || 'gOAoMsNwlJaNlVqT8ONJXLDllnjKNoZjiKa6lZDtU4L7Ant7Aaf/y+PHxunIKfVRyOBvOspMp7Hhf0N/QCz+0rxJ5mBE2yDh9zoP9U1BWLb80whgwDD2Omf9ISj81y6yvuIjxZkR3Z+F0lackAQZWAdB04t89/1O/w1cDnyilFU=';
 
 // ==========================================
 // LINE Messaging API Webhook 接收端點
