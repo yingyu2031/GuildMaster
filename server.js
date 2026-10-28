@@ -274,7 +274,7 @@ app.post('/webhook', async (req, res) => {
             await replyLineMessage(ev.replyToken, [
               {
                 type: 'text',
-                text: `✅【公會大群】設定成功！\n\n📌 群組 ID：\n${currentGroupId}\n\n已自動寫入後台設定，排程推播與活動將發送至此群組。`
+                text: `【公會大群】設定成功！\n\n📌 群組 ID：\n${currentGroupId}\n\n已自動寫入後台設定，排程推播與活動將發送至此群組。`
               }
             ]);
             console.log(`[LINE Bot] 成功綁定公會大群 ID: ${currentGroupId}`);
@@ -297,7 +297,7 @@ app.post('/webhook', async (req, res) => {
             await replyLineMessage(ev.replyToken, [
               {
                 type: 'text',
-                text: `👑【幹部專用群】設定成功！\n\n📌 群組 ID：\n${currentGroupId}\n\n已自動寫入後台設定，會員審核與臨時請假通知將發送至此群組。`
+                text: `【幹部專用群】設定成功！\n\n📌 群組 ID：\n${currentGroupId}\n\n已自動寫入後台設定，會員審核與臨時請假通知將發送至此群組。`
               }
             ]);
             console.log(`[LINE Bot] 成功綁定幹部群 ID: ${currentGroupId}`);
@@ -449,13 +449,13 @@ app.post('/api/members/bind', async (req, res) => {
           const regionText = finalTw === 'N' ? '大陸通道(DC)' : '台灣(LINE)';
 
           const notifyMessage = 
-            `🔔【新成員入會待審核】\n\n` +
+            `【新成員入會待審核】\n\n` +
             `• 遊戲暱稱：${gameNickname}\n` +
             `• 遊戲職業：${gameClass}\n` +
             `• 社群暱稱：${lineDisplayName || '無'}\n` +
             `• 註冊管道：${regionText}\n` +
             `• 申請時間：${currentTime}\n\n` +
-            `👉 請幹部前往【管理後台 ➔ 會員名冊】進行核對與審核。`;
+            `👉 請前往【幹部管理後台】進行核對與審核。`;
 
           await fetch('https://api.line.me/v2/bot/message/push', {
             method: 'POST',
