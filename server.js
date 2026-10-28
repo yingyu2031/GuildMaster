@@ -237,7 +237,10 @@ app.get('/api/members/search', async (req, res) => {
 // ==========================================
 // LINE 官方帳號 Token 設定
 // ==========================================
-const LINE_ACCESS_TOKEN = process.env.LINE_ACCESS_TOKEN || '1h1lOg2oVMOyqfCsIDtwGNpncdhQC3PLqd8H2U4o9ZPx8/3iQULOZbW3NFwZDK4rv5RuueU0osY2TZg0vBd/geGUhFMHCxQvbmwUFSmC++nS0drLcHdePaZy2V/pheqis7g6g6ZY/Hsz2cg+CJ8B0gdB04t89/1O/w1cDnyilFU=';
+const LINE_ACCESS_TOKEN = process.env.LINE_ACCESS_TOKEN || 'gOAoMsNwlJaNlVqT8ONJXLDllnjKNoZjiKa6lZDtU4L7Ant7Aaf/y+PHxunIKfVRyOBvOspMp7Hhf0N/QCz+0rxJ5mBE2yDh9zoP9U1BWLb80whgwDD2Omf9ISj81y6yvuIjxZkR3Z+F0lackAQZWAdB04t89/1O/w1cDnyilFU=';
+
+// n8n Webhook 轉發目標網址
+const N8N_WEBHOOK_URL = 'https://2026-cc-n8n.duckdns.org/webhook/line-hook';
 
 // ==========================================
 // LINE Messaging API Webhook 接收端點
@@ -249,10 +252,23 @@ app.post('/webhook', async (req, res) => {
   const events = req.body.events;
   if (!events || !Array.isArray(events) || events.length === 0) return;
 
+  // ----------------------------------------------------
+  // 🚀 關鍵同步：非同步轉發整包事件給 n8n
+  // ----------------------------------------------------
+  fetch(N8N_WEBHOOK_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(req.body)
+  }).catch(err => {
+    // 轉發失敗僅印 Log，不中斷 GuildMaster 正常運作
+    console.warn('[LINE Webhook] 轉發至 n8n 異常:', err.message);
+  });
+
+  // ----------------------------------------------------
+  // 以下維持 GuildMaster 原有的群組指令與入群監聽
+  // ----------------------------------------------------
   for (const ev of events) {
-    // ----------------------------------------------------
-    // 監聽群組指令：自動綁定 Group ID
-    // ----------------------------------------------------
+    // 1. 監聽群組指令：自動綁定 Group ID
     if (ev.type === 'message' && ev.message.type === 'text') {
       const userText = ev.message.text.trim();
       const source = ev.source;
@@ -261,7 +277,7 @@ app.post('/webhook', async (req, res) => {
       if (source && source.type === 'group') {
         const currentGroupId = source.groupId;
 
-        // 1. 指令：/大群ID 或 /綁定大群
+        // 指令：/大群ID 或 /綁定大群
         if (userText === '/大群ID' || userText === '/綁定大群') {
           try {
             await pool.query(`
@@ -284,7 +300,7 @@ app.post('/webhook', async (req, res) => {
           continue;
         }
 
-        // 2. 指令：/幹部群ID 或 /綁定幹部群
+        // 指令：/幹部群ID 或 /綁定幹部群
         if (userText === '/幹部群ID' || userText === '/綁定幹部群') {
           try {
             await pool.query(`
@@ -307,7 +323,7 @@ app.post('/webhook', async (req, res) => {
           continue;
         }
 
-        // 3. 純查詢指令：/群ID 或 /id
+        // 指令：/群ID 或 /id
         if (userText === '/群ID' || userText === '/id') {
           await replyLineMessage(ev.replyToken, [
             {
@@ -320,9 +336,7 @@ app.post('/webhook', async (req, res) => {
       }
     }
 
-    // ----------------------------------------------------
-    // Bot 剛被拉進群組時自動發送歡迎引導
-    // ----------------------------------------------------
+    // 2. Bot 剛被拉進群組時自動發送歡迎引導
     if (ev.type === 'join' && ev.source && ev.source.type === 'group') {
       await replyLineMessage(ev.replyToken, [
         {
