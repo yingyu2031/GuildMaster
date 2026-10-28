@@ -1591,12 +1591,12 @@ app.delete('/api/admin/broadcasts/:id', async (req, res) => {
 });
 
 // ==========================================
-// 4. 定時推播排程器（自動加 @All 標註通知）
+// 4. 定時推播排程器（附診斷 Log 版）
 // ==========================================
 let isCheckingBroadcast = false;
 
 async function checkAndSendBroadcasts() {
-  if (isCheckingBroadcast) return; // 避免任務重疊
+  if (isCheckingBroadcast) return;
   isCheckingBroadcast = true;
 
   try {
@@ -1604,20 +1604,25 @@ async function checkAndSendBroadcasts() {
     const nowTaipei = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Taipei" }));
     const currentHours = String(nowTaipei.getHours()).padStart(2, '0');
     const currentMinutes = String(nowTaipei.getMinutes()).padStart(2, '0');
-    const currentTimeStr = `${currentHours}:${currentMinutes}`; // 例如 "20:00"
+    const currentTimeStr = `${currentHours}:${currentMinutes}`; // "HH:mm"
 
-    // 取得今天星期幾（日、一、二...）
     const dayMap = ['日', '一', '二', '三', '四', '五', '六'];
     const currentDay = dayMap[nowTaipei.getDay()];
 
-    // 查詢「已啟用」且「時間吻合」的排程
+    // 💡 印出心跳 Log，讓你知道它每分鐘都有正常運作
+    console.log(`[推播排程檢查] 系統時間: ${currentTimeStr} (星期${currentDay})`);
+
+    // 查詢「已啟用」的排程（使用 SUBSTRING 或 LIKE 避免資料庫存 20:00:00 導致比對失敗）
     const result = await pool.query(
-      'SELECT * FROM broadcast_schedules WHERE active = 1 AND time = $1',
-      [currentTimeStr]
+      `SELECT * FROM broadcast_schedules 
+       WHERE active = 1 
+         AND (time = $1 OR time LIKE $2)`,
+      [currentTimeStr, `${currentTimeStr}:%`]
     );
 
     if (result.rows.length === 0) {
-      isCheckingBroadcast = false;
+      // 可以在開發時開啟這行確認沒有到期任務：
+      // console.log(`[推播排程檢查] 此分鐘 (${currentTimeStr}) 無匹配的啟用排程`);
       return;
     }
 
@@ -1626,26 +1631,29 @@ async function checkAndSendBroadcasts() {
     const targetGroupId = configRes.rows.length > 0 ? configRes.rows[0].config_value : null;
 
     if (!targetGroupId) {
-      console.warn('[推播排程] 未設定目標 LINE 群組 ID (guild_group_id)');
-      isCheckingBroadcast = false;
+      console.warn('[推播排程] ⚠️ 找到了排程，但尚未設定目標 LINE 群組 ID (請在群組輸入 /大群ID 進行綁定)');
       return;
     }
 
-    // 逐筆比對星期並推播
     for (const item of result.rows) {
       let shouldSend = false;
 
-      // 比對今天星期是否符合
-      if (item.cycle && (item.cycle.includes(currentDay) || item.cycle === 'Everyday')) {
-        shouldSend = true;
-      } else if (item.freq && (item.freq.includes('Daily') || item.freq.includes('每天'))) {
+      // 比對今天星期是否符合 (中文/英文/每天)
+      const cycleStr = item.cycle || '';
+      const freqStr = item.freq || '';
+
+      if (
+        cycleStr.includes(currentDay) || 
+        cycleStr.toLowerCase().includes('everyday') ||
+        freqStr.includes('Daily') || 
+        freqStr.includes('每天')
+      ) {
         shouldSend = true;
       }
 
       if (shouldSend) {
-        console.log(`[推播排程] 觸發推播: 【${item.item}】 正在以 @All 發送至群組...`);
+        console.log(`[推播排程] 🚀 觸發推播: 【${item.item}】 正在以 @All 發送至群組...`);
 
-        // 使用 LINE textV2 格式發送真正具備提醒力的 @All
         const lineRes = await fetch('https://api.line.me/v2/bot/message/push', {
           method: 'POST',
           headers: {
@@ -1672,11 +1680,13 @@ async function checkAndSendBroadcasts() {
         });
 
         if (lineRes.ok) {
-          console.log(`[推播排程] 【${item.item}】 @All 推播發送成功！`);
+          console.log(`[推播排程] 🎉 【${item.item}】 @All 推播發送成功！`);
         } else {
           const errData = await lineRes.json();
-          console.error(`[推播排程] 【${item.item}】 LINE API 發送失敗:`, errData);
+          console.error(`[推播排程] ❌ 【${item.item}】 LINE API 發送失敗:`, errData);
         }
+      } else {
+        console.log(`[推播排程] 排程【${item.item}】時間吻合，但週期 (設定: ${item.cycle}) 與今天 (星期${currentDay}) 不符，跳過。`);
       }
     }
   } catch (err) {
@@ -1686,7 +1696,8 @@ async function checkAndSendBroadcasts() {
   }
 }
 
-// 每 60 秒檢查一次
+// 伺服器啟動時立即執行一次檢查，隨後每 60 秒跑一次
+checkAndSendBroadcasts();
 setInterval(checkAndSendBroadcasts, 60 * 1000);
 
 
