@@ -477,7 +477,7 @@ app.post('/api/members/bind', async (req, res) => {
 
         if (adminGroupId && lineToken) {
           const currentTime = new Date().toLocaleString("zh-TW", { timeZone: "Asia/Taipei" });
-          const regionText = finalTw === 'N' ? '🌏 大陸通道(DC)' : '🇹🇼 台灣(LINE)';
+          const regionText = finalTw === 'N' ? '大陸(DC)' : '台灣(LINE)';
           const titleText = isRetired ? '🔔【退會成員重新申請入會】' : '🔔【新成員入會待審核】';
 
           const notifyMessage = 
