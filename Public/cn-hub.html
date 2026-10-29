@@ -36,7 +36,7 @@
             <span class="inline-block bg-indigo-100 text-indigo-700 text-xs font-black px-3.5 py-1 rounded-full">Discord 專屬通道</span>
             <h1 class="text-xl font-black text-slate-900">LV公會成員專區</h1>
             <p class="text-xs text-slate-500 leading-relaxed text-left bg-indigo-50/50 p-3.5 rounded-2xl border border-indigo-100">
-                本系統為LV公會大陸成員專用入口。請先透過 Discord 授權驗證，系統會自動將您加入公會伺服器並同步名冊權限！
+                本系統為LV公會大陸成員專用入口。請先透過 Discord 授權驗證，填寫角色資訊並送出審核後即可開通權限！
             </p>
             <a href="/api/auth/discord" class="inline-flex items-center justify-center gap-2 w-full bg-[#5865F2] hover:bg-[#4752C4] text-white font-bold py-3.5 rounded-2xl shadow-md transition cursor-pointer">
                 使用 Discord 帳號進入
@@ -64,10 +64,10 @@
                 </div>
                 <div class="min-w-0 text-left">
                     <div class="flex items-center gap-2">
-                        <span id="userGameNickname" class="text-base font-black text-slate-900 truncate">載入中...</span>
-                        <span id="userStatusBadge" class="text-[10px] font-black px-2 py-0.5 rounded-full border bg-slate-100 text-slate-600 shrink-0">驗證中</span>
+                        <span id="userGameNickname" class="text-base font-black text-slate-900 truncate">未填寫暱稱</span>
+                        <span id="userStatusBadge" class="text-[10px] font-black px-2 py-0.5 rounded-full border bg-slate-100 text-slate-600 shrink-0">未入會</span>
                     </div>
-                    <div id="userGameClass" class="text-xs font-bold text-slate-500 truncate mt-0.5">-</div>
+                    <div id="userGameClass" class="text-xs font-bold text-slate-500 truncate mt-0.5">尚未設定職業</div>
                 </div>
             </div>
             <span class="text-[10px] font-black bg-indigo-50 text-indigo-600 border border-indigo-200 px-2.5 py-1 rounded-full shrink-0">大陸專區</span>
@@ -98,8 +98,8 @@
             <!-- 身分資料表單卡片 -->
             <div class="bg-white rounded-3xl p-5 border-2 border-amber-200/80 soft-shadow space-y-4 text-left">
                 <div class="border-b border-amber-100 pb-2">
-                    <h2 id="formTitleText" class="text-sm font-black text-slate-900">遊戲身分資料登記</h2>
-                    <p id="formSubText" class="text-[11px] text-slate-400 mt-0.5">請確認角色暱稱與職業正確，以便幹部排定攻城與活動名單</p>
+                    <h2 id="formTitleText" class="text-sm font-black text-slate-900">新成員入會註冊</h2>
+                    <p id="formSubText" class="text-[11px] text-slate-400 mt-0.5">請確認角色暱稱與職業正確，送出後幹部將進行審核</p>
                 </div>
 
                 <form id="bindForm" class="space-y-3.5 text-xs font-bold text-slate-700">
@@ -120,14 +120,8 @@
                         </div>
                     </div>
 
-                    <div>
-                        <label class="block mb-1 text-slate-800">Discord 顯示名稱</label>
-                        <input type="text" id="inputDcName" placeholder="Discord 暱稱" 
-                               class="w-full h-11 border border-amber-200 rounded-xl px-3 bg-amber-50/20 text-xs font-bold text-slate-700">
-                    </div>
-
                     <button type="submit" id="submitBindBtn" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3.5 rounded-2xl shadow-md transition cursor-pointer text-xs mt-2">
-                        儲存並送出登記
+                        送出入會申請
                     </button>
                 </form>
             </div>
@@ -220,7 +214,6 @@
 
         const urlParams = new URLSearchParams(window.location.search);
         const currentUid = urlParams.get('uid');
-        const currentName = urlParams.get('name');
         const currentAvatar = urlParams.get('avatar');
 
         let memberData = null;
@@ -262,7 +255,6 @@
             const isRetired = (memberData && (memberData.guildRole === '退會' || memberData.guild_role === '退會'));
             const isPending = (!memberData || memberData.accountStatus !== '已審核');
 
-            // 嚴格阻擋：退會或待審核成員不可進入活動與請假
             if ((isRetired || isPending) && (tabKey === 'events' || tabKey === 'leave')) {
                 alert("⚠️ 您目前處於「未入會 / 待審核」狀態，請先送出註冊並由幹部審核通過後，才能使用此功能！");
                 tabKey = 'profile';
@@ -353,7 +345,7 @@
 
                 if (data.status === 'found') {
                     memberData = data;
-                    const nick = data.gameNickname || decodeURIComponent(currentName || 'DC成員');
+                    const nick = data.gameNickname || '未填寫暱稱';
                     const gClass = (data.gameClass && data.gameClass !== '未設定') ? data.gameClass : '尚未設定職業';
 
                     document.getElementById('userGameNickname').textContent = nick;
@@ -363,14 +355,12 @@
                     if (data.gameClass && data.gameClass !== '未設定') {
                         document.getElementById('inputClass').value = data.gameClass;
                     }
-                    document.getElementById('inputDcName').value = data.lineDisplayName || decodeURIComponent(currentName || '');
 
                     const userRole = data.guildRole || data.guild_role || '現任';
                     const isRetired = (userRole === '退會');
                     const isPending = (data.accountStatus !== '已審核');
 
                     if (isRetired) {
-                        // 1. 退會狀態：隱藏活動與請假 Tab，完全退回註冊模式
                         tabNav.classList.add('hidden');
                         badge.textContent = "已退會";
                         badge.className = "text-[10px] font-black px-2 py-0.5 rounded-full border border-rose-200 bg-rose-50 text-rose-700 shrink-0";
@@ -387,7 +377,6 @@
                         submitBindBtn.className = "w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold py-3.5 rounded-2xl shadow-md transition cursor-pointer text-xs mt-2";
 
                     } else if (isPending) {
-                        // 2. 待審核狀態：隱藏活動與請假 Tab
                         tabNav.classList.add('hidden');
                         badge.textContent = "待審核";
                         badge.className = "text-[10px] font-black px-2 py-0.5 rounded-full border border-amber-200 bg-amber-100 text-amber-700 shrink-0";
@@ -398,12 +387,12 @@
                         pendingNotice.className = "bg-amber-50/80 rounded-2xl p-4 border border-amber-200 text-left space-y-1";
                         pendingNotice.classList.remove('hidden');
 
-                        formTitleText.textContent = "遊戲身分資料登記";
+                        formTitleText.textContent = "遊戲身分資料修改";
                         formSubText.textContent = "審核通過前可隨時微調您的資料";
                         submitBindBtn.textContent = "更新登記資料";
+                        submitBindBtn.className = "w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3.5 rounded-2xl shadow-md transition cursor-pointer text-xs mt-2";
 
                     } else {
-                        // 3. 正常已審核成員：開放導航分頁
                         tabNav.classList.remove('hidden');
                         badge.textContent = userRole;
                         if (userRole === '幹部') {
@@ -412,18 +401,27 @@
                             badge.className = "text-[10px] font-black px-2 py-0.5 rounded-full border border-emerald-200 bg-emerald-100 text-emerald-800 shrink-0";
                         }
                         pendingNotice.classList.add('hidden');
-                        formTitleText.textContent = "遊戲身分資料登記";
+                        formTitleText.textContent = "遊戲身分資料修改";
                         formSubText.textContent = "請確認角色暱稱與職業正確，以便幹部排定攻城與活動名單";
                         submitBindBtn.textContent = "儲存修改資料";
+                        submitBindBtn.className = "w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3.5 rounded-2xl shadow-md transition cursor-pointer text-xs mt-2";
                     }
 
                 } else {
-                    // 全新未登記成員
+                    // 全新未登記成員：僅在前端提示，尚未寫入資料庫
+                    memberData = null;
                     tabNav.classList.add('hidden');
-                    document.getElementById('inputDcName').value = decodeURIComponent(currentName || '');
+                    pendingNotice.classList.add('hidden');
+                    
+                    document.getElementById('userGameNickname').textContent = '未填寫暱稱';
+                    document.getElementById('userGameClass').textContent = '尚未設定職業';
+                    badge.textContent = "未入會";
+                    badge.className = "text-[10px] font-black px-2 py-0.5 rounded-full border border-slate-200 bg-slate-100 text-slate-600 shrink-0";
+
                     formTitleText.textContent = "新成員入會註冊";
                     formSubText.textContent = "請填寫完整遊戲資訊以利幹部審核";
                     submitBindBtn.textContent = "送出入會申請";
+                    submitBindBtn.className = "w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold py-3.5 rounded-2xl shadow-md transition cursor-pointer text-xs mt-2";
                 }
             } catch (e) {
                 console.error("載入身分失敗", e);
@@ -434,7 +432,6 @@
             e.preventDefault();
             const gameNickname = document.getElementById('inputNickname').value.trim();
             const gameClass = document.getElementById('inputClass').value;
-            const dcName = document.getElementById('inputDcName').value.trim();
 
             if (!gameNickname || !gameClass) {
                 return alert("請完整填寫遊戲暱稱與選擇職業！");
@@ -445,20 +442,21 @@
             btn.disabled = true;
 
             const isRetired = (memberData && (memberData.guildRole === '退會' || memberData.guild_role === '退會'));
+            const isNewMember = !memberData;
 
             try {
-                // 若之前是退會狀態，送出時強制指定回到「現任」但「待審核」
                 const payload = {
                     lineUserId: currentUid,
                     dcid: currentUid,
                     tw: 'N',
-                    lineDisplayName: dcName,
+                    lineDisplayName: "", // 依需求：DC 暱稱預設帶空白回寫
                     gameNickname,
                     gameClass,
                     allowSearch: 'N'
                 };
 
-                if (isRetired) {
+                // 全新入會或重新入會：明確指定為「現任」但「待審核」，防止職位被設成空值
+                if (isNewMember || isRetired) {
                     payload.guildRole = '現任';
                     payload.accountStatus = '待審核';
                 }
@@ -470,10 +468,10 @@
                 });
                 const result = await res.json();
                 if (result.status === 'success') {
-                    if (isRetired) {
-                        alert('🎉 重新入會申請已送出！請等待公會幹部重新審核。');
+                    if (isRetired || isNewMember) {
+                        alert('🎉 入會申請已送出！請等待公會幹部審核開通權限。');
                     } else {
-                        alert('🎉 會員資料登記成功！幹部完成資格審核後即可參與所有活動與請假。');
+                        alert('🎉 會員資料修改成功！');
                     }
                     await fetchMemberProfile();
                     switchTab('profile');
@@ -712,7 +710,7 @@
                     note: leaveNoteVal,
                     isUrgent: isUrgent,
                     operatorUid: currentUid,
-                    operatorName: memberData.gameNickname || decodeURIComponent(currentName || '本人')
+                    operatorName: memberData.gameNickname || '本人'
                 };
 
                 const postRes = await fetch(`${BACKEND_API_URL}/api/leaves`, {
