@@ -32,7 +32,7 @@ input[type="date"], input[type="time"], select {
  appearance: none;
  min-height: 40px;
  height: 40px;
- line-height: 40px;
+ -height: 40px;
  box-sizing: border-box;
 }
 /* 強制滾輪式時間選擇器的選項文字置中 */
@@ -50,7 +50,7 @@ input[type="date"], input[type="time"], select {
 <main class="max-w-lg w-full mx-auto">
  <!-- 頂部標題區 -->
  <div class="text-center mb-5 pt-1">
- <div id="topBadge" class="inline-block bg-sky-100 text-sky-800 text-xs font-black px-4 py-1 rounded-full mb-2.5 border border-sky-200/80">
+ <div id="topBadge" class="in-block bg-sky-100 text-sky-800 text-xs font-black px-4 py-1 rounded-full mb-2.5 border border-sky-200/80">
  幹部專用
  </div>
  <h1 class="text-2xl font-black text-slate-900 tracking-tight mb-1.5">後台管理中心</h1>
@@ -94,10 +94,10 @@ input[type="date"], input[type="time"], select {
  <!-- 第一行：搜尋角色與職業篩選 -->
  <div class="flex gap-2 items-center">
  <div class="relative flex-1 min-w-0">
- <input type="text" id="memberSearchInput" oninput="handleMemberSearchInput()" placeholder="搜尋角色或 LINE 暱稱..."
- class="w-full h-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:bg-white transition box-border">
+ <input type="text" id="memberSearchInput" oninput="handleMemberSearchInput()" placeholder="搜尋角色或  暱稱..."
+ class="w-full h-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:out-none focus:ring-2 focus:ring-sky-400 focus:bg-white transition box-border">
  </div>
- <select id="memberClassFilter" onchange="renderMembersList()" class="h-[40px] leading-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-2.5 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:bg-white transition box-border shrink-0 cursor-pointer">
+ <select id="memberClassFilter" onchange="renderMembersList()" class="h-[40px] leading-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-2.5 text-xs font-bold text-slate-800 focus:out-none focus:ring-2 focus:ring-sky-400 focus:bg-white transition box-border shrink-0 cursor-pointer">
  </select>
  </div>
 
@@ -160,13 +160,13 @@ input[type="date"], input[type="time"], select {
  <div id="leaveListView" class="hidden space-y-3">
  <div class="space-y-2">
  <input type="text" id="leaveSearchInput" oninput="renderLeaveList()" placeholder="搜尋角色或活動名稱..."
- class="w-full h-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:bg-white transition box-border">
+ class="w-full h-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:out-none focus:ring-2 focus:ring-sky-400 focus:bg-white transition box-border">
  
  <div class="flex items-center gap-1.5">
  <div class="flex-1 flex items-center bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 h-[40px] focus-within:ring-2 focus-within:ring-sky-400 focus-within:bg-white transition box-border">
  <span class="text-slate-400 text-xs font-bold whitespace-nowrap mr-1 select-none">搜尋請假日期：</span>
  <input type="date" id="leaveDateFilter" onchange="renderLeaveList()" 
- class="w-full h-full bg-transparent border-0 p-0 text-xs font-bold text-slate-900 focus:outline-none cursor-pointer">
+ class="w-full h-full bg-transparent border-0 p-0 text-xs font-bold text-slate-900 focus:out-none cursor-pointer">
  </div>
  <button onclick="clearLeaveDateFilter()" class="bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold px-3 h-[40px] rounded-xl transition box-border whitespace-nowrap cursor-pointer">
  清除
@@ -317,7 +317,7 @@ input[type="date"], input[type="time"], select {
 </div>
 <div class="grid grid-cols-2 gap-3">
 <div>
-<label class="block mb-1 text-slate-800">社群暱稱 (LINE/DC)</label>
+<label class="block mb-1 text-slate-800">LINE暱稱</label>
 <input type="text" id="formLineName" class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
 </div>
 <div>
