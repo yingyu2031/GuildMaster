@@ -408,7 +408,7 @@ app.get('/api/members/:uid', async (req, res) => {
 });
 
 // ==========================================
-// 2. 會員前台登記 / 更新資料 (含新成員入會自動推播幹部群)
+// 2. 會員前台登記 / 更新資料 (支援退會重新入會重置與幹部 LINE 推播)
 // ==========================================
 app.post('/api/members/bind', async (req, res) => {
   const { lineUserId, lineDisplayName, gameNickname, gameClass, allowSearch, tw, dcid } = req.body;
@@ -420,56 +420,74 @@ app.post('/api/members/bind', async (req, res) => {
   try {
     const oldRes = await pool.query('SELECT * FROM members WHERE line_user_id = $1', [lineUserId]);
     const oldMember = oldRes.rows[0];
-    const newAccountStatus = (oldMember && oldMember.account_status === '已審核') ? '已審核' : '待審核';
 
-    const finalTw = oldMember ? (oldMember.tw || 'Y') : (tw || 'Y');
+    // 💡 關鍵判定：是否為「全新會員」或「原本已退會之成員」
+    const isRetired = oldMember && (oldMember.guild_role === '退會');
+    const isNewRegistration = !oldMember || isRetired;
+
+    // 若為新入會或退會重新入會：強制指定為「現任」且「待審核」
+    const finalRole = isNewRegistration ? '現任' : (oldMember.guild_role || '現任');
+    const finalAccountStatus = isNewRegistration ? '待審核' : (oldMember.account_status || '待審核');
+
+    const finalTw = oldMember ? (oldMember.tw || tw || 'Y') : (tw || 'Y');
     const finalDcid = oldMember ? (oldMember.dcid || dcid || null) : (dcid || null);
 
-    // 1. 寫入 / 更新會員主資料
+    // 1. 寫入 / 更新會員主資料 (補上 guild_role 的更新)
     await pool.query(`
       INSERT INTO members (
         line_user_id, game_nickname, game_class, line_display_name, 
-        allow_search, account_status, tw, dcid, update_time
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP)
+        allow_search, account_status, guild_role, tw, dcid, update_time
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP)
       ON CONFLICT (line_user_id) 
       DO UPDATE SET 
         game_nickname = EXCLUDED.game_nickname, 
         game_class = EXCLUDED.game_class, 
         line_display_name = EXCLUDED.line_display_name, 
         allow_search = EXCLUDED.allow_search, 
-        account_status = $6, 
+        account_status = $6,
+        guild_role = $7,
         tw = COALESCE(members.tw, EXCLUDED.tw),
         dcid = COALESCE(members.dcid, EXCLUDED.dcid),
         update_time = CURRENT_TIMESTAMP
-    `, [lineUserId, gameNickname, gameClass, lineDisplayName, allowSearch || 'N', newAccountStatus, finalTw, finalDcid]);
+    `, [
+      lineUserId, 
+      gameNickname, 
+      gameClass, 
+      lineDisplayName || "", 
+      allowSearch || 'N', 
+      finalAccountStatus, 
+      finalRole, 
+      finalTw, 
+      finalDcid
+    ]);
 
-    // 2. 判斷是否為全新會員註冊
-    if (!oldMember) {
-      // 記錄新會員註冊 Log
+    // 2. 審核歷程紀錄與幹部 LINE 推播
+    if (isNewRegistration) {
+      const logAction = isRetired ? '退會重新申請入會' : '新會員註冊';
       await pool.query(
         'INSERT INTO member_audit_logs (line_user_id, field, old_value, new_value) VALUES ($1, $2, $3, $4)', 
-        [lineUserId, '新會員註冊', '-', `${gameNickname} (${gameClass})`]
+        [lineUserId, logAction, isRetired ? '退會' : '-', `${gameNickname} (${gameClass})`]
       );
 
-      // ----------------------------------------------------
-      // 💡 發送 LINE 通知到幹部群（待審核提醒）
-      // ----------------------------------------------------
+      // 💡 推播 LINE 通知至幹部群
       try {
         const configRes = await pool.query("SELECT config_value FROM system_configs WHERE config_key = 'admin_group_id'");
         const adminGroupId = configRes.rows.length > 0 ? configRes.rows[0].config_value : null;
+        const lineToken = process.env.LINE_ACCESS_TOKEN || (typeof LINE_ACCESS_TOKEN !== 'undefined' ? LINE_ACCESS_TOKEN : '');
 
-        if (adminGroupId) {
+        if (adminGroupId && lineToken) {
           const currentTime = new Date().toLocaleString("zh-TW", { timeZone: "Asia/Taipei" });
-          const regionText = finalTw === 'N' ? '大陸通道(DC)' : '台灣(LINE)';
+          const regionText = finalTw === 'N' ? '🌏 大陸通道(DC)' : '🇹🇼 台灣(LINE)';
+          const titleText = isRetired ? '🔔【退會成員重新申請入會】' : '🔔【新成員入會待審核】';
 
           const notifyMessage = 
-            `【新成員入會待審核】\n\n` +
+            `${titleText}\n\n` +
             `• 遊戲暱稱：${gameNickname}\n` +
             `• 遊戲職業：${gameClass}\n` +
             `• 社群暱稱：${lineDisplayName || '無'}\n` +
             `• 註冊管道：${regionText}\n` +
             `• 申請時間：${currentTime}\n\n` +
-            `👉 請前往【幹部管理後台】進行核對與審核。`;
+            `👉 請幹部前往【幹部管理後台 ➔ 會員名冊】進行核對與審核。`;
 
           await fetch('https://api.line.me/v2/bot/message/push', {
             method: 'POST',
@@ -483,16 +501,16 @@ app.post('/api/members/bind', async (req, res) => {
             })
           });
 
-          console.log(`[LINE 推播] 成功向幹部群發送新成員【${gameNickname}】待審核通知`);
+          console.log(`[LINE 推播] 成功向幹部群發送【${gameNickname}】審核通知`);
         } else {
-          console.warn('[LINE 推播] 尚未設定幹部群 ID (admin_group_id)，略過通知');
+          console.warn('[LINE 推播] 尚未設定幹部群 ID (admin_group_id) 或 Token，略過通知');
         }
       } catch (pushErr) {
         console.error('[LINE 推播幹部群失敗]:', pushErr.message);
       }
 
     } else {
-      // 舊會員修改資料歷程記錄
+      // 舊會員一般修改資料紀錄
       if (oldMember.game_nickname !== gameNickname) {
         await pool.query(
           'INSERT INTO member_audit_logs (line_user_id, field, old_value, new_value) VALUES ($1, $2, $3, $4)', 
@@ -507,12 +525,13 @@ app.post('/api/members/bind', async (req, res) => {
       }
     }
 
-    res.json({ status: "success", message: "會員資料已成功更新" });
+    res.json({ status: "success", message: "會員資料已成功送出" });
   } catch (err) {
     console.error('[Database] 會員登記更新失敗:', err);
     res.status(500).json({ status: "error", message: err.message });
   }
 });
+
 // 3. 幹部後台會員清單
 app.get('/api/admin/members', async (req, res) => {
   try {
@@ -786,7 +805,7 @@ app.get('/api/auth/discord/callback', async (req, res) => {
       ? `https://cdn.discordapp.com/avatars/${dcId}/${dcUser.avatar}.png`
       : `https://cdn.discordapp.com/embed/avatars/0.png`;
 
-    // C. 自動拉進 Discord 伺服器 (僅新加入時賦予身分組)
+    // C. 自動拉進 Discord 伺服器 (若新加入則賦予身分組)
     try {
       const MEMBER_ROLE_ID = '1471192518036164651'; // 成員身分組 ID
 
@@ -798,7 +817,7 @@ app.get('/api/auth/discord/callback', async (req, res) => {
         },
         body: JSON.stringify({ 
           access_token: userAccessToken,
-          roles: [MEMBER_ROLE_ID] // 👈 只有新加入進群時才會帶上身分組
+          roles: [MEMBER_ROLE_ID]
         })
       });
 
@@ -808,12 +827,11 @@ app.get('/api/auth/discord/callback', async (req, res) => {
       if (joinRes.status === 201) {
         console.log(`[Discord] 🎉 成功將新成員 ${dcName} (${dcId}) 拉進公會並賦予身分組！`);
       } else if (joinRes.status === 204) {
-        console.log(`[Discord] ℹ️ 成員 ${dcName} (${dcId}) 原先就已經在伺服器內，不另外變更身分組。`);
+        console.log(`[Discord] ℹ️ 成員 ${dcName} (${dcId}) 原先就已經在伺服器內。`);
       }
     } catch (botErr) {
       console.error('[Discord 自動加群異常]:', botErr.message);
     }
-
 
     // D. 依據來源分流處理
     const targetLineUid = state ? decodeURIComponent(state) : 'login_only';
@@ -906,21 +924,8 @@ app.get('/api/auth/discord/callback', async (req, res) => {
         `);
       }
 
-      const existCheck = await pool.query('SELECT * FROM members WHERE line_user_id = $1', [dcId]);
-      if (existCheck.rows.length === 0) {
-        await pool.query(`
-          INSERT INTO members (line_user_id, dcid, tw, game_nickname, game_class, line_display_name, joined_dc, account_status, update_time)
-          VALUES ($1, $1, 'N', $2, '未設定', $2, 'Y', '待審核', CURRENT_TIMESTAMP)
-          ON CONFLICT (line_user_id) DO NOTHING
-        `, [dcId, dcName]);
-      } else {
-        await pool.query(`
-          UPDATE members 
-          SET dcid = $1, tw = 'N', joined_dc = 'Y', update_time = CURRENT_TIMESTAMP 
-          WHERE line_user_id = $1
-        `, [dcId]);
-      }
-
+      // 👉【關鍵改動】：這裡完全不對 members 做任何 INSERT / UPDATE！
+      // 單純將使用者資訊帶到前端 cn-hub.html，等他填完資料按「送出」才寫入資料庫
       res.redirect(`/cn-hub.html?uid=${encodeURIComponent(dcId)}&name=${encodeURIComponent(dcName)}&avatar=${encodeURIComponent(dcAvatar)}`);
     }
 
@@ -929,7 +934,6 @@ app.get('/api/auth/discord/callback', async (req, res) => {
     res.status(500).send("Discord 帳號授權失敗，請返回重試。");
   }
 });
-
 
 
 // ==========================================
