@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>LV公會聯賽名單</title>
+    <title>公會聯賽名單系統</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome CDN -->
@@ -43,7 +43,7 @@
         .job-card-賢者 { background-color: #00FFFF; color: #1f2937; border-color: #00CECE; }
         .job-card-其他 { background-color: #E5E7EB; color: #374151; border-color: #D1D5DB; }
 
-        /* 當日請假與重複衝突警告樣式 */
+        /* 當日請假高亮 */
         .job-card-leave-today {
             background-color: #FEE2E2 !important;
             color: #991B1B !important;
@@ -51,6 +51,7 @@
             border-width: 2px !important;
         }
 
+        /* 改名或未在名冊中警示 */
         .job-card-unknown {
             background-color: #FFFBEB;
             color: #92400E;
@@ -78,6 +79,7 @@
             border-radius: 9999px;
         }
 
+        /* 主戰：一列6隊 */
         .roster-grid-row-main {
             display: grid;
             grid-template-columns: repeat(6, 215px);
@@ -86,6 +88,7 @@
             margin-bottom: 14px;
         }
 
+        /* 副戰：一列8隊 */
         .roster-grid-row-sub {
             display: grid;
             grid-template-columns: repeat(8, 215px);
@@ -93,18 +96,42 @@
             width: 1880px;
             margin-bottom: 14px;
         }
+
+        /* 職業分類統計表格排版 */
+        .class-stat-grid {
+            display: grid;
+            grid-template-columns: repeat(15, 110px);
+            gap: 6px;
+            width: 1740px;
+        }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen pb-16 pt-2">
 
-    <!-- 🎯 1. 一開網頁強制顯示的「帳號密碼登入驗證彈窗」 -->
+    <!-- 📱 手機/行動裝置提示彈窗 -->
+    <div id="mobileNoticeModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-[60] hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl border border-slate-100 flex flex-col items-center text-center gap-3">
+            <div class="w-14 h-14 bg-amber-50 text-amber-500 rounded-2xl flex items-center justify-center text-2xl shadow-xs">
+                <i class="fa-solid fa-desktop"></i>
+            </div>
+            <h3 class="text-base font-black text-slate-800">建議使用電腦開啟</h3>
+            <p class="text-xs text-slate-500 leading-relaxed">
+                公會戰場指揮系統包含大版面多隊伍橫向調度、拖曳排班與職位歸類功能，<strong>手機螢幕較小容易排版擠壓，強烈建議使用電腦瀏覽器開啟</strong>以獲得完整操作體驗！
+            </p>
+            <button onclick="dismissMobileNotice()" class="w-full mt-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-2.5 rounded-xl shadow-sm transition">
+                我知道了，仍要在手機檢視
+            </button>
+        </div>
+    </div>
+
+    <!-- 🎯 帳號密碼登入驗證彈窗 -->
     <div id="loginAuthModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl border border-slate-100 flex flex-col gap-4">
             <div class="text-center">
                 <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-2.5 text-xl shadow-xs">
                     <i class="fa-solid fa-lock"></i>
                 </div>
-                <h3 class="text-base font-black text-slate-800">LV公會聯賽名單系統</h3>
+                <h3 class="text-base font-black text-slate-800">公會聯賽名單系統</h3>
                 <p class="text-xs text-slate-400 mt-0.5">請輸入幹部管理帳號與密碼</p>
                 <div id="preloadStatus" class="mt-2 text-[10px] text-indigo-600 bg-indigo-50/70 border border-indigo-100 py-1 px-2.5 rounded-full inline-flex items-center gap-1.5 font-bold">
                     <i class="fa-solid fa-spinner fa-spin"></i> 背景正在連線預載資料庫與表單...
@@ -129,7 +156,7 @@
         </div>
     </div>
 
-    <!-- 主內容區：左側 2 欄 / 右側 10 欄 -->
+    <!-- 主內容區 -->
     <main class="w-full px-2 sm:px-3 flex flex-col lg:grid lg:grid-cols-12 gap-2.5">
 
         <!-- 左側：人員名冊 (佔 2 欄) -->
@@ -159,7 +186,7 @@
                     </select>
 
                     <div class="grid grid-cols-2 gap-1 bg-gray-100 p-0.5 rounded-lg text-[10px] font-bold text-center">
-                        <button id="filter-btn-all" onclick="toggleUnassignedFilter(false)" class="py-1 rounded bg-white text-gray-800 shadow-2xs transition">
+                        <button id="filter-btn-all" onclick="toggleUnassignedFilter(false)" class="py-1 rounded bg-white text-gray-800 shadow-2xs transition font-black">
                             全部
                         </button>
                         <button id="filter-btn-unassigned" onclick="toggleUnassignedFilter(true)" class="py-1 rounded text-gray-500 hover:text-gray-800 transition">
@@ -168,7 +195,7 @@
                     </div>
                 </div>
 
-                <div id="member-list-container" class="flex flex-col gap-1 h-[610px] overflow-y-auto p-1 bg-gray-50 rounded-xl border border-gray-100">
+                <div id="member-list-container" class="flex flex-col gap-1 h-[640px] overflow-y-auto p-1 bg-gray-50 rounded-xl border border-gray-100">
                     <div class="text-[10px] text-gray-400 p-4 text-center">載入中...</div>
                 </div>
             </section>
@@ -176,11 +203,13 @@
 
         <!-- 右側：主戰 / 副戰 出戰名單 (佔 10 欄) -->
         <div class="lg:col-span-10 flex flex-col gap-2.5">
-            <section class="bg-white rounded-2xl shadow-md border border-gray-200 p-3 flex flex-col gap-2.5">
+            <section class="bg-white rounded-2xl shadow-md border border-gray-200 p-3 flex flex-col gap-3">
                 
+                <!-- 頂部頁籤與操作列 -->
                 <div class="flex flex-col gap-2 border-b pb-2">
                     <div class="flex flex-wrap justify-between items-center gap-2">
                         
+                        <!-- 主戰 / 副戰 切換頁籤 -->
                         <div class="flex items-center gap-2">
                             <div class="flex bg-gray-100 p-1 rounded-xl border border-gray-200 text-xs font-black">
                                 <button id="tab-main" onclick="switchMode('main')" class="py-1.5 px-4 rounded-lg bg-indigo-600 text-white shadow-xs transition flex items-center gap-1.5">
@@ -195,6 +224,7 @@
                             </span>
                         </div>
 
+                        <!-- 動作按鈕 -->
                         <div class="flex items-center gap-2">
                             <button onclick="fetchRosterFromSheet(true)" title="重新從 Google 試算表抓取該分頁名單" class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold py-1.5 px-3 rounded-lg border border-gray-300 flex items-center gap-1.5 shadow-2xs transition">
                                 <i class="fa-solid fa-cloud-arrow-down text-indigo-600"></i> 重新載入表單
@@ -206,6 +236,7 @@
                         </div>
                     </div>
 
+                    <!-- 小隊控制列 -->
                     <div class="flex items-center gap-2 pt-0.5 sort-hidden">
                         <button onclick="addSquad()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-1.5 px-3 rounded-lg shadow-sm transition flex items-center justify-center gap-1.5">
                             <i class="fa-solid fa-plus"></i> 新增隊伍
@@ -219,9 +250,26 @@
                     </div>
                 </div>
 
+                <!-- 隊伍展示區塊 -->
                 <div class="flex flex-col gap-4 bg-white p-1 rounded-xl">
                     <div id="rosterWrapper" class="roster-scroll-wrapper">
                         <div id="squads-container" class="flex flex-col gap-4"></div>
+                    </div>
+                </div>
+
+                <!-- 🎯 底部：動態依已安排人員之「職業分類統計表」 -->
+                <div class="mt-2 pt-3 border-t border-gray-200 flex flex-col gap-2">
+                    <div class="flex justify-between items-center px-1">
+                        <h3 class="text-xs font-black text-gray-800 flex items-center gap-1.5">
+                            <i class="fa-solid fa-chart-pie text-indigo-600"></i> 已出戰人員之職業分佈一覽表
+                        </h3>
+                        <span class="text-[10px] text-gray-400">即時連動上方排陣名單</span>
+                    </div>
+
+                    <div class="roster-scroll-wrapper bg-gray-50/60 p-2.5 rounded-2xl border border-gray-200">
+                        <div id="class-stats-container" class="class-stat-grid">
+                            <!-- 動態生成各職業分類欄位 -->
+                        </div>
                     </div>
                 </div>
 
@@ -284,11 +332,18 @@
         const GOOGLE_SHEET_ROSTER_API = 'https://script.google.com/macros/s/AKfycbx2ndfyU7920INPrgPWGIY2DGEQfosjoXyaIrCn_7SVeaCo2U7axVNyTl8Eyd8rmXdc9w/exec';
 
         let currentMode = 'main'; // 'main' 或 'sub'
-        let filterOnlyUnassigned = false; // 是否僅篩選未安排
+        let filterOnlyUnassigned = false;
 
         let masterMembers = []; // 名冊
         let leaveList = [];     // 請假
         let gameClasses = [];   // 職業
+
+        // 🎯 統計表欲展示的固定標準 15 大職業順序 (完全比對截圖)
+        const ORDERED_CLASSES = [
+            "刺客", "十字軍", "法師", "創造者", "補師", 
+            "武僧", "鐵匠", "騎士", "搞笑藝人", "冷豔舞姬", 
+            "神射手", "槍手", "德魯伊", "賢者", "流氓"
+        ];
 
         // 主戰 12 隊結構
         let mainSquads = [
@@ -332,22 +387,35 @@
         let subMergedGroups = [];
         let subMasterOrder = [];
 
-        let isDataPreloaded = false; // 標記背景預載是否已完成
+        let isDataPreloaded = false;
 
-        // 🎯 核心載入：一開網頁立即強制彈出登入框，同時背景啟動平行預先載入
         window.onload = function() {
             setupHorizontalScroll();
+            checkDeviceScreen();
 
-            // 若本次會話已經登入過，直接隱藏彈窗
             if (sessionStorage.getItem('guild_war_auth') === 'verified') {
                 document.getElementById('loginAuthModal').classList.add('hidden');
             }
 
-            // 🚀 在使用者看到登入視窗並輸入帳密的同時，背後立即平行發動所有連線！
             preloadAllRosterData();
         };
 
-        // 🚀 背景平行預載資料
+        function checkDeviceScreen() {
+            const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            const isSmallScreen = window.innerWidth < 1024;
+            
+            if ((isMobileDevice || isSmallScreen) && !sessionStorage.getItem('dismiss_mobile_notice')) {
+                const modal = document.getElementById('mobileNoticeModal');
+                if (modal) modal.classList.remove('hidden');
+            }
+        }
+
+        function dismissMobileNotice() {
+            sessionStorage.setItem('dismiss_mobile_notice', 'true');
+            const modal = document.getElementById('mobileNoticeModal');
+            if (modal) modal.classList.add('hidden');
+        }
+
         async function preloadAllRosterData() {
             try {
                 await Promise.all([
@@ -368,7 +436,6 @@
             }
         }
 
-        // 🎯 帳號密碼登入驗證邏輯
         async function handleAccountLogin(e) {
             e.preventDefault();
             const username = document.getElementById('loginUsername').value.trim();
@@ -389,13 +456,8 @@
                 const data = await res.json();
 
                 if (data.status === 'success') {
-                    // 標記登入狀態
                     sessionStorage.setItem('guild_war_auth', 'verified');
-                    
-                    // 關閉登入彈窗
                     document.getElementById('loginAuthModal').classList.add('hidden');
-
-                    // 若剛好背景預載已經跑完，立即刷新一次畫面呈現
                     renderSquads();
                     renderMemberList();
                 } else {
@@ -837,9 +899,11 @@
             }
 
             document.getElementById('total-assigned-badge').innerText = `已配置: ${totalAssigned} / ${totalCapacity}`;
+
+            // 🎯 隊伍更新時，同時更新底部的職業分類統計表！
+            renderClassStatsTable();
         }
 
-        // 🎯 隊伍卡片生成（包含：當日請假標註、副戰發現主戰已排的衝突警告 🚨）
         function createSquadCardHtml(squad) {
             let slotsHtml = '';
             for (let i = 0; i < 5; i++) {
@@ -851,7 +915,7 @@
 
                     if (memberIsOnLeave) {
                         slotsHtml += `
-                            <div class="flex items-center justify-between job-card-leave-today px-2 py-1.5 rounded-lg border text-xs font-black shadow-xs" title="⚠️ 此成員今日已登記請假！">
+                            <div class="flex items-center justify-between job-card-leave-today px-2 py-1.5 rounded-lg border text-xs font-black shadow-xs">
                                 <div class="flex items-center gap-1 min-w-0">
                                     <span class="bg-red-600 text-white text-[9px] px-1 py-0.2 rounded font-black shrink-0">請假</span>
                                     <span class="truncate">${member}</span>
@@ -860,11 +924,10 @@
                             </div>
                         `;
                     } else if (isConflictInMain) {
-                        // 🚨 衝突警告：已被排在主戰中
                         slotsHtml += `
-                            <div class="flex items-center justify-between job-card-leave-today px-2 py-1.5 rounded-lg border text-xs font-black shadow-xs" title="🚨 異常警告：此成員已被排在主戰場名單中！">
+                            <div class="flex items-center justify-between job-card-leave-today px-2 py-1.5 rounded-lg border text-xs font-black shadow-xs">
                                 <div class="flex items-center gap-1 min-w-0">
-                                    <span class="bg-rose-700 text-white text-[9px] px-1 py-0.2 rounded font-black shrink-0">主戰</span>
+                                    <span class="bg-rose-700 text-white text-[9px] px-1 py-0.2 rounded font-black shrink-0">主戰已排</span>
                                     <span class="truncate font-black text-rose-950">${member}</span>
                                 </div>
                                 <button onclick="removeMemberFromSquad(${squad.id}, ${i})" class="opacity-80 hover:opacity-100 p-0.5 text-red-700 hover:text-red-900 shrink-0 sort-hidden" title="從副戰移除"><i class="fa-solid fa-xmark"></i></button>
@@ -872,7 +935,7 @@
                         `;
                     } else if (info.isUnknown) {
                         slotsHtml += `
-                            <div class="flex items-center justify-between job-card-unknown px-2 py-1.5 rounded-lg border text-xs font-bold shadow-2xs" title="名冊查無此暱稱（可能已改名或尚未綁定）">
+                            <div class="flex items-center justify-between job-card-unknown px-2 py-1.5 rounded-lg border text-xs font-bold shadow-2xs">
                                 <div class="flex items-center gap-1 min-w-0">
                                     <span class="text-amber-600 text-[11px]"><i class="fa-solid fa-triangle-exclamation"></i></span>
                                     <span class="truncate">${member}</span>
@@ -932,6 +995,72 @@
                     </div>
                 </div>
             `;
+        }
+
+        // 🎯 核心渲染：動態依已安排人員之「職業分類統計表」
+        function renderClassStatsTable() {
+            const container = document.getElementById('class-stats-container');
+            if (!container) return;
+            container.innerHTML = '';
+
+            const squads = (currentMode === 'main') ? mainSquads : subSquads;
+
+            // 1. 遍歷目前隊伍中所有已配置的隊員人名
+            const assignedMembers = [];
+            squads.forEach(s => {
+                s.members.forEach(name => {
+                    if (name && name.trim()) assignedMembers.push(name.trim());
+                });
+            });
+
+            // 2. 按照 15 大職業歸類分桶
+            const classBuckets = {};
+            ORDERED_CLASSES.forEach(c => classBuckets[c] = []);
+
+            assignedMembers.forEach(name => {
+                const info = getMemberJobInfo(name);
+                if (classBuckets[info.job]) {
+                    classBuckets[info.job].push(name);
+                }
+            });
+
+            // 3. 動態渲染出 15 欄直立列表 (比照試算表排版)
+            ORDERED_CLASSES.forEach(className => {
+                const colDiv = document.createElement('div');
+                colDiv.className = 'flex flex-col bg-white rounded-xl border border-gray-200 overflow-hidden shadow-2xs';
+
+                const memberList = classBuckets[className] || [];
+                const count = memberList.length;
+
+                // 標題欄 (帶職業背景色)
+                let headerHtml = `
+                    <div class="job-card-${className} py-1 px-1.5 text-center font-black text-[11px] border-b border-gray-200 flex items-center justify-center gap-1">
+                        <span>${className}</span>
+                        <span class="text-[9px] opacity-80">(${count})</span>
+                    </div>
+                `;
+
+                // 隊員人名清單直排
+                let listHtml = `<div class="flex flex-col p-1 gap-1 min-h-[140px] bg-white">`;
+                if (count === 0) {
+                    listHtml += `<div class="text-[10px] text-gray-300 text-center py-4">-</div>`;
+                } else {
+                    memberList.forEach(name => {
+                        const onLeave = isLeave(name);
+                        listHtml += `
+                            <div class="px-1.5 py-1 rounded text-[11px] font-bold truncate text-center ${
+                                onLeave ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-gray-50 text-gray-800 hover:bg-gray-100'
+                            }" title="${name}${onLeave ? ' (今日請假)' : ''}">
+                                ${name}
+                            </div>
+                        `;
+                    });
+                }
+                listHtml += `</div>`;
+
+                colDiv.innerHTML = headerHtml + listHtml;
+                container.appendChild(colDiv);
+            });
         }
 
         function updateSquadName(squadId, newName) {
@@ -1103,13 +1232,19 @@
             });
 
             const badge = document.getElementById('leave-count');
-            if (badge) {
-                badge.innerText = todayLeaves.length;
-            }
+            if (badge) badge.innerText = todayLeaves.length;
         }
 
-        function openMergeModal() { document.getElementById('merge-modal').classList.remove('hidden'); renderMergeCheckboxes(); renderExistingMergedGroups(); }
-        function closeMergeModal() { document.getElementById('merge-modal').classList.add('hidden'); renderSquads(); }
+        function openMergeModal() {
+            document.getElementById('merge-modal').classList.remove('hidden');
+            renderMergeCheckboxes();
+            renderExistingMergedGroups();
+        }
+
+        function closeMergeModal() {
+            document.getElementById('merge-modal').classList.add('hidden');
+            renderSquads();
+        }
 
         function renderMergeCheckboxes() {
             const container = document.getElementById('merge-squad-checkboxes');
