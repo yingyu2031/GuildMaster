@@ -35,12 +35,12 @@
         .job-card-武僧 { background-color: #fed7aa; color: #9a3412; border-color: #fb923c; }
         .job-card-騎士 { background-color: #f3e8ff; color: #581c87; border-color: #d8b4fe; }
         .job-card-搞笑藝人 { background-color: #fbcfe8; color: #831843; border-color: #f472b6; }
-        .job-card-德魯伊 { background-color: #c7d2fe; color: #3730a3; border-color: #818cf8; }
+        .job-card-吟遊戲偶 { background-color: #c7d2fe; color: #3730a3; border-color: #818cf8; }
         .job-card-冷豔舞姬 { background-color: #fce7f3; color: #9d174d; border-color: #f472b6; }
         .job-card-神射手 { background-color: #bae6fd; color: #0369a1; border-color: #38bdf8; }
         .job-card-流氓 { background-color: #e5e7eb; color: #374151; border-color: #9ca3af; }
-        .job-card-賢者 { background-color: #fef08a; color: #854d0e; border-color: #facc15; }
-        .job-card-鐵匠 { background-color: #fed7aa; color: #c2410c; border-color: #fb923c; }
+        .job-card-詩人 { background-color: #fef08a; color: #854d0e; border-color: #facc15; }
+        .job-card-煉金 { background-color: #fed7aa; color: #c2410c; border-color: #fb923c; }
 
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -70,9 +70,9 @@
                     <h2 class="text-xs sm:text-sm font-bold text-gray-700 flex items-center gap-1.5">
                         <i class="fa-solid fa-users text-indigo-600"></i> 人員名冊 (<span id="available-count">0</span>)
                     </h2>
-                    <div class="flex items-center gap-1">
-                        <button onclick="syncAllFromGoogleSheet()" title="從 Google 試算表同步" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[11px] font-bold py-1 px-2 rounded-lg border border-emerald-300 flex items-center gap-1 transition shadow-xs">
-                            <i class="fa-solid fa-arrows-rotate"></i> 試算表同步
+                    <div class="flex items-center gap-1.5">
+                        <button onclick="syncRosterData()" title="重新抓取試算表主戰名冊與請假" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[11px] font-bold py-1 px-2.5 rounded-lg border border-emerald-300 flex items-center gap-1 transition shadow-xs">
+                            <i class="fa-solid fa-arrows-rotate"></i> 重新整理
                         </button>
                         <button onclick="openLeaveModal()" class="bg-amber-50 hover:bg-amber-100 text-amber-800 text-[11px] font-bold py-1 px-2.5 rounded-lg border border-amber-300 flex items-center gap-1 transition shadow-xs">
                             <i class="fa-solid fa-user-slash"></i> 請假名單 (<span id="leave-count">0</span>)
@@ -90,8 +90,8 @@
                     </select>
                 </div>
 
-                <div id="member-list-container" class="flex flex-col gap-1.5 h-[500px] overflow-y-auto p-1.5 bg-gray-50 rounded-xl border border-gray-100">
-                    <div class="text-xs text-gray-400 p-4 w-full text-center">正在載入公會成員...</div>
+                <div id="member-list-container" class="flex flex-col gap-1.5 h-[520px] overflow-y-auto p-1.5 bg-gray-50 rounded-xl border border-gray-100">
+                    <div class="text-xs text-gray-400 p-4 w-full text-center">正在載入公會資料...</div>
                 </div>
             </section>
         </div>
@@ -116,28 +116,27 @@
                             <i class="fa-solid fa-object-group"></i> 合併團隊
                         </button>
                         <button onclick="resetRoster()" class="bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-bold py-2 px-3 rounded-lg border transition flex items-center justify-center gap-1">
-                            <i class="fa-solid fa-rotate-right"></i> 重置名單
+                            <i class="fa-solid fa-rotate-right"></i> 重置清空
                         </button>
                     </div>
                 </div>
 
+                <!-- 乾淨匯出包覆區 -->
                 <div id="export-capture-target" class="flex flex-col gap-4 bg-white p-2 rounded-xl">
                     <div class="roster-scroll-wrapper no-scrollbar pb-2">
                         <div id="squads-container" class="flex flex-col gap-4"></div>
                     </div>
                 </div>
 
+                <!-- 底部操作列 (匯出圖片) -->
                 <div class="flex flex-col sm:flex-row items-center gap-2 pt-3 border-t border-gray-200 sort-hidden">
                     <input type="date" id="roster-date" class="w-full sm:w-auto flex-1 bg-gray-50 border border-gray-300 text-gray-800 text-xs rounded-lg px-3 py-2.5 font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none text-center">
-                    <div class="grid grid-cols-3 gap-2 w-full sm:w-auto">
-                        <button onclick="saveCurrentRoster()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-2.5 px-3 rounded-lg shadow-sm flex items-center justify-center gap-1 transition">
-                            <i class="fa-solid fa-floppy-disk"></i> 存檔
+                    <div class="grid grid-cols-2 gap-2 w-full sm:w-auto">
+                        <button onclick="syncRosterData()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold py-2.5 px-3 rounded-lg border border-gray-300 flex items-center justify-center gap-1 transition">
+                            <i class="fa-solid fa-cloud-arrow-down"></i> 重新載入表單
                         </button>
-                        <button onclick="openHistoryModal()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold py-2.5 px-3 rounded-lg border border-gray-300 flex items-center justify-center gap-1 transition">
-                            <i class="fa-solid fa-clock-rotate-left"></i> 歷史
-                        </button>
-                        <button onclick="exportToImage()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2.5 px-3 rounded-lg shadow-md flex items-center justify-center gap-1 transition">
-                            <i class="fa-solid fa-image"></i> 匯出圖片
+                        <button onclick="exportToImage()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2.5 px-4 rounded-lg shadow-md flex items-center justify-center gap-1 transition">
+                            <i class="fa-solid fa-image"></i> 匯出出戰圖片
                         </button>
                     </div>
                 </div>
@@ -146,34 +145,32 @@
 
     </main>
 
-    <!-- 請假管理 Modal (移除下拉選單，改為彈窗搜尋選擇器) -->
+    <!-- 請假管理 Modal -->
     <div id="leave-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-md max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
             <div class="bg-amber-500 text-white px-4 py-3 flex justify-between items-center">
-                <h3 class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-user-slash"></i> 請假人員管理</h3>
+                <h3 class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-user-slash"></i> 請假人員管理 (連線資料庫)</h3>
                 <button onclick="closeLeaveModal()" class="text-white hover:text-gray-200"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
             <div class="p-4 overflow-y-auto flex flex-col gap-4">
                 <div class="bg-gray-50 p-3 rounded-xl border border-gray-200 flex flex-col gap-2">
-                    <h4 class="text-xs font-bold text-gray-700">新增請假</h4>
+                    <h4 class="text-xs font-bold text-gray-700">登記請假</h4>
                     
-                    <!-- 點選開窗搜尋成員 -->
-                    <div class="flex gap-2">
-                        <button type="button" onclick="openMemberPickerModal()" class="flex-1 bg-white border border-gray-300 text-xs rounded-lg px-3 py-2.5 text-left font-bold text-gray-700 hover:border-amber-500 focus:outline-none flex items-center justify-between shadow-2xs">
-                            <span id="selected-member-display" class="text-gray-400">點此開窗搜尋成員...</span>
-                            <i class="fa-solid fa-magnifying-glass text-gray-400 text-xs"></i>
-                        </button>
-                        <input type="hidden" id="leave-selected-uid">
-                        <input type="hidden" id="leave-selected-name">
-                        <input type="hidden" id="leave-selected-job">
-                    </div>
+                    <!-- 點選開窗搜尋，徹底解決被遮蔽問題 -->
+                    <button type="button" onclick="openMemberPickerModal()" class="w-full bg-white border border-gray-300 text-xs rounded-lg px-3 py-2.5 text-left font-bold text-gray-700 hover:border-amber-500 focus:outline-none flex items-center justify-between shadow-2xs">
+                        <span id="selected-member-display" class="text-gray-400">點此開窗搜尋成員...</span>
+                        <i class="fa-solid fa-magnifying-glass text-gray-400 text-xs"></i>
+                    </button>
+                    <input type="hidden" id="leave-selected-uid">
+                    <input type="hidden" id="leave-selected-name">
+                    <input type="hidden" id="leave-selected-job">
 
-                    <input type="text" id="leave-event-input" placeholder="請假活動項目" value="公會戰場" class="bg-white border border-gray-300 text-xs rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                    <input type="text" id="leave-event-input" placeholder="請假活動 (例如: 公會戰場)" value="公會戰場" class="bg-white border border-gray-300 text-xs rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:outline-none">
                     <input type="date" id="leave-date-input" class="bg-white border border-gray-300 text-xs rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:outline-none">
-                    <button onclick="addLeavePerson()" class="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold py-2 rounded-lg transition mt-1">送出請假並同步</button>
+                    <button onclick="addLeavePerson()" class="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold py-2 rounded-lg transition mt-1">寫入資料庫並排除出戰</button>
                 </div>
                 <div class="flex flex-col gap-2">
-                    <h4 class="text-xs font-bold text-gray-700">當前請假紀錄</h4>
+                    <h4 class="text-xs font-bold text-gray-700">當前請假名冊</h4>
                     <div class="flex flex-col gap-2" id="leave-list-ui"></div>
                 </div>
             </div>
@@ -183,11 +180,11 @@
         </div>
     </div>
 
-    <!-- 獨立開窗：搜尋公會成員 Modal -->
+    <!-- 獨立彈窗：搜尋公會成員 Modal (開窗搜尋，支援即時過濾) -->
     <div id="member-picker-modal" class="fixed inset-0 bg-black/60 z-60 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-sm max-h-[80vh] flex flex-col shadow-2xl overflow-hidden">
             <div class="bg-indigo-600 text-white px-4 py-3 flex justify-between items-center">
-                <h3 class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-address-book"></i> 選擇公會成員</h3>
+                <h3 class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-address-book"></i> 選擇請假成員</h3>
                 <button onclick="closeMemberPickerModal()" class="text-white hover:text-gray-200"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
             <div class="p-3 border-b bg-gray-50">
@@ -200,7 +197,7 @@
                 <!-- 動態搜尋結果清單 -->
             </div>
             <div class="bg-gray-50 px-4 py-2.5 border-t flex justify-end">
-                <button onclick="closeMemberPickerModal()" class="text-xs text-gray-600 font-bold px-3 py-1.5">取消</button>
+                <button onclick="closeMemberPickerModal()" class="text-xs text-gray-600 font-bold px-3 py-1.5">關閉</button>
             </div>
         </div>
     </div>
@@ -231,30 +228,18 @@
         </div>
     </div>
 
-    <!-- 歷史紀錄 Modal -->
-    <div id="history-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl w-full max-w-md max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
-            <div class="bg-indigo-600 text-white px-4 py-3 flex justify-between items-center">
-                <h3 class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-clock-rotate-left"></i> 歷史排班紀錄</h3>
-                <button onclick="closeHistoryModal()" class="text-white hover:text-gray-200"><i class="fa-solid fa-xmark text-lg"></i></button>
-            </div>
-            <div class="p-4 overflow-y-auto flex flex-col gap-2" id="history-list-container"></div>
-            <div class="bg-gray-50 px-4 py-3 border-t flex justify-end">
-                <button onclick="closeHistoryModal()" class="bg-gray-800 hover:bg-gray-900 text-white text-xs font-bold px-4 py-2 rounded-lg">關閉</button>
-            </div>
-        </div>
-    </div>
-
+    <!-- 核心 JS 邏輯 -->
     <script>
         const BACKEND_API_URL = window.location.origin;
 
-        // 試算表公開網址 (請換上您發佈的 Google Sheet 網址或使用後端同步 API)
-        const GOOGLE_SHEET_LEAVES_API = `${BACKEND_API_URL}/api/sheet/leaves?key=gm-lv`;
+        // 🔗 您的 Google 試算表 Web App 網址 (負責讀取「每日主戰場名單」分頁，可放後端中繼或 GAS)
+        const GOOGLE_SHEET_ROSTER_API = `${BACKEND_API_URL}/api/sheet/main-roster`;
 
-        let masterMembers = [];
-        let leaveList = [];
-        let gameClasses = [];
+        let masterMembers = []; // 後端資料庫會員
+        let leaveList = [];     // 後端資料庫請假名冊
+        let gameClasses = [];   // 後端職業
 
+        // 預設 12 隊結構
         let squads = [
             { id: 1, name: "隊伍 1(左路)", members: [] },
             { id: 2, name: "隊伍 2(左路)", members: [] },
@@ -287,19 +272,20 @@
                 updateLeaveCount();
             });
 
-            await syncAllFromGoogleSheet();
+            await syncRosterData();
         };
 
-        // 🎯 核心功能：每次進入網頁或點擊同步，直接向試算表/後端取得最新資料
-        async function syncAllFromGoogleSheet() {
+        // 🎯 核心函式：每次開網頁直接抓取「Google 試算表主戰名冊」與「資料庫請假」，不佔資料庫
+        async function syncRosterData() {
             try {
-                const badge = document.getElementById('total-assigned-badge');
-                badge.innerText = '正在同步資料...';
+                document.getElementById('total-assigned-badge').innerText = '讀取最新表單中...';
 
+                // 平行抓取：職業、資料庫成員、資料庫請假、試算表主戰名單
                 await Promise.all([
                     fetchClassesFromDB(),
                     fetchMembersFromDB(),
-                    fetchLeavesFromGoogleSheet()
+                    fetchLeavesFromDB(),
+                    fetchMainRosterFromSheet()
                 ]);
 
                 initMasterOrder();
@@ -311,6 +297,7 @@
             }
         }
 
+        // 1. API: 載入職業清單
         async function fetchClassesFromDB() {
             try {
                 const res = await fetch(`${BACKEND_API_URL}/api/admin/classes`);
@@ -327,10 +314,11 @@
                     });
                 }
             } catch (err) {
-                console.warn('職業載入失敗，保留預設職業');
+                console.warn('職業載入失敗');
             }
         }
 
+        // 2. API: 載入公會成員名冊 (資料庫)
         async function fetchMembersFromDB() {
             try {
                 const res = await fetch(`${BACKEND_API_URL}/api/admin/members`);
@@ -349,14 +337,14 @@
             }
         }
 
-        // 每次皆去抓取試算表回傳的最新請假資料
-        async function fetchLeavesFromGoogleSheet() {
+        // 3. API: 載入請假紀錄 (直接吃您的資料庫，不讀取表單)
+        async function fetchLeavesFromDB() {
             try {
-                const res = await fetch(GOOGLE_SHEET_LEAVES_API);
+                const res = await fetch(`${BACKEND_API_URL}/api/admin/leaves`);
                 const result = await res.json();
                 if (result.status === 'success' && result.leaves) {
                     leaveList = result.leaves.map(l => ({
-                        id: l.id || `${l.gameNickname}_${l.leaveDate}`,
+                        id: l.id,
                         name: l.gameNickname,
                         job: l.gameClass,
                         date: l.leaveDate || l.date,
@@ -366,24 +354,24 @@
                     }));
                 }
             } catch (err) {
-                // 若客製 API 連線異常，備援呼叫一般管理員請假 API
-                const fallback = await fetch(`${BACKEND_API_URL}/api/admin/leaves`);
-                const fbData = await fallback.json();
-                if (fbData.status === 'success' && fbData.leaves) {
-                    leaveList = fbData.leaves.map(l => ({
-                        id: l.id,
-                        name: l.gameNickname,
-                        job: l.gameClass,
-                        date: l.leaveDate || l.date,
-                        event: l.leaveEvent || l.event,
-                        reason: l.leaveReason || l.reason,
-                        isUrgent: l.isUrgent === 'Y'
-                    }));
-                }
+                console.error('載入資料庫請假失敗:', err);
             }
         }
 
-        // --- 彈窗成員搜尋器 (解決被遮蔽問題) ---
+        // 4. API: 讀取 Google 試算表上的「每日主戰場名單」母檔
+        async function fetchMainRosterFromSheet() {
+            try {
+                const res = await fetch(GOOGLE_SHEET_ROSTER_API);
+                const result = await res.json();
+                if (result.status === 'success' && result.squads && result.squads.length > 0) {
+                    squads = result.squads;
+                }
+            } catch (err) {
+                console.warn('目前無法連線試算表 API，保留預設隊伍陣容架構');
+            }
+        }
+
+        // --- 彈窗開窗選擇成員 (解決被遮蔽問題) ---
         function openMemberPickerModal() {
             document.getElementById('picker-search-input').value = '';
             document.getElementById('member-picker-modal').classList.remove('hidden');
@@ -436,7 +424,7 @@
             closeMemberPickerModal();
         }
 
-        // 請假管理與回寫
+        // 請假管理與資料庫回寫
         function openLeaveModal() { 
             document.getElementById('leave-modal').classList.remove('hidden'); 
             renderLeaveListUI(); 
@@ -470,24 +458,22 @@
                         targetUid: targetUid || 'MANUAL_APPLY',
                         gameNickname,
                         gameClass,
-                        leaveReason: '指揮台手動調度登記',
+                        leaveReason: '指揮系統手動排程請假',
                         isUrgent: 'N'
                     })
                 });
                 const result = await res.json();
                 if (result.status === 'success') {
-                    // 重新抓取並同步
-                    await fetchLeavesFromGoogleSheet();
+                    await fetchLeavesFromDB();
                     renderLeaveListUI();
                     renderMemberList();
                     updateLeaveCount();
                     
-                    // 重設選擇器
                     document.getElementById('leave-selected-uid').value = '';
                     document.getElementById('leave-selected-name').value = '';
                     document.getElementById('leave-selected-job').value = '';
                     document.getElementById('selected-member-display').innerHTML = '<span class="text-gray-400">點此開窗搜尋成員...</span>';
-                    alert('✓ 已成功登錄請假並同步回寫！');
+                    alert('✓ 已成功寫入資料庫！');
                 } else {
                     alert('新增失敗: ' + (result.message || '系統異常'));
                 }
@@ -503,7 +489,7 @@
                 const res = await fetch(`${BACKEND_API_URL}/api/admin/leaves/${leaveId}`, { method: 'DELETE' });
                 const result = await res.json();
                 if (result.status === 'success') {
-                    await fetchLeavesFromGoogleSheet();
+                    await fetchLeavesFromDB();
                     renderLeaveListUI();
                     renderMemberList();
                     updateLeaveCount();
@@ -512,7 +498,7 @@
                 }
             } catch (err) {
                 console.error(err);
-                alert('網路錯誤');
+                alert('連線失敗');
             }
         }
 
@@ -522,7 +508,7 @@
             const currentDateStr = document.getElementById('roster-date').value;
 
             if (leaveList.length === 0) {
-                container.innerHTML = `<div class="text-xs text-gray-400 text-center py-3">目前無請假記錄</div>`;
+                container.innerHTML = `<div class="text-xs text-gray-400 text-center py-3">資料庫目前無請假紀錄</div>`;
                 return;
             }
 
@@ -619,7 +605,7 @@
                     return;
                 }
             }
-            alert('所有隊伍皆已達 5 人滿編！');
+            alert('所有隊伍皆已達 5 人滿額！');
         }
 
         function initMasterOrder() {
@@ -847,7 +833,7 @@
         }
 
         function resetRoster() {
-            if (confirm('確定清空現有出戰安排嗎？')) {
+            if (confirm('確定要清空目前陣容嗎？重新整理後可再次從試算表還原。')) {
                 squads.forEach(s => s.members = []);
                 mergedGroups = [];
                 initMasterOrder();
@@ -916,72 +902,7 @@
             });
         }
 
-        // 存檔與歷史紀錄
-        function saveCurrentRoster() {
-            const dateVal = document.getElementById('roster-date').value;
-            if (!dateVal) { alert('請選擇日期！'); return; }
-            const dataToSave = { 
-                date: dateVal, 
-                squads: JSON.parse(JSON.stringify(squads)), 
-                mergedGroups: JSON.parse(JSON.stringify(mergedGroups)), 
-                masterOrder: JSON.parse(JSON.stringify(masterOrder))
-            };
-            let history = JSON.parse(localStorage.getItem('guild_roster_history') || '[]');
-            history = history.filter(h => h.date !== dateVal);
-            history.push(dataToSave);
-            localStorage.setItem('guild_roster_history', JSON.stringify(history));
-            alert(`已儲存 ${dateVal} 的出戰陣容！`);
-        }
-
-        function openHistoryModal() { document.getElementById('history-modal').classList.remove('hidden'); renderHistoryList(); }
-        function closeHistoryModal() { document.getElementById('history-modal').classList.add('hidden'); }
-        function renderHistoryList() {
-            const container = document.getElementById('history-list-container');
-            container.innerHTML = '';
-            let history = JSON.parse(localStorage.getItem('guild_roster_history') || '[]');
-            if (history.length === 0) { container.innerHTML = `<div class="text-xs text-gray-400 text-center py-4">無歷史紀錄</div>`; return; }
-            history.sort((a, b) => new Date(b.date) - new Date(a.date));
-            history.forEach(h => {
-                const item = document.createElement('div');
-                item.className = 'flex justify-between items-center p-3 bg-gray-50 border rounded-xl';
-                item.innerHTML = `
-                    <span class="text-xs font-bold text-gray-800">${h.date} 陣容配置</span>
-                    <div class="flex gap-2">
-                        <button onclick="loadHistory('${h.date}')" class="bg-indigo-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg">載入</button>
-                        <button onclick="deleteHistory('${h.date}')" class="bg-gray-200 text-gray-600 text-xs px-2.5 py-1.5 rounded-lg"><i class="fa-solid fa-trash-can"></i></button>
-                    </div>
-                `;
-                container.appendChild(item);
-            });
-        }
-
-        function loadHistory(dateStr) {
-            let history = JSON.parse(localStorage.getItem('guild_roster_history') || '[]');
-            const found = history.find(h => h.date === dateStr);
-            if (found) {
-                squads = JSON.parse(JSON.stringify(found.squads));
-                mergedGroups = found.mergedGroups ? JSON.parse(JSON.stringify(found.mergedGroups)) : [];
-                masterOrder = found.masterOrder ? JSON.parse(JSON.stringify(found.masterOrder)) : [];
-                if (masterOrder.length === 0) initMasterOrder();
-                document.getElementById('roster-date').value = found.date;
-                document.getElementById('display-date-label').innerText = `日期：${found.date}`;
-                renderSquads(); 
-                renderMemberList(); 
-                updateLeaveCount(); 
-                closeHistoryModal();
-                alert(`已成功載入 ${found.date} 的名單！`);
-            }
-        }
-
-        function deleteHistory(dateStr) {
-            if (confirm(`確定要刪除 ${dateStr} 的歷史紀錄？`)) {
-                let history = JSON.parse(localStorage.getItem('guild_roster_history') || '[]');
-                history = history.filter(h => h.date !== dateStr);
-                localStorage.setItem('guild_roster_history', JSON.stringify(history));
-                renderHistoryList();
-            }
-        }
-
+        // 匯出完整戰術圖例 (強制設定寬度展開所有六隊)
         function exportToImage() {
             const captureElement = document.getElementById('export-capture-target');
             const btn = event.currentTarget;
@@ -1003,7 +924,7 @@
                 windowWidth: 1400
             }).then(canvas => {
                 const link = document.createElement('a');
-                link.download = `公會戰場主戰陣容_${document.getElementById('roster-date').value || 'date'}.png`;
+                link.download = `公會戰場出戰名冊_${document.getElementById('roster-date').value || 'date'}.png`;
                 link.href = canvas.toDataURL('image/png');
                 link.click();
 
