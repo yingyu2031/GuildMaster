@@ -530,16 +530,17 @@ app.post('/api/members/bind', async (req, res) => {
   }
 });
 
-// ==========================================
-// 3. 幹部後台會員清單 (依照職業順序 -> 入會時間排序)
-// ==========================================
+// 3. 幹部後台會員清單 (依職業權重 -> 職業中文名稱 -> 入會時間)
 app.get('/api/admin/members', async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT m.* 
       FROM members m
       LEFT JOIN game_classes c ON m.game_class = c.class_name
-      ORDER BY COALESCE(c.sort_order, 999) ASC, m.update_time ASC
+      ORDER BY 
+        COALESCE(c.sort_order, 999) ASC,
+        m.game_class ASC,
+        m.update_time ASC
     `);
 
     const members = result.rows.map(m => ({
