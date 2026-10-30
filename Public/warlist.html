@@ -100,7 +100,7 @@
 </head>
 <body class="bg-gray-100 min-h-screen pb-16 pt-2">
 
-    <!-- 主內容區：左側 2 欄極致縮窄，右側 10 欄寬大延伸 -->
+    <!-- 主內容區：左側極窄 (220px 彈性寬度)，右側完全伸展 -->
     <main class="w-full px-2 sm:px-3 flex flex-col lg:grid lg:grid-cols-12 gap-2.5">
 
         <!-- 左側：人員名冊 (佔 2 欄) -->
@@ -128,10 +128,20 @@
                     <select id="job-filter" onchange="renderMemberList()" class="w-full bg-gray-50 border border-gray-300 text-[11px] rounded-lg px-1.5 py-1 text-gray-700 focus:ring-1 focus:ring-indigo-500 focus:outline-none">
                         <option value="全部">全部職業</option>
                     </select>
+
+                    <!-- 🎯 篩選未被安排功能切換 -->
+                    <div class="grid grid-cols-2 gap-1 bg-gray-100 p-0.5 rounded-lg text-[10px] font-bold text-center">
+                        <button id="filter-btn-all" onclick="toggleUnassignedFilter(false)" class="py-1 rounded bg-white text-gray-800 shadow-2xs transition">
+                            全部
+                        </button>
+                        <button id="filter-btn-unassigned" onclick="toggleUnassignedFilter(true)" class="py-1 rounded text-gray-500 hover:text-gray-800 transition">
+                            僅未安排
+                        </button>
+                    </div>
                 </div>
 
                 <!-- 成員清單 -->
-                <div id="member-list-container" class="flex flex-col gap-1 h-[640px] overflow-y-auto p-1 bg-gray-50 rounded-xl border border-gray-100">
+                <div id="member-list-container" class="flex flex-col gap-1 h-[610px] overflow-y-auto p-1 bg-gray-50 rounded-xl border border-gray-100">
                     <div class="text-[10px] text-gray-400 p-4 text-center">載入中...</div>
                 </div>
             </section>
@@ -145,7 +155,7 @@
                 <div class="flex flex-col gap-2 border-b pb-2">
                     <div class="flex flex-wrap justify-between items-center gap-2">
                         
-                        <!-- 🎯 主戰 / 副戰 切換頁籤 (主戰12隊 / 副戰18隊) -->
+                        <!-- 主戰 / 副戰 切換頁籤 -->
                         <div class="flex items-center gap-2">
                             <div class="flex bg-gray-100 p-1 rounded-xl border border-gray-200 text-xs font-black">
                                 <button id="tab-main" onclick="switchMode('main')" class="py-1.5 px-4 rounded-lg bg-indigo-600 text-white shadow-xs transition flex items-center gap-1.5">
@@ -254,12 +264,13 @@
         const GOOGLE_SHEET_ROSTER_API = 'https://script.google.com/macros/s/AKfycbx2ndfyU7920INPrgPWGIY2DGEQfosjoXyaIrCn_7SVeaCo2U7axVNyTl8Eyd8rmXdc9w/exec';
 
         let currentMode = 'main'; // 'main' (主戰 12 隊) 或 'sub' (副戰 18 隊)
+        let filterOnlyUnassigned = false; // 🎯 篩選「僅顯示未被安排」狀態標記
 
         let masterMembers = []; // 公會會員名冊
         let leaveList = [];     // 請假名單
         let gameClasses = [];   // 職業
 
-        // 🎯 主戰 12 隊結構
+        // 主戰 12 隊結構
         let mainSquads = [
             { id: 1, name: "隊伍 1(左路)", members: [] },
             { id: 2, name: "隊伍 2(左路)", members: [] },
@@ -277,7 +288,7 @@
         let mainMergedGroups = [];
         let mainMasterOrder = [];
 
-        // 🎯 副戰 18 隊完整結構 (8隊 + 8隊 + 2隊支援)
+        // 副戰 18 隊完整結構 (8隊 + 8隊 + 2隊支援)
         let subSquads = [
             { id: 1, name: "隊伍 1", members: [] },
             { id: 2, name: "隊伍 2", members: [] },
@@ -304,7 +315,6 @@
         window.onload = async function() {
             setupHorizontalScroll();
             await refreshMembersAndLeaves();
-            // 分別載入主戰與副戰表單資料
             await fetchRosterFromSheetInternal('main');
             await fetchRosterFromSheetInternal('sub');
             renderSquads();
@@ -320,6 +330,23 @@
                     wrapper.scrollLeft += evt.deltaY * 1.5;
                 }
             }, { passive: false });
+        }
+
+        // 🎯 切換「僅未安排」篩選
+        function toggleUnassignedFilter(onlyUnassigned) {
+            filterOnlyUnassigned = onlyUnassigned;
+            const btnAll = document.getElementById('filter-btn-all');
+            const btnUnassigned = document.getElementById('filter-btn-unassigned');
+
+            if (onlyUnassigned) {
+                btnUnassigned.className = "py-1 rounded bg-white text-gray-800 shadow-2xs transition font-black";
+                btnAll.className = "py-1 rounded text-gray-500 hover:text-gray-800 transition";
+            } else {
+                btnAll.className = "py-1 rounded bg-white text-gray-800 shadow-2xs transition font-black";
+                btnUnassigned.className = "py-1 rounded text-gray-500 hover:text-gray-800 transition";
+            }
+
+            renderMemberList();
         }
 
         function switchMode(mode) {
@@ -424,7 +451,6 @@
             }
         }
 
-        // 內部讀取表單 (支援 main 與 sub)
         async function fetchRosterFromSheetInternal(type) {
             try {
                 const url = `${GOOGLE_SHEET_ROSTER_API}?type=${type}&t=${new Date().getTime()}`;
@@ -453,7 +479,7 @@
             if (manual) alert(`✓ 已重新載入${currentMode === 'main' ? '主戰' : '副戰'}名單！`);
         }
 
-        // 儲存覆蓋名單：包含隊伍名、隊員、以及團隊合併名稱
+        // 🎯 儲存覆蓋名單：合併團隊直接回寫團隊名稱
         async function saveAndOverwriteCurrentRoster() {
             const saveBtn = event.currentTarget;
             const originalText = saveBtn.innerHTML;
@@ -471,7 +497,7 @@
                     body: JSON.stringify({
                         type: currentMode,
                         squads: squads,
-                        mergedGroups: mergedGroups
+                        mergedGroups: mergedGroups // 傳送合併資訊以利回寫團隊名稱
                     })
                 });
                 const sheetResult = await sheetRes.json();
@@ -511,7 +537,7 @@
             return leaveList.some(l => l.name === name && l.date === todayStr);
         }
 
-        // 人員名冊渲染：副戰時「主戰已排入成員」自動鎖定
+        // 🎯 人員名冊渲染：支援「僅顯示未被安排」過濾
         function renderMemberList() {
             const container = document.getElementById('member-list-container');
             const search = document.getElementById('search-input').value.trim();
@@ -519,13 +545,25 @@
             container.innerHTML = '';
 
             const availableMembers = masterMembers.filter(m => !isLeave(m.name));
-            document.getElementById('available-count').innerText = availableMembers.length;
 
             const filtered = availableMembers.filter(m => {
                 const matchSearch = m.name.includes(search);
                 const matchJob = (filterJob === '全部') || (m.job === filterJob);
+                
+                // 🎯 判斷是否已被安排
+                const assignedMain = isAssignedInMain(m.name);
+                const assignedSub = isAssignedInSub(m.name);
+                const isAssigned = (currentMode === 'main') ? assignedMain : (assignedMain || assignedSub);
+
+                // 若勾選「僅未安排」，且已被排入者則排除
+                if (filterOnlyUnassigned && isAssigned) {
+                    return false;
+                }
+
                 return matchSearch && matchJob;
             });
+
+            document.getElementById('available-count').innerText = filtered.length;
 
             if (filtered.length === 0) {
                 container.innerHTML = `<div class="text-[10px] text-gray-400 p-3 text-center">無符合成員</div>`;
@@ -545,7 +583,6 @@
                         badgeText = '已排';
                     }
                 } else {
-                    // 副戰排他防呆：主戰已排則直接鎖死
                     if (assignedMain) {
                         isBlocked = true;
                         badgeText = '主戰已排';
@@ -561,7 +598,7 @@
                 }`;
 
                 let actionHtml = isBlocked ? 
-                    `<span class="text-gray-400 font-bold bg-gray-100 px-1 py-0.5 rounded text-[9px] shrink-0">${badgeText}</span>` :
+                    `<span class="text-gray-400 font-bold bg-gray-100 px-1.5 py-0.5 rounded text-[9px] shrink-0">${badgeText}</span>` :
                     `<button onclick="assignToFirstAvailable('${m.name}')" class="bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white font-bold px-2 py-0.5 rounded transition text-[10px] shrink-0">指派</button>`;
 
                 row.innerHTML = `
@@ -601,7 +638,7 @@
             }
         }
 
-        // 渲染隊伍清單 (主戰每列 6 隊，副戰每列 8 隊)
+        // 渲染隊伍清單
         function renderSquads() {
             const container = document.getElementById('squads-container');
             container.innerHTML = '';
@@ -635,7 +672,6 @@
             if (currentMode === 'main') mainMasterOrder = masterOrder;
             else subMasterOrder = masterOrder;
 
-            // 🎯 排版寬度切換：主戰一列6隊；副戰一列8隊
             const maxPerRow = (currentMode === 'main') ? 6 : 8;
             const rowClass = (currentMode === 'main') ? 'roster-grid-row-main' : 'roster-grid-row-sub';
 
@@ -729,12 +765,12 @@
 
                     if (memberIsOnLeave) {
                         slotsHtml += `
-                            <div class="flex items-center justify-between job-card-leave-today px-2 py-1.5 rounded-lg border text-xs font-black shadow-xs" title="⚠️ 此成員今日已請假！">
+                            <div class="flex items-center justify-between job-card-leave-today px-2 py-1.5 rounded-lg border text-xs font-black shadow-xs">
                                 <div class="flex items-center gap-1 min-w-0">
                                     <span class="bg-red-600 text-white text-[9px] px-1 py-0.2 rounded font-black shrink-0">請假</span>
                                     <span class="truncate">${member}</span>
                                 </div>
-                                <button onclick="removeMemberFromSquad(${squad.id}, ${i})" class="opacity-80 hover:opacity-100 p-0.5 text-red-700 hover:text-red-900 shrink-0 sort-hidden" title="從隊伍移除"><i class="fa-solid fa-xmark"></i></button>
+                                <button onclick="removeMemberFromSquad(${squad.id}, ${i})" class="opacity-80 hover:opacity-100 p-0.5 text-red-700 hover:text-red-900 shrink-0 sort-hidden"><i class="fa-solid fa-xmark"></i></button>
                             </div>
                         `;
                     } else if (info.isUnknown) {
@@ -833,7 +869,6 @@
             const memberName = e.dataTransfer.getData('text/plain');
             if (!memberName) return;
 
-            // 🎯 防呆：副戰不能取主戰已排入成員
             if (currentMode === 'sub' && isAssignedInMain(memberName)) {
                 alert('該成員已被主戰名單選用，副戰無法重複配置！');
                 return;
@@ -952,10 +987,10 @@
 
                 item.innerHTML = `
                     <div class="flex items-center gap-2 min-w-0">
-                        <span class="job-card-${l.job || '其他'} px-2 py-0.5 rounded font-bold text-[10px] border shrink-0">${l.job || '成員'}</span>
-                        <span class="font-bold text-gray-800 truncate">${l.name}</span>
+                        <span class="job-card-${l.job || '其他'} px-2 py-0.5 rounded font-bold text-[9px] border shrink-0">${l.job || '成員'}</span>
+                        <span class="font-bold text-gray-800 truncate text-[11px]">${l.name}</span>
                     </div>
-                    <span class="${isToday ? 'text-amber-800 font-black' : 'text-gray-400'} text-[11px]">
+                    <span class="${isToday ? 'text-amber-800 font-black' : 'text-gray-400'} text-[10px]">
                         ${l.date} ${isToday ? '(今天)' : ''}
                     </span>
                 `;
@@ -971,13 +1006,19 @@
             });
 
             const badge = document.getElementById('leave-count');
-            if (badge) {
-                badge.innerText = todayLeaves.length;
-            }
+            if (badge) badge.innerText = todayLeaves.length;
         }
 
-        function openMergeModal() { document.getElementById('merge-modal').classList.remove('hidden'); renderMergeCheckboxes(); renderExistingMergedGroups(); }
-        function closeMergeModal() { document.getElementById('merge-modal').classList.add('hidden'); renderSquads(); }
+        function openMergeModal() {
+            document.getElementById('merge-modal').classList.remove('hidden');
+            renderMergeCheckboxes();
+            renderExistingMergedGroups();
+        }
+
+        function closeMergeModal() {
+            document.getElementById('merge-modal').classList.add('hidden');
+            renderSquads();
+        }
 
         function renderMergeCheckboxes() {
             const container = document.getElementById('merge-squad-checkboxes');
