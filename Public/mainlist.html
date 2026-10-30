@@ -43,6 +43,14 @@
         .job-card-賢者 { background-color: #00FFFF; color: #1f2937; border-color: #00CECE; }
         .job-card-其他 { background-color: #E5E7EB; color: #374151; border-color: #D1D5DB; }
 
+        /* 🎯 當日請假之高亮警告樣式 */
+        .job-card-leave-today {
+            background-color: #FEE2E2 !important;
+            color: #991B1B !important;
+            border-color: #EF4444 !important;
+            border-width: 2px !important;
+        }
+
         /* 未綁定/改名警示標記樣式 */
         .job-card-unknown {
             background-color: #FFFBEB;
@@ -92,7 +100,6 @@
                         <i class="fa-solid fa-users text-indigo-600"></i> 人員名冊 (<span id="available-count">0</span>)
                     </h2>
                     <div class="flex items-center gap-1.5">
-                        <!-- 只重取 API 會員名冊和請假資料 -->
                         <button onclick="refreshMembersAndLeaves()" title="只重取 API 會員名冊和請假資料" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[11px] font-bold py-1 px-2.5 rounded-lg border border-emerald-300 flex items-center gap-1 transition shadow-xs">
                             <i class="fa-solid fa-arrows-rotate"></i> 重新整理
                         </button>
@@ -170,56 +177,24 @@
 
     </main>
 
-    <!-- 請假管理 Modal -->
+    <!-- 請假管理 Modal (已移除登記與刪除，轉為純檢視) -->
     <div id="leave-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl w-full max-w-md max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+        <div class="bg-white rounded-2xl w-full max-w-md max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
             <div class="bg-amber-500 text-white px-4 py-3 flex justify-between items-center">
-                <h3 class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-user-slash"></i> 請假人員管理 </h3>
+                <h3 class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-user-slash"></i> 當週請假人員名冊</h3>
                 <button onclick="closeLeaveModal()" class="text-white hover:text-gray-200"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
-            <div class="p-4 overflow-y-auto flex flex-col gap-4">
-                <div class="bg-gray-50 p-3 rounded-xl border border-gray-200 flex flex-col gap-2">
-                    <h4 class="text-xs font-bold text-gray-700">登記請假</h4>
-                    
-                    <button type="button" onclick="openMemberPickerModal()" class="w-full bg-white border border-gray-300 text-xs rounded-lg px-3 py-2.5 text-left font-bold text-gray-700 hover:border-amber-500 focus:outline-none flex items-center justify-between shadow-2xs">
-                        <span id="selected-member-display" class="text-gray-400">點此開窗搜尋公會成員...</span>
-                        <i class="fa-solid fa-magnifying-glass text-gray-400 text-xs"></i>
-                    </button>
-                    <input type="hidden" id="leave-selected-uid">
-                    <input type="hidden" id="leave-selected-name">
-                    <input type="hidden" id="leave-selected-job">
-
-                    <input type="text" id="leave-event-input" placeholder="請假活動 (例如: 公會戰場)" value="公會戰場" class="bg-white border border-gray-300 text-xs rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:outline-none">
-                    <input type="date" id="leave-date-input" class="bg-white border border-gray-300 text-xs rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:outline-none">
-                    <button onclick="addLeavePerson()" class="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold py-2 rounded-lg transition mt-1">寫入資料庫並排除出戰</button>
+            <div class="p-4 overflow-y-auto flex-1 flex flex-col gap-3">
+                <div class="flex justify-between items-center px-1">
+                    <span class="text-xs font-bold text-gray-500">當週請假紀錄 (由近到遠排序)</span>
+                    <span class="text-[11px] text-amber-700 font-bold bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                        今日請假：<span id="leave-modal-today-count">0</span> 人
+                    </span>
                 </div>
-                <div class="flex flex-col gap-2">
-                    <h4 class="text-xs font-bold text-gray-700">當週請假名單</h4>
-                    <div class="flex flex-col gap-2" id="leave-list-ui"></div>
-                </div>
+                <div class="flex flex-col gap-2" id="leave-list-ui"></div>
             </div>
             <div class="bg-gray-50 px-4 py-3 border-t flex justify-end">
                 <button onclick="closeLeaveModal()" class="bg-gray-800 hover:bg-gray-900 text-white text-xs font-bold px-4 py-2 rounded-lg">完成</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- 獨立開窗：搜尋公會成員 Modal -->
-    <div id="member-picker-modal" class="fixed inset-0 bg-black/60 z-60 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl w-full max-w-sm max-h-[80vh] flex flex-col shadow-2xl overflow-hidden">
-            <div class="bg-indigo-600 text-white px-4 py-3 flex justify-between items-center">
-                <h3 class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-address-book"></i> 選擇成員</h3>
-                <button onclick="closeMemberPickerModal()" class="text-white hover:text-gray-200"><i class="fa-solid fa-xmark text-lg"></i></button>
-            </div>
-            <div class="p-3 border-b bg-gray-50">
-                <div class="relative w-full">
-                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-gray-400 text-xs"></i>
-                    <input type="text" id="picker-search-input" oninput="renderPickerMemberList()" placeholder="輸入暱稱或職業過濾..." class="w-full bg-white border border-gray-300 text-xs rounded-lg pl-8 pr-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-                </div>
-            </div>
-            <div class="p-2 overflow-y-auto flex-1 flex flex-col gap-1.5" id="picker-member-list-ui"></div>
-            <div class="bg-gray-50 px-4 py-2.5 border-t flex justify-end">
-                <button onclick="closeMemberPickerModal()" class="text-xs text-gray-600 font-bold px-3 py-1.5">關閉</button>
             </div>
         </div>
     </div>
@@ -280,10 +255,6 @@
         let masterOrder = [];
 
         window.onload = async function() {
-            const todayStr = new Date().toISOString().split('T')[0];
-            const dateInput = document.getElementById('leave-date-input');
-            if (dateInput) dateInput.value = todayStr;
-
             setupHorizontalScroll();
 
             // 初始載入：取會員、請假與主戰名單
@@ -656,27 +627,39 @@
             document.getElementById('total-assigned-badge').innerText = `已配置: ${totalAssigned} / ${totalCapacity}`;
         }
 
+        // 🎯 建立單隊卡片 HTML：加入「當日請假高亮註記」
         function createSquadCardHtml(squad) {
             let slotsHtml = '';
             for (let i = 0; i < 5; i++) {
                 const member = squad.members[i];
                 if (member) {
                     const info = getMemberJobInfo(member);
-                    
-                    if (info.isUnknown) {
+                    const memberIsOnLeave = isLeave(member); // 檢查今天是否請假
+
+                    if (memberIsOnLeave) {
+                        // 🚨 當日有請假：標註醒目紅底紅邊框與警告標籤
+                        slotsHtml += `
+                            <div class="flex items-center justify-between job-card-leave-today px-2 py-1.5 rounded-lg border text-xs font-black shadow-xs" title="⚠️ 此成員今日已登記請假！">
+                                <div class="flex items-center gap-1 min-w-0">
+                                    <span class="bg-red-600 text-white text-[9px] px-1 py-0.2 rounded font-black shrink-0">請假</span>
+                                    <span class="truncate">${member}</span>
+                                </div>
+                                <button onclick="removeMemberFromSquad(${squad.id}, ${i})" class="opacity-80 hover:opacity-100 p-0.5 text-red-700 hover:text-red-900 shrink-0 sort-hidden" title="從隊伍移除"><i class="fa-solid fa-xmark"></i></button>
+                            </div>
+                        `;
+                    } else if (info.isUnknown) {
+                        // ⚠️ 改名或未在名冊中
                         slotsHtml += `
                             <div class="flex items-center justify-between job-card-unknown px-2 py-1.5 rounded-lg border text-xs font-bold shadow-2xs" title="名冊查無此暱稱（可能已改名或尚未綁定）">
                                 <div class="flex items-center gap-1 min-w-0">
                                     <span class="text-amber-600 text-[11px]"><i class="fa-solid fa-triangle-exclamation"></i></span>
                                     <span class="truncate">${member}</span>
                                 </div>
-                                <div class="flex items-center gap-1 shrink-0 sort-hidden">
-                                    <button onclick="promptReplaceMember(${squad.id}, ${i}, '${member}')" class="text-[10px] bg-amber-200/80 hover:bg-amber-300 text-amber-900 px-1.5 py-0.5 rounded font-bold" title="選取現任成員替換">替換</button>
-                                    <button onclick="removeMemberFromSquad(${squad.id}, ${i})" class="opacity-70 hover:opacity-100 p-0.5 text-gray-500 hover:text-red-600"><i class="fa-solid fa-xmark"></i></button>
-                                </div>
+                                <button onclick="removeMemberFromSquad(${squad.id}, ${i})" class="opacity-70 hover:opacity-100 p-0.5 text-gray-500 hover:text-red-600 shrink-0 sort-hidden"><i class="fa-solid fa-xmark"></i></button>
                             </div>
                         `;
                     } else {
+                        // 正常出戰成員
                         slotsHtml += `
                             <div class="flex items-center justify-between job-card-${info.job} px-2.5 py-1.5 rounded-lg border text-xs font-bold shadow-2xs">
                                 <span class="truncate pr-1">${member}</span>
@@ -726,12 +709,6 @@
                     </div>
                 </div>
             `;
-        }
-
-        let replacingSquadContext = null;
-        function promptReplaceMember(squadId, memberIndex, oldName) {
-            replacingSquadContext = { squadId, memberIndex, oldName };
-            openMemberPickerModal();
         }
 
         function moveMasterOrder(index, direction) {
@@ -807,71 +784,6 @@
             }
         }
 
-        function openMemberPickerModal() {
-            document.getElementById('picker-search-input').value = '';
-            document.getElementById('member-picker-modal').classList.remove('hidden');
-            renderPickerMemberList();
-        }
-
-        function closeMemberPickerModal() {
-            document.getElementById('member-picker-modal').classList.add('hidden');
-            replacingSquadContext = null;
-        }
-
-        function renderPickerMemberList() {
-            const container = document.getElementById('picker-member-list-ui');
-            const search = document.getElementById('picker-search-input').value.trim().toLowerCase();
-            container.innerHTML = '';
-
-            const filtered = masterMembers.filter(m => {
-                return m.name.toLowerCase().includes(search) || m.job.toLowerCase().includes(search);
-            });
-
-            if (filtered.length === 0) {
-                container.innerHTML = `<div class="text-xs text-gray-400 p-4 text-center">查無相符成員</div>`;
-                return;
-            }
-
-            filtered.forEach(m => {
-                const item = document.createElement('div');
-                item.className = "flex items-center justify-between p-2 rounded-xl border border-gray-200 bg-white hover:border-amber-400 hover:bg-amber-50/50 cursor-pointer transition text-xs";
-                item.onclick = () => selectMemberFromPicker(m);
-                item.innerHTML = `
-                    <div class="flex items-center gap-2">
-                        <span class="job-card-${m.job} px-2 py-0.5 rounded font-bold text-[10px] border">${m.job}</span>
-                        <span class="font-bold text-gray-800">${m.name}</span>
-                    </div>
-                    <span class="text-amber-600 font-bold text-[11px]"><i class="fa-solid fa-check"></i> 選擇</span>
-                `;
-                container.appendChild(item);
-            });
-        }
-
-        function selectMemberFromPicker(member) {
-            if (replacingSquadContext) {
-                const { squadId, memberIndex } = replacingSquadContext;
-                const squad = squads.find(s => s.id === squadId);
-                if (squad) {
-                    squad.members[memberIndex] = member.name;
-                    renderSquads();
-                    renderMemberList();
-                }
-                closeMemberPickerModal();
-                return;
-            }
-
-            document.getElementById('leave-selected-uid').value = member.uid;
-            document.getElementById('leave-selected-name').value = member.name;
-            document.getElementById('leave-selected-job').value = member.job;
-            
-            const display = document.getElementById('selected-member-display');
-            display.innerHTML = `
-                <span class="job-card-${member.job} px-1.5 py-0.5 rounded text-[10px] border mr-1 font-bold">${member.job}</span>
-                <span class="text-gray-900 font-bold">${member.name}</span>
-            `;
-            closeMemberPickerModal();
-        }
-
         function openLeaveModal() { 
             document.getElementById('leave-modal').classList.remove('hidden'); 
             renderLeaveListUI(); 
@@ -883,73 +795,7 @@
             renderMemberList();
         }
 
-        async function addLeavePerson() {
-            const targetUid = document.getElementById('leave-selected-uid').value;
-            const gameNickname = document.getElementById('leave-selected-name').value;
-            const gameClass = document.getElementById('leave-selected-job').value;
-            const leaveDate = document.getElementById('leave-date-input').value;
-            const leaveEvent = document.getElementById('leave-event-input').value.trim();
-
-            if (!gameNickname || !leaveDate || !leaveEvent) {
-                alert('請先開窗點選請假成員，並完整設定日期與活動！');
-                return;
-            }
-
-            try {
-                const res = await fetch(`${BACKEND_API_URL}/api/leaves`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        leaveDate,
-                        leaveEvent,
-                        targetUid: targetUid || 'MANUAL_APPLY',
-                        gameNickname,
-                        gameClass,
-                        leaveReason: '指揮系統手動排程請假',
-                        isUrgent: 'N'
-                    })
-                });
-                const result = await res.json();
-                if (result.status === 'success') {
-                    await fetchLeavesFromDB();
-                    renderLeaveListUI();
-                    renderMemberList();
-                    updateLeaveCount();
-                    
-                    document.getElementById('leave-selected-uid').value = '';
-                    document.getElementById('leave-selected-name').value = '';
-                    document.getElementById('leave-selected-job').value = '';
-                    document.getElementById('selected-member-display').innerHTML = '<span class="text-gray-400">點此開窗搜尋公會成員...</span>';
-                    alert('✓ 已成功寫入請假資料庫！');
-                } else {
-                    alert('新增失敗: ' + (result.message || '系統異常'));
-                }
-            } catch (err) {
-                console.error(err);
-                alert('伺服器連線失敗');
-            }
-        }
-
-        async function deleteLeavePerson(leaveId) {
-            if (!confirm('確定取消並刪除此請假記錄？')) return;
-            try {
-                const res = await fetch(`${BACKEND_API_URL}/api/admin/leaves/${leaveId}`, { method: 'DELETE' });
-                const result = await res.json();
-                if (result.status === 'success') {
-                    await fetchLeavesFromDB();
-                    renderLeaveListUI();
-                    renderMemberList();
-                    updateLeaveCount();
-                } else {
-                    alert('取消失敗: ' + result.message);
-                }
-            } catch (err) {
-                console.error(err);
-                alert('連線失敗');
-            }
-        }
-
-        // 請假彈窗：只過濾本週，並由近到遠（最新在最上面）排序
+        // 🎯 請假彈窗：由近到遠排序，且完全純檢視（無垃圾桶刪除按鈕）
         function renderLeaveListUI() {
             const container = document.getElementById('leave-list-ui');
             if (!container) return;
@@ -963,36 +809,45 @@
                 return d >= weekStart && d <= weekEnd;
             });
 
+            const todayLeavesCount = leaveList.filter(l => {
+                const d = (l.date || '').replace(/\//g, '-').trim();
+                return d === todayStr;
+            }).length;
+
+            const modalTodayBadge = document.getElementById('leave-modal-today-count');
+            if (modalTodayBadge) modalTodayBadge.innerText = todayLeavesCount;
+
             if (thisWeekLeaves.length === 0) {
-                container.innerHTML = `<div class="text-xs text-gray-400 text-center py-4 font-bold">本週無任何請假紀錄</div>`;
+                container.innerHTML = `<div class="text-xs text-gray-400 text-center py-6 font-bold">本週無任何請假紀錄</div>`;
                 return;
             }
 
-            // 由近到遠（日期最新在最上方）
+            // 由近到遠排序（日期最新的排最上方）
             thisWeekLeaves.sort((a, b) => new Date(b.date) - new Date(a.date));
 
             thisWeekLeaves.forEach((l) => {
                 const isToday = (l.date === todayStr);
                 const item = document.createElement('div');
-                item.className = `flex justify-between items-center p-2 rounded-xl text-xs border ${
+                item.className = `flex justify-between items-center p-2.5 rounded-xl text-xs border ${
                     isToday ? 'bg-amber-50 border-amber-300 font-bold' : 'bg-white border-gray-200'
                 }`;
 
                 item.innerHTML = `
-                    <div class="flex items-center gap-1.5 min-w-0">
-                        <span class="job-card-${l.job} px-1.5 py-0.5 rounded font-bold text-[10px] border shrink-0">${l.job}</span>
+                    <div class="flex items-center gap-2 min-w-0">
+                        <span class="job-card-${l.job || '其他'} px-2 py-0.5 rounded font-bold text-[10px] border shrink-0">${l.job || '成員'}</span>
                         <span class="font-bold text-gray-800 truncate">${l.name}</span>
-                        <span class="${isToday ? 'text-amber-700 font-black' : 'text-gray-400'} text-[10px] shrink-0">
+                    </div>
+                    <div class="flex items-center gap-1.5 shrink-0">
+                        <span class="${isToday ? 'text-amber-800 font-black' : 'text-gray-400'} text-[11px]">
                             ${l.date} ${isToday ? '(今天)' : ''}
                         </span>
                     </div>
-                    <button onclick="deleteLeavePerson('${l.id}')" class="text-gray-400 hover:text-red-600 p-1 shrink-0" title="取消請假"><i class="fa-solid fa-trash-can"></i></button>
                 `;
                 container.appendChild(item);
             });
         }
 
-        // 請假人數按鈕：只統計「當天（今天）」請假人數
+        // 🎯 請假按鈕人數：只統計「當天（今天）」請假人數
         function updateLeaveCount() {
             const todayStr = new Date().toISOString().split('T')[0];
             const todayLeaves = leaveList.filter(l => {
