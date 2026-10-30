@@ -768,7 +768,7 @@ app.get('/api/auth/discord', (req, res) => {
   const state = encodeURIComponent(fromUid);
   const scope = encodeURIComponent('identify guilds guilds.join');
   const authUrl = `https://discord.com/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&response_type=code&irect_uri=${encodeURIComponent(DISCORD_IRECT_URI)}&scope=${scope}&state=${state}`;
-  res.irect(authUrl);
+  res.redirect(authUrl);
 });
 
 // 2. 接收 Discord 授權回調
@@ -932,7 +932,7 @@ app.get('/api/auth/discord/callback', async (req, res) => {
 
       // 👉【關鍵改動】：這裡完全不對 members 做任何 INSERT / UPDATE！
       // 單純將使用者資訊帶到前端 cn-hub.html，等他填完資料按「送出」才寫入資料庫
-      res.irect(`/cn-hub.html?uid=${encodeURIComponent(dcId)}&name=${encodeURIComponent(dcName)}&avatar=${encodeURIComponent(dcAvatar)}`);
+      res.redirect(`/cn-hub.html?uid=${encodeURIComponent(dcId)}&name=${encodeURIComponent(dcName)}&avatar=${encodeURIComponent(dcAvatar)}`);
     }
 
   } catch (err) {
