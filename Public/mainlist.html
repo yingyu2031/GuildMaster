@@ -43,7 +43,7 @@
         .job-card-賢者 { background-color: #00FFFF; color: #1f2937; border-color: #00CECE; }
         .job-card-其他 { background-color: #E5E7EB; color: #374151; border-color: #D1D5DB; }
 
-        /* 🎯 當日請假之高亮警告樣式 */
+        /* 當日請假高亮 */
         .job-card-leave-today {
             background-color: #FEE2E2 !important;
             color: #991B1B !important;
@@ -51,7 +51,7 @@
             border-width: 2px !important;
         }
 
-        /* 未綁定/改名警示標記樣式 */
+        /* 改名或未在名冊中警示 */
         .job-card-unknown {
             background-color: #FFFBEB;
             color: #92400E;
@@ -59,7 +59,7 @@
             border-style: dashed;
         }
 
-        /* 橫向滾動條樣式 */
+        /* 滾動條樣式美化 */
         .roster-scroll-wrapper {
             width: 100%;
             overflow-x: auto;
@@ -90,43 +90,44 @@
 </head>
 <body class="bg-gray-100 min-h-screen pb-16 pt-3">
 
-    <main class="max-w-[1600px] mx-auto px-3 flex flex-col lg:grid lg:grid-cols-12 gap-4">
+    <!-- 主內容區：左 3 欄 / 右 9 欄（左邊再縮窄，右邊主戰擴充放大） -->
+    <main class="max-w-[1700px] mx-auto px-2 sm:px-4 flex flex-col lg:grid lg:grid-cols-12 gap-3.5">
 
-        <!-- 左側：人員名冊 (佔 4 欄) -->
-        <div class="lg:col-span-4 sticky top-3 z-20 bg-gray-100/95 backdrop-blur-sm pt-1 pb-2 flex flex-col gap-3">
-            <section class="bg-white rounded-2xl shadow-md border border-gray-200 p-3.5 flex flex-col gap-2.5">
+        <!-- 左側：人員名冊 (佔 3 欄，精緻縮窄) -->
+        <div class="lg:col-span-3 sticky top-3 z-20 bg-gray-100/95 backdrop-blur-sm pt-1 pb-2 flex flex-col gap-2.5">
+            <section class="bg-white rounded-2xl shadow-md border border-gray-200 p-3 flex flex-col gap-2">
                 <div class="flex justify-between items-center">
-                    <h2 class="text-xs sm:text-sm font-bold text-gray-700 flex items-center gap-1.5">
+                    <h2 class="text-xs font-bold text-gray-700 flex items-center gap-1.5">
                         <i class="fa-solid fa-users text-indigo-600"></i> 人員名冊 (<span id="available-count">0</span>)
                     </h2>
-                    <div class="flex items-center gap-1.5">
-                        <button onclick="refreshMembersAndLeaves()" title="只重取 API 會員名冊和請假資料" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[11px] font-bold py-1 px-2.5 rounded-lg border border-emerald-300 flex items-center gap-1 transition shadow-xs">
-                            <i class="fa-solid fa-arrows-rotate"></i> 重新整理
+                    <div class="flex items-center gap-1">
+                        <button onclick="refreshMembersAndLeaves()" title="只重取 API 會員名冊和請假資料" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[10px] font-bold py-1 px-2 rounded-lg border border-emerald-300 flex items-center gap-1 transition shadow-xs">
+                            <i class="fa-solid fa-arrows-rotate"></i> 整理
                         </button>
-                        <button onclick="openLeaveModal()" class="bg-amber-50 hover:bg-amber-100 text-amber-800 text-[11px] font-bold py-1 px-2.5 rounded-lg border border-amber-300 flex items-center gap-1 transition shadow-xs">
-                            <i class="fa-solid fa-user-slash"></i> 請假名單 (<span id="leave-count">0</span>)
+                        <button onclick="openLeaveModal()" class="bg-amber-50 hover:bg-amber-100 text-amber-800 text-[10px] font-bold py-1 px-2 rounded-lg border border-amber-300 flex items-center gap-1 transition shadow-xs">
+                            <i class="fa-solid fa-user-slash"></i> 請假(<span id="leave-count">0</span>)
                         </button>
                     </div>
                 </div>
 
-                <div class="flex flex-col gap-2">
+                <div class="flex flex-col gap-1.5">
                     <div class="relative w-full">
-                        <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-gray-400 text-xs"></i>
-                        <input type="text" id="search-input" placeholder="搜尋成員暱稱..." oninput="renderMemberList()" class="w-full bg-gray-50 border border-gray-300 text-xs rounded-lg pl-8 pr-2 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-gray-400 text-[11px]"></i>
+                        <input type="text" id="search-input" placeholder="搜尋暱稱..." oninput="renderMemberList()" class="w-full bg-gray-50 border border-gray-300 text-xs rounded-lg pl-7 pr-2 py-1.5 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                     </div>
-                    <select id="job-filter" onchange="renderMemberList()" class="w-full bg-gray-50 border border-gray-300 text-xs rounded-lg px-2 py-2 text-gray-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    <select id="job-filter" onchange="renderMemberList()" class="w-full bg-gray-50 border border-gray-300 text-xs rounded-lg px-2 py-1.5 text-gray-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                         <option value="全部">全部職業</option>
                     </select>
                 </div>
 
-                <div id="member-list-container" class="flex flex-col gap-1.5 h-[560px] overflow-y-auto p-1.5 bg-gray-50 rounded-xl border border-gray-100">
+                <div id="member-list-container" class="flex flex-col gap-1.5 h-[580px] overflow-y-auto p-1 bg-gray-50 rounded-xl border border-gray-100">
                     <div class="text-xs text-gray-400 p-4 w-full text-center">正在載入成員中...</div>
                 </div>
             </section>
         </div>
 
-        <!-- 右側：主戰名單配置區 (佔 8 欄) -->
-        <div class="lg:col-span-8 flex flex-col gap-4">
+        <!-- 右側：主戰名單配置區 (佔 9 欄，拉寬舒展) -->
+        <div class="lg:col-span-9 flex flex-col gap-3.5">
             <section class="bg-white rounded-2xl shadow-md border border-gray-200 p-4 flex flex-col gap-4">
                 
                 <!-- 頂部操作列：標題、重新載入表單、儲存覆蓋主戰名單 -->
@@ -139,12 +140,12 @@
                             </span>
                         </div>
 
-                        <!-- 頂部右側動作按鈕 -->
+                        <!-- 頂部操作按鈕 -->
                         <div class="flex items-center gap-2">
-                            <button onclick="fetchMainRosterFromSheet(true)" title="重新從 Google 試算表抓取隊伍名單" class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold py-1.5 px-3 rounded-lg border border-gray-300 flex items-center gap-1.5 shadow-2xs transition">
+                            <button onclick="fetchMainRosterFromSheet(true)" title="重新從 Google 試算表抓取隊伍名單與名稱" class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold py-1.5 px-3 rounded-lg border border-gray-300 flex items-center gap-1.5 shadow-2xs transition">
                                 <i class="fa-solid fa-cloud-arrow-down text-indigo-600"></i> 重新載入表單
                             </button>
-                            <button onclick="saveAndOverwriteRoster()" title="覆蓋並儲存主戰名單回寫試算表" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-1.5 px-3.5 rounded-lg shadow-sm flex items-center gap-1.5 transition">
+                            <button onclick="saveAndOverwriteRoster()" title="覆蓋並儲存主戰名單與隊名回寫試算表" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-1.5 px-3.5 rounded-lg shadow-sm flex items-center gap-1.5 transition">
                                 <i class="fa-solid fa-floppy-disk"></i> 儲存覆蓋主戰名單
                             </button>
                             <span class="text-xs font-bold bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-full border border-indigo-200 shadow-xs" id="total-assigned-badge">已配置: 0 / 0</span>
@@ -166,7 +167,7 @@
                 </div>
 
                 <!-- 隊伍展示區塊 -->
-                <div class="flex flex-col gap-4 bg-white p-2 rounded-xl">
+                <div class="flex flex-col gap-4 bg-white p-1 rounded-xl">
                     <div id="rosterWrapper" class="roster-scroll-wrapper">
                         <div id="squads-container" class="flex flex-col gap-4"></div>
                     </div>
@@ -177,7 +178,7 @@
 
     </main>
 
-    <!-- 請假管理 Modal (已移除登記與刪除，轉為純檢視) -->
+    <!-- 當週請假管理 Modal -->
     <div id="leave-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-md max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
             <div class="bg-amber-500 text-white px-4 py-3 flex justify-between items-center">
@@ -186,7 +187,7 @@
             </div>
             <div class="p-4 overflow-y-auto flex-1 flex flex-col gap-3">
                 <div class="flex justify-between items-center px-1">
-                    <span class="text-xs font-bold text-gray-500">當週請假紀錄 (由近到遠排序)</span>
+                    <span class="text-xs font-bold text-gray-500">當週請假名冊 (由近到遠排序)</span>
                     <span class="text-[11px] text-amber-700 font-bold bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
                         今日請假：<span id="leave-modal-today-count">0</span> 人
                     </span>
@@ -209,7 +210,7 @@
             <div class="p-4 overflow-y-auto flex flex-col gap-4">
                 <div class="bg-gray-50 p-3 rounded-xl border border-gray-200 flex flex-col gap-2">
                     <h4 class="text-xs font-bold text-gray-700">建立新合併團隊</h4>
-                    <input type="text" id="merge-group-name" placeholder="團隊名稱 (例如: 總攻突破部隊)" class="bg-white border border-gray-300 text-xs rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:outline-none">
+                    <input type="text" id="merge-group-name" placeholder="團隊名稱 (例如: 總攻突破部隊)" class="bg-white border border-gray-300 text-xs rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:outline-none font-bold">
                     <p class="text-xs text-gray-500 mt-1">請勾選要納入的小隊：</p>
                     <div id="merge-squad-checkboxes" class="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto p-2 bg-white rounded border"></div>
                     <button onclick="createMergedGroup()" class="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold py-2 rounded-lg transition mt-1">確認合併</button>
@@ -256,8 +257,6 @@
 
         window.onload = async function() {
             setupHorizontalScroll();
-
-            // 初始載入：取會員、請假與主戰名單
             await refreshMembersAndLeaves();
             await fetchMainRosterFromSheet(false);
         };
@@ -273,10 +272,9 @@
             }, { passive: false });
         }
 
-        // 取得當週範圍 (週一 ~ 週日)
         function getCurrentWeekRange(baseDateStr) {
             const target = baseDateStr ? new Date(baseDateStr) : new Date();
-            const day = target.getDay(); // 0 是週日
+            const day = target.getDay();
             const diffToMonday = day === 0 ? 6 : day - 1;
             
             const monday = new Date(target);
@@ -286,13 +284,9 @@
             sunday.setDate(monday.getDate() + 6);
             
             const format = (d) => d.toISOString().split('T')[0];
-            return {
-                start: format(monday),
-                end: format(sunday)
-            };
+            return { start: format(monday), end: format(sunday) };
         }
 
-        // 重新整理：只重取會員與請假 API，不覆蓋現有已排陣容
         async function refreshMembersAndLeaves() {
             try {
                 await Promise.all([
@@ -367,7 +361,7 @@
             }
         }
 
-        // 重新載入表單：防快取直接讀取 GAS 網址
+        // 🎯 重新載入表單：同時載入「隊伍名稱」與「成員」
         async function fetchMainRosterFromSheet(manualTrigger = true) {
             try {
                 const badge = document.getElementById('total-assigned-badge');
@@ -382,18 +376,18 @@
                     initMasterOrder();
                     renderSquads();
                     renderMemberList();
-                    if (manualTrigger) alert('✓ 已成功自 Google 試算表重新載入主戰名單！');
+                    if (manualTrigger) alert('✓ 已成功自 Google 試算表載入主戰名單與隊名！');
                 } else {
                     console.error("試算表回傳錯誤或名單為空:", result);
                     if (manualTrigger) alert('讀取失敗：' + (result.message || '抓取的隊伍名單為空'));
                 }
             } catch (err) {
                 console.warn('無法連線試算表 Web App:', err);
-                if (manualTrigger) alert('連線 Google 試算表失敗，請確認網路與 Apps Script 權限！');
+                if (manualTrigger) alert('連線 Google 試算表失敗，請確認網路！');
             }
         }
 
-        // 儲存覆蓋主戰名單：回寫 Google 試算表與後端資料庫
+        // 🎯 儲存覆蓋主戰名單：回寫 Google 試算表（同時包含隊名與成員）
         async function saveAndOverwriteRoster() {
             const saveBtn = event.currentTarget;
             const originalText = saveBtn.innerHTML;
@@ -411,7 +405,7 @@
             let isSuccess = false;
 
             try {
-                // 1. 回寫覆蓋 Google 試算表 (GAS doPost)
+                // 回寫覆蓋 Google 試算表
                 const sheetRes = await fetch(GOOGLE_SHEET_ROSTER_API, {
                     method: 'POST',
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -421,11 +415,9 @@
 
                 if (sheetResult.status === 'success') {
                     isSuccess = true;
-                } else {
-                    console.warn("試算表回寫警示:", sheetResult.message);
                 }
 
-                // 2. 同步存入後端伺服器 (Node.js API)
+                // 同步存入後端 Node.js 資料庫
                 await fetch(`${BACKEND_API_URL}/api/admin/roster/save`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -433,7 +425,7 @@
                 });
 
             } catch (err) {
-                console.warn("網路連線或儲存異常:", err);
+                console.warn("儲存異常:", err);
             } finally {
                 saveBtn.innerHTML = originalText;
                 saveBtn.disabled = false;
@@ -442,7 +434,7 @@
             localStorage.setItem('guild_roster_current', JSON.stringify(dataToSave));
 
             if (isSuccess) {
-                alert('✓ 主戰名單已成功覆蓋寫入 Google 試算表與資料庫！');
+                alert('✓ 主戰名單與修改後隊名已成功覆蓋回寫 Google 試算表！');
             } else {
                 alert('✓ 名單已儲存完成！');
             }
@@ -481,23 +473,23 @@
             });
 
             if (filtered.length === 0) {
-                container.innerHTML = `<div class="text-xs text-gray-400 p-4 w-full text-center">無符合可排班成員</div>`;
+                container.innerHTML = `<div class="text-xs text-gray-400 p-4 w-full text-center">無符合成員</div>`;
                 return;
             }
 
             filtered.forEach(m => {
                 const assigned = isAssigned(m.name);
                 const row = document.createElement('div');
-                row.className = `flex items-center justify-between px-3 py-2 rounded-xl border text-xs transition bg-white ${assigned ? 'opacity-50 border-gray-200' : 'border-gray-200 shadow-xs hover:border-indigo-400'}`;
+                row.className = `flex items-center justify-between px-2.5 py-1.5 rounded-xl border text-xs transition bg-white ${assigned ? 'opacity-50 border-gray-200' : 'border-gray-200 shadow-xs hover:border-indigo-400'}`;
                 
                 let actionHtml = assigned ? 
-                    `<span class="text-gray-400 font-bold bg-gray-100 px-2 py-0.5 rounded text-[11px]">已排</span>` :
-                    `<button onclick="assignToFirstAvailable('${m.name}')" class="bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white font-bold px-3 py-1 rounded-md transition text-[11px]">指派</button>`;
+                    `<span class="text-gray-400 font-bold bg-gray-100 px-2 py-0.5 rounded text-[10px]">已排</span>` :
+                    `<button onclick="assignToFirstAvailable('${m.name}')" class="bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white font-bold px-2.5 py-0.5 rounded-md transition text-[10px]">指派</button>`;
 
                 row.innerHTML = `
-                    <div class="flex items-center gap-2 min-w-0">
-                        <span class="job-card-${m.job} px-2 py-0.5 rounded font-bold text-[10px] border shrink-0">${m.job}</span>
-                        <span class="font-bold text-gray-800 truncate">${m.name}</span>
+                    <div class="flex items-center gap-1.5 min-w-0">
+                        <span class="job-card-${m.job} px-1.5 py-0.5 rounded font-bold text-[9px] border shrink-0">${m.job}</span>
+                        <span class="font-bold text-gray-800 truncate text-[11px]">${m.name}</span>
                     </div>
                     ${actionHtml}
                 `;
@@ -526,6 +518,7 @@
             masterOrder = squads.map(s => ({ type: 'squad', id: s.id }));
         }
 
+        // 🎯 支援合併團隊時顯示團隊名稱 + 內部隊伍橫向並列
         function renderSquads() {
             const container = document.getElementById('squads-container');
             container.innerHTML = '';
@@ -581,26 +574,32 @@
                         }
                     }
                 } else if (item.type === 'group') {
+                    // 🎯 合併團隊渲染：顯示清晰的大團隊名稱標籤
                     const group = mergedGroups.find(g => g.name === item.groupName);
                     if (group) {
                         const spanCount = Math.min(group.squadIds.length, 6);
                         const groupDiv = document.createElement('div');
-                        groupDiv.className = 'border-2 border-purple-400 bg-purple-50/20 rounded-xl p-2.5 flex flex-col gap-2.5';
+                        groupDiv.className = 'border-2 border-purple-500 bg-purple-50/30 rounded-2xl p-2.5 flex flex-col gap-2.5 shadow-sm';
                         
                         let groupHeader = `
-                            <div class="flex justify-between items-center bg-purple-100 px-3 py-1.5 rounded-lg border border-purple-200 sort-hidden">
-                                <div class="flex items-center gap-1.5">
-                                    <span class="text-xs font-black text-purple-900"><i class="fa-solid fa-object-group mr-1"></i> ${group.name}</span>
+                            <div class="flex justify-between items-center bg-purple-600 text-white px-3 py-1.5 rounded-xl shadow-xs sort-hidden">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs font-black tracking-wide flex items-center gap-1.5">
+                                        <i class="fa-solid fa-layer-group text-yellow-300"></i> ${group.name} 
+                                        <span class="text-[10px] bg-purple-700/80 px-2 py-0.5 rounded-full font-bold">合併 ${group.squadIds.length} 隊</span>
+                                    </span>
                                     <div class="flex gap-0.5 text-[10px]">
-                                        <button onclick="moveMasterOrderTarget(${index}, 'first')" class="bg-white/90 hover:bg-white px-1 py-0.5 rounded text-purple-800 font-bold" title="置前">《</button>
-                                        <button onclick="moveMasterOrder(${index}, -1)" class="bg-white/90 hover:bg-white px-1 py-0.5 rounded text-purple-800 font-bold" title="往前">〈</button>
-                                        <button onclick="moveMasterOrder(${index}, 1)" class="bg-white/90 hover:bg-white px-1 py-0.5 rounded text-purple-800 font-bold" title="往後">〉</button>
-                                        <button onclick="moveMasterOrderTarget(${index}, 'last')" class="bg-white/90 hover:bg-white px-1 py-0.5 rounded text-purple-800 font-bold" title="置後">》</button>
+                                        <button onclick="moveMasterOrderTarget(${index}, 'first')" class="bg-white/20 hover:bg-white/30 text-white px-1 py-0.5 rounded font-bold" title="置前">《</button>
+                                        <button onclick="moveMasterOrder(${index}, -1)" class="bg-white/20 hover:bg-white/30 text-white px-1 py-0.5 rounded font-bold" title="往前">〈</button>
+                                        <button onclick="moveMasterOrder(${index}, 1)" class="bg-white/20 hover:bg-white/30 text-white px-1 py-0.5 rounded font-bold" title="往後">〉</button>
+                                        <button onclick="moveMasterOrderTarget(${index}, 'last')" class="bg-white/20 hover:bg-white/30 text-white px-1 py-0.5 rounded font-bold" title="置後">》</button>
                                     </div>
                                 </div>
-                                <button onclick="removeMergedGroupByInstance('${group.name}')" class="text-purple-700 hover:text-red-600 text-xs font-bold"><i class="fa-solid fa-xmark"></i> 解除</button>
+                                <button onclick="removeMergedGroupByInstance('${group.name}')" class="text-purple-200 hover:text-white text-xs font-bold transition flex items-center gap-1">
+                                    <i class="fa-solid fa-xmark"></i> 解除團隊
+                                </button>
                             </div>
-                            <div class="grid gap-2" style="grid-template-columns: repeat(${group.squadIds.length}, 215px);">
+                            <div class="grid gap-3" style="grid-template-columns: repeat(${group.squadIds.length}, 215px);">
                         `;
                         
                         let squadGridHtml = '';
@@ -627,19 +626,18 @@
             document.getElementById('total-assigned-badge').innerText = `已配置: ${totalAssigned} / ${totalCapacity}`;
         }
 
-        // 🎯 建立單隊卡片 HTML：加入「當日請假高亮註記」
+        // 🎯 隊伍卡片生成（隊伍名稱為可編輯 input，改動即時同步進 squads 陣列）
         function createSquadCardHtml(squad) {
             let slotsHtml = '';
             for (let i = 0; i < 5; i++) {
                 const member = squad.members[i];
                 if (member) {
                     const info = getMemberJobInfo(member);
-                    const memberIsOnLeave = isLeave(member); // 檢查今天是否請假
+                    const memberIsOnLeave = isLeave(member);
 
                     if (memberIsOnLeave) {
-                        // 🚨 當日有請假：標註醒目紅底紅邊框與警告標籤
                         slotsHtml += `
-                            <div class="flex items-center justify-between job-card-leave-today px-2 py-1.5 rounded-lg border text-xs font-black shadow-xs" title="⚠️ 此成員今日已登記請假！">
+                            <div class="flex items-center justify-between job-card-leave-today px-2 py-1.5 rounded-lg border text-xs font-black shadow-xs" title="⚠️ 此成員今日已請假！">
                                 <div class="flex items-center gap-1 min-w-0">
                                     <span class="bg-red-600 text-white text-[9px] px-1 py-0.2 rounded font-black shrink-0">請假</span>
                                     <span class="truncate">${member}</span>
@@ -648,7 +646,6 @@
                             </div>
                         `;
                     } else if (info.isUnknown) {
-                        // ⚠️ 改名或未在名冊中
                         slotsHtml += `
                             <div class="flex items-center justify-between job-card-unknown px-2 py-1.5 rounded-lg border text-xs font-bold shadow-2xs" title="名冊查無此暱稱（可能已改名或尚未綁定）">
                                 <div class="flex items-center gap-1 min-w-0">
@@ -659,7 +656,6 @@
                             </div>
                         `;
                     } else {
-                        // 正常出戰成員
                         slotsHtml += `
                             <div class="flex items-center justify-between job-card-${info.job} px-2.5 py-1.5 rounded-lg border text-xs font-bold shadow-2xs">
                                 <span class="truncate pr-1">${member}</span>
@@ -693,12 +689,13 @@
 
             return `
                 <div class="bg-white border border-gray-300 rounded-xl shadow-xs overflow-hidden flex flex-col">
-                    <div class="bg-gray-100 px-2.5 py-1.5 border-b border-gray-200 flex justify-between items-center">
-                        <div class="flex items-center gap-1">
-                            <input type="text" value="${squad.name}" onchange="updateSquadName(${squad.id}, this.value)" class="bg-transparent text-xs font-black text-gray-800 w-24 focus:outline-none focus:bg-white px-1 rounded">
+                    <div class="bg-gray-100 px-2 py-1.5 border-b border-gray-200 flex justify-between items-center">
+                        <div class="flex items-center gap-1 min-w-0">
+                            <!-- 隊伍名稱可即時修改並保存 -->
+                            <input type="text" value="${squad.name}" oninput="updateSquadName(${squad.id}, this.value)" class="bg-transparent text-xs font-black text-gray-800 w-24 focus:outline-none focus:bg-white px-1 py-0.5 rounded border border-transparent focus:border-indigo-400">
                             ${sortButtonsHtml}
                         </div>
-                        <div class="flex items-center gap-1">
+                        <div class="flex items-center gap-1 shrink-0">
                             <span class="text-[10px] font-bold ${squad.members.length === 5 ? 'text-emerald-600' : 'text-amber-600'}">${squad.members.length}/5</span>
                             <button onclick="deleteSquad(${squad.id})" class="text-gray-400 hover:text-red-600 text-xs sort-hidden"><i class="fa-solid fa-trash-can"></i></button>
                         </div>
@@ -709,6 +706,12 @@
                     </div>
                 </div>
             `;
+        }
+
+        // 修改隊名同步寫入記憶體
+        function updateSquadName(squadId, newName) {
+            const squad = squads.find(s => s.id === squadId);
+            if (squad) squad.name = newName.trim();
         }
 
         function moveMasterOrder(index, direction) {
@@ -753,11 +756,6 @@
             }
         }
 
-        function updateSquadName(squadId, newName) {
-            const squad = squads.find(s => s.id === squadId);
-            if (squad) squad.name = newName;
-        }
-
         function addSquad() {
             const newId = squads.length > 0 ? Math.max(...squads.map(s => s.id)) + 1 : 1;
             const newSquad = { id: newId, name: `隊伍 ${newId}`, members: [] };
@@ -795,7 +793,6 @@
             renderMemberList();
         }
 
-        // 🎯 請假彈窗：由近到遠排序，且完全純檢視（無垃圾桶刪除按鈕）
         function renderLeaveListUI() {
             const container = document.getElementById('leave-list-ui');
             if (!container) return;
@@ -822,7 +819,6 @@
                 return;
             }
 
-            // 由近到遠排序（日期最新的排最上方）
             thisWeekLeaves.sort((a, b) => new Date(b.date) - new Date(a.date));
 
             thisWeekLeaves.forEach((l) => {
@@ -847,7 +843,6 @@
             });
         }
 
-        // 🎯 請假按鈕人數：只統計「當天（今天）」請假人數
         function updateLeaveCount() {
             const todayStr = new Date().toISOString().split('T')[0];
             const todayLeaves = leaveList.filter(l => {
@@ -861,7 +856,6 @@
             }
         }
 
-        // 合併團隊控制
         function openMergeModal() { document.getElementById('merge-modal').classList.remove('hidden'); renderMergeCheckboxes(); renderExistingMergedGroups(); }
         function closeMergeModal() { document.getElementById('merge-modal').classList.add('hidden'); renderSquads(); }
 
