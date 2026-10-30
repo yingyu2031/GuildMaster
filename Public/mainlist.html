@@ -26,44 +26,66 @@
             border-color: #6366f1;
             transform: scale(1.02);
         }
-        /* 職業顏色 */
-        .job-card-刺客 { background-color: #fecaca; color: #991b1b; border-color: #f87171; }
-        .job-card-十字軍 { background-color: #fde68a; color: #92400e; border-color: #fbbf24; }
-        .job-card-法師 { background-color: #bfdbfe; color: #1e40af; border-color: #60a5fa; }
-        .job-card-創造者 { background-color: #e9d5ff; color: #6b21a8; border-color: #c084fc; }
-        .job-card-補師 { background-color: #bbf7d0; color: #166534; border-color: #4ade80; }
-        .job-card-武僧 { background-color: #fed7aa; color: #9a3412; border-color: #fb923c; }
-        .job-card-騎士 { background-color: #f3e8ff; color: #581c87; border-color: #d8b4fe; }
-        .job-card-搞笑藝人 { background-color: #fbcfe8; color: #831843; border-color: #f472b6; }
-        .job-card-賢者 { background-color: #c7d2fe; color: #3730a3; border-color: #818cf8; }
-        .job-card-冷豔舞姬 { background-color: #fce7f3; color: #9d174d; border-color: #f472b6; }
-        .job-card-神射手 { background-color: #bae6fd; color: #0369a1; border-color: #38bdf8; }
-        .job-card-流氓 { background-color: #e5e7eb; color: #374151; border-color: #9ca3af; }
-        .job-card-詩人 { background-color: #fef08a; color: #854d0e; border-color: #facc15; }
-        .job-card-鐵匠 { background-color: #fed7aa; color: #c2410c; border-color: #fb923c; }
 
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        /* 🎯 依照條件式格式規則取色之職業色樣 */
+        .job-card-武僧 { background-color: #A9D18E; color: #1f2937; border-color: #8EB773; }
+        .job-card-補師 { background-color: #D9EAD3; color: #1f2937; border-color: #B8D4B0; }
+        .job-card-冷豔舞姬 { background-color: #B56586; color: #ffffff; border-color: #9A4B6B; }
+        .job-card-流氓 { background-color: #FFFF00; color: #1f2937; border-color: #E2E200; }
+        .job-card-十字軍 { background-color: #B8403E; color: #ffffff; border-color: #9C302F; }
+        .job-card-騎士 { background-color: #DE5440; color: #ffffff; border-color: #C33E2B; }
+        .job-card-法師 { background-color: #BDD7EE; color: #1f2937; border-color: #94BCD8; }
+        .job-card-神射手 { background-color: #FFF2CC; color: #1f2937; border-color: #E6D298; }
+        .job-card-搞笑藝人 { background-color: #FFD966; color: #1f2937; border-color: #E0BA4A; }
+        .job-card-槍手 { background-color: #5E3C47; color: #ffffff; border-color: #452932; }
+        .job-card-刺客 { background-color: #644D9C; color: #ffffff; border-color: #4E397F; }
+        .job-card-創造者 { background-color: #B95C00; color: #ffffff; border-color: #964800; }
+        .job-card-鐵匠 { background-color: #D58F54; color: #ffffff; border-color: #BA7339; }
+        .job-card-德魯伊 { background-color: #185FCD; color: #ffffff; border-color: #0E48A2; }
+        .job-card-賢者 { background-color: #00FFFF; color: #1f2937; border-color: #00CECE; }
+        .job-card-其他 { background-color: #E5E7EB; color: #374151; border-color: #D1D5DB; }
 
+        .job-card-unknown {
+            background-color: #FFFBEB;
+            color: #92400E;
+            border-color: #FCD34D;
+            border-style: dashed;
+        }
+
+        /* 橫向平滑滾動 */
         .roster-scroll-wrapper {
             width: 100%;
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
+            scroll-behavior: smooth;
+            padding-bottom: 8px;
         }
+        .roster-scroll-wrapper::-webkit-scrollbar {
+            height: 8px;
+        }
+        .roster-scroll-wrapper::-webkit-scrollbar-thumb {
+            background-color: #CBD5E1;
+            border-radius: 9999px;
+        }
+        .roster-scroll-wrapper::-webkit-scrollbar-track {
+            background-color: #F1F5F9;
+            border-radius: 9999px;
+        }
+
         .roster-grid-row {
             display: grid;
-            grid-template-columns: repeat(6, 200px);
-            gap: 12px;
-            width: 1320px;
-            margin-bottom: 12px;
+            grid-template-columns: repeat(6, 215px);
+            gap: 14px;
+            width: 1420px;
+            margin-bottom: 14px;
         }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen pb-16 pt-3">
 
-    <main class="max-w-7xl mx-auto px-3 flex flex-col lg:grid lg:grid-cols-12 gap-4">
+    <main class="max-w-[1600px] mx-auto px-3 flex flex-col lg:grid lg:grid-cols-12 gap-4">
 
-        <!-- 左側：人員列表 (佔 4 欄) -->
+        <!-- 左側：人員名冊 (佔 4 欄) -->
         <div class="lg:col-span-4 sticky top-3 z-20 bg-gray-100/95 backdrop-blur-sm pt-1 pb-2 flex flex-col gap-3">
             <section class="bg-white rounded-2xl shadow-md border border-gray-200 p-3.5 flex flex-col gap-2.5">
                 <div class="flex justify-between items-center">
@@ -71,7 +93,8 @@
                         <i class="fa-solid fa-users text-indigo-600"></i> 人員名冊 (<span id="available-count">0</span>)
                     </h2>
                     <div class="flex items-center gap-1.5">
-                        <button onclick="syncAllRoster()" title="重新抓取試算表與請假資料" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[11px] font-bold py-1 px-2.5 rounded-lg border border-emerald-300 flex items-center gap-1 transition shadow-xs">
+                        <!-- 🎯 只重取會員與請假 API -->
+                        <button onclick="refreshMembersAndLeaves()" title="只重取 API 會員名冊和請假資料" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[11px] font-bold py-1 px-2.5 rounded-lg border border-emerald-300 flex items-center gap-1 transition shadow-xs">
                             <i class="fa-solid fa-arrows-rotate"></i> 重新整理
                         </button>
                         <button onclick="openLeaveModal()" class="bg-amber-50 hover:bg-amber-100 text-amber-800 text-[11px] font-bold py-1 px-2.5 rounded-lg border border-amber-300 flex items-center gap-1 transition shadow-xs">
@@ -90,8 +113,8 @@
                     </select>
                 </div>
 
-                <div id="member-list-container" class="flex flex-col gap-1.5 h-[520px] overflow-y-auto p-1.5 bg-gray-50 rounded-xl border border-gray-100">
-                    <div class="text-xs text-gray-400 p-4 w-full text-center">正在同步主戰名單...</div>
+                <div id="member-list-container" class="flex flex-col gap-1.5 h-[560px] overflow-y-auto p-1.5 bg-gray-50 rounded-xl border border-gray-100">
+                    <div class="text-xs text-gray-400 p-4 w-full text-center">正在載入成員中...</div>
                 </div>
             </section>
         </div>
@@ -99,15 +122,30 @@
         <!-- 右側：主戰名單配置區 (佔 8 欄) -->
         <div class="lg:col-span-8 flex flex-col gap-4">
             <section class="bg-white rounded-2xl shadow-md border border-gray-200 p-4 flex flex-col gap-4">
+                
+                <!-- 頂部操作列：標題、重新載入表單、儲存覆蓋主戰名單 -->
                 <div class="flex flex-col gap-3 border-b pb-3">
-                    <div class="flex justify-between items-center">
-                        <div>
-                            <h2 class="text-base font-black text-gray-800 tracking-wide">戰場主力出戰名冊</h2>
-                            <p class="text-xs text-gray-500" id="display-date-label">日期：載入中...</p>
+                    <div class="flex flex-wrap justify-between items-center gap-2">
+                        <div class="flex items-center gap-3">
+                            <h2 class="text-lg font-black text-gray-800 tracking-wide">主戰名單</h2>
+                            <span class="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full border border-slate-200 flex items-center gap-1">
+                                <i class="fa-solid fa-arrows-left-right text-[9px]"></i> 滾輪左右滑動
+                            </span>
                         </div>
-                        <span class="text-xs font-bold bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-full border border-indigo-200 shadow-xs" id="total-assigned-badge">已配置: 0 / 0</span>
+
+                        <!-- 🎯 按鈕移至標題旁 -->
+                        <div class="flex items-center gap-2">
+                            <button onclick="fetchMainRosterFromSheet(true)" title="重新從 Google 試算表抓取隊伍名單" class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold py-1.5 px-3 rounded-lg border border-gray-300 flex items-center gap-1.5 shadow-2xs transition">
+                                <i class="fa-solid fa-cloud-arrow-down text-indigo-600"></i> 重新載入表單
+                            </button>
+                            <button onclick="saveAndOverwriteRoster()" title="覆蓋並儲存主戰名單，同時匯出圖片" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-1.5 px-3.5 rounded-lg shadow-sm flex items-center gap-1.5 transition">
+                                <i class="fa-solid fa-floppy-disk"></i> 儲存覆蓋主戰名單
+                            </button>
+                            <span class="text-xs font-bold bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-full border border-indigo-200 shadow-xs" id="total-assigned-badge">已配置: 0 / 0</span>
+                        </div>
                     </div>
 
+                    <!-- 小隊控制列 -->
                     <div class="flex items-center gap-2 pt-1 sort-hidden">
                         <button onclick="addSquad()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-2 px-3 rounded-lg shadow-sm transition flex items-center justify-center gap-1.5">
                             <i class="fa-solid fa-plus"></i> 新增隊伍
@@ -121,25 +159,13 @@
                     </div>
                 </div>
 
-                <!-- 匯出截圖包覆區 -->
+                <!-- 乾淨匯出包覆區 -->
                 <div id="export-capture-target" class="flex flex-col gap-4 bg-white p-2 rounded-xl">
-                    <div class="roster-scroll-wrapper no-scrollbar pb-2">
+                    <div id="rosterWrapper" class="roster-scroll-wrapper">
                         <div id="squads-container" class="flex flex-col gap-4"></div>
                     </div>
                 </div>
 
-                <!-- 底部操作列 (匯出圖片) -->
-                <div class="flex flex-col sm:flex-row items-center gap-2 pt-3 border-t border-gray-200 sort-hidden">
-                    <input type="date" id="roster-date" class="w-full sm:w-auto flex-1 bg-gray-50 border border-gray-300 text-gray-800 text-xs rounded-lg px-3 py-2.5 font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none text-center">
-                    <div class="grid grid-cols-2 gap-2 w-full sm:w-auto">
-                        <button onclick="syncAllRoster()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold py-2.5 px-3 rounded-lg border border-gray-300 flex items-center justify-center gap-1 transition">
-                            <i class="fa-solid fa-cloud-arrow-down"></i> 重新載入表單
-                        </button>
-                        <button onclick="exportToImage()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2.5 px-4 rounded-lg shadow-md flex items-center justify-center gap-1 transition">
-                            <i class="fa-solid fa-image"></i> 匯出出戰圖片
-                        </button>
-                    </div>
-                </div>
             </section>
         </div>
 
@@ -183,7 +209,7 @@
     <div id="member-picker-modal" class="fixed inset-0 bg-black/60 z-60 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-sm max-h-[80vh] flex flex-col shadow-2xl overflow-hidden">
             <div class="bg-indigo-600 text-white px-4 py-3 flex justify-between items-center">
-                <h3 class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-address-book"></i> 選擇請假成員</h3>
+                <h3 class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-address-book"></i> 選擇成員</h3>
                 <button onclick="closeMemberPickerModal()" class="text-white hover:text-gray-200"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
             <div class="p-3 border-b bg-gray-50">
@@ -229,11 +255,11 @@
     <script>
         const BACKEND_API_URL = window.location.origin;
 
-        // 🔗 您的 Google 試算表 Web App 網址（抓取每日主戰場名單）
+        // 🔗 您的 Google Apps Script 部署網址
         const GOOGLE_SHEET_ROSTER_API = 'https://script.google.com/macros/s/AKfycbx2ndfyU7920INPrgPWGIY2DGEQfosjoXyaIrCn_7SVeaCo2U7axVNyTl8Eyd8rmXdc9w/exec';
 
-        let masterMembers = []; // 後端資料庫會員
-        let leaveList = [];     // 後端資料庫請假
+        let masterMembers = []; // 會員名冊
+        let leaveList = [];     // 請假名單
         let gameClasses = [];   // 職業
 
         let squads = [
@@ -243,12 +269,12 @@
             { id: 4, name: "隊伍 4(右路)", members: [] },
             { id: 5, name: "隊伍 5(右路)", members: [] },
             { id: 6, name: "隊伍 6(右路)", members: [] },
-            { id: 7, name: "隊伍 7(左路)", members: [] },
+            { id: 7, name: "隊伍 7(右路)", members: [] },
             { id: 8, name: "隊伍 8(中路)", members: [] },
             { id: 9, name: "隊伍 9(中路)", members: [] },
             { id: 10, name: "隊伍 10(中路)", members: [] },
-            { id: 11, name: "中路(支援-1)", members: [] },
-            { id: 12, name: "右路(支援-2)", members: [] }
+            { id: 11, name: "中路(支援隊-1)", members: [] },
+            { id: 12, name: "左路(支援隊-2)", members: [] }
         ];
 
         let mergedGroups = [];
@@ -256,39 +282,40 @@
 
         window.onload = async function() {
             const todayStr = new Date().toISOString().split('T')[0];
-            document.getElementById('roster-date').value = todayStr;
             document.getElementById('leave-date-input').value = todayStr;
-            document.getElementById('display-date-label').innerText = `日期：${todayStr}`;
-            
-            document.getElementById('roster-date').addEventListener('change', function(e) {
-                const val = e.target.value;
-                document.getElementById('display-date-label').innerText = `日期：${val}`;
-                document.getElementById('leave-date-input').value = val;
-                renderMemberList();
-                updateLeaveCount();
-            });
 
-            await syncAllRoster();
+            setupHorizontalScroll();
+
+            // 初始載入：取會員、請假與主戰名單
+            await refreshMembersAndLeaves();
+            await fetchMainRosterFromSheet(false);
         };
 
-        // 每次開網頁或按重新整理：直接向試算表與資料庫讀取
-        async function syncAllRoster() {
-            try {
-                document.getElementById('total-assigned-badge').innerText = '載入最新表單中...';
+        function setupHorizontalScroll() {
+            const wrapper = document.getElementById('rosterWrapper');
+            if (!wrapper) return;
+            wrapper.addEventListener('wheel', (evt) => {
+                if (evt.deltaY !== 0) {
+                    evt.preventDefault();
+                    wrapper.scrollLeft += evt.deltaY * 1.5;
+                }
+            }, { passive: false });
+        }
 
+        // 🎯 重新整理：只重取會員與請假 API，不覆蓋現有已排的 squads
+        async function refreshMembersAndLeaves() {
+            try {
                 await Promise.all([
                     fetchClassesFromDB(),
                     fetchMembersFromDB(),
-                    fetchLeavesFromDB(),
-                    fetchMainRosterFromSheet()
+                    fetchLeavesFromDB()
                 ]);
 
-                initMasterOrder();
                 renderMemberList();
                 renderSquads();
                 updateLeaveCount();
             } catch (err) {
-                console.error("同步失敗:", err);
+                console.error("重新整理失敗:", err);
             }
         }
 
@@ -322,7 +349,7 @@
                         .map(m => ({
                             uid: m.lineUserId || m.uid || m.id,
                             name: m.gameNickname || m.name,
-                            job: m.gameClass || m.job || '冒險者'
+                            job: m.gameClass || m.job || '其他'
                         }));
                 }
             } catch (err) {
@@ -350,196 +377,70 @@
             }
         }
 
-        // 讀取 Google 試算表 Web App
-        async function fetchMainRosterFromSheet() {
+        // 🎯 重新載入表單：真正向 Google 試算表抓取主戰名冊
+        async function fetchMainRosterFromSheet(manualTrigger = true) {
             try {
+                document.getElementById('total-assigned-badge').innerText = '載入表單中...';
                 const res = await fetch(GOOGLE_SHEET_ROSTER_API);
                 const result = await res.json();
                 if (result.status === 'success' && result.squads && result.squads.length > 0) {
                     squads = result.squads;
+                    initMasterOrder();
+                    renderSquads();
+                    renderMemberList();
+                    if (manualTrigger) alert('✓ 已成功自 Google 試算表重新載入主戰名單！');
+                } else {
+                    if (manualTrigger) alert('無法抓取表單：' + (result.message || '無隊伍資料'));
                 }
             } catch (err) {
-                console.warn('無法連線試算表 Web App，保留預設架構:', err);
+                console.warn('無法連線試算表 Web App:', err);
+                if (manualTrigger) alert('連線 Google 試算表失敗，請確認網路！');
             }
         }
 
-        // --- 彈窗成員選擇器 ---
-        function openMemberPickerModal() {
-            document.getElementById('picker-search-input').value = '';
-            document.getElementById('member-picker-modal').classList.remove('hidden');
-            renderPickerMemberList();
-        }
+        // 🎯 儲存覆蓋主戰名單：回寫後端資料庫並匯出陣容圖片
+        async function saveAndOverwriteRoster() {
+            const todayStr = new Date().toISOString().split('T')[0];
+            const dataToSave = {
+                date: todayStr,
+                squads: JSON.parse(JSON.stringify(squads)),
+                mergedGroups: JSON.parse(JSON.stringify(mergedGroups)),
+                masterOrder: JSON.parse(JSON.stringify(masterOrder))
+            };
 
-        function closeMemberPickerModal() {
-            document.getElementById('member-picker-modal').classList.add('hidden');
-        }
-
-        function renderPickerMemberList() {
-            const container = document.getElementById('picker-member-list-ui');
-            const search = document.getElementById('picker-search-input').value.trim().toLowerCase();
-            container.innerHTML = '';
-
-            const filtered = masterMembers.filter(m => {
-                return m.name.toLowerCase().includes(search) || m.job.toLowerCase().includes(search);
-            });
-
-            if (filtered.length === 0) {
-                container.innerHTML = `<div class="text-xs text-gray-400 p-4 text-center">查無相符成員</div>`;
-                return;
-            }
-
-            filtered.forEach(m => {
-                const item = document.createElement('div');
-                item.className = "flex items-center justify-between p-2 rounded-xl border border-gray-200 bg-white hover:border-amber-400 hover:bg-amber-50/50 cursor-pointer transition text-xs";
-                item.onclick = () => selectMemberFromPicker(m);
-                item.innerHTML = `
-                    <div class="flex items-center gap-2">
-                        <span class="job-card-${m.job} px-2 py-0.5 rounded font-bold text-[10px] border">${m.job}</span>
-                        <span class="font-bold text-gray-800">${m.name}</span>
-                    </div>
-                    <span class="text-amber-600 font-bold text-[11px]"><i class="fa-solid fa-check"></i> 選擇</span>
-                `;
-                container.appendChild(item);
-            });
-        }
-
-        function selectMemberFromPicker(member) {
-            document.getElementById('leave-selected-uid').value = member.uid;
-            document.getElementById('leave-selected-name').value = member.name;
-            document.getElementById('leave-selected-job').value = member.job;
-            
-            const display = document.getElementById('selected-member-display');
-            display.innerHTML = `
-                <span class="job-card-${member.job} px-1.5 py-0.5 rounded text-[10px] border mr-1 font-bold">${member.job}</span>
-                <span class="text-gray-900 font-bold">${member.name}</span>
-            `;
-            closeMemberPickerModal();
-        }
-
-        function openLeaveModal() { 
-            document.getElementById('leave-modal').classList.remove('hidden'); 
-            renderLeaveListUI(); 
-        }
-
-        function closeLeaveModal() { 
-            document.getElementById('leave-modal').classList.add('hidden'); 
-            updateLeaveCount(); 
-            renderMemberList();
-        }
-
-        async function addLeavePerson() {
-            const targetUid = document.getElementById('leave-selected-uid').value;
-            const gameNickname = document.getElementById('leave-selected-name').value;
-            const gameClass = document.getElementById('leave-selected-job').value;
-            const leaveDate = document.getElementById('leave-date-input').value;
-            const leaveEvent = document.getElementById('leave-event-input').value.trim();
-
-            if (!gameNickname || !leaveDate || !leaveEvent) {
-                alert('請先開窗點選請假成員，並完整設定日期與活動！');
-                return;
-            }
-
+            // 1. 同步存入後端資料庫
             try {
-                const res = await fetch(`${BACKEND_API_URL}/api/leaves`, {
+                await fetch(`${BACKEND_API_URL}/api/admin/roster/save`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        leaveDate,
-                        leaveEvent,
-                        targetUid: targetUid || 'MANUAL_APPLY',
-                        gameNickname,
-                        gameClass,
-                        leaveReason: '指揮系統手動排程請假',
-                        isUrgent: 'N'
-                    })
+                    body: JSON.stringify(dataToSave)
                 });
-                const result = await res.json();
-                if (result.status === 'success') {
-                    await fetchLeavesFromDB();
-                    renderLeaveListUI();
-                    renderMemberList();
-                    updateLeaveCount();
-                    
-                    document.getElementById('leave-selected-uid').value = '';
-                    document.getElementById('leave-selected-name').value = '';
-                    document.getElementById('leave-selected-job').value = '';
-                    document.getElementById('selected-member-display').innerHTML = '<span class="text-gray-400">點此開窗搜尋公會成員...</span>';
-                    alert('✓ 已成功寫入請假資料庫！');
-                } else {
-                    alert('新增失敗: ' + (result.message || '系統異常'));
-                }
             } catch (err) {
-                console.error(err);
-                alert('伺服器連線失敗');
-            }
-        }
-
-        async function deleteLeavePerson(leaveId) {
-            if (!confirm('確定取消並刪除此請假記錄？')) return;
-            try {
-                const res = await fetch(`${BACKEND_API_URL}/api/admin/leaves/${leaveId}`, { method: 'DELETE' });
-                const result = await res.json();
-                if (result.status === 'success') {
-                    await fetchLeavesFromDB();
-                    renderLeaveListUI();
-                    renderMemberList();
-                    updateLeaveCount();
-                } else {
-                    alert('取消失敗: ' + result.message);
-                }
-            } catch (err) {
-                console.error(err);
-                alert('連線失敗');
-            }
-        }
-
-        function renderLeaveListUI() {
-            const container = document.getElementById('leave-list-ui');
-            container.innerHTML = '';
-            const currentDateStr = document.getElementById('roster-date').value;
-
-            if (leaveList.length === 0) {
-                container.innerHTML = `<div class="text-xs text-gray-400 text-center py-3">資料庫目前無請假紀錄</div>`;
-                return;
+                console.warn('後端資料庫儲存異常，以本地儲存為備援:', err);
             }
 
-            leaveList.forEach((l) => {
-                const isCurrent = (l.date === currentDateStr);
-                const item = document.createElement('div');
-                item.className = `flex justify-between items-center p-2 rounded-xl text-xs border ${
-                    isCurrent ? 'bg-amber-50 border-amber-300 font-bold' : 'bg-white border-gray-200'
-                }`;
+            // 本地快取
+            localStorage.setItem('guild_roster_current', JSON.stringify(dataToSave));
 
-                item.innerHTML = `
-                    <div class="flex items-center gap-1.5 min-w-0">
-                        <span class="job-card-${l.job} px-1.5 py-0.5 rounded font-bold text-[10px] border shrink-0">${l.job}</span>
-                        <span class="font-bold text-gray-800 truncate">${l.name}</span>
-                        <span class="text-gray-400 text-[10px] shrink-0">${l.date} ${isCurrent ? '(當天)' : ''}</span>
-                    </div>
-                    <button onclick="deleteLeavePerson('${l.id}')" class="text-gray-400 hover:text-red-600 p-1 shrink-0"><i class="fa-solid fa-trash-can"></i></button>
-                `;
-                container.appendChild(item);
-            });
+            // 2. 自動執行圖片匯出
+            exportToImage();
         }
 
-        function updateLeaveCount() {
-            const currentDate = document.getElementById('roster-date').value;
-            const count = leaveList.filter(l => l.date === currentDate).length;
-            document.getElementById('leave-count').innerText = count;
-        }
-
-        function isLeave(name) {
-            const currentDate = document.getElementById('roster-date').value;
-            return leaveList.some(l => l.name === name && l.date === currentDate);
+        function getMemberJobInfo(name) {
+            const found = masterMembers.find(m => m.name === name);
+            if (found) {
+                return { job: found.job, isUnknown: false };
+            }
+            return { job: '未綁定/改名', isUnknown: true };
         }
 
         function isAssigned(name) {
             return squads.some(s => s.members.includes(name));
         }
 
-        function getMemberJob(name) {
-            const found = masterMembers.find(m => m.name === name);
-            return found ? found.job : '其他';
+        function isLeave(name) {
+            const todayStr = new Date().toISOString().split('T')[0];
+            return leaveList.some(l => l.name === name && l.date === todayStr);
         }
 
         function renderMemberList() {
@@ -677,7 +578,7 @@
                                 </div>
                                 <button onclick="removeMergedGroupByInstance('${group.name}')" class="text-purple-700 hover:text-red-600 text-xs font-bold"><i class="fa-solid fa-xmark"></i> 解除</button>
                             </div>
-                            <div class="grid gap-2" style="grid-template-columns: repeat(${group.squadIds.length}, 200px);">
+                            <div class="grid gap-2" style="grid-template-columns: repeat(${group.squadIds.length}, 215px);">
                         `;
                         
                         let squadGridHtml = '';
@@ -709,13 +610,29 @@
             for (let i = 0; i < 5; i++) {
                 const member = squad.members[i];
                 if (member) {
-                    const job = getMemberJob(member);
-                    slotsHtml += `
-                        <div class="flex items-center justify-between job-card-${job} px-2.5 py-1.5 rounded-lg border text-xs font-bold shadow-2xs">
-                            <span class="truncate pr-1">${member}</span>
-                            <button onclick="removeMemberFromSquad(${squad.id}, ${i})" class="opacity-70 hover:opacity-100 p-0.5 shrink-0 sort-hidden"><i class="fa-solid fa-xmark"></i></button>
-                        </div>
-                    `;
+                    const info = getMemberJobInfo(member);
+                    
+                    if (info.isUnknown) {
+                        slotsHtml += `
+                            <div class="flex items-center justify-between job-card-unknown px-2 py-1.5 rounded-lg border text-xs font-bold shadow-2xs" title="名冊查無此暱稱（可能已改名或尚未綁定）">
+                                <div class="flex items-center gap-1 min-w-0">
+                                    <span class="text-amber-600 text-[11px]"><i class="fa-solid fa-triangle-exclamation"></i></span>
+                                    <span class="truncate">${member}</span>
+                                </div>
+                                <div class="flex items-center gap-1 shrink-0 sort-hidden">
+                                    <button onclick="promptReplaceMember(${squad.id}, ${i}, '${member}')" class="text-[10px] bg-amber-200/80 hover:bg-amber-300 text-amber-900 px-1.5 py-0.5 rounded font-bold" title="選取現任成員替換">替換</button>
+                                    <button onclick="removeMemberFromSquad(${squad.id}, ${i})" class="opacity-70 hover:opacity-100 p-0.5 text-gray-500 hover:text-red-600"><i class="fa-solid fa-xmark"></i></button>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        slotsHtml += `
+                            <div class="flex items-center justify-between job-card-${info.job} px-2.5 py-1.5 rounded-lg border text-xs font-bold shadow-2xs">
+                                <span class="truncate pr-1">${member}</span>
+                                <button onclick="removeMemberFromSquad(${squad.id}, ${i})" class="opacity-70 hover:opacity-100 p-0.5 shrink-0 sort-hidden"><i class="fa-solid fa-xmark"></i></button>
+                            </div>
+                        `;
+                    }
                 } else {
                     slotsHtml += `
                         <div class="slot-card flex items-center justify-center bg-gray-50 border border-dashed border-gray-300 rounded-lg text-[11px] text-gray-400 py-1 sort-hidden"
@@ -744,7 +661,7 @@
                 <div class="bg-white border border-gray-300 rounded-xl shadow-xs overflow-hidden flex flex-col">
                     <div class="bg-gray-100 px-2.5 py-1.5 border-b border-gray-200 flex justify-between items-center">
                         <div class="flex items-center gap-1">
-                            <input type="text" value="${squad.name}" onchange="updateSquadName(${squad.id}, this.value)" class="bg-transparent text-xs font-black text-gray-800 w-20 focus:outline-none focus:bg-white px-1 rounded">
+                            <input type="text" value="${squad.name}" onchange="updateSquadName(${squad.id}, this.value)" class="bg-transparent text-xs font-black text-gray-800 w-24 focus:outline-none focus:bg-white px-1 rounded">
                             ${sortButtonsHtml}
                         </div>
                         <div class="flex items-center gap-1">
@@ -758,6 +675,12 @@
                     </div>
                 </div>
             `;
+        }
+
+        let replacingSquadContext = null;
+        function promptReplaceMember(squadId, memberIndex, oldName) {
+            replacingSquadContext = { squadId, memberIndex, oldName };
+            openMemberPickerModal();
         }
 
         function moveMasterOrder(index, direction) {
@@ -833,6 +756,183 @@
             }
         }
 
+        function openMemberPickerModal() {
+            document.getElementById('picker-search-input').value = '';
+            document.getElementById('member-picker-modal').classList.remove('hidden');
+            renderPickerMemberList();
+        }
+
+        function closeMemberPickerModal() {
+            document.getElementById('member-picker-modal').classList.add('hidden');
+            replacingSquadContext = null;
+        }
+
+        function renderPickerMemberList() {
+            const container = document.getElementById('picker-member-list-ui');
+            const search = document.getElementById('picker-search-input').value.trim().toLowerCase();
+            container.innerHTML = '';
+
+            const filtered = masterMembers.filter(m => {
+                return m.name.toLowerCase().includes(search) || m.job.toLowerCase().includes(search);
+            });
+
+            if (filtered.length === 0) {
+                container.innerHTML = `<div class="text-xs text-gray-400 p-4 text-center">查無相符成員</div>`;
+                return;
+            }
+
+            filtered.forEach(m => {
+                const item = document.createElement('div');
+                item.className = "flex items-center justify-between p-2 rounded-xl border border-gray-200 bg-white hover:border-amber-400 hover:bg-amber-50/50 cursor-pointer transition text-xs";
+                item.onclick = () => selectMemberFromPicker(m);
+                item.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <span class="job-card-${m.job} px-2 py-0.5 rounded font-bold text-[10px] border">${m.job}</span>
+                        <span class="font-bold text-gray-800">${m.name}</span>
+                    </div>
+                    <span class="text-amber-600 font-bold text-[11px]"><i class="fa-solid fa-check"></i> 選擇</span>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function selectMemberFromPicker(member) {
+            if (replacingSquadContext) {
+                const { squadId, memberIndex } = replacingSquadContext;
+                const squad = squads.find(s => s.id === squadId);
+                if (squad) {
+                    squad.members[memberIndex] = member.name;
+                    renderSquads();
+                    renderMemberList();
+                }
+                closeMemberPickerModal();
+                return;
+            }
+
+            document.getElementById('leave-selected-uid').value = member.uid;
+            document.getElementById('leave-selected-name').value = member.name;
+            document.getElementById('leave-selected-job').value = member.job;
+            
+            const display = document.getElementById('selected-member-display');
+            display.innerHTML = `
+                <span class="job-card-${member.job} px-1.5 py-0.5 rounded text-[10px] border mr-1 font-bold">${member.job}</span>
+                <span class="text-gray-900 font-bold">${member.name}</span>
+            `;
+            closeMemberPickerModal();
+        }
+
+        function openLeaveModal() { 
+            document.getElementById('leave-modal').classList.remove('hidden'); 
+            renderLeaveListUI(); 
+        }
+
+        function closeLeaveModal() { 
+            document.getElementById('leave-modal').classList.add('hidden'); 
+            updateLeaveCount(); 
+            renderMemberList();
+        }
+
+        async function addLeavePerson() {
+            const targetUid = document.getElementById('leave-selected-uid').value;
+            const gameNickname = document.getElementById('leave-selected-name').value;
+            const gameClass = document.getElementById('leave-selected-job').value;
+            const leaveDate = document.getElementById('leave-date-input').value;
+            const leaveEvent = document.getElementById('leave-event-input').value.trim();
+
+            if (!gameNickname || !leaveDate || !leaveEvent) {
+                alert('請先開窗點選請假成員，並完整設定日期與活動！');
+                return;
+            }
+
+            try {
+                const res = await fetch(`${BACKEND_API_URL}/api/leaves`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        leaveDate,
+                        leaveEvent,
+                        targetUid: targetUid || 'MANUAL_APPLY',
+                        gameNickname,
+                        gameClass,
+                        leaveReason: '指揮系統手動排程請假',
+                        isUrgent: 'N'
+                    })
+                });
+                const result = await res.json();
+                if (result.status === 'success') {
+                    await fetchLeavesFromDB();
+                    renderLeaveListUI();
+                    renderMemberList();
+                    updateLeaveCount();
+                    
+                    document.getElementById('leave-selected-uid').value = '';
+                    document.getElementById('leave-selected-name').value = '';
+                    document.getElementById('leave-selected-job').value = '';
+                    document.getElementById('selected-member-display').innerHTML = '<span class="text-gray-400">點此開窗搜尋公會成員...</span>';
+                    alert('✓ 已成功寫入請假資料庫！');
+                } else {
+                    alert('新增失敗: ' + (result.message || '系統異常'));
+                }
+            } catch (err) {
+                console.error(err);
+                alert('伺服器連線失敗');
+            }
+        }
+
+        async function deleteLeavePerson(leaveId) {
+            if (!confirm('確定取消並刪除此請假記錄？')) return;
+            try {
+                const res = await fetch(`${BACKEND_API_URL}/api/admin/leaves/${leaveId}`, { method: 'DELETE' });
+                const result = await res.json();
+                if (result.status === 'success') {
+                    await fetchLeavesFromDB();
+                    renderLeaveListUI();
+                    renderMemberList();
+                    updateLeaveCount();
+                } else {
+                    alert('取消失敗: ' + result.message);
+                }
+            } catch (err) {
+                console.error(err);
+                alert('連線失敗');
+            }
+        }
+
+        function renderLeaveListUI() {
+            const container = document.getElementById('leave-list-ui');
+            container.innerHTML = '';
+            const todayStr = new Date().toISOString().split('T')[0];
+
+            if (leaveList.length === 0) {
+                container.innerHTML = `<div class="text-xs text-gray-400 text-center py-3">資料庫目前無請假紀錄</div>`;
+                return;
+            }
+
+            leaveList.forEach((l) => {
+                const isCurrent = (l.date === todayStr);
+                const item = document.createElement('div');
+                item.className = `flex justify-between items-center p-2 rounded-xl text-xs border ${
+                    isCurrent ? 'bg-amber-50 border-amber-300 font-bold' : 'bg-white border-gray-200'
+                }`;
+
+                item.innerHTML = `
+                    <div class="flex items-center gap-1.5 min-w-0">
+                        <span class="job-card-${l.job} px-1.5 py-0.5 rounded font-bold text-[10px] border shrink-0">${l.job}</span>
+                        <span class="font-bold text-gray-800 truncate">${l.name}</span>
+                        <span class="text-gray-400 text-[10px] shrink-0">${l.date} ${isCurrent ? '(當天)' : ''}</span>
+                    </div>
+                    <button onclick="deleteLeavePerson('${l.id}')" class="text-gray-400 hover:text-red-600 p-1 shrink-0"><i class="fa-solid fa-trash-can"></i></button>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function updateLeaveCount() {
+            const todayStr = new Date().toISOString().split('T')[0];
+            const count = leaveList.filter(l => l.date === todayStr).length;
+            document.getElementById('leave-count').innerText = count;
+        }
+
         function openMergeModal() { document.getElementById('merge-modal').classList.remove('hidden'); renderMergeCheckboxes(); renderExistingMergedGroups(); }
         function closeMergeModal() { document.getElementById('merge-modal').classList.add('hidden'); renderSquads(); }
 
@@ -893,44 +993,38 @@
             });
         }
 
+        // 匯出完整戰況圖片 (乾淨展開 1450px)
         function exportToImage() {
             const captureElement = document.getElementById('export-capture-target');
-            const btn = event.currentTarget;
-            const originalText = btn.innerHTML;
-            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 匯出中...`;
-            btn.disabled = true;
-
             document.querySelectorAll('.sort-hidden').forEach(el => el.style.display = 'none');
             
             const originalWidth = captureElement.style.width;
             const originalMaxWidth = captureElement.style.maxWidth;
-            captureElement.style.width = '1350px';
+            captureElement.style.width = '1450px';
             captureElement.style.maxWidth = 'none';
 
             html2canvas(captureElement, {
                 scale: 2,
                 useCORS: true,
                 backgroundColor: '#ffffff',
-                windowWidth: 1400
+                windowWidth: 1500
             }).then(canvas => {
+                const todayStr = new Date().toISOString().split('T')[0];
                 const link = document.createElement('a');
-                link.download = `公會戰場出戰名冊_${document.getElementById('roster-date').value || 'date'}.png`;
+                link.download = `主戰名單_${todayStr}.png`;
                 link.href = canvas.toDataURL('image/png');
                 link.click();
 
                 captureElement.style.width = originalWidth;
                 captureElement.style.maxWidth = originalMaxWidth;
                 document.querySelectorAll('.sort-hidden').forEach(el => el.style.display = '');
-                btn.innerHTML = originalText;
-                btn.disabled = false;
+                alert('✓ 主戰名單已儲存並成功匯出圖片！');
             }).catch(err => {
                 console.error(err);
-                alert('匯出失敗，請再試一次');
                 captureElement.style.width = originalWidth;
                 captureElement.style.maxWidth = originalMaxWidth;
                 document.querySelectorAll('.sort-hidden').forEach(el => el.style.display = '');
-                btn.innerHTML = originalText;
-                btn.disabled = false;
+                alert('儲存成功，但圖片產生失敗，請再試一次。');
             });
         }
     </script>
