@@ -469,12 +469,11 @@ app.post('/api/members/bind', async (req, res) => {
       );
 
       // 推播 LINE 通知至幹部群
-      try {
+     try {
         const configRes = await pool.query("SELECT config_value FROM system_configs WHERE config_key = 'admin_group_id'");
         const adminGroupId = configRes.rows.length > 0 ? configRes.rows[0].config_value : null;
-        const lineToken = process.env.LINE_ACCESS_TOKEN || '';
 
-        if (adminGroupId && lineToken) {
+        if (adminGroupId && LINE_ACCESS_TOKEN) {
           const currentTime = new Date().toLocaleString("zh-TW", { timeZone: "Asia/Taipei" });
           const regionText = finalTw === 'N' ? '大陸(DC)' : '台灣(LINE)';
 
@@ -487,7 +486,7 @@ app.post('/api/members/bind', async (req, res) => {
             `• 申請時間：${currentTime}\n\n` +
             `👉 請幹部前往【幹部管理後台】進行核對與審核。`;
 
-          await fetch('https://api.line.me/v2/bot/message/push', {
+          const pushRes = await fetch('https://api.line.me/v2/bot/message/push', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
