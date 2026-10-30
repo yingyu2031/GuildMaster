@@ -1174,7 +1174,7 @@ app.get('/api/sheet/leaves', async (req, res) => {
       leaveReason: l.leave_reason || "",
       submitTime: l.submit_time ? new Date(l.submit_time).toISOString().replace('T', ' ').substring(0, 16) : "",
       operatorName: l.operator_name || "本人",
-      isUrgent: l.is_urgent === 'Y' ? '緊急' : ''
+      isUrgent: l.is_urgent === 'Y' ? '臨時' : ''
     }));
 
     res.json({ status: "success", leaves });
