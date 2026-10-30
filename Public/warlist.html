@@ -755,27 +755,44 @@
             document.getElementById('total-assigned-badge').innerText = `已配置: ${totalAssigned} / ${totalCapacity}`;
         }
 
+        // 🎯 隊伍卡片生成（支援：當日請假標記、副戰時主戰重複排入衝突警告 🚨）
         function createSquadCardHtml(squad) {
             let slotsHtml = '';
             for (let i = 0; i < 5; i++) {
                 const member = squad.members[i];
                 if (member) {
                     const info = getMemberJobInfo(member);
-                    const memberIsOnLeave = isLeave(member);
-
+                    const memberIsOnLeave = isLeave(member); // 檢查當日是否請假
+                    
+                    // 🎯 關鍵檢查：如果當前是「副戰」模式，檢查該成員是否已經在主戰場名單中了！
+                    const isConflictInMain = (currentMode === 'sub') && isAssignedInMain(member);
+        
                     if (memberIsOnLeave) {
+                        // 1. 今日請假
                         slotsHtml += `
-                            <div class="flex items-center justify-between job-card-leave-today px-2 py-1.5 rounded-lg border text-xs font-black shadow-xs">
+                            <div class="flex items-center justify-between job-card-leave-today px-2 py-1.5 rounded-lg border text-xs font-black shadow-xs" title="⚠️ 此成員今日已登記請假！">
                                 <div class="flex items-center gap-1 min-w-0">
                                     <span class="bg-red-600 text-white text-[9px] px-1 py-0.2 rounded font-black shrink-0">請假</span>
                                     <span class="truncate">${member}</span>
                                 </div>
-                                <button onclick="removeMemberFromSquad(${squad.id}, ${i})" class="opacity-80 hover:opacity-100 p-0.5 text-red-700 hover:text-red-900 shrink-0 sort-hidden"><i class="fa-solid fa-xmark"></i></button>
+                                <button onclick="removeMemberFromSquad(${squad.id}, ${i})" class="opacity-80 hover:opacity-100 p-0.5 text-red-700 hover:text-red-900 shrink-0 sort-hidden" title="從隊伍移除"><i class="fa-solid fa-xmark"></i></button>
+                            </div>
+                        `;
+                    } else if (isConflictInMain) {
+                        // 2. 🚨 副戰中發現已被主戰排定（重大衝突警示）
+                        slotsHtml += `
+                            <div class="flex items-center justify-between job-card-leave-today px-2 py-1.5 rounded-lg border text-xs font-black shadow-xs" title="🚨 異常警告：此成員已被排在主戰場名單中！">
+                                <div class="flex items-center gap-1 min-w-0">
+                                    <span class="bg-rose-700 text-white text-[9px] px-1 py-0.2 rounded font-black shrink-0">主戰</span>
+                                    <span class="truncate font-black text-rose-950">${member}</span>
+                                </div>
+                                <button onclick="removeMemberFromSquad(${squad.id}, ${i})" class="opacity-80 hover:opacity-100 p-0.5 text-red-700 hover:text-red-900 shrink-0 sort-hidden" title="從副戰移除"><i class="fa-solid fa-xmark"></i></button>
                             </div>
                         `;
                     } else if (info.isUnknown) {
+                        // 3. 改名或查無資料庫綁定
                         slotsHtml += `
-                            <div class="flex items-center justify-between job-card-unknown px-2 py-1.5 rounded-lg border text-xs font-bold shadow-2xs">
+                            <div class="flex items-center justify-between job-card-unknown px-2 py-1.5 rounded-lg border text-xs font-bold shadow-2xs" title="名冊查無此暱稱（可能已改名或尚未綁定）">
                                 <div class="flex items-center gap-1 min-w-0">
                                     <span class="text-amber-600 text-[11px]"><i class="fa-solid fa-triangle-exclamation"></i></span>
                                     <span class="truncate">${member}</span>
@@ -784,6 +801,7 @@
                             </div>
                         `;
                     } else {
+                        // 4. 正常出戰名單
                         slotsHtml += `
                             <div class="flex items-center justify-between job-card-${info.job} px-2.5 py-1.5 rounded-lg border text-xs font-bold shadow-2xs">
                                 <span class="truncate pr-1">${member}</span>
@@ -800,7 +818,7 @@
                     `;
                 }
             }
-
+        
             const mergedGroups = (currentMode === 'main') ? mainMergedGroups : subMergedGroups;
             const inGroup = mergedGroups.some(g => g.squadIds.includes(squad.id));
             let sortButtonsHtml = '';
@@ -816,7 +834,7 @@
                     </div>
                 `;
             }
-
+        
             return `
                 <div class="bg-white border border-gray-300 rounded-xl shadow-xs overflow-hidden flex flex-col">
                     <div class="bg-gray-100 px-2.5 py-1.5 border-b border-gray-200 flex justify-between items-center">
