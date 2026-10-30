@@ -253,7 +253,7 @@ app.post('/webhook', async (req, res) => {
   if (!events || !Array.isArray(events) || events.length === 0) return;
 
   // ----------------------------------------------------
-  // 🚀 關鍵同步：非同步轉發整包事件給 n8n
+  // 關鍵同步：非同步轉發整包事件給 n8n
   // ----------------------------------------------------
   fetch(N8N_WEBHOOK_URL, {
     method: 'POST',
@@ -461,12 +461,65 @@ app.post('/api/members/bind', async (req, res) => {
       finalDcid
     ]);
 
+// ==========================================
+// 2. 會員前台登記 / 更新資料 (統一只分新入會與舊會員修改)
+// ==========================================
+app.post('/api/members/bind', async (req, res) => {
+  const { lineUserId, lineDisplayName, gameNickname, gameClass, allowSearch, tw, dcid } = req.body;
+  
+  if (!lineUserId || !gameNickname || !gameClass) {
+    return res.status(400).json({ status: "error", message: "缺少必要欄位" });
+  }
+
+  try {
+    const oldRes = await pool.query('SELECT * FROM members WHERE line_user_id = $1', [lineUserId]);
+    const oldMember = oldRes.rows[0];
+
+    // 💡 原本是「退會」或「全新會員」，一律當作新入會
+    const isNewRegistration = !oldMember || (oldMember.guild_role === '退會');
+
+    // 新入會一律強制重置為「現任」與「待審核」；已在會舊會員保持原狀
+    const finalRole = isNewRegistration ? '現任' : (oldMember.guild_role || '現任');
+    const finalAccountStatus = isNewRegistration ? '待審核' : (oldMember.account_status || '待審核');
+
+    const finalTw = oldMember ? (oldMember.tw || tw || 'Y') : (tw || 'Y');
+    const finalDcid = oldMember ? (oldMember.dcid || dcid || null) : (dcid || null);
+
+    // 1. 寫入 / 更新會員主資料
+    await pool.query(`
+      INSERT INTO members (
+        line_user_id, game_nickname, game_class, line_display_name, 
+        allow_search, account_status, guild_role, tw, dcid, update_time
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP)
+      ON CONFLICT (line_user_id) 
+      DO UPDATE SET 
+        game_nickname = EXCLUDED.game_nickname, 
+        game_class = EXCLUDED.game_class, 
+        line_display_name = EXCLUDED.line_display_name, 
+        allow_search = EXCLUDED.allow_search, 
+        account_status = $6,
+        guild_role = $7,
+        tw = COALESCE(members.tw, EXCLUDED.tw),
+        dcid = COALESCE(members.dcid, EXCLUDED.dcid),
+        update_time = CURRENT_TIMESTAMP
+    `, [
+      lineUserId, 
+      gameNickname, 
+      gameClass, 
+      lineDisplayName || "", 
+      allowSearch || 'N', 
+      finalAccountStatus, 
+      finalRole, 
+      finalTw, 
+      finalDcid
+    ]);
+
     // 2. 審核歷程紀錄與幹部 LINE 推播
     if (isNewRegistration) {
-      const logAction = isRetired ? '退會重新申請入會' : '新會員註冊';
+      // 統一記錄為新會員註冊
       await pool.query(
         'INSERT INTO member_audit_logs (line_user_id, field, old_value, new_value) VALUES ($1, $2, $3, $4)', 
-        [lineUserId, logAction, isRetired ? '退會' : '-', `${gameNickname} (${gameClass})`]
+        [lineUserId, '新會員註冊', '-', `${gameNickname} (${gameClass})`]
       );
 
       // 💡 推播 LINE 通知至幹部群
@@ -478,22 +531,21 @@ app.post('/api/members/bind', async (req, res) => {
         if (adminGroupId && lineToken) {
           const currentTime = new Date().toLocaleString("zh-TW", { timeZone: "Asia/Taipei" });
           const regionText = finalTw === 'N' ? '大陸(DC)' : '台灣(LINE)';
-          const titleText = isRetired ? '🔔【退會成員重新申請入會】' : '🔔【新成員入會待審核】';
 
           const notifyMessage = 
-            `${titleText}\n\n` +
+            `【新成員入會待審核】\n\n` +
             `• 遊戲暱稱：${gameNickname}\n` +
             `• 遊戲職業：${gameClass}\n` +
-            `• 社群暱稱：${lineDisplayName || '無'}\n` +
+            `• 社群暱稱：${lineDisplayName || ''}\n` +
             `• 註冊管道：${regionText}\n` +
             `• 申請時間：${currentTime}\n\n` +
-            `👉 請幹部前往【幹部管理後台 ➔ 會員名冊】進行核對與審核。`;
+            `👉 請幹部前往【幹部管理後台】進行核對與審核。`;
 
           await fetch('https://api.line.me/v2/bot/message/push', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${LINE_ACCESS_TOKEN}`
+              'Authorization': `Bearer ${lineToken}`
             },
             body: JSON.stringify({
               to: adminGroupId,
@@ -501,7 +553,7 @@ app.post('/api/members/bind', async (req, res) => {
             })
           });
 
-          console.log(`[LINE 推播] 成功向幹部群發送【${gameNickname}】審核通知`);
+          console.log(`[LINE 推播] 成功向幹部群發送新成員【${gameNickname}】審核通知`);
         } else {
           console.warn('[LINE 推播] 尚未設定幹部群 ID (admin_group_id) 或 Token，略過通知');
         }
@@ -532,10 +584,18 @@ app.post('/api/members/bind', async (req, res) => {
   }
 });
 
-// 3. 幹部後台會員清單
+// 3. 幹部後台會員清單 (依照職業順序 -> 入會時間排序)
 app.get('/api/admin/members', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM members ORDER BY update_time DESC');
+    // 💡 透過 LEFT JOIN 關聯 game_classes 依照自訂順序排序
+    // 若職業未在職業表中，預設排在最後 (999)；同職業依 update_time ASC (由早到晚/入會時間先後)
+    const result = await pool.query(`
+      SELECT m.* 
+      FROM members m
+      LEFT JOIN game_classes c ON m.game_class = c.class_name
+      ORDER BY COALESCE(c.sort_order, 999) ASC, m.update_time ASC
+    `);
+
     const members = result.rows.map(m => ({
       lineUserId: m.line_user_id,
       gameNickname: m.game_nickname,
@@ -551,6 +611,7 @@ app.get('/api/admin/members', async (req, res) => {
       dcid: m.dcid || '',
       updateTime: m.update_time
     }));
+
     res.json({ status: "success", members });
   } catch (err) {
     res.status(500).json({ status: "error", message: err.message });
