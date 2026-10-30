@@ -484,7 +484,7 @@ app.post('/api/members/bind', async (req, res) => {
             `• 社群暱稱：${lineDisplayName || '無'}\n` +
             `• 註冊管道：${regionText}\n` +
             `• 申請時間：${currentTime}\n\n` +
-            `👉 請幹部前往【幹部管理後台】進行核對與審核。`;
+            `👉 請幹部前往【幹部管理後台】進行審核。`;
 
           const pushRes = await fetch('https://api.line.me/v2/bot/message/push', {
             method: 'POST',
