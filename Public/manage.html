@@ -1301,32 +1301,35 @@ function renderMembersList() {
 // 根據職業顏色代號取得「實心飽和底色」的標籤樣式（深底配白字，淺底配黑字）
 function getBadgeStyleByClass(className) {
     const found = customClassList.find(c => (typeof c === 'object' ? c.className === className : c === className));
-    const themeName = (found && found.colorTheme) ? found.colorTheme : 'red';
+    const themeName = (found && found.colorTheme) ? found.colorTheme : 'other';
 
     const badgeThemeMap = {
-        red:          "bg-red-700 text-white border-red-800",         // 深紅 (白字)
-        pink:         "bg-pink-400 text-black border-pink-500",       // 粉紅 (黑字)
-        blue:         "bg-blue-700 text-white border-blue-800",       // 深藍 (白字)
-        skyblue:      "bg-sky-300 text-black border-sky-400",         // 淺藍 (黑字)
-        yellow:       "bg-amber-500 text-black border-amber-600",     // 深黃 (黑字)
-        lightyellow:  "bg-yellow-200 text-black border-yellow-300",   // 淺黃 (黑字)
-        orange:       "bg-orange-600 text-white border-orange-700",   // 深橘 (白字)
-        lightorange:  "bg-orange-300 text-black border-orange-400",   // 淺橘 (黑字)
-        brown:        "bg-stone-700 text-white border-stone-800",     // 深咖 (白字)
-        lightbrown:   "bg-stone-300 text-black border-stone-400",     // 淺咖 (黑字)
-        teal:         "bg-teal-700 text-white border-teal-800",       // 深藍綠 (白字)
-        lightteal:    "bg-teal-300 text-black border-teal-400",       // 淺藍綠 (黑字)
-        green:        "bg-emerald-700 text-white border-emerald-800", // 深綠 (白字)
-        lightgreen:   "bg-emerald-300 text-black border-emerald-400", // 淺綠 (黑字)
-        purple:       "bg-purple-700 text-white border-purple-800",   // 深紫 (白字)
-        lightpurple:  "bg-purple-300 text-black border-purple-400",   // 淺紫 (黑字)
-        gray:         "bg-slate-700 text-white border-slate-800",     // 深灰 (白字)
-        lightgray:    "bg-slate-300 text-black border-slate-400",     // 淺灰 (黑字)
-        black:        "bg-zinc-950 text-white border-black",          // 黑 (白字)
-        white:        "bg-white text-slate-900 border-slate-300"      // 白 (黑字)
+        // 🎯 15 大職業色碼
+        monk:        "bg-[#A9D18E] text-slate-900 border-[#8EB773]", // 武僧 (淺底黑字)
+        priest:      "bg-[#D9EAD3] text-slate-900 border-[#B8D4B0]", // 補師 (淺底黑字)
+        dancer:      "bg-[#B56586] text-white border-[#9A4B6B]",     // 冷豔舞姬 (深底白字)
+        rogue:       "bg-[#FFFF00] text-slate-900 border-[#E2E200]", // 流氓 (鮮黃黑字)
+        crusader:    "bg-[#B8403E] text-white border-[#9C302F]",     // 十字軍 (深底白字)
+        knight:      "bg-[#DE5440] text-white border-[#C33E2B]",     // 騎士 (深底白字)
+        wizard:      "bg-[#BDD7EE] text-slate-900 border-[#94BCD8]", // 法師 (淺底黑字)
+        sniper:      "bg-[#FFF2CC] text-slate-900 border-[#E6D298]", // 神射手 (淺底黑字)
+        clown:       "bg-[#FFD966] text-slate-900 border-[#E0BA4A]", // 搞笑藝人 (淺底黑字)
+        gunslinger:  "bg-[#5E3C47] text-white border-[#452932]",     // 槍手 (深底白字)
+        assassin:    "bg-[#644D9C] text-white border-[#4E397F]",     // 刺客 (深底白字)
+        creator:     "bg-[#B95C00] text-white border-[#964800]",     // 創造者 (深底白字)
+        blacksmith:  "bg-[#D58F54] text-white border-[#BA7339]",     // 鐵匠 (深底白字)
+        druid:       "bg-[#185FCD] text-white border-[#0E48A2]",     // 德魯伊 (深底白字)
+        sage:        "bg-[#00FFFF] text-slate-900 border-[#00CECE]", // 賢者 (亮青黑字)
+        other:       "bg-[#E5E7EB] text-slate-900 border-[#D1D5DB]", // 其他/未設定 (淺灰黑字)
+
+        // 🎯 額外 4 種對比色
+        black:       "bg-[#18181B] text-white border-black",         // 黑 (深底白字)
+        darkgray:    "bg-[#4B5563] text-white border-[#374151]",     // 深灰 (深底白字)
+        white:       "bg-[#FFFFFF] text-slate-900 border-slate-300", // 白 (淺底黑字)
+        lightpink:   "bg-[#FCE7F3] text-slate-900 border-[#F472B6]"  // 淺粉 (淺底黑字)
     };
 
-    return badgeThemeMap[themeName] || badgeThemeMap['red'];
+    return badgeThemeMap[themeName] || badgeThemeMap['other'];
 }
 
 function renderLeaveList() {
@@ -1855,26 +1858,26 @@ async function saveGroupSettings() {
 
 // 20 種簡短代號的精選顏色清單
 const AVAILABLE_COLORS = [
-    { name: 'red', bg: 'bg-red-700', border: 'border-red-800' },             // 深紅
-    { name: 'pink', bg: 'bg-pink-400', border: 'border-pink-500' },           // 粉紅
-    { name: 'blue', bg: 'bg-blue-700', border: 'border-blue-800' },           // 深藍
-    { name: 'skyblue', bg: 'bg-sky-300', border: 'border-sky-400' },         // 淺藍
-    { name: 'yellow', bg: 'bg-amber-500', border: 'border-amber-600' },       // 深黃
-    { name: 'lightyellow', bg: 'bg-yellow-200', border: 'border-yellow-300' }, // 淺黃
-    { name: 'orange', bg: 'bg-orange-600', border: 'border-orange-700' },     // 深橘
-    { name: 'lightorange', bg: 'bg-orange-300', border: 'border-orange-400' }, // 淺橘
-    { name: 'brown', bg: 'bg-stone-700', border: 'border-stone-800' },         // 深咖
-    { name: 'lightbrown', bg: 'bg-stone-300', border: 'border-stone-400' },   // 淺咖
-    { name: 'teal', bg: 'bg-teal-700', border: 'border-teal-800' },           // 深藍綠
-    { name: 'lightteal', bg: 'bg-teal-300', border: 'border-teal-400' },       // 淺藍綠
-    { name: 'green', bg: 'bg-emerald-700', border: 'border-emerald-800' },     // 深綠
-    { name: 'lightgreen', bg: 'bg-emerald-300', border: 'border-emerald-400' }, // 淺綠
-    { name: 'purple', bg: 'bg-purple-700', border: 'border-purple-800' },     // 深紫
-    { name: 'lightpurple', bg: 'bg-purple-300', border: 'border-purple-400' }, // 淺紫
-    { name: 'gray', bg: 'bg-slate-700', border: 'border-slate-800' },         // 深灰
-    { name: 'lightgray', bg: 'bg-slate-300', border: 'border-slate-400' },   // 淺灰
-    { name: 'black', bg: 'bg-zinc-950', border: 'border-black' },             // 黑
-    { name: 'white', bg: 'bg-white', border: 'border-slate-300' }             // 白
+    { name: 'monk',         bg: 'bg-[#A9D18E]', border: 'border-[#8EB773]' }, 
+    { name: 'priest',       bg: 'bg-[#D9EAD3]', border: 'border-[#B8D4B0]' }, 
+    { name: 'dancer',       bg: 'bg-[#B56586]', border: 'border-[#9A4B6B]' }, 
+    { name: 'rogue',        bg: 'bg-[#FFFF00]', border: 'border-[#E2E200]' }, 
+    { name: 'crusader',     bg: 'bg-[#B8403E]', border: 'border-[#9C302F]' }, 
+    { name: 'knight',       bg: 'bg-[#DE5440]', border: 'border-[#C33E2B]' }, 
+    { name: 'wizard',       bg: 'bg-[#BDD7EE]', border: 'border-[#94BCD8]' }, 
+    { name: 'sniper',       bg: 'bg-[#FFF2CC]', border: 'border-[#E6D298]' }, 
+    { name: 'clown',        bg: 'bg-[#FFD966]', border: 'border-[#E0BA4A]' }, 
+    { name: 'gunslinger',   bg: 'bg-[#5E3C47]', border: 'border-[#452932]' }, 
+    { name: 'assassin',     bg: 'bg-[#644D9C]', border: 'border-[#4E397F]' }, 
+    { name: 'creator',      bg: 'bg-[#B95C00]', border: 'border-[#964800]' }, 
+    { name: 'blacksmith',   bg: 'bg-[#D58F54]', border: 'border-[#BA7339]' }, 
+    { name: 'druid',        bg: 'bg-[#185FCD]', border: 'border-[#0E48A2]' }, 
+    { name: 'sage',         bg: 'bg-[#00FFFF]', border: 'border-[#00CECE]' }, 
+    { name: 'other',        bg: 'bg-[#E5E7EB]', border: 'border-[#D1D5DB]' }, 
+    { name: 'black',        bg: 'bg-[#18181B]', border: 'border-black' },     
+    { name: 'darkgray',     bg: 'bg-[#4B5563]', border: 'border-[#374151]' }, 
+    { name: 'white',        bg: 'bg-[#FFFFFF]', border: 'border-slate-300' }, 
+    { name: 'lightpink',    bg: 'bg-[#FCE7F3]', border: 'border-[#F472B6]' }  
 ];
 
 // 初始化渲染 20 色色盤
