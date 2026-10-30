@@ -1213,10 +1213,10 @@
 
                 item.innerHTML = `
                     <div class="flex items-center gap-2 min-w-0">
-                        <span class="job-card-${l.job || '其他'} px-2 py-0.5 rounded font-bold text-[10px] border shrink-0">${l.job || '成員'}</span>
-                        <span class="font-bold text-gray-800 truncate text-[11px]">${l.name}</span>
+                        <span class="font-black text-gray-800 truncate text-[13px] tracking-wide">${l.name}</span>
+                        <span class="job-card-${l.job || '其他'} px-1.5 py-0.5 rounded font-bold text-[9px] border shrink-0">${l.job || '成員'}</span>
                     </div>
-                    <span class="${isToday ? 'text-amber-800 font-black' : 'text-gray-400'} text-[10px]">
+                    <span class="${isToday ? 'text-amber-800 font-black' : 'text-gray-400'} text-[11px] shrink-0 font-medium">
                         ${l.date} ${isToday ? '(今天)' : ''}
                     </span>
                 `;
