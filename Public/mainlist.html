@@ -378,53 +378,60 @@
         }
 
         // 🎯 重新載入表單：真正向 Google 試算表抓取主戰名冊
-        async function fetchMainRosterFromSheet(manualTrigger = true) {
-            try {
-                document.getElementById('total-assigned-badge').innerText = '載入表單中...';
-                const res = await fetch(GOOGLE_SHEET_ROSTER_API);
-                const result = await res.json();
-                if (result.status === 'success' && result.squads && result.squads.length > 0) {
-                    squads = result.squads;
-                    initMasterOrder();
-                    renderSquads();
-                    renderMemberList();
-                    if (manualTrigger) alert('✓ 已成功自 Google 試算表重新載入主戰名單！');
-                } else {
-                    if (manualTrigger) alert('無法抓取表單：' + (result.message || '無隊伍資料'));
-                }
-            } catch (err) {
-                console.warn('無法連線試算表 Web App:', err);
-                if (manualTrigger) alert('連線 Google 試算表失敗，請確認網路！');
-            }
+async function saveAndOverwriteRoster() {
+    const saveBtn = event.currentTarget;
+    const originalText = saveBtn.innerHTML;
+    saveBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 儲存中...`;
+    saveBtn.disabled = true;
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    const dataToSave = {
+        date: todayStr,
+        squads: JSON.parse(JSON.stringify(squads)),
+        mergedGroups: JSON.parse(JSON.stringify(mergedGroups)),
+        masterOrder: JSON.parse(JSON.stringify(masterOrder))
+    };
+
+    let isSuccess = false;
+
+    try {
+        // 1. 回寫覆蓋 Google 試算表 (GAS doPost)
+        const sheetRes = await fetch(GOOGLE_SHEET_ROSTER_API, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({ squads: squads })
+        });
+        const sheetResult = await sheetRes.json();
+
+        if (sheetResult.status === 'success') {
+            isSuccess = true;
+        } else {
+            console.warn("試算表回寫警示:", sheetResult.message);
         }
 
-        // 🎯 儲存覆蓋主戰名單：回寫後端資料庫並匯出陣容圖片
-        async function saveAndOverwriteRoster() {
-            const todayStr = new Date().toISOString().split('T')[0];
-            const dataToSave = {
-                date: todayStr,
-                squads: JSON.parse(JSON.stringify(squads)),
-                mergedGroups: JSON.parse(JSON.stringify(mergedGroups)),
-                masterOrder: JSON.parse(JSON.stringify(masterOrder))
-            };
+        // 2. 同步存入後端伺服器 (Node.js API)
+        await fetch(`${BACKEND_API_URL}/api/admin/roster/save`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(dataToSave)
+        });
 
-            // 1. 同步存入後端資料庫
-            try {
-                await fetch(`${BACKEND_API_URL}/api/admin/roster/save`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(dataToSave)
-                });
-            } catch (err) {
-                console.warn('後端資料庫儲存異常，以本地儲存為備援:', err);
-            }
+    } catch (err) {
+        console.warn("網路連線或儲存異常:", err);
+    } finally {
+        saveBtn.innerHTML = originalText;
+        saveBtn.disabled = false;
+    }
 
-            // 本地快取
-            localStorage.setItem('guild_roster_current', JSON.stringify(dataToSave));
+    // 本地備存快取
+    localStorage.setItem('guild_roster_current', JSON.stringify(dataToSave));
 
-            // 2. 自動執行圖片匯出
-            exportToImage();
-        }
+    if (isSuccess) {
+        alert('✓ 主戰名單已成功覆蓋寫入 Google 試算表與資料庫！');
+    } else {
+        alert('✓ 名單已儲存完成！');
+    }
+}
 
         function getMemberJobInfo(name) {
             const found = masterMembers.find(m => m.name === name);
@@ -897,41 +904,80 @@
                 alert('連線失敗');
             }
         }
-
+// 取得指定日期所在星期的「週一」與「週日」字串 (格式: YYYY-MM-DD)
+function getCurrentWeekRange(baseDateStr) {
+    const target = baseDateStr ? new Date(baseDateStr) : new Date();
+    const day = target.getDay(); // 0 (週日) 到 6 (週六)
+    
+    // 將週日視為該週最後一天 (diff = 6)，其餘為 day - 1
+    const diffToMonday = day === 0 ? 6 : day - 1;
+    
+    const monday = new Date(target);
+    monday.setDate(target.getDate() - diffToMonday);
+    
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    
+    const format = (d) => d.toISOString().split('T')[0];
+    return {
+        start: format(monday),
+        end: format(sunday)
+    };
+}
+        
         function renderLeaveListUI() {
-            const container = document.getElementById('leave-list-ui');
-            container.innerHTML = '';
-            const todayStr = new Date().toISOString().split('T')[0];
+    const container = document.getElementById('leave-list-ui');
+    container.innerHTML = '';
+    
+    const todayStr = new Date().toISOString().split('T')[0];
+    const { start: weekStart, end: weekEnd } = getCurrentWeekRange(todayStr);
 
-            if (leaveList.length === 0) {
-                container.innerHTML = `<div class="text-xs text-gray-400 text-center py-3">資料庫目前無請假紀錄</div>`;
-                return;
-            }
+    // 🎯 關鍵過濾：只保留請假日期介於當週週一至週日之間的紀錄
+    const thisWeekLeaves = leaveList.filter(l => {
+        const d = (l.date || '').replace(/\//g, '-').trim();
+        return d >= weekStart && d <= weekEnd;
+    });
 
-            leaveList.forEach((l) => {
-                const isCurrent = (l.date === todayStr);
-                const item = document.createElement('div');
-                item.className = `flex justify-between items-center p-2 rounded-xl text-xs border ${
-                    isCurrent ? 'bg-amber-50 border-amber-300 font-bold' : 'bg-white border-gray-200'
-                }`;
+    if (thisWeekLeaves.length === 0) {
+        container.innerHTML = `<div class="text-xs text-gray-400 text-center py-4 font-bold">本週無任何請假紀錄 (${weekStart} ~ ${weekEnd})</div>`;
+        return;
+    }
 
-                item.innerHTML = `
-                    <div class="flex items-center gap-1.5 min-w-0">
-                        <span class="job-card-${l.job} px-1.5 py-0.5 rounded font-bold text-[10px] border shrink-0">${l.job}</span>
-                        <span class="font-bold text-gray-800 truncate">${l.name}</span>
-                        <span class="text-gray-400 text-[10px] shrink-0">${l.date} ${isCurrent ? '(當天)' : ''}</span>
-                    </div>
-                    <button onclick="deleteLeavePerson('${l.id}')" class="text-gray-400 hover:text-red-600 p-1 shrink-0"><i class="fa-solid fa-trash-can"></i></button>
-                `;
-                container.appendChild(item);
-            });
-        }
+    // 依日期先後排序
+    thisWeekLeaves.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    thisWeekLeaves.forEach((l) => {
+        const isToday = (l.date === todayStr);
+        const item = document.createElement('div');
+        item.className = `flex justify-between items-center p-2 rounded-xl text-xs border ${
+            isToday ? 'bg-amber-50 border-amber-300 font-bold' : 'bg-white border-gray-200'
+        }`;
+
+        item.innerHTML = `
+            <div class="flex items-center gap-1.5 min-w-0">
+                <span class="job-card-${l.job || '其他'} px-1.5 py-0.5 rounded font-bold text-[10px] border shrink-0">${l.job || '成員'}</span>
+                <span class="font-bold text-gray-800 truncate">${l.name}</span>
+                <span class="text-gray-400 text-[10px] shrink-0">${l.date} ${isToday ? '(今天)' : ''}</span>
+            </div>
+            <button onclick="deleteLeavePerson('${l.id}')" class="text-gray-400 hover:text-red-600 p-1 shrink-0" title="取消請假"><i class="fa-solid fa-trash-can"></i></button>
+        `;
+        container.appendChild(item);
+    });
+}
 
         function updateLeaveCount() {
-            const todayStr = new Date().toISOString().split('T')[0];
-            const count = leaveList.filter(l => l.date === todayStr).length;
-            document.getElementById('leave-count').innerText = count;
-        }
+    const todayStr = new Date().toISOString().split('T')[0];
+    const { start: weekStart, end: weekEnd } = getCurrentWeekRange(todayStr);
+    
+    // 計算當週請假人數
+    const count = leaveList.filter(l => {
+        const d = (l.date || '').replace(/\//g, '-').trim();
+        return d >= weekStart && d <= weekEnd;
+    }).length;
+
+    const badge = document.getElementById('leave-count');
+    if (badge) badge.innerText = count;
+}
 
         function openMergeModal() { document.getElementById('merge-modal').classList.remove('hidden'); renderMergeCheckboxes(); renderExistingMergedGroups(); }
         function closeMergeModal() { document.getElementById('merge-modal').classList.add('hidden'); renderSquads(); }
