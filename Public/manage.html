@@ -1749,35 +1749,52 @@ async function removeAttendee(userKey) {
     }
 }
 
- // ==========================================
- // 8. 其他設定：LINE群組、推播與職業管理
- // ==========================================
- function switchSettingSubTab(tab) {
- currentSettingSubTab = tab;
- const btns = {
- line: document.getElementById('subTabSettingLine'),
- broadcast: document.getElementById('subTabSettingBroadcast'),
- classes: document.getElementById('subTabSettingClasses')
- };
- const views = {
- line: document.getElementById('settingViewLine'),
- broadcast: document.getElementById('settingViewBroadcast'),
- classes: document.getElementById('settingViewClasses')
- };
+// ==========================================
+// 8. 其他設定：LINE群組、推播與職業管理
+// ==========================================
+async function switchSettingSubTab(tab) {
+  currentSettingSubTab = tab;
+  const btns = {
+    line: document.getElementById('subTabSettingLine'),
+    broadcast: document.getElementById('subTabSettingBroadcast'),
+    classes: document.getElementById('subTabSettingClasses')
+  };
+  const views = {
+    line: document.getElementById('settingViewLine'),
+    broadcast: document.getElementById('settingViewBroadcast'),
+    classes: document.getElementById('settingViewClasses')
+  };
 
- Object.keys(btns).forEach(k => {
- if (k === tab) {
- btns[k].className = "py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black cursor-pointer";
- views[k].classList.remove('hidden');
- } else {
- btns[k].className = "py-1.5 rounded-lg text-slate-500 hover:text-slate-800 cursor-pointer";
- views[k].classList.add('hidden');
- }
- });
+  Object.keys(btns).forEach(k => {
+    if (k === tab) {
+      btns[k].className = "py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black cursor-pointer";
+      views[k].classList.remove('hidden');
+    } else {
+      btns[k].className = "py-1.5 rounded-lg text-slate-500 hover:text-slate-800 cursor-pointer";
+      views[k].classList.add('hidden');
+    }
+  });
 
- if (tab === 'broadcast') renderBroadcastSection();
- if (tab === 'classes') renderCustomClassManager();
- }
+  // 💡 關鍵修復：切到推播時，先顯示既有畫面，並立刻向後端同步最新排程與請假規則
+  if (tab === 'broadcast') {
+    // 1. 先用現有暫存資料繪製
+    renderBroadcastSection();
+    
+    // 2. 若有向後端抓取資料的函式，非同步刷新最新狀態
+    if (typeof fetchBroadcastsFromBackend === 'function') {
+      await fetchBroadcastsFromBackend();
+    }
+    if (typeof loadLeaveRules === 'function') {
+      await loadLeaveRules();
+    }
+  }
+
+  if (tab === 'classes') {
+    if (typeof renderCustomClassManager === 'function') {
+      renderCustomClassManager();
+    }
+  }
+}
 
  function renderSettingsSection() {
  switchSettingSubTab(currentSettingSubTab);
@@ -2047,22 +2064,44 @@ async function executeDeleteClass() {
 // 固定推播排程管理前端邏輯（樣式比照請假規則）
 // ==========================================
 
-// 1. 從後端拉取排程清單
+// 1. 從後端拉取排程清單（含載入中狀態與非同步防呆）
 async function fetchBroadcastsFromBackend() {
+  const container = document.getElementById('scheduleBroadcastContainer');
+
+  // 若當前還沒有排程資料，先放「讀取中」提示，避免瞬間閃爍「目前無設定推播排程」
+  if (container && (!broadcastSchedules || broadcastSchedules.length === 0)) {
+    container.innerHTML = `
+      <div class="p-4 text-center text-xs text-sky-600 font-bold bg-sky-50/50 rounded-2xl border border-sky-100 flex items-center justify-center gap-2">
+        <span class="inline-block animate-spin">⏳</span> 正在載入推播排程...
+      </div>
+    `;
+  }
+
   try {
     const res = await fetch(`${BACKEND_API_URL}/api/admin/broadcasts`);
-    if (!res.ok) return;
+    if (!res.ok) {
+      console.warn(`[推播排程] 後端回應狀態碼異常: ${res.status}`);
+      return;
+    }
+
     const data = await res.json();
-    if (data.status === "success" && data.broadcasts) {
-      broadcastSchedules = data.broadcasts.map(bc => ({
+    // 同時相容 broadcasts 或 schedules 欄位
+    const rawList = data.broadcasts || data.schedules || [];
+
+    if (data.status === "success" && Array.isArray(rawList)) {
+      broadcastSchedules = rawList.map(bc => ({
         ...bc,
         id: bc.id || bc.broadcast_id,
         active: (bc.active === 1 || bc.active === true)
       }));
-      renderBroadcastSection();
     }
   } catch (err) {
     console.error("載入推播排程失敗:", err);
+  } finally {
+    // 無論抓取結果如何，都在資料到位後精準繪製畫面
+    if (typeof renderBroadcastSection === 'function') {
+      renderBroadcastSection();
+    }
   }
 }
 
