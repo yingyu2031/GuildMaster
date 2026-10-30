@@ -26,7 +26,7 @@
             border-color: #6366f1;
             transform: scale(1.02);
         }
-        /* 職業顏色定義 */
+        /* 職業顏色 */
         .job-card-刺客 { background-color: #fecaca; color: #991b1b; border-color: #f87171; }
         .job-card-十字軍 { background-color: #fde68a; color: #92400e; border-color: #fbbf24; }
         .job-card-法師 { background-color: #bfdbfe; color: #1e40af; border-color: #60a5fa; }
@@ -35,12 +35,12 @@
         .job-card-武僧 { background-color: #fed7aa; color: #9a3412; border-color: #fb923c; }
         .job-card-騎士 { background-color: #f3e8ff; color: #581c87; border-color: #d8b4fe; }
         .job-card-搞笑藝人 { background-color: #fbcfe8; color: #831843; border-color: #f472b6; }
-        .job-card-賢者 { background-color: #c7d2fe; color: #3730a3; border-color: #818cf8; }
+        .job-card-吟遊戲偶 { background-color: #c7d2fe; color: #3730a3; border-color: #818cf8; }
         .job-card-冷豔舞姬 { background-color: #fce7f3; color: #9d174d; border-color: #f472b6; }
         .job-card-神射手 { background-color: #bae6fd; color: #0369a1; border-color: #38bdf8; }
         .job-card-流氓 { background-color: #e5e7eb; color: #374151; border-color: #9ca3af; }
         .job-card-詩人 { background-color: #fef08a; color: #854d0e; border-color: #facc15; }
-        .job-card-鐵匠 { background-color: #fed7aa; color: #c2410c; border-color: #fb923c; }
+        .job-card-煉金 { background-color: #fed7aa; color: #c2410c; border-color: #fb923c; }
 
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -61,19 +61,23 @@
 </head>
 <body class="bg-gray-100 min-h-screen pb-16 pt-3">
 
-    <!-- 主內容區：3:7 分割排版 -->
     <main class="max-w-7xl mx-auto px-3 flex flex-col lg:grid lg:grid-cols-12 gap-4">
 
-        <!-- 左側：人員列表區塊 (佔 4 欄) -->
+        <!-- 左側：人員列表 (佔 4 欄) -->
         <div class="lg:col-span-4 sticky top-3 z-20 bg-gray-100/95 backdrop-blur-sm pt-1 pb-2 flex flex-col gap-3">
             <section class="bg-white rounded-2xl shadow-md border border-gray-200 p-3.5 flex flex-col gap-2.5">
                 <div class="flex justify-between items-center">
                     <h2 class="text-xs sm:text-sm font-bold text-gray-700 flex items-center gap-1.5">
                         <i class="fa-solid fa-users text-indigo-600"></i> 人員名冊 (<span id="available-count">0</span>)
                     </h2>
-                    <button onclick="openLeaveModal()" class="bg-amber-50 hover:bg-amber-100 text-amber-800 text-[11px] font-bold py-1 px-2.5 rounded-lg border border-amber-300 flex items-center gap-1 transition shadow-xs">
-                        <i class="fa-solid fa-user-slash"></i> 請假名單 (<span id="leave-count">0</span>)
-                    </button>
+                    <div class="flex items-center gap-1.5">
+                        <button onclick="syncAllRoster()" title="重新抓取試算表與請假資料" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[11px] font-bold py-1 px-2.5 rounded-lg border border-emerald-300 flex items-center gap-1 transition shadow-xs">
+                            <i class="fa-solid fa-arrows-rotate"></i> 重新整理
+                        </button>
+                        <button onclick="openLeaveModal()" class="bg-amber-50 hover:bg-amber-100 text-amber-800 text-[11px] font-bold py-1 px-2.5 rounded-lg border border-amber-300 flex items-center gap-1 transition shadow-xs">
+                            <i class="fa-solid fa-user-slash"></i> 請假名單 (<span id="leave-count">0</span>)
+                        </button>
+                    </div>
                 </div>
 
                 <div class="flex flex-col gap-2">
@@ -86,9 +90,8 @@
                     </select>
                 </div>
 
-                <!-- 列表式指派清單 -->
                 <div id="member-list-container" class="flex flex-col gap-1.5 h-[520px] overflow-y-auto p-1.5 bg-gray-50 rounded-xl border border-gray-100">
-                    <div class="text-xs text-gray-400 p-4 w-full text-center">正在載入成員中...</div>
+                    <div class="text-xs text-gray-400 p-4 w-full text-center">正在同步主戰名單...</div>
                 </div>
             </section>
         </div>
@@ -112,13 +115,13 @@
                         <button onclick="openMergeModal()" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold py-2 px-3 rounded-lg shadow-sm transition flex items-center justify-center gap-1.5">
                             <i class="fa-solid fa-object-group"></i> 合併團隊
                         </button>
-                        <button onclick="resetRoster()" class="bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-bold py-2 px-3 rounded-lg border transition flex items-center justify-center gap-1" title="重置">
+                        <button onclick="resetRoster()" class="bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-bold py-2 px-3 rounded-lg border transition flex items-center justify-center gap-1">
                             <i class="fa-solid fa-rotate-right"></i> 重置清空
                         </button>
                     </div>
                 </div>
 
-                <!-- 匯出截圖包覆區塊 -->
+                <!-- 匯出截圖包覆區 -->
                 <div id="export-capture-target" class="flex flex-col gap-4 bg-white p-2 rounded-xl">
                     <div class="roster-scroll-wrapper no-scrollbar pb-2">
                         <div id="squads-container" class="flex flex-col gap-4"></div>
@@ -128,15 +131,12 @@
                 <!-- 底部操作列 (匯出圖片) -->
                 <div class="flex flex-col sm:flex-row items-center gap-2 pt-3 border-t border-gray-200 sort-hidden">
                     <input type="date" id="roster-date" class="w-full sm:w-auto flex-1 bg-gray-50 border border-gray-300 text-gray-800 text-xs rounded-lg px-3 py-2.5 font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none text-center">
-                    <div class="grid grid-cols-3 gap-2 w-full sm:w-auto">
-                        <button onclick="saveCurrentRoster()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-2.5 px-3 rounded-lg shadow-sm flex items-center justify-center gap-1 transition">
-                            <i class="fa-solid fa-floppy-disk"></i> 存檔
+                    <div class="grid grid-cols-2 gap-2 w-full sm:w-auto">
+                        <button onclick="syncAllRoster()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold py-2.5 px-3 rounded-lg border border-gray-300 flex items-center justify-center gap-1 transition">
+                            <i class="fa-solid fa-cloud-arrow-down"></i> 重新載入表單
                         </button>
-                        <button onclick="openHistoryModal()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold py-2.5 px-3 rounded-lg border border-gray-300 flex items-center justify-center gap-1 transition">
-                            <i class="fa-solid fa-clock-rotate-left"></i> 歷史
-                        </button>
-                        <button onclick="exportToImage()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2.5 px-3 rounded-lg shadow-md flex items-center justify-center gap-1 transition">
-                            <i class="fa-solid fa-image"></i> 匯出圖片
+                        <button onclick="exportToImage()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2.5 px-4 rounded-lg shadow-md flex items-center justify-center gap-1 transition">
+                            <i class="fa-solid fa-image"></i> 匯出出戰圖片
                         </button>
                     </div>
                 </div>
@@ -156,7 +156,6 @@
                 <div class="bg-gray-50 p-3 rounded-xl border border-gray-200 flex flex-col gap-2">
                     <h4 class="text-xs font-bold text-gray-700">登記請假</h4>
                     
-                    <!-- 點選開窗搜尋成員，避免被下拉邊界截斷 -->
                     <button type="button" onclick="openMemberPickerModal()" class="w-full bg-white border border-gray-300 text-xs rounded-lg px-3 py-2.5 text-left font-bold text-gray-700 hover:border-amber-500 focus:outline-none flex items-center justify-between shadow-2xs">
                         <span id="selected-member-display" class="text-gray-400">點此開窗搜尋公會成員...</span>
                         <i class="fa-solid fa-magnifying-glass text-gray-400 text-xs"></i>
@@ -165,12 +164,12 @@
                     <input type="hidden" id="leave-selected-name">
                     <input type="hidden" id="leave-selected-job">
 
-                    <input type="text" id="leave-event-input" placeholder="請假活動項目" value="公會戰場" class="bg-white border border-gray-300 text-xs rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                    <input type="text" id="leave-event-input" placeholder="請假活動 (例如: 公會戰場)" value="公會戰場" class="bg-white border border-gray-300 text-xs rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:outline-none">
                     <input type="date" id="leave-date-input" class="bg-white border border-gray-300 text-xs rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:outline-none">
-                    <button onclick="addLeavePerson()" class="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold py-2 rounded-lg transition mt-1">送出並回寫資料庫</button>
+                    <button onclick="addLeavePerson()" class="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold py-2 rounded-lg transition mt-1">寫入資料庫並排除出戰</button>
                 </div>
                 <div class="flex flex-col gap-2">
-                    <h4 class="text-xs font-bold text-gray-700">當前請假紀錄</h4>
+                    <h4 class="text-xs font-bold text-gray-700">當前請假名冊</h4>
                     <div class="flex flex-col gap-2" id="leave-list-ui"></div>
                 </div>
             </div>
@@ -226,57 +225,30 @@
         </div>
     </div>
 
-    <!-- 歷史紀錄 Modal -->
-    <div id="history-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl w-full max-w-md max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
-            <div class="bg-indigo-600 text-white px-4 py-3 flex justify-between items-center">
-                <h3 class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-clock-rotate-left"></i> 歷史排班紀錄</h3>
-                <button onclick="closeHistoryModal()" class="text-white hover:text-gray-200"><i class="fa-solid fa-xmark text-lg"></i></button>
-            </div>
-            <div class="p-4 overflow-y-auto flex flex-col gap-2" id="history-list-container"></div>
-            <div class="bg-gray-50 px-4 py-3 border-t flex justify-end">
-                <button onclick="closeHistoryModal()" class="bg-gray-800 hover:bg-gray-900 text-white text-xs font-bold px-4 py-2 rounded-lg">關閉</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- 核心邏輯 -->
+    <!-- 核心 JS 邏輯 -->
     <script>
-        const BACKEND_API_URL = https://script.google.com/macros/s/AKfycbx2ndfyU7920INPrgPWGIY2DGEQfosjoXyaIrCn_7SVeaCo2U7axVNyTl8Eyd8rmXdc9w/exec;
+        const BACKEND_API_URL = window.location.origin;
 
-        // 預設成員母檔（防止後端未連線時畫面全空，連線成功會自動被後端資料庫覆蓋）
-        let masterMembers = [
-            { name: "非禮勿言", job: "刺客" }, { name: "小嫩少", job: "刺客" }, { name: "蔚藍Azure", job: "刺客" }, { name: "那一籠蝦餃", job: "刺客" }, { name: "。倫倫爸、", job: "刺客" },
-            { name: "小象哇哇", job: "十字軍" }, { name: "比目魚", job: "十字軍" }, { name: "羅伊先森", job: "十字軍" }, { name: "赤伶、(賢)", job: "十字軍" }, { name: "阿畢達布", job: "十字軍" },
-            { name: "馬東三", job: "法師" }, { name: "至尊寶ゞ", job: "法師" }, { name: "小桃祇(賢)", job: "法師" }, { name: "得成芭芭拉", job: "法師" }, { name: "妳好正喔", job: "法師" },
-            { name: "小小蚊子", job: "創造者" }, { name: "白轻尘", job: "創造者" }, { name: "丹尼老詩", job: "創造者" }, { name: "李至安(賢)", job: "創造者" }, { name: "大风起兮云飞扬", job: "創造者" },
-            { name: "農地山泉", job: "補師" }, { name: "Kaixxxxx(賢)", job: "補師" }, { name: "翔翔、", job: "補師" }, { name: "乃喵。", job: "補師" }, { name: "紓紓", job: "補師" },
-            { name: "李知恩的狗", job: "武僧" }, { name: "Vergil", job: "武僧" }, { name: "解惑大師", job: "武僧" }, { name: "大猷", job: "武僧" }, { name: "丶七彩小皮球", job: "武僧" },
-            { name: "亞力三小", job: "騎士" }, { name: "泷宇", job: "騎士" }, { name: "千咲", job: "騎士" }, { name: "文老爹", job: "騎士" }, { name: "大寶寶", job: "騎士" },
-            { name: "唏唏、", job: "搞笑藝人" }, { name: "Fe", job: "搞笑藝人" }, { name: "夜闌人靜", job: "搞笑藝人" }, { name: "微風小弟", job: "搞笑藝人" }, { name: "梵音", job: "搞笑藝人" },
-            { name: "顧景幾翔", job: "吟遊戲偶" }, { name: "琴華願殤", job: "吟遊戲偶" }, { name: "TwiZee", job: "吟遊戲偶" }, { name: "學長的藍波大人", job: "吟遊戲偶" }, { name: "blackpinkyoo", job: "吟遊戲偶" },
-            { name: "玖寶", job: "神射手" }, { name: "主線太長好累喔", job: "神射手" }, { name: "荷魯斯", job: "神射手" }, { name: "就是睡不飽", job: "神射手" }, { name: "ebi", job: "神射手" },
-            { name: "閃閃閃", job: "流氓" }, { name: "神之準", job: "流氓" }, { name: "克蘿伊", job: "流氓" }, { name: "大庫十八年", job: "流氓" }, { name: "阿鈣想吸吸", job: "流氓" },
-            { name: "神冰月", job: "詩人" }, { name: "晚風、", job: "詩人" }, { name: "宮本寶藏", job: "詩人" }, { name: "大蛋佑佑", job: "詩人" }, { name: "包手檳榔", job: "詩人" }
-        ];
+        // 🔗 您的 Google 試算表 Web App 網址（抓取每日主戰場名單）
+        const GOOGLE_SHEET_ROSTER_API = 'https://script.google.com/macros/s/AKfycbx2ndfyU7920INPrgPWGIY2DGEQfosjoXyaIrCn_7SVeaCo2U7axVNyTl8Eyd8rmXdc9w/exec';
 
-        let leaveList = [];
-        let gameClasses = [];
+        let masterMembers = []; // 後端資料庫會員
+        let leaveList = [];     // 後端資料庫請假
+        let gameClasses = [];   // 職業
 
-        // 預設帶有基礎隊員的陣容（確保一開網頁立即有畫面）
         let squads = [
-            { id: 1, name: "隊伍 1(左路)", members: ["非禮勿言", "小嫩少", "蔚藍Azure", "那一籠蝦餃", "。倫倫爸、"] },
-            { id: 2, name: "隊伍 2(左路)", members: ["小象哇哇", "比目魚", "羅伊先森", "赤伶、(賢)", "阿畢達布"] },
-            { id: 3, name: "隊伍 3(左路)", members: ["馬東三", "至尊寶ゞ", "小桃祇(賢)", "得成芭芭拉", "妳好正喔"] },
-            { id: 4, name: "隊伍 4(右路)", members: ["小小蚊子", "白轻尘", "丹尼老詩", "李至安(賢)", "大风起兮云飞扬"] },
-            { id: 5, name: "隊伍 5(右路)", members: ["農地山泉", "Kaixxxxx(賢)", "翔翔、", "乃喵。", "紓紓"] },
-            { id: 6, name: "隊伍 6(右路)", members: ["李知恩的狗", "Vergil", "解惑大師", "大猷", "丶七彩小皮球"] },
-            { id: 7, name: "隊伍 7(左路)", members: ["亞力三小", "泷宇", "千咲", "文老爹", "大寶寶"] },
-            { id: 8, name: "隊伍 8(中路)", members: ["唏唏、", "Fe", "夜闌人靜", "微風小弟", "梵音"] },
-            { id: 9, name: "隊伍 9(中路)", members: ["顧景幾翔", "琴華願殤", "TwiZee", "學長的藍波大人", "blackpinkyoo"] },
-            { id: 10, name: "隊伍 10(中路)", members: ["玖寶", "主線太長好累喔", "荷魯斯", "就是睡不飽", "ebi"] },
-            { id: 11, name: "中路(支援-1)", members: ["閃閃閃", "神之準", "克蘿伊", "大庫十八年", "阿鈣想吸吸"] },
-            { id: 12, name: "右路(支援-2)", members: ["神冰月", "晚風、", "宮本寶藏", "大蛋佑佑", "包手檳榔"] }
+            { id: 1, name: "隊伍 1(左路)", members: [] },
+            { id: 2, name: "隊伍 2(左路)", members: [] },
+            { id: 3, name: "隊伍 3(左路)", members: [] },
+            { id: 4, name: "隊伍 4(右路)", members: [] },
+            { id: 5, name: "隊伍 5(右路)", members: [] },
+            { id: 6, name: "隊伍 6(右路)", members: [] },
+            { id: 7, name: "隊伍 7(左路)", members: [] },
+            { id: 8, name: "隊伍 8(中路)", members: [] },
+            { id: 9, name: "隊伍 9(中路)", members: [] },
+            { id: 10, name: "隊伍 10(中路)", members: [] },
+            { id: 11, name: "中路(支援-1)", members: [] },
+            { id: 12, name: "右路(支援-2)", members: [] }
         ];
 
         let mergedGroups = [];
@@ -296,20 +268,30 @@
                 updateLeaveCount();
             });
 
-            // 平行抓取後端資料庫
-            await Promise.all([
-                fetchClassesFromDB(),
-                fetchMembersFromDB(),
-                fetchLeavesFromDB()
-            ]);
-
-            initMasterOrder();
-            renderMemberList();
-            renderSquads();
-            updateLeaveCount();
+            await syncAllRoster();
         };
 
-        // 1. API: 載入職業清單並自動填入左側選單
+        // 每次開網頁或按重新整理：直接向試算表與資料庫讀取
+        async function syncAllRoster() {
+            try {
+                document.getElementById('total-assigned-badge').innerText = '載入最新表單中...';
+
+                await Promise.all([
+                    fetchClassesFromDB(),
+                    fetchMembersFromDB(),
+                    fetchLeavesFromDB(),
+                    fetchMainRosterFromSheet()
+                ]);
+
+                initMasterOrder();
+                renderMemberList();
+                renderSquads();
+                updateLeaveCount();
+            } catch (err) {
+                console.error("同步失敗:", err);
+            }
+        }
+
         async function fetchClassesFromDB() {
             try {
                 const res = await fetch(`${BACKEND_API_URL}/api/admin/classes`);
@@ -326,16 +308,15 @@
                     });
                 }
             } catch (err) {
-                console.warn('載入職業清單失敗，改用預設清單');
+                console.warn('載入職業清單失敗');
             }
         }
 
-        // 2. API: 載入公會成員名冊
         async function fetchMembersFromDB() {
             try {
                 const res = await fetch(`${BACKEND_API_URL}/api/admin/members`);
                 const result = await res.json();
-                if (result.status === 'success' && result.members && result.members.length > 0) {
+                if (result.status === 'success' && result.members) {
                     masterMembers = result.members
                         .filter(m => m.guildRole !== '退會' && m.accountStatus === '已審核')
                         .map(m => ({
@@ -345,11 +326,10 @@
                         }));
                 }
             } catch (err) {
-                console.warn('載入遠端會員失敗，保留預設名單');
+                console.error('載入會員失敗:', err);
             }
         }
 
-        // 3. API: 載入請假紀錄
         async function fetchLeavesFromDB() {
             try {
                 const res = await fetch(`${BACKEND_API_URL}/api/admin/leaves`);
@@ -361,15 +341,29 @@
                         job: l.gameClass,
                         date: l.leaveDate || l.date,
                         event: l.leaveEvent || l.event,
-                        reason: l.leaveReason || l.reason
+                        reason: l.leaveReason || l.reason,
+                        isUrgent: l.isUrgent === 'Y' || l.isUrgent === '緊急'
                     }));
                 }
             } catch (err) {
-                console.warn('載入請假名單失敗');
+                console.error('載入請假紀錄失敗:', err);
             }
         }
 
-        // --- 彈窗開窗選擇成員 (徹底解決下拉選單被截斷問題) ---
+        // 讀取 Google 試算表 Web App
+        async function fetchMainRosterFromSheet() {
+            try {
+                const res = await fetch(GOOGLE_SHEET_ROSTER_API);
+                const result = await res.json();
+                if (result.status === 'success' && result.squads && result.squads.length > 0) {
+                    squads = result.squads;
+                }
+            } catch (err) {
+                console.warn('無法連線試算表 Web App，保留預設架構:', err);
+            }
+        }
+
+        // --- 彈窗成員選擇器 ---
         function openMemberPickerModal() {
             document.getElementById('picker-search-input').value = '';
             document.getElementById('member-picker-modal').classList.remove('hidden');
@@ -403,14 +397,14 @@
                         <span class="job-card-${m.job} px-2 py-0.5 rounded font-bold text-[10px] border">${m.job}</span>
                         <span class="font-bold text-gray-800">${m.name}</span>
                     </div>
-                    <span class="text-amber-600 font-bold text-[11px]"><i class="fa-solid fa-check"></i> 選取</span>
+                    <span class="text-amber-600 font-bold text-[11px]"><i class="fa-solid fa-check"></i> 選擇</span>
                 `;
                 container.appendChild(item);
             });
         }
 
         function selectMemberFromPicker(member) {
-            document.getElementById('leave-selected-uid').value = member.uid || member.name;
+            document.getElementById('leave-selected-uid').value = member.uid;
             document.getElementById('leave-selected-name').value = member.name;
             document.getElementById('leave-selected-job').value = member.job;
             
@@ -422,7 +416,11 @@
             closeMemberPickerModal();
         }
 
-        function openLeaveModal() { document.getElementById('leave-modal').classList.remove('hidden'); renderLeaveListUI(); }
+        function openLeaveModal() { 
+            document.getElementById('leave-modal').classList.remove('hidden'); 
+            renderLeaveListUI(); 
+        }
+
         function closeLeaveModal() { 
             document.getElementById('leave-modal').classList.add('hidden'); 
             updateLeaveCount(); 
@@ -466,7 +464,7 @@
                     document.getElementById('leave-selected-name').value = '';
                     document.getElementById('leave-selected-job').value = '';
                     document.getElementById('selected-member-display').innerHTML = '<span class="text-gray-400">點此開窗搜尋公會成員...</span>';
-                    alert('✓ 已成功登錄請假並同步回寫資料庫！');
+                    alert('✓ 已成功寫入請假資料庫！');
                 } else {
                     alert('新增失敗: ' + (result.message || '系統異常'));
                 }
@@ -530,22 +528,18 @@
             document.getElementById('leave-count').innerText = count;
         }
 
-        function initMasterOrder() {
-            masterOrder = squads.map(s => ({ type: 'squad', id: s.id }));
-        }
-
-        function getMemberJob(name) {
-            const found = masterMembers.find(m => m.name === name);
-            return found ? found.job : '其他';
+        function isLeave(name) {
+            const currentDate = document.getElementById('roster-date').value;
+            return leaveList.some(l => l.name === name && l.date === currentDate);
         }
 
         function isAssigned(name) {
             return squads.some(s => s.members.includes(name));
         }
 
-        function isLeave(name) {
-            const currentDate = document.getElementById('roster-date').value;
-            return leaveList.some(l => l.name === name && l.date === currentDate);
+        function getMemberJob(name) {
+            const found = masterMembers.find(m => m.name === name);
+            return found ? found.job : '其他';
         }
 
         function renderMemberList() {
@@ -603,6 +597,10 @@
                 }
             }
             alert('所有隊伍皆已達 5 人滿額！');
+        }
+
+        function initMasterOrder() {
+            masterOrder = squads.map(s => ({ type: 'squad', id: s.id }));
         }
 
         function renderSquads() {
@@ -893,71 +891,6 @@
                 `;
                 container.appendChild(div);
             });
-        }
-
-        function saveCurrentRoster() {
-            const dateVal = document.getElementById('roster-date').value;
-            if (!dateVal) { alert('請選擇日期！'); return; }
-            const dataToSave = { 
-                date: dateVal, 
-                squads: JSON.parse(JSON.stringify(squads)), 
-                mergedGroups: JSON.parse(JSON.stringify(mergedGroups)), 
-                masterOrder: JSON.parse(JSON.stringify(masterOrder))
-            };
-            let history = JSON.parse(localStorage.getItem('guild_roster_history') || '[]');
-            history = history.filter(h => h.date !== dateVal);
-            history.push(dataToSave);
-            localStorage.setItem('guild_roster_history', JSON.stringify(history));
-            alert(`已儲存 ${dateVal} 的出戰陣容！`);
-        }
-
-        function openHistoryModal() { document.getElementById('history-modal').classList.remove('hidden'); renderHistoryList(); }
-        function closeHistoryModal() { document.getElementById('history-modal').classList.add('hidden'); }
-        function renderHistoryList() {
-            const container = document.getElementById('history-list-container');
-            container.innerHTML = '';
-            let history = JSON.parse(localStorage.getItem('guild_roster_history') || '[]');
-            if (history.length === 0) { container.innerHTML = `<div class="text-xs text-gray-400 text-center py-4">無歷史紀錄</div>`; return; }
-            history.sort((a, b) => new Date(b.date) - new Date(a.date));
-            history.forEach(h => {
-                const item = document.createElement('div');
-                item.className = 'flex justify-between items-center p-3 bg-gray-50 border rounded-xl';
-                item.innerHTML = `
-                    <span class="text-xs font-bold text-gray-800">${h.date} 陣容配置</span>
-                    <div class="flex gap-2">
-                        <button onclick="loadHistory('${h.date}')" class="bg-indigo-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg">載入</button>
-                        <button onclick="deleteHistory('${h.date}')" class="bg-gray-200 text-gray-600 text-xs px-2.5 py-1.5 rounded-lg"><i class="fa-solid fa-trash-can"></i></button>
-                    </div>
-                `;
-                container.appendChild(item);
-            });
-        }
-
-        function loadHistory(dateStr) {
-            let history = JSON.parse(localStorage.getItem('guild_roster_history') || '[]');
-            const found = history.find(h => h.date === dateStr);
-            if (found) {
-                squads = JSON.parse(JSON.stringify(found.squads));
-                mergedGroups = found.mergedGroups ? JSON.parse(JSON.stringify(found.mergedGroups)) : [];
-                masterOrder = found.masterOrder ? JSON.parse(JSON.stringify(found.masterOrder)) : [];
-                if (masterOrder.length === 0) initMasterOrder();
-                document.getElementById('roster-date').value = found.date;
-                document.getElementById('display-date-label').innerText = `日期：${found.date}`;
-                renderSquads(); 
-                renderMemberList(); 
-                updateLeaveCount(); 
-                closeHistoryModal();
-                alert(`已成功載入 ${found.date} 的名單！`);
-            }
-        }
-
-        function deleteHistory(dateStr) {
-            if (confirm(`確定要刪除 ${dateStr} 的歷史紀錄？`)) {
-                let history = JSON.parse(localStorage.getItem('guild_roster_history') || '[]');
-                history = history.filter(h => h.date !== dateStr);
-                localStorage.setItem('guild_roster_history', JSON.stringify(history));
-                renderHistoryList();
-            }
         }
 
         function exportToImage() {
