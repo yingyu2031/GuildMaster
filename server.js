@@ -161,7 +161,7 @@ async function initDatabase() {
       CREATE TABLE IF NOT EXISTS game_classes (
         class_name VARCHAR(255) PRIMARY KEY,
         sort_order INT DEFAULT 0,
-        color_theme VARCHAR(50) DEFAULT 'red',
+        color_theme VARCHAR(50) DEFAULT 'white',
         create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
@@ -170,9 +170,9 @@ async function initDatabase() {
     const classCheck = await client.query('SELECT COUNT(*) FROM game_classes');
     if (parseInt(classCheck.rows[0].count) === 0) {
       const defaultClasses = [
-        "超魔導士", "學者（智者）", "神射手", "搞笑藝人（詩人）", 
-        "冷豔舞姬（舞孃）", "騎士領主", "聖殿十字軍", "十字刺客", 
-        "神行（神偷）", "神官（大主教）", "武術宗師", "神工匠", "創造者（鍊金術士）"
+        "法師", "賢者", "神射手", "搞笑藝人", 
+        "冷豔舞姬", "騎士", "十字軍", "刺客", 
+        "流氓", "神官", "武僧", "神工匠", "創造者"
       ];
       for (let i = 0; i < defaultClasses.length; i++) {
         await client.query(
@@ -759,7 +759,7 @@ app.get('/api/sheet/members', async (req, res) => {
 const DISCORD_CLIENT_ID = '1561789656478130337';
 const DISCORD_CLIENT_SECRET = 'YlFXNoWW9F5iGa6yk3Z0' + '75zOPp7-OVy7';
 const DISCORD_BOT_TOKEN = 'MTU2MTc4OTY1NjQ3ODEzMDMzNw' + '.' + 'GSjvoT' + '.' + 'nTJB8MvPJ_zeg5g3dkDn2QfJP5ZA_i-ZFx2I3w';
-const DISCORD_REDIRECT_URI = 'https://guildmaster-lv.duckdns.org/api/auth/discord/callback';
+const DISCORD_IRECT_URI = 'https://guildmaster-lv.duckdns.org/api/auth/discord/callback';
 const DISCORD_GUILD_ID = '1471191307736186931';
 
 // 1. 發起 Discord 授權跳轉
@@ -767,8 +767,8 @@ app.get('/api/auth/discord', (req, res) => {
   const fromUid = req.query.uid || 'login_only';
   const state = encodeURIComponent(fromUid);
   const scope = encodeURIComponent('identify guilds guilds.join');
-  const authUrl = `https://discord.com/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&response_type=code&redirect_uri=${encodeURIComponent(DISCORD_REDIRECT_URI)}&scope=${scope}&state=${state}`;
-  res.redirect(authUrl);
+  const authUrl = `https://discord.com/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&response_type=code&irect_uri=${encodeURIComponent(DISCORD_IRECT_URI)}&scope=${scope}&state=${state}`;
+  res.irect(authUrl);
 });
 
 // 2. 接收 Discord 授權回調
@@ -783,7 +783,7 @@ app.get('/api/auth/discord/callback', async (req, res) => {
       client_secret: DISCORD_CLIENT_SECRET,
       grant_type: 'authorization_code',
       code: code,
-      redirect_uri: DISCORD_REDIRECT_URI,
+      irect_uri: DISCORD_IRECT_URI,
     });
 
     const tokenRes = await fetch('https://discord.com/api/oauth2/token', {
@@ -932,7 +932,7 @@ app.get('/api/auth/discord/callback', async (req, res) => {
 
       // 👉【關鍵改動】：這裡完全不對 members 做任何 INSERT / UPDATE！
       // 單純將使用者資訊帶到前端 cn-hub.html，等他填完資料按「送出」才寫入資料庫
-      res.redirect(`/cn-hub.html?uid=${encodeURIComponent(dcId)}&name=${encodeURIComponent(dcName)}&avatar=${encodeURIComponent(dcAvatar)}`);
+      res.irect(`/cn-hub.html?uid=${encodeURIComponent(dcId)}&name=${encodeURIComponent(dcName)}&avatar=${encodeURIComponent(dcAvatar)}`);
     }
 
   } catch (err) {
