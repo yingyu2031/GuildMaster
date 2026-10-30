@@ -64,40 +64,69 @@
             </div>
         </div>
 
-        <!-- 狀態 2：審核中專屬卡片 -->
-        <div id="pendingReviewCard" class="hidden bg-white rounded-[32px] p-6 sm:p-7 border-2 border-amber-200/80 soft-card-shadow text-center relative">
-            <div class="w-14 h-14 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-3 border-2 border-amber-200 text-2xl">
-                ⏳
-            </div>
-            <p class="text-xs text-amber-900/70 leading-relaxed mb-5">
-                您的資料已經完成登記，審核中不可再修改資料。
-            </p>
+       <!-- 狀態 2：審核中專屬卡片 (方案 C: 嵌入 DC 綁定捷徑) -->
+<div id="pendingReviewCard" class="hidden bg-white rounded-[32px] p-6 sm:p-7 border-2 border-amber-200/80 soft-card-shadow text-center relative">
+    <div class="w-14 h-14 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-3 border-2 border-amber-200 text-2xl">
+        ⏳
+    </div>
+    <h3 class="text-base font-black text-amber-950 mb-1">入會申請處理中</h3>
+    <p class="text-xs text-amber-900/70 leading-relaxed mb-5">
+        您的資料已完成登記，審核中暫不可修改資料。
+    </p>
 
-            <div class="bg-[#FFFDF9] rounded-2xl p-4 border border-amber-200/80 text-left text-sm space-y-2 mb-6 text-amber-950 shadow-inner">
-                <div class="flex items-center justify-between">
-                    <span class="text-amber-800/80 font-bold">遊戲暱稱：</span>
-                    <span id="pendingNickname" class="font-bold text-amber-950">-</span>
-                </div>
-                <div class="flex items-center justify-between">
-                    <span class="text-amber-800/80 font-bold">遊戲職業：</span>
-                    <span id="pendingClass" class="font-bold text-amber-950">-</span>
-                </div>
-                <div class="flex items-center justify-between">
-                    <span class="text-amber-800/80 font-bold">LINE 暱稱：</span>
-                    <span id="pendingLineName" class="font-bold text-amber-950">-</span>
-                </div>
-                <div class="flex items-center justify-between pt-1 border-t border-amber-100/60 text-xs">
-                    <span class="text-amber-800/70 font-medium">開放查詢：</span>
-                    <span id="pendingAllowSearch" class="font-medium text-amber-950">-</span>
-                </div>
-            </div>
-
-            <div class="space-y-2.5">
-                <button onclick="closeLiffWindow()" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold py-3.5 rounded-2xl text-sm shadow-md shadow-amber-300/40 transition cursor-pointer">
-                    稍後再回來確認
-                </button>
-            </div>
+    <!-- 審核中會員資料摘要 -->
+    <div class="bg-[#FFFDF9] rounded-2xl p-4 border border-amber-200/80 text-left text-sm space-y-2 mb-4 text-amber-950 shadow-inner">
+        <div class="flex items-center justify-between">
+            <span class="text-amber-800/80 font-bold">遊戲暱稱：</span>
+            <span id="pendingNickname" class="font-bold text-amber-950">-</span>
         </div>
+        <div class="flex items-center justify-between">
+            <span class="text-amber-800/80 font-bold">遊戲職業：</span>
+            <span id="pendingClass" class="font-bold text-amber-950">-</span>
+        </div>
+        <div class="flex items-center justify-between">
+            <span class="text-amber-800/80 font-bold">LINE 暱稱：</span>
+            <span id="pendingLineName" class="font-bold text-amber-950">-</span>
+        </div>
+        <div class="flex items-center justify-between pt-1 border-t border-amber-100/60 text-xs">
+            <span class="text-amber-800/70 font-medium">開放查詢：</span>
+            <span id="pendingAllowSearch" class="font-medium text-amber-950">-</span>
+        </div>
+    </div>
+
+    <!-- 💡 方案 C：審核中畫面 DC 綁定區塊 (未加入時顯示按鈕，已加入顯示淡紫標記) -->
+    <div id="pendingDcSection" class="mb-5 text-left">
+        <!-- 未綁定 DC 顯示 -->
+        <div id="pendingDcUnbound" class="bg-indigo-50/70 border border-indigo-200 rounded-2xl p-3.5 text-center">
+            <p class="text-xs font-bold text-indigo-950 mb-2">📢 語音公會戰必備：您尚未加入 Discord！</p>
+            <button type="button" onclick="startDiscordBind()" 
+                    class="w-full bg-[#5865F2] hover:bg-[#4752C4] active:scale-98 text-white font-black text-xs py-2.5 rounded-xl shadow-sm transition flex items-center justify-center gap-2 cursor-pointer">
+                <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                    <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994.021-.041.001-.09-.041-.106a13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028z"/>
+                </svg>
+                <span>一鍵綁定並加入 Discord 語音群</span>
+            </button>
+            <p class="text-[10px] text-slate-400 mt-1.5 font-bold">先加入 DC 有助於幹部加速核准您的入會資格</p>
+        </div>
+
+        <!-- 已綁定 DC 顯示 -->
+        <div id="pendingDcBound" class="hidden bg-[#F2F3FB] border border-[#D5D9F8] rounded-2xl p-3 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <span class="w-5 h-5 bg-[#5865F2] text-white rounded-full flex items-center justify-center text-[10px] font-black">✓</span>
+                <span class="text-xs font-black text-[#3C45A5]">已成功綁定 Discord 語音伺服器</span>
+            </div>
+            <svg class="w-4 h-4 text-[#5865F2] opacity-80" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994.021-.041.001-.09-.041-.106a13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028z"/>
+            </svg>
+        </div>
+    </div>
+
+    <div class="space-y-2.5">
+        <button onclick="closeLiffWindow()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-2xl text-xs transition cursor-pointer">
+            稍後再回來確認
+        </button>
+    </div>
+</div>
 
         <!-- 狀態 3：主要表單卡片 (新會員登記 / 已審核修改) -->
         <div id="mainFormCard" class="hidden bg-white rounded-[32px] p-6 sm:p-7 border-2 border-amber-200/80 soft-card-shadow relative">
@@ -168,7 +197,7 @@
                             <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
                                 <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994.021-.041.001-.09-.041-.106a13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028z"/>
                             </svg>
-                            <span>尚未加入 DC 語音群？點擊一鍵綁定進群</span>
+                            <span> Discord 一鍵綁定加入伺服器</span>
                         </button>
                         <p class="text-[10px] text-slate-400 text-center mt-1.5 font-bold">攻城戰、公會聯賽聽指揮必備，點擊後會自動為您加入伺服器</p>
                     </div>
@@ -191,37 +220,51 @@
                 </button>
             </form>
 
-            <!-- 彈窗 1：送出前確認視窗 -->
-            <div id="confirmModal" class="hidden absolute inset-0 bg-stone-900/40 backdrop-blur-sm rounded-[32px] p-6 flex flex-col items-center justify-center text-center z-30">
-                <div class="bg-white rounded-3xl p-5 w-full max-w-[320px] border-2 border-amber-200 shadow-2xl">
-                    <h3 class="text-base font-black text-amber-950 mb-1">確認資料無誤？</h3>
-                    <p class="text-[11px] text-amber-800/70 mb-4">請確認以下資訊是否正確：</p>
-                    
-                    <div class="bg-[#FFFDF9] rounded-2xl p-4 text-left text-sm space-y-2 mb-5 border border-amber-200/80 text-amber-950">
-                        <div class="flex justify-between items-center">
-                            <span class="text-amber-800/80 font-bold">遊戲暱稱：</span>
-                            <span id="previewNick" class="font-bold text-amber-950">-</span>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-amber-800/80 font-bold">遊戲職業：</span>
-                            <span id="previewClass" class="font-bold text-amber-950">-</span>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-amber-800/80 font-bold">LINE 暱稱：</span>
-                            <span id="previewLine" class="font-bold text-amber-950">-</span>
-                        </div>
-                        <div class="flex justify-between items-center pt-1.5 border-t border-amber-100/60 text-xs">
-                            <span class="text-amber-800/70 font-medium">開放查詢：</span>
-                            <span id="previewAllowSearch" class="font-medium text-amber-950">-</span>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-2">
-                        <button onclick="closeConfirmModal()" class="bg-stone-100 hover:bg-stone-200 text-stone-600 text-xs font-bold py-2.5 rounded-xl transition cursor-pointer">返回修改</button>
-                        <button onclick="executeFinalSubmit()" id="modalConfirmBtn" class="bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold py-2.5 rounded-xl transition shadow-md cursor-pointer">確認送出</button>
-                    </div>
-                </div>
+           <!-- 彈窗 1：送出前確認視窗 (方案 B: 攔截並提示 DC 綁定) -->
+<div id="confirmModal" class="hidden fixed inset-0 bg-stone-900/40 backdrop-blur-sm rounded-[32px] p-6 flex flex-col items-center justify-center text-center z-30">
+    <div class="bg-white rounded-3xl p-5 w-full max-w-[340px] border-2 border-amber-200 shadow-2xl">
+        <h3 class="text-base font-black text-amber-950 mb-1">確認資料無誤？</h3>
+        <p class="text-[11px] text-amber-800/70 mb-3">請確認以下送出資訊：</p>
+        
+        <div class="bg-[#FFFDF9] rounded-2xl p-3.5 text-left text-xs space-y-1.5 mb-3 border border-amber-200/80 text-amber-950">
+            <div class="flex justify-between items-center">
+                <span class="text-amber-800/80 font-bold">遊戲暱稱：</span>
+                <span id="previewNick" class="font-bold text-amber-950">-</span>
             </div>
+            <div class="flex justify-between items-center">
+                <span class="text-amber-800/80 font-bold">遊戲職業：</span>
+                <span id="previewClass" class="font-bold text-amber-950">-</span>
+            </div>
+            <div class="flex justify-between items-center">
+                <span class="text-amber-800/80 font-bold">LINE 暱稱：</span>
+                <span id="previewLine" class="font-bold text-amber-950">-</span>
+            </div>
+            <div class="flex justify-between items-center pt-1 border-t border-amber-100/60 text-[11px]">
+                <span class="text-amber-800/70 font-medium">開放查詢：</span>
+                <span id="previewAllowSearch" class="font-medium text-amber-950">-</span>
+            </div>
+        </div>
+
+        <!-- 💡 方案 B：未綁定 DC 時出現的提示警語區塊 -->
+        <div id="confirmDcWarningBox" class="hidden mb-3 bg-indigo-50 border border-indigo-200 rounded-xl p-2.5 text-left">
+            <div class="flex items-center gap-1.5 text-indigo-900 font-black text-xs mb-1">
+                <span>⚠️</span>
+                <span>尚未綁定 Discord 語音群</span>
+            </div>
+            <p class="text-[10px] text-indigo-800/80 leading-relaxed font-bold">
+                公會戰與聯賽語音指揮皆在 Discord 進行。建議先完成綁定再送出！
+            </p>
+            <button type="button" onclick="startDiscordBind()" class="mt-2 w-full bg-[#5865F2] hover:bg-[#4752C4] text-white text-[11px] font-black py-2 rounded-lg transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer">
+                <span>立即綁定 Discord</span>
+            </button>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+            <button onclick="closeConfirmModal()" class="bg-stone-100 hover:bg-stone-200 text-stone-600 text-xs font-bold py-2.5 rounded-xl transition cursor-pointer">返回修改</button>
+            <button onclick="executeFinalSubmit()" id="modalConfirmBtn" class="bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold py-2.5 rounded-xl transition shadow-md cursor-pointer">確認送出</button>
+        </div>
+    </div>
+</div>
 
             <!-- 彈窗 2：成功結果視窗 -->
             <div id="successModal" class="hidden absolute inset-0 bg-white/95 backdrop-blur-sm rounded-[32px] p-6 flex flex-col items-center justify-center text-center z-40">
@@ -256,374 +299,424 @@
         <p class="text-[11px] text-amber-800/40 text-center mt-6">&copy; 2026 GuildMaster</p>
     </main>
 
-    <script>
-        const MY_LIFF_ID = "2011659633-OPPcInzb";
-        const BACKEND_API_URL = "https://guildmaster-lv.duckdns.org";
+<script>
+    const MY_LIFF_ID = "2011659633-OPPcInzb";
+    const BACKEND_API_URL = "https://guildmaster-lv.duckdns.org";
 
-        let currentUser = {
-            userId: "",
-            displayName: "",
-            pictureUrl: "",
-            gameNickname: "",
-            gameClass: "",
-            allowSearch: "Y",
-            accountStatus: "",
-            guildRole: "現任",
-            isRegistered: false
-        };
+    let currentUser = {
+        userId: "",
+        displayName: "",
+        pictureUrl: "",
+        gameNickname: "",
+        gameClass: "",
+        allowSearch: "Y",
+        accountStatus: "",
+        guildRole: "現任",
+        isRegistered: false,
+        dcid: "",
+        joinedDc: "N"
+    };
 
-        let pendingPayload = null;
+    let pendingPayload = null;
 
-        function updateCardClassPreview(val) {
-            document.getElementById('memberDisplayClass').textContent = val || "尚未選擇職業";
-        }
-
-       // 動態從後端載入遊戲職業清單
-async function loadGameClasses() {
-    try {
-        const response = await fetch(`${BACKEND_API_URL}/api/admin/classes`);
-        const result = await response.json();
-        const selectEl = document.getElementById('gameClass');
-        if (!selectEl) return;
-        
-        selectEl.innerHTML = '<option value="" disabled selected>請選擇職業</option>';
-
-        if (result.status === "success" && result.classes) {
-            result.classes.forEach(item => {
-                // 💡 關鍵修正：兼容字串或物件格式，確保正確取得職業名稱字串
-                const className = typeof item === 'string' ? item : (item.className || item);
-                
-                const opt = document.createElement('option');
-                opt.value = className;
-                opt.textContent = className;
-                selectEl.appendChild(opt);
-            });
-        }
-    } catch (err) {
-        console.error("載入職業清單失敗:", err);
+    // 動態更新卡片職業預覽
+    function updateCardClassPreview(val) {
+        const el = document.getElementById('memberDisplayClass');
+        if (el) el.textContent = val || "尚未選擇職業";
     }
-}
 
-
-
-        async function queryMemberFromBackend(uid) {
-            try {
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 15000);
-
-                const response = await fetch(`${BACKEND_API_URL}/api/members/${encodeURIComponent(uid)}`, {
-                    method: 'GET',
-                    headers: { 'Accept': 'application/json' },
-                    signal: controller.signal
-                });
-                clearTimeout(timeoutId);
-
-                if (!response.ok) return { status: "error" };
-                return await response.json();
-            } catch (err) {
-                return { status: "error" };
-            }
-        }
-
-        async function initApp() {
-            // 先載入職業清單下拉選單
-            await loadGameClasses();
-
-            const bindForm = document.getElementById('bindForm');
-            if (bindForm) {
-                bindForm.addEventListener('submit', function(e) {
-                    e.preventDefault();
-                    
-                    const gameNick = document.getElementById('gameNickname').value.trim();
-                    const gameClass = document.getElementById('gameClass').value;
-                    const lineName = document.getElementById('manualLineName').value.trim();
-                    const allowSearch = document.getElementById('toggleAllowSearch').checked ? "Y" : "N";
-
-                    currentUser.displayName = lineName;
-
-                    pendingPayload = {
-                        lineUserId: currentUser.userId,
-                        lineDisplayName: lineName,
-                        linePictureUrl: currentUser.pictureUrl,
-                        gameNickname: gameNick,
-                        gameClass: gameClass,
-                        allowSearch: allowSearch,
-                        updateTime: new Date().toISOString()
-                    };
-
-                    document.getElementById('previewNick').textContent = gameNick;
-                    document.getElementById('previewClass').textContent = gameClass;
-                    document.getElementById('previewLine').textContent = lineName;
-                    document.getElementById('previewAllowSearch').textContent = allowSearch === "Y" ? "開啟" : "關閉";
-
-                    document.getElementById('confirmModal').classList.remove('hidden');
-                });
-            }
-
-            const urlParams = new URLSearchParams(window.location.search);
-            const queryUid = urlParams.get('uid') || urlParams.get('userId');
-            const queryName = urlParams.get('name') || urlParams.get('displayName');
-
-            let isLiffReady = false;
-            let liffErrorDetail = "";
-
-            if (MY_LIFF_ID && typeof liff !== 'undefined') {
-                try {
-                    await liff.init({ liffId: MY_LIFF_ID });
-                    if (liff.isLoggedIn()) {
-                        const profile = await liff.getProfile();
-                        currentUser.userId = profile.userId;
-                        currentUser.displayName = profile.displayName;
-                        currentUser.pictureUrl = profile.pictureUrl || "";
-                        isLiffReady = true;
-                    } else {
-                        document.getElementById('loadingSpinner').classList.add('hidden');
-                        document.getElementById('loadingTitle').textContent = "需要登入 LINE";
-                        document.getElementById('loadingDesc').textContent = "請點擊下方按鈕進行驗證授權";
-                        const errBox = document.getElementById('errorBox');
-                        const errDetail = document.getElementById('errorDetail');
-                        errDetail.innerHTML = `<button onclick="liff.login()" class="w-full bg-[#06C755] text-white font-bold py-2.5 rounded-xl shadow-md cursor-pointer">點擊登入 LINE 帳號</button>`;
-                        errBox.classList.remove('hidden');
-                        return;
-                    }
-                } catch (err) {
-                    liffErrorDetail = err.message || JSON.stringify(err);
-                }
-            }
-
-            if (!isLiffReady && queryUid) {
-                currentUser.userId = queryUid;
-                if (queryName) currentUser.displayName = decodeURIComponent(queryName);
-            }
-
-            await verifyAndDisplayView(liffErrorDetail);
-        }
-
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initApp);
-        } else {
-            initApp();
-        }
-
-        async function verifyAndDisplayView(errorMsg) {
-            if (!currentUser.userId) {
-                document.getElementById('loadingSpinner').classList.add('hidden');
-                document.getElementById('loadingTitle').textContent = "無法辨識 LINE 身分";
-                document.getElementById('loadingDesc').textContent = "請確認您是點擊 LINE 官方專用連結開啟";
-                const errBox = document.getElementById('errorBox');
-                const errDetail = document.getElementById('errorDetail');
-                errDetail.textContent = errorMsg || "LIFF 未能取得 Profile。";
-                errBox.classList.remove('hidden');
-                return;
-            }
-
-            const result = await queryMemberFromBackend(currentUser.userId);
+    // 動態從後端載入遊戲職業清單
+    async function loadGameClasses() {
+        try {
+            const response = await fetch(`${BACKEND_API_URL}/api/admin/classes`);
+            const result = await response.json();
+            const selectEl = document.getElementById('gameClass');
+            if (!selectEl) return;
             
-            if (result && (result.status === "timeout" || result.status === "error")) {
-                document.getElementById('loadingSpinner').classList.add('hidden');
-                document.getElementById('loadingTitle').textContent = "連線後台逾時";
-                document.getElementById('loadingDesc').textContent = "伺服器回應較慢，請點擊下方重試";
-                const errBox = document.getElementById('errorBox');
-                const errDetail = document.getElementById('errorDetail');
-                errDetail.textContent = "請確認網路是否正常";
-                errBox.classList.remove('hidden');
-                return;
+            selectEl.innerHTML = '<option value="" disabled selected>請選擇職業</option>';
+
+            if (result.status === "success" && result.classes) {
+                result.classes.forEach(item => {
+                    const className = typeof item === 'string' ? item : (item.className || item.class_name || item);
+                    const opt = document.createElement('option');
+                    opt.value = className;
+                    opt.textContent = className;
+                    selectEl.appendChild(opt);
+                });
             }
+        } catch (err) {
+            console.error("載入職業清單失敗:", err);
+        }
+    }
 
-            if (result && result.status === "found") {
-                currentUser.gameNickname = result.gameNickname || "";
-                currentUser.gameClass = result.gameClass || "";
-                currentUser.displayName = result.lineDisplayName || currentUser.displayName;
-                currentUser.accountStatus = String(result.accountStatus || "").trim();
-                currentUser.guildRole = String(result.guildRole || "現任").trim();
-                currentUser.dcid = result.dcid || "";
-                currentUser.joinedDc = result.joinedDc || result.joined_dc || "N";
-                currentUser.isRegistered = true;
-                updateDiscordBindUI(currentUser.dcid, currentUser.joinedDc);
-                }
+    // 後端會員資料查詢
+    async function queryMemberFromBackend(uid) {
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000);
 
+            const response = await fetch(`${BACKEND_API_URL}/api/members/${encodeURIComponent(uid)}`, {
+                method: 'GET',
+                headers: { 'Accept': 'application/json' },
+                signal: controller.signal
+            });
+            clearTimeout(timeoutId);
 
-            document.getElementById('loadingCard').classList.add('hidden');
+            if (!response.ok) return { status: "error" };
+            return await response.json();
+        } catch (err) {
+            return { status: "error" };
+        }
+    }
 
-            if (currentUser.isRegistered && currentUser.accountStatus === "待審核") {
-                applyPendingReviewUI();
+    // 切換 Discord 綁定 UI 顯示 (涵蓋登記表單區與審核中卡片方案 C)
+    function updateDiscordBindUI(dcid, joinedDc) {
+        const isBound = !!(dcid && String(dcid).trim() !== '' && (joinedDc === 'Y' || joinedDc === true));
+
+        // 1. 表單填寫區塊按鈕切換
+        const dcUnbound = document.getElementById('dcUnboundWrapper');
+        const dcBound = document.getElementById('dcBoundWrapper');
+        if (dcUnbound && dcBound) {
+            if (isBound) {
+                dcUnbound.classList.add('hidden');
+                dcBound.classList.remove('hidden');
             } else {
-                const formCard = document.getElementById('mainFormCard');
-                formCard.classList.remove('hidden');
-                formCard.classList.add('fade-in');
-                if (currentUser.isRegistered && currentUser.accountStatus === "已審核") {
-                    applyEditModeUI();
-                } else {
-                    applyNewMemberUI();
-                }
+                dcUnbound.classList.remove('hidden');
+                dcBound.classList.add('hidden');
             }
         }
 
-        function applyPendingReviewUI() {
-            document.getElementById('topBadge').textContent = "資格審核";
-            document.getElementById('pageMainTitle').textContent = "入會申請處理中";
-            document.getElementById('pageSubTitle').textContent = "幹部正在核對名冊，請稍候";
-
-            document.getElementById('pendingNickname').textContent = currentUser.gameNickname || "-";
-            document.getElementById('pendingClass').textContent = currentUser.gameClass || "-";
-            document.getElementById('pendingLineName').textContent = currentUser.displayName || "-";
-            document.getElementById('pendingAllowSearch').textContent = currentUser.allowSearch === 'Y' ? "開啟" : "關閉";
-
-            const pendingCard = document.getElementById('pendingReviewCard');
-            pendingCard.classList.remove('hidden');
-            pendingCard.classList.add('fade-in');
+        // 2. 方案 C：審核中專屬卡片切換
+        const pendingDcUnbound = document.getElementById('pendingDcUnbound');
+        const pendingDcBound = document.getElementById('pendingDcBound');
+        if (pendingDcUnbound && pendingDcBound) {
+            if (isBound) {
+                pendingDcUnbound.classList.add('hidden');
+                pendingDcBound.classList.remove('hidden');
+            } else {
+                pendingDcUnbound.classList.remove('hidden');
+                pendingDcBound.classList.add('hidden');
+            }
         }
 
-            function startDiscordBind() {
-                if (!currentUser.userId) {
-                    alert("尚未取得您的 LINE 會員身分，請重新整理頁面！");
+        return isBound;
+    }
+
+    // 啟動 Discord 授權進群綁定 (使用手機外部瀏覽器開啟避免 LIFF 內嵌攔截)
+    function startDiscordBind() {
+        if (!currentUser.userId) {
+            alert("尚未取得您的 LINE 會員身分，請重新整理頁面！");
+            return;
+        }
+
+        const authUrl = `${BACKEND_API_URL}/api/auth/discord?uid=${encodeURIComponent(currentUser.userId)}`;
+
+        if (typeof liff !== 'undefined' && liff.openWindow) {
+            liff.openWindow({
+                url: authUrl,
+                external: true 
+            });
+        } else {
+            window.open(authUrl, '_blank');
+        }
+    }
+
+    // 初始化 App
+    async function initApp() {
+        // 1. 檢查網址列是否有綁定成功提示
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('bindSuccess') === 'dc') {
+            alert("🎉 Discord 帳號綁定成功！機器人已為您加入公會伺服器，請至 Discord 查看。");
+        }
+
+        // 2. 載入職業清單下拉選單
+        await loadGameClasses();
+
+        // 3. 表單送出監聽 (方案 B：送出前彈窗提醒綁定 DC)
+        const bindForm = document.getElementById('bindForm');
+        if (bindForm) {
+            bindForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const gameNick = document.getElementById('gameNickname').value.trim();
+                const gameClass = document.getElementById('gameClass').value;
+                const lineName = document.getElementById('manualLineName').value.trim();
+                const allowSearch = document.getElementById('toggleAllowSearch').checked ? "Y" : "N";
+
+                if (!gameNick || !gameClass || !lineName) {
+                    alert("請完整填寫必要欄位！");
                     return;
                 }
-            
-                // 帶上目前成員的 LINE User ID 作為辨識
-                const authUrl = `${BACKEND_API_URL}/api/auth/discord?uid=${encodeURIComponent(currentUser.userId)}`;
-            
-                // 💡 關鍵解法：強制使用手機外部瀏覽器 (Safari / Chrome) 開啟
-                if (typeof liff !== 'undefined' && liff.openWindow) {
-                    liff.openWindow({
-                        url: authUrl,
-                        external: true 
-                    });
+
+                currentUser.displayName = lineName;
+
+                pendingPayload = {
+                    lineUserId: currentUser.userId,
+                    lineDisplayName: lineName,
+                    linePictureUrl: currentUser.pictureUrl,
+                    gameNickname: gameNick,
+                    gameClass: gameClass,
+                    allowSearch: allowSearch,
+                    updateTime: new Date().toISOString()
+                };
+
+                document.getElementById('previewNick').textContent = gameNick;
+                document.getElementById('previewClass').textContent = gameClass;
+                document.getElementById('previewLine').textContent = lineName;
+                document.getElementById('previewAllowSearch').textContent = allowSearch === "Y" ? "開啟" : "關閉";
+
+                // 💡 方案 B 核心判定：判斷當前是否完成 DC 綁定
+                const isDcBound = !!(currentUser.dcid && String(currentUser.dcid).trim() !== '' && currentUser.joinedDc === 'Y');
+                const warningBox = document.getElementById('confirmDcWarningBox');
+                const modalConfirmBtn = document.getElementById('modalConfirmBtn');
+
+                if (!isDcBound) {
+                    if (warningBox) warningBox.classList.remove('hidden');
+                    if (modalConfirmBtn) modalConfirmBtn.textContent = "略過並直接送出";
                 } else {
-                    window.open(authUrl, '_blank');
-                }
-            }
-            
-            // 在載入會員資料（verifyAndDisplayView）時切換按鈕顯示：
-                function updateDiscordBindUI(dcid, joinedDc) {
-                    const dcUnbound = document.getElementById('dcUnboundWrapper');
-                    const dcBound = document.getElementById('dcBoundWrapper');
-                    if (!dcUnbound || !dcBound) return;
-                
-                    // 必須同時滿足：有 dcid 且 joined_dc 標記為 'Y'
-                    const isBound = !!(dcid && String(dcid).trim() !== '' && joinedDc === 'Y');
-                
-                    if (isBound) {
-                        dcUnbound.classList.add('hidden');
-                        dcBound.classList.remove('hidden');
-                    } else {
-                        dcUnbound.classList.remove('hidden');
-                        dcBound.classList.add('hidden');
-                    }
+                    if (warningBox) warningBox.classList.add('hidden');
+                    if (modalConfirmBtn) modalConfirmBtn.textContent = "確認送出";
                 }
 
-            // 在 initApp() 頂部加入綁定成功提示：
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.get('bindSuccess') === 'dc') {
-                alert("🎉 Discord 帳號綁定成功！機器人已為您加入公會伺服器，請至 Discord 查看。");
-            }
-
-        function applyEditModeUI() {
-            document.getElementById('topBadge').textContent = "資料修改";
-            document.getElementById('pageMainTitle').textContent = "會員資料修改";
-            document.getElementById('pageSubTitle').textContent = "記得隨時更新您的遊戲角色資訊喔！";
-            
-            document.getElementById('memberDisplayTitle').textContent = currentUser.gameNickname || "已審核成員";
-            document.getElementById('memberDisplayClass').textContent = currentUser.gameClass || "尚未選擇職業";
-            
-            const badge = document.getElementById('badgeGuildRole');
-            badge.textContent = currentUser.guildRole;
-            badge.classList.remove('hidden');
-            if (currentUser.guildRole === '幹部') {
-                badge.className = "text-[10px] bg-sky-100 text-sky-800 font-bold px-2.5 py-0.5 rounded-full border border-sky-200";
-            } else if (currentUser.guildRole === '退會') {
-                badge.className = "text-[10px] bg-slate-100 text-slate-600 font-bold px-2.5 py-0.5 rounded-full border border-slate-200";
-            } else {
-                currentUser.guildRole = '現任';
-                badge.className = "text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2.5 py-0.5 rounded-full border border-emerald-200";
-            }
-
-            document.getElementById('gameNickname').value = currentUser.gameNickname || "";
-            document.getElementById('gameClass').value = currentUser.gameClass || "";
-            document.getElementById('manualLineName').value = currentUser.displayName || "";
-            document.getElementById('toggleAllowSearch').checked = (currentUser.allowSearch === 'Y');
-
-            document.getElementById('submitBtn').textContent = "儲存修改資料";
-            document.getElementById('successTitle').textContent = "資料修改成功！";
-            document.getElementById('successDesc').textContent = "最新資訊已為您更新完成～";
-
-            updateProfileCard();
+                document.getElementById('confirmModal').classList.remove('hidden');
+            });
         }
 
-        function applyNewMemberUI() {
-            document.getElementById('topBadge').textContent = "身分登記";
-            document.getElementById('pageMainTitle').textContent = "會員資料填寫綁定";
-            document.getElementById('pageSubTitle').textContent = "完成登記後，即可使用公會各項專屬功能";
+        // 4. LIFF 與 UID 驗證流程
+        const queryUid = urlParams.get('uid') || urlParams.get('userId');
+        const queryName = urlParams.get('name') || urlParams.get('displayName');
 
-            document.getElementById('memberDisplayTitle').textContent = "新會員";
-            document.getElementById('memberDisplayClass').textContent = "尚未選擇職業";
-            document.getElementById('badgeGuildRole').classList.add('hidden');
-            document.getElementById('submitBtn').textContent = "確認送出";
+        let isLiffReady = false;
+        let liffErrorDetail = "";
 
-            document.getElementById('gameNickname').value = "";
-            document.getElementById('gameClass').value = "";
-            document.getElementById('manualLineName').value = currentUser.displayName || "";
-            document.getElementById('toggleAllowSearch').checked = true;
-
-            document.getElementById('successTitle').textContent = "綁定資料已送出";
-            document.getElementById('successDesc').textContent = "審核通過後，將會在 LINE 聊天室通知您";
-
-            updateProfileCard();
-        }
-
-        function updateProfileCard() {
-            if (currentUser.pictureUrl) {
-                document.getElementById('avatarImg').src = currentUser.pictureUrl;
-            }
-        }
-
-        function closeConfirmModal() {
-            document.getElementById('confirmModal').classList.add('hidden');
-        }
-
-        async function executeFinalSubmit() {
-            if (!pendingPayload) return;
-
-            const modalConfirmBtn = document.getElementById('modalConfirmBtn');
-            modalConfirmBtn.textContent = "傳送中...";
-            modalConfirmBtn.disabled = true;
-
+        if (MY_LIFF_ID && typeof liff !== 'undefined') {
             try {
-                await fetch(`${BACKEND_API_URL}/api/members/bind`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(pendingPayload)
-                });
+                await liff.init({ liffId: MY_LIFF_ID });
+                if (liff.isLoggedIn()) {
+                    const profile = await liff.getProfile();
+                    currentUser.userId = profile.userId;
+                    currentUser.displayName = profile.displayName;
+                    currentUser.pictureUrl = profile.pictureUrl || "";
+                    isLiffReady = true;
+                } else {
+                    document.getElementById('loadingSpinner').classList.add('hidden');
+                    document.getElementById('loadingTitle').textContent = "需要登入 LINE";
+                    document.getElementById('loadingDesc').textContent = "請點擊下方按鈕進行驗證授權";
+                    const errBox = document.getElementById('errorBox');
+                    const errDetail = document.getElementById('errorDetail');
+                    errDetail.innerHTML = `<button onclick="liff.login()" class="w-full bg-[#06C755] text-white font-bold py-2.5 rounded-xl shadow-md cursor-pointer">點擊登入 LINE 帳號</button>`;
+                    errBox.classList.remove('hidden');
+                    return;
+                }
             } catch (err) {
-                console.error(err);
+                liffErrorDetail = err.message || JSON.stringify(err);
             }
+        }
 
-            modalConfirmBtn.textContent = "確認送出";
-            modalConfirmBtn.disabled = false;
-            document.getElementById('confirmModal').classList.add('hidden');
+        if (!isLiffReady && queryUid) {
+            currentUser.userId = queryUid;
+            if (queryName) currentUser.displayName = decodeURIComponent(queryName);
+        }
 
-            currentUser.gameNickname = pendingPayload.gameNickname;
-            currentUser.gameClass = pendingPayload.gameClass;
-            currentUser.displayName = pendingPayload.lineDisplayName;
-            currentUser.allowSearch = pendingPayload.allowSearch;
+        await verifyAndDisplayView(liffErrorDetail);
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initApp);
+    } else {
+        initApp();
+    }
+
+    // 身分驗證與分流渲染
+    async function verifyAndDisplayView(errorMsg) {
+        if (!currentUser.userId) {
+            document.getElementById('loadingSpinner').classList.add('hidden');
+            document.getElementById('loadingTitle').textContent = "無法辨識 LINE 身分";
+            document.getElementById('loadingDesc').textContent = "請確認您是點擊 LINE 官方專用連結開啟";
+            const errBox = document.getElementById('errorBox');
+            const errDetail = document.getElementById('errorDetail');
+            errDetail.textContent = errorMsg || "LIFF 未能取得 Profile。";
+            errBox.classList.remove('hidden');
+            return;
+        }
+
+        const result = await queryMemberFromBackend(currentUser.userId);
+        
+        if (result && (result.status === "timeout" || result.status === "error")) {
+            document.getElementById('loadingSpinner').classList.add('hidden');
+            document.getElementById('loadingTitle').textContent = "連線後台逾時";
+            document.getElementById('loadingDesc').textContent = "伺服器回應較慢，請點擊下方重試";
+            const errBox = document.getElementById('errorBox');
+            const errDetail = document.getElementById('errorDetail');
+            errDetail.textContent = "請確認網路是否正常";
+            errBox.classList.remove('hidden');
+            return;
+        }
+
+        if (result && result.status === "found") {
+            currentUser.gameNickname = result.gameNickname || "";
+            currentUser.gameClass = result.gameClass || "";
+            currentUser.displayName = result.lineDisplayName || currentUser.displayName;
+            currentUser.allowSearch = (result.allowSearch === 'Y' || result.allowSearch === true) ? 'Y' : 'N';
+            currentUser.accountStatus = String(result.accountStatus || "").trim();
+            currentUser.guildRole = String(result.guildRole || "現任").trim();
+            currentUser.dcid = result.dcid || "";
+            currentUser.joinedDc = result.joinedDc || result.joined_dc || "N";
             currentUser.isRegistered = true;
-            
-            document.getElementById('resGameNick').textContent = pendingPayload.gameNickname;
-            document.getElementById('resGameClass').textContent = pendingPayload.gameClass;
-            document.getElementById('resLineName').textContent = pendingPayload.lineDisplayName;
-            document.getElementById('resAllowSearch').textContent = pendingPayload.allowSearch === "Y" ? "開啟" : "關閉";
-            
-            document.getElementById('successModal').classList.remove('hidden');
         }
 
-        function closeLiffWindow() {
-            if (typeof liff !== 'undefined' && liff.closeWindow) {
-                liff.closeWindow();
+        document.getElementById('loadingCard').classList.add('hidden');
+
+        // 身分分流判斷
+        if (currentUser.isRegistered && currentUser.accountStatus === "待審核") {
+            applyPendingReviewUI(); // 進入審核中專屬卡片 (含方案 C)
+        } else {
+            const formCard = document.getElementById('mainFormCard');
+            formCard.classList.remove('hidden');
+            formCard.classList.add('fade-in');
+
+            if (currentUser.isRegistered && currentUser.accountStatus === "已審核") {
+                applyEditModeUI(); // 進入修改模式
             } else {
-                alert("設定完成，請回到 LINE 聊天室！");
-                document.getElementById('successModal').classList.add('hidden');
+                applyNewMemberUI(); // 進入新註冊模式
             }
         }
-    </script>
+    }
+
+    // 審核中專屬畫面 (方案 C: 同步更新 DC 綁定捷徑按鈕)
+    function applyPendingReviewUI() {
+        document.getElementById('topBadge').textContent = "資格審核";
+        document.getElementById('pageMainTitle').textContent = "入會申請處理中";
+        document.getElementById('pageSubTitle').textContent = "幹部正在核對名冊，請稍候";
+
+        document.getElementById('pendingNickname').textContent = currentUser.gameNickname || "-";
+        document.getElementById('pendingClass').textContent = currentUser.gameClass || "-";
+        document.getElementById('pendingLineName').textContent = currentUser.displayName || "-";
+        document.getElementById('pendingAllowSearch').textContent = currentUser.allowSearch === 'Y' ? "開啟" : "關閉";
+
+        // 更新審核卡片中的 DC 狀態按鈕
+        updateDiscordBindUI(currentUser.dcid, currentUser.joinedDc);
+
+        const pendingCard = document.getElementById('pendingReviewCard');
+        pendingCard.classList.remove('hidden');
+        pendingCard.classList.add('fade-in');
+    }
+
+    // 已審核會員進入修改資料介面
+    function applyEditModeUI() {
+        document.getElementById('topBadge').textContent = "資料修改";
+        document.getElementById('pageMainTitle').textContent = "會員資料修改";
+        document.getElementById('pageSubTitle').textContent = "記得隨時更新您的遊戲角色資訊喔！";
+        
+        document.getElementById('memberDisplayTitle').textContent = currentUser.gameNickname || "已審核成員";
+        document.getElementById('memberDisplayClass').textContent = currentUser.gameClass || "尚未選擇職業";
+        
+        const badge = document.getElementById('badgeGuildRole');
+        badge.textContent = currentUser.guildRole;
+        badge.classList.remove('hidden');
+        if (currentUser.guildRole === '幹部') {
+            badge.className = "text-[10px] bg-sky-100 text-sky-800 font-bold px-2.5 py-0.5 rounded-full border border-sky-200";
+        } else if (currentUser.guildRole === '退會') {
+            badge.className = "text-[10px] bg-slate-100 text-slate-600 font-bold px-2.5 py-0.5 rounded-full border border-slate-200";
+        } else {
+            currentUser.guildRole = '現任';
+            badge.className = "text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2.5 py-0.5 rounded-full border border-emerald-200";
+        }
+
+        document.getElementById('gameNickname').value = currentUser.gameNickname || "";
+        document.getElementById('gameClass').value = currentUser.gameClass || "";
+        document.getElementById('manualLineName').value = currentUser.displayName || "";
+        document.getElementById('toggleAllowSearch').checked = (currentUser.allowSearch === 'Y');
+
+        document.getElementById('submitBtn').textContent = "儲存修改資料";
+        document.getElementById('successTitle').textContent = "資料修改成功！";
+        document.getElementById('successDesc').textContent = "最新資訊已為您更新完成～";
+
+        updateProfileCard();
+        updateDiscordBindUI(currentUser.dcid, currentUser.joinedDc);
+    }
+
+    // 新會員登記介面
+    function applyNewMemberUI() {
+        document.getElementById('topBadge').textContent = "身分登記";
+        document.getElementById('pageMainTitle').textContent = "會員資料填寫綁定";
+        document.getElementById('pageSubTitle').textContent = "完成登記後，即可使用公會各項專屬功能";
+
+        document.getElementById('memberDisplayTitle').textContent = "新會員";
+        document.getElementById('memberDisplayClass').textContent = "尚未選擇職業";
+        document.getElementById('badgeGuildRole').classList.add('hidden');
+        document.getElementById('submitBtn').textContent = "確認送出";
+
+        document.getElementById('gameNickname').value = "";
+        document.getElementById('gameClass').value = "";
+        document.getElementById('manualLineName').value = currentUser.displayName || "";
+        document.getElementById('toggleAllowSearch').checked = true;
+
+        document.getElementById('successTitle').textContent = "綁定資料已送出";
+        document.getElementById('successDesc').textContent = "審核通過後，將會在 LINE 聊天室通知您";
+
+        updateProfileCard();
+        updateDiscordBindUI(currentUser.dcid, currentUser.joinedDc);
+    }
+
+    // 更新個人頭像
+    function updateProfileCard() {
+        if (currentUser.pictureUrl) {
+            const avatar = document.getElementById('avatarImg');
+            if (avatar) avatar.src = currentUser.pictureUrl;
+        }
+    }
+
+    // 關閉確認視窗
+    function closeConfirmModal() {
+        document.getElementById('confirmModal').classList.add('hidden');
+    }
+
+    // 執行最後送出
+    async function executeFinalSubmit() {
+        if (!pendingPayload) return;
+
+        const modalConfirmBtn = document.getElementById('modalConfirmBtn');
+        modalConfirmBtn.textContent = "傳送中...";
+        modalConfirmBtn.disabled = true;
+
+        try {
+            await fetch(`${BACKEND_API_URL}/api/members/bind`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(pendingPayload)
+            });
+        } catch (err) {
+            console.error(err);
+        }
+
+        modalConfirmBtn.textContent = "確認送出";
+        modalConfirmBtn.disabled = false;
+        document.getElementById('confirmModal').classList.add('hidden');
+
+        currentUser.gameNickname = pendingPayload.gameNickname;
+        currentUser.gameClass = pendingPayload.gameClass;
+        currentUser.displayName = pendingPayload.lineDisplayName;
+        currentUser.allowSearch = pendingPayload.allowSearch;
+        currentUser.isRegistered = true;
+        
+        document.getElementById('resGameNick').textContent = pendingPayload.gameNickname;
+        document.getElementById('resGameClass').textContent = pendingPayload.gameClass;
+        document.getElementById('resLineName').textContent = pendingPayload.lineDisplayName;
+        document.getElementById('resAllowSearch').textContent = pendingPayload.allowSearch === "Y" ? "開啟" : "關閉";
+        
+        document.getElementById('successModal').classList.remove('hidden');
+    }
+
+    // 關閉 LIFF 視窗
+    function closeLiffWindow() {
+        if (typeof liff !== 'undefined' && liff.closeWindow) {
+            liff.closeWindow();
+        } else {
+            alert("設定完成，請回到 LINE 聊天室！");
+            document.getElementById('successModal').classList.add('hidden');
+        }
+    }
+</script>
 </body>
 </html>
