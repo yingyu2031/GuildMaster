@@ -946,49 +946,9 @@ app.get('/api/auth/discord/callback', async (req, res) => {
 // 請假表單 API
 // ==========================================
 
-app.post('/api/leaves', async (req, res) => {
-  const { leaveDate, leaveEvent, targetUid, gameNickname, gameClass, leaveReason, note, isUrgent, operatorUid, operatorName } = req.body;
-  
-  if (!leaveDate || !leaveEvent || !targetUid || !gameNickname || !leaveReason) {
-    return res.status(400).json({ status: "error", message: "缺少必要的請假欄位" });
-  }
-
-  try {
-    // 產生唯一請假 ID
-    const leaveId = 'L' + Date.now() + Math.random().toString(36).substring(2, 7);
-    
-    // 若有填寫備註 (note)，將其附加在請假原因後方
-    const finalReason = note ? `${leaveReason} (備註: ${note})` : leaveReason;
-
-    // 取得精準的台灣時間 (UTC+8)
-    const nowTaipei = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Taipei" }));
-
-    // 將 isUrgent 與 submit_time ($11) 寫入資料庫
-    await pool.query(`
-      INSERT INTO leaves (leave_id, leave_date, leave_event, target_uid, game_nickname, game_class, leave_reason, is_urgent, operator_uid, operator_name, submit_time)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-    `, [
-      leaveId, 
-      leaveDate, 
-      leaveEvent, 
-      targetUid, 
-      gameNickname, 
-      gameClass || '', 
-      finalReason, 
-      isUrgent || 'N', 
-      operatorUid || targetUid, 
-      operatorName || '本人',
-      nowTaipei 
-    ]);
-
-    res.json({ status: "success", message: "請假申請已成功送出並記錄", leaveId });
-  } catch (err) {
-    console.error('[Database] 請假寫入失敗:', err);
-    res.status(500).json({ status: "error", message: err.message });
-  }
-});
-
-// 檢查特定日期與活動是否已有請假紀錄
+// ==========================================
+// 1. 檢查特定日期與活動是否已有請假紀錄 (供前端防呆檢查)
+// ==========================================
 app.get('/api/leaves/check', async (req, res) => {
   const { targetUid, leaveDate, leaveEvent } = req.query;
   if (!targetUid || !leaveDate || !leaveEvent) {
@@ -1000,7 +960,7 @@ app.get('/api/leaves/check', async (req, res) => {
       'SELECT * FROM leaves WHERE target_uid = $1 AND leave_date = $2 AND leave_event = $3',
       [targetUid, leaveDate, leaveEvent]
     );
-    
+
     if (result.rows.length > 0) {
       res.json({ status: "exists", message: "該成員同天已請過此活動" });
     } else {
@@ -1010,6 +970,136 @@ app.get('/api/leaves/check', async (req, res) => {
     res.status(500).json({ status: "error", message: err.message });
   }
 });
+
+// ==========================================
+// 2. 請假表單送出 API (含後端防重複 + 超時自動判定 + 幹部群 LINE 推播)
+// ==========================================
+app.post('/api/leaves', async (req, res) => {
+  const { 
+    leaveDate, leaveEvent, targetUid, 
+    gameNickname, gameClass, leaveReason, 
+    note, isUrgent, operatorUid, operatorName 
+  } = req.body;
+
+  if (!leaveDate || !leaveEvent || !targetUid || !gameNickname || !leaveReason) {
+    return res.status(400).json({ status: "error", message: "缺少必要的請假欄位" });
+  }
+
+  try {
+    // 💡 後端雙重防呆：確保同一人同一天同一活動不會重複寫入
+    const duplicateCheck = await pool.query(
+      'SELECT leave_id FROM leaves WHERE target_uid = $1 AND leave_date = $2 AND leave_event = $3',
+      [targetUid, leaveDate, leaveEvent]
+    );
+    if (duplicateCheck.rows.length > 0) {
+      return res.status(400).json({ status: "exists", message: "該成員此日期與活動已完成請假，請勿重複送出！" });
+    }
+
+    // 產生唯一請假 ID
+    const leaveId = 'L' + Date.now() + Math.random().toString(36).substring(2, 7);
+    const finalReason = note ? `${leaveReason} (備註: ${note})` : leaveReason;
+    const nowTaipei = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Taipei" }));
+
+    // 💡 自動比對該活動規則的最晚截止時間
+    let finalUrgent = isUrgent || 'N';
+    const ruleRes = await pool.query('SELECT latest_time, enabled FROM leave_rules WHERE event = $1', [leaveEvent]);
+
+    if (ruleRes.rows.length > 0 && ruleRes.rows[0].enabled === 1) {
+      const latestTimeStr = ruleRes.rows[0].latest_time;
+      if (latestTimeStr) {
+        let deadline;
+        if (latestTimeStr.includes(" ")) {
+          deadline = new Date(latestTimeStr);
+        } else {
+          deadline = new Date(`${leaveDate}T${latestTimeStr}:00`);
+        }
+        if (nowTaipei > deadline) {
+          finalUrgent = 'Y';
+        }
+      }
+    }
+
+    // 寫入請假紀錄
+    await pool.query(`
+      INSERT INTO leaves (
+        leave_id, leave_date, leave_event, target_uid, 
+        game_nickname, game_class, leave_reason, is_urgent, 
+        operator_uid, operator_name, submit_time
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+    `, [
+      leaveId, 
+      leaveDate, 
+      leaveEvent, 
+      targetUid, 
+      gameNickname, 
+      gameClass || '', 
+      finalReason, 
+      finalUrgent, 
+      operatorUid || targetUid, 
+      operatorName || '本人',
+      nowTaipei 
+    ]);
+
+    // ----------------------------------------------------
+    // 🚨 判定臨時/超時請假：立即發送推播通知至幹部群
+    // ----------------------------------------------------
+    if (finalUrgent === 'Y') {
+      try {
+        const configRes = await pool.query("SELECT config_value FROM system_configs WHERE config_key = 'admin_group_id'");
+        const adminGroupId = configRes.rows.length > 0 ? configRes.rows[0].config_value : null;
+
+        // ✅ 直接使用您檔案上方宣告好的 LINE_ACCESS_TOKEN
+        if (adminGroupId && LINE_ACCESS_TOKEN) {
+          const timeStr = nowTaipei.toLocaleString("zh-TW", { 
+            timeZone: "Asia/Taipei", 
+            month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false 
+          });
+
+          const urgentMessage = 
+            `🚨${gameNickname} (${gameClass || ''}) ${leaveDate} 臨時請假!\n` +
+            `請假原因：${finalReason}\n` +
+            `填單時間：${timeStr}`;
+
+          const pushRes = await fetch('https://api.line.me/v2/bot/message/push', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${LINE_ACCESS_TOKEN}`
+            },
+            body: JSON.stringify({
+              to: adminGroupId,
+              messages: [{ type: 'text', text: urgentMessage }]
+            })
+          });
+
+          if (pushRes.ok) {
+            console.log(`[LINE 推播] 🚨 已將成員【${gameNickname}】的臨時請假即時推播至幹部群`);
+          } else {
+            const errData = await pushRes.json();
+            console.error('[LINE 臨時請假推播 API 回應錯誤]:', errData);
+          }
+        } else {
+          console.warn('[LINE 推播] 尚未設定幹部群 ID (admin_group_id) 或 Token，略過通知');
+        }
+      } catch (pushErr) {
+        console.error('[LINE 臨時請假推播失敗]:', pushErr.message);
+      }
+    }
+
+    res.json({ 
+      status: "success", 
+      message: "請假申請已成功送出並記錄", 
+      leaveId,
+      isUrgent: finalUrgent 
+    });
+
+  } catch (err) {
+    console.error('[Database] 請假寫入失敗:', err);
+    res.status(500).json({ status: "error", message: err.message });
+  }
+});
+
+
 
 // 幹部讀取請假紀錄規則 API
 app.get('/api/admin/leaves', async (req, res) => {
