@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>公會戰場主戰名單指揮系統</title>
+    <title>公會戰場指揮系統 (主戰/副戰雙軌)</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome CDN -->
@@ -59,7 +59,7 @@
             border-style: dashed;
         }
 
-        /* 滾動條樣式美化 */
+        /* 橫向平滑滾動條 */
         .roster-scroll-wrapper {
             width: 100%;
             overflow-x: auto;
@@ -79,88 +79,108 @@
             border-radius: 9999px;
         }
 
-        .roster-grid-row {
+        /* 主戰：一列6隊 (215px * 6 + 邊距) */
+        .roster-grid-row-main {
             display: grid;
             grid-template-columns: repeat(6, 215px);
             gap: 14px;
             width: 1420px;
             margin-bottom: 14px;
         }
+
+        /* 副戰：一列8隊 (215px * 8 + 邊距) */
+        .roster-grid-row-sub {
+            display: grid;
+            grid-template-columns: repeat(8, 215px);
+            gap: 14px;
+            width: 1880px;
+            margin-bottom: 14px;
+        }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen pb-16 pt-3">
+<body class="bg-gray-100 min-h-screen pb-16 pt-2">
 
-    <!-- 主內容區：左 3 欄 / 右 9 欄（左邊再縮窄，右邊主戰擴充放大） -->
-    <main class="max-w-[1700px] mx-auto px-2 sm:px-4 flex flex-col lg:grid lg:grid-cols-12 gap-3.5">
+    <!-- 主內容區：左側 2 欄極致縮窄，右側 10 欄寬大延伸 -->
+    <main class="w-full px-2 sm:px-3 flex flex-col lg:grid lg:grid-cols-12 gap-2.5">
 
-        <!-- 左側：人員名冊 (佔 3 欄，精緻縮窄) -->
-        <div class="lg:col-span-3 sticky top-3 z-20 bg-gray-100/95 backdrop-blur-sm pt-1 pb-2 flex flex-col gap-2.5">
-            <section class="bg-white rounded-2xl shadow-md border border-gray-200 p-3 flex flex-col gap-2">
+        <!-- 左側：人員名冊 (佔 2 欄) -->
+        <div class="lg:col-span-2 sticky top-2 z-20 bg-gray-100/95 backdrop-blur-sm pt-1 pb-2 flex flex-col gap-2">
+            <section class="bg-white rounded-2xl shadow-md border border-gray-200 p-2 flex flex-col gap-2">
                 <div class="flex justify-between items-center">
-                    <h2 class="text-xs font-bold text-gray-700 flex items-center gap-1.5">
-                        <i class="fa-solid fa-users text-indigo-600"></i> 人員名冊 (<span id="available-count">0</span>)
+                    <h2 class="text-[11px] font-black text-gray-700 flex items-center gap-1">
+                        <i class="fa-solid fa-users text-indigo-600"></i> 名冊 (<span id="available-count">0</span>)
                     </h2>
                     <div class="flex items-center gap-1">
-                        <button onclick="refreshMembersAndLeaves()" title="只重取 API 會員名冊和請假資料" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[10px] font-bold py-1 px-2 rounded-lg border border-emerald-300 flex items-center gap-1 transition shadow-xs">
-                            <i class="fa-solid fa-arrows-rotate"></i> 整理
+                        <button onclick="refreshMembersAndLeaves()" title="重整名冊與請假" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[10px] font-bold py-0.5 px-1.5 rounded border border-emerald-300 transition">
+                            <i class="fa-solid fa-arrows-rotate"></i>
                         </button>
-                        <button onclick="openLeaveModal()" class="bg-amber-50 hover:bg-amber-100 text-amber-800 text-[10px] font-bold py-1 px-2 rounded-lg border border-amber-300 flex items-center gap-1 transition shadow-xs">
-                            <i class="fa-solid fa-user-slash"></i> 請假(<span id="leave-count">0</span>)
+                        <button onclick="openLeaveModal()" class="bg-amber-50 hover:bg-amber-100 text-amber-800 text-[10px] font-bold py-0.5 px-1.5 rounded border border-amber-300 transition">
+                            請假(<span id="leave-count">0</span>)
                         </button>
                     </div>
                 </div>
 
-                <div class="flex flex-col gap-1.5">
+                <div class="flex flex-col gap-1">
                     <div class="relative w-full">
-                        <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-gray-400 text-[11px]"></i>
-                        <input type="text" id="search-input" placeholder="搜尋暱稱..." oninput="renderMemberList()" class="w-full bg-gray-50 border border-gray-300 text-xs rounded-lg pl-7 pr-2 py-1.5 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        <i class="fa-solid fa-magnifying-glass absolute left-2 top-2 text-gray-400 text-[10px]"></i>
+                        <input type="text" id="search-input" placeholder="搜尋暱稱..." oninput="renderMemberList()" class="w-full bg-gray-50 border border-gray-300 text-[11px] rounded-lg pl-6 pr-1.5 py-1 focus:ring-1 focus:ring-indigo-500 focus:outline-none">
                     </div>
-                    <select id="job-filter" onchange="renderMemberList()" class="w-full bg-gray-50 border border-gray-300 text-xs rounded-lg px-2 py-1.5 text-gray-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    <select id="job-filter" onchange="renderMemberList()" class="w-full bg-gray-50 border border-gray-300 text-[11px] rounded-lg px-1.5 py-1 text-gray-700 focus:ring-1 focus:ring-indigo-500 focus:outline-none">
                         <option value="全部">全部職業</option>
                     </select>
                 </div>
 
-                <div id="member-list-container" class="flex flex-col gap-1.5 h-[580px] overflow-y-auto p-1 bg-gray-50 rounded-xl border border-gray-100">
-                    <div class="text-xs text-gray-400 p-4 w-full text-center">正在載入成員中...</div>
+                <!-- 成員清單 -->
+                <div id="member-list-container" class="flex flex-col gap-1 h-[640px] overflow-y-auto p-1 bg-gray-50 rounded-xl border border-gray-100">
+                    <div class="text-[10px] text-gray-400 p-4 text-center">載入中...</div>
                 </div>
             </section>
         </div>
 
-        <!-- 右側：主戰名單配置區 (佔 9 欄，拉寬舒展) -->
-        <div class="lg:col-span-9 flex flex-col gap-3.5">
-            <section class="bg-white rounded-2xl shadow-md border border-gray-200 p-4 flex flex-col gap-4">
+        <!-- 右側：主戰 / 副戰 出戰名單 (佔 10 欄) -->
+        <div class="lg:col-span-10 flex flex-col gap-2.5">
+            <section class="bg-white rounded-2xl shadow-md border border-gray-200 p-3 flex flex-col gap-2.5">
                 
-                <!-- 頂部操作列：標題、重新載入表單、儲存覆蓋主戰名單 -->
-                <div class="flex flex-col gap-3 border-b pb-3">
+                <!-- 頂部頁籤與操作列 -->
+                <div class="flex flex-col gap-2 border-b pb-2">
                     <div class="flex flex-wrap justify-between items-center gap-2">
-                        <div class="flex items-center gap-3">
-                            <h2 class="text-lg font-black text-gray-800 tracking-wide">主戰名單</h2>
-                            <span class="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full border border-slate-200 flex items-center gap-1">
+                        
+                        <!-- 🎯 主戰 / 副戰 切換頁籤 (主戰12隊 / 副戰18隊) -->
+                        <div class="flex items-center gap-2">
+                            <div class="flex bg-gray-100 p-1 rounded-xl border border-gray-200 text-xs font-black">
+                                <button id="tab-main" onclick="switchMode('main')" class="py-1.5 px-4 rounded-lg bg-indigo-600 text-white shadow-xs transition flex items-center gap-1.5">
+                                    <i class="fa-solid fa-shield-halved"></i> 主戰名單 (12隊)
+                                </button>
+                                <button id="tab-sub" onclick="switchMode('sub')" class="py-1.5 px-4 rounded-lg text-gray-600 hover:text-gray-900 transition flex items-center gap-1.5">
+                                    <i class="fa-solid fa-bolt"></i> 副戰名單 (18隊)
+                                </button>
+                            </div>
+                            <span class="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full border border-slate-200 hidden sm:inline-flex items-center gap-1">
                                 <i class="fa-solid fa-arrows-left-right text-[9px]"></i> 滾輪左右滑動
                             </span>
                         </div>
 
-                        <!-- 頂部操作按鈕 -->
+                        <!-- 動作按鈕 -->
                         <div class="flex items-center gap-2">
-                            <button onclick="fetchMainRosterFromSheet(true)" title="重新從 Google 試算表抓取隊伍名單與名稱" class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold py-1.5 px-3 rounded-lg border border-gray-300 flex items-center gap-1.5 shadow-2xs transition">
+                            <button onclick="fetchRosterFromSheet(true)" title="重新從 Google 試算表抓取該分頁名單" class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold py-1.5 px-3 rounded-lg border border-gray-300 flex items-center gap-1.5 shadow-2xs transition">
                                 <i class="fa-solid fa-cloud-arrow-down text-indigo-600"></i> 重新載入表單
                             </button>
-                            <button onclick="saveAndOverwriteRoster()" title="覆蓋並儲存主戰名單與隊名回寫試算表" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-1.5 px-3.5 rounded-lg shadow-sm flex items-center gap-1.5 transition">
-                                <i class="fa-solid fa-floppy-disk"></i> 儲存覆蓋主戰名單
+                            <button onclick="saveAndOverwriteCurrentRoster()" title="覆蓋並回寫 Google 試算表" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-1.5 px-3.5 rounded-lg shadow-sm flex items-center gap-1.5 transition">
+                                <i class="fa-solid fa-floppy-disk"></i> 儲存覆蓋名單
                             </button>
                             <span class="text-xs font-bold bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-full border border-indigo-200 shadow-xs" id="total-assigned-badge">已配置: 0 / 0</span>
                         </div>
                     </div>
 
                     <!-- 小隊控制列 -->
-                    <div class="flex items-center gap-2 pt-1 sort-hidden">
-                        <button onclick="addSquad()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-2 px-3 rounded-lg shadow-sm transition flex items-center justify-center gap-1.5">
+                    <div class="flex items-center gap-2 pt-0.5 sort-hidden">
+                        <button onclick="addSquad()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-1.5 px-3 rounded-lg shadow-sm transition flex items-center justify-center gap-1.5">
                             <i class="fa-solid fa-plus"></i> 新增隊伍
                         </button>
-                        <button onclick="openMergeModal()" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold py-2 px-3 rounded-lg shadow-sm transition flex items-center justify-center gap-1.5">
+                        <button onclick="openMergeModal()" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold py-1.5 px-3 rounded-lg shadow-sm transition flex items-center justify-center gap-1.5">
                             <i class="fa-solid fa-object-group"></i> 合併團隊
                         </button>
-                        <button onclick="resetRoster()" class="bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-bold py-2 px-3 rounded-lg border transition flex items-center justify-center gap-1">
+                        <button onclick="resetCurrentRoster()" class="bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-bold py-1.5 px-3 rounded-lg border transition flex items-center justify-center gap-1">
                             <i class="fa-solid fa-rotate-right"></i> 重置清空
                         </button>
                     </div>
@@ -233,11 +253,14 @@
         // 🔗 您的 Google Apps Script 部署網址
         const GOOGLE_SHEET_ROSTER_API = 'https://script.google.com/macros/s/AKfycbx2ndfyU7920INPrgPWGIY2DGEQfosjoXyaIrCn_7SVeaCo2U7axVNyTl8Eyd8rmXdc9w/exec';
 
-        let masterMembers = []; // 會員名冊
+        let currentMode = 'main'; // 'main' (主戰 12 隊) 或 'sub' (副戰 18 隊)
+
+        let masterMembers = []; // 公會會員名冊
         let leaveList = [];     // 請假名單
         let gameClasses = [];   // 職業
 
-        let squads = [
+        // 🎯 主戰 12 隊結構
+        let mainSquads = [
             { id: 1, name: "隊伍 1(左路)", members: [] },
             { id: 2, name: "隊伍 2(左路)", members: [] },
             { id: 3, name: "隊伍 3(左路)", members: [] },
@@ -251,14 +274,41 @@
             { id: 11, name: "中路(支援隊-1)", members: [] },
             { id: 12, name: "左路(支援隊-2)", members: [] }
         ];
+        let mainMergedGroups = [];
+        let mainMasterOrder = [];
 
-        let mergedGroups = [];
-        let masterOrder = [];
+        // 🎯 副戰 18 隊完整結構 (8隊 + 8隊 + 2隊支援)
+        let subSquads = [
+            { id: 1, name: "隊伍 1", members: [] },
+            { id: 2, name: "隊伍 2", members: [] },
+            { id: 3, name: "隊伍 3", members: [] },
+            { id: 4, name: "隊伍 4", members: [] },
+            { id: 5, name: "隊伍 5", members: [] },
+            { id: 6, name: "隊伍 6", members: [] },
+            { id: 7, name: "隊伍 7", members: [] },
+            { id: 8, name: "隊伍 8", members: [] },
+            { id: 9, name: "隊伍 9", members: [] },
+            { id: 10, name: "隊伍 10", members: [] },
+            { id: 11, name: "隊伍 11", members: [] },
+            { id: 12, name: "隊伍 12", members: [] },
+            { id: 13, name: "隊伍 13", members: [] },
+            { id: 14, name: "隊伍 14", members: [] },
+            { id: 15, name: "隊伍 15", members: [] },
+            { id: 16, name: "隊伍 16", members: [] },
+            { id: 17, name: "隊伍 1(左路密道)", members: [] },
+            { id: 18, name: "隊伍 2(右路密道)", members: [] }
+        ];
+        let subMergedGroups = [];
+        let subMasterOrder = [];
 
         window.onload = async function() {
             setupHorizontalScroll();
             await refreshMembersAndLeaves();
-            await fetchMainRosterFromSheet(false);
+            // 分別載入主戰與副戰表單資料
+            await fetchRosterFromSheetInternal('main');
+            await fetchRosterFromSheetInternal('sub');
+            renderSquads();
+            renderMemberList();
         };
 
         function setupHorizontalScroll() {
@@ -272,17 +322,31 @@
             }, { passive: false });
         }
 
+        function switchMode(mode) {
+            currentMode = mode;
+            const tabMain = document.getElementById('tab-main');
+            const tabSub = document.getElementById('tab-sub');
+
+            if (mode === 'main') {
+                tabMain.className = "py-1.5 px-4 rounded-lg bg-indigo-600 text-white shadow-xs transition flex items-center gap-1.5";
+                tabSub.className = "py-1.5 px-4 rounded-lg text-gray-600 hover:text-gray-900 transition flex items-center gap-1.5";
+            } else {
+                tabSub.className = "py-1.5 px-4 rounded-lg bg-purple-600 text-white shadow-xs transition flex items-center gap-1.5";
+                tabMain.className = "py-1.5 px-4 rounded-lg text-gray-600 hover:text-gray-900 transition flex items-center gap-1.5";
+            }
+
+            renderSquads();
+            renderMemberList();
+        }
+
         function getCurrentWeekRange(baseDateStr) {
             const target = baseDateStr ? new Date(baseDateStr) : new Date();
             const day = target.getDay();
             const diffToMonday = day === 0 ? 6 : day - 1;
-            
             const monday = new Date(target);
             monday.setDate(target.getDate() - diffToMonday);
-            
             const sunday = new Date(monday);
             sunday.setDate(monday.getDate() + 6);
-            
             const format = (d) => d.toISOString().split('T')[0];
             return { start: format(monday), end: format(sunday) };
         }
@@ -352,8 +416,7 @@
                         job: l.gameClass,
                         date: (l.leaveDate || l.date || '').replace(/\//g, '-').trim(),
                         event: l.leaveEvent || l.event,
-                        reason: l.leaveReason || l.reason,
-                        isUrgent: l.isUrgent === 'Y' || l.isUrgent === '緊急'
+                        reason: l.leaveReason || l.reason
                     }));
                 }
             } catch (err) {
@@ -361,80 +424,69 @@
             }
         }
 
-        // 🎯 重新載入表單：同時載入「隊伍名稱」與「成員」
-        async function fetchMainRosterFromSheet(manualTrigger = true) {
+        // 內部讀取表單 (支援 main 與 sub)
+        async function fetchRosterFromSheetInternal(type) {
             try {
-                const badge = document.getElementById('total-assigned-badge');
-                if (badge) badge.innerText = '載入表單中...';
-
-                const url = `${GOOGLE_SHEET_ROSTER_API}?t=${new Date().getTime()}`;
+                const url = `${GOOGLE_SHEET_ROSTER_API}?type=${type}&t=${new Date().getTime()}`;
                 const res = await fetch(url, { cache: 'no-store' });
                 const result = await res.json();
-                
                 if (result.status === 'success' && result.squads && result.squads.length > 0) {
-                    squads = result.squads;
-                    initMasterOrder();
-                    renderSquads();
-                    renderMemberList();
-                    if (manualTrigger) alert('✓ 已成功自 Google 試算表載入主戰名單與隊名！');
-                } else {
-                    console.error("試算表回傳錯誤或名單為空:", result);
-                    if (manualTrigger) alert('讀取失敗：' + (result.message || '抓取的隊伍名單為空'));
+                    if (type === 'main') {
+                        mainSquads = result.squads;
+                        initMasterOrder('main');
+                    } else {
+                        subSquads = result.squads;
+                        initMasterOrder('sub');
+                    }
                 }
             } catch (err) {
-                console.warn('無法連線試算表 Web App:', err);
-                if (manualTrigger) alert('連線 Google 試算表失敗，請確認網路！');
+                console.warn(`載入 ${type} 試算表失敗:`, err);
             }
         }
 
-        // 🎯 儲存覆蓋主戰名單：回寫 Google 試算表（同時包含隊名與成員）
-        async function saveAndOverwriteRoster() {
+        async function fetchRosterFromSheet(manual = true) {
+            const badge = document.getElementById('total-assigned-badge');
+            if (badge) badge.innerText = '讀取中...';
+            await fetchRosterFromSheetInternal(currentMode);
+            renderSquads();
+            renderMemberList();
+            if (manual) alert(`✓ 已重新載入${currentMode === 'main' ? '主戰' : '副戰'}名單！`);
+        }
+
+        // 儲存覆蓋名單：包含隊伍名、隊員、以及團隊合併名稱
+        async function saveAndOverwriteCurrentRoster() {
             const saveBtn = event.currentTarget;
             const originalText = saveBtn.innerHTML;
             saveBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 儲存中...`;
             saveBtn.disabled = true;
 
-            const todayStr = new Date().toISOString().split('T')[0];
-            const dataToSave = {
-                date: todayStr,
-                squads: JSON.parse(JSON.stringify(squads)),
-                mergedGroups: JSON.parse(JSON.stringify(mergedGroups)),
-                masterOrder: JSON.parse(JSON.stringify(masterOrder))
-            };
+            const squads = (currentMode === 'main') ? mainSquads : subSquads;
+            const mergedGroups = (currentMode === 'main') ? mainMergedGroups : subMergedGroups;
 
             let isSuccess = false;
-
             try {
-                // 回寫覆蓋 Google 試算表
                 const sheetRes = await fetch(GOOGLE_SHEET_ROSTER_API, {
                     method: 'POST',
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify({ squads: squads })
+                    body: JSON.stringify({
+                        type: currentMode,
+                        squads: squads,
+                        mergedGroups: mergedGroups
+                    })
                 });
                 const sheetResult = await sheetRes.json();
-
                 if (sheetResult.status === 'success') {
                     isSuccess = true;
                 }
-
-                // 同步存入後端 Node.js 資料庫
-                await fetch(`${BACKEND_API_URL}/api/admin/roster/save`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(dataToSave)
-                });
-
             } catch (err) {
-                console.warn("儲存異常:", err);
+                console.warn("回寫試算表失敗:", err);
             } finally {
                 saveBtn.innerHTML = originalText;
                 saveBtn.disabled = false;
             }
 
-            localStorage.setItem('guild_roster_current', JSON.stringify(dataToSave));
-
             if (isSuccess) {
-                alert('✓ 主戰名單與修改後隊名已成功覆蓋回寫 Google 試算表！');
+                alert(`✓ 已成功將${currentMode === 'main' ? '主戰' : '副戰'}名單與團隊名稱覆蓋回寫試算表！`);
             } else {
                 alert('✓ 名單已儲存完成！');
             }
@@ -442,14 +494,16 @@
 
         function getMemberJobInfo(name) {
             const found = masterMembers.find(m => m.name === name);
-            if (found) {
-                return { job: found.job, isUnknown: false };
-            }
+            if (found) return { job: found.job, isUnknown: false };
             return { job: '未綁定/改名', isUnknown: true };
         }
 
-        function isAssigned(name) {
-            return squads.some(s => s.members.includes(name));
+        function isAssignedInMain(name) {
+            return mainSquads.some(s => s.members.includes(name));
+        }
+
+        function isAssignedInSub(name) {
+            return subSquads.some(s => s.members.includes(name));
         }
 
         function isLeave(name) {
@@ -457,6 +511,7 @@
             return leaveList.some(l => l.name === name && l.date === todayStr);
         }
 
+        // 人員名冊渲染：副戰時「主戰已排入成員」自動鎖定
         function renderMemberList() {
             const container = document.getElementById('member-list-container');
             const search = document.getElementById('search-input').value.trim();
@@ -473,28 +528,51 @@
             });
 
             if (filtered.length === 0) {
-                container.innerHTML = `<div class="text-xs text-gray-400 p-4 w-full text-center">無符合成員</div>`;
+                container.innerHTML = `<div class="text-[10px] text-gray-400 p-3 text-center">無符合成員</div>`;
                 return;
             }
 
             filtered.forEach(m => {
-                const assigned = isAssigned(m.name);
+                const assignedMain = isAssignedInMain(m.name);
+                const assignedSub = isAssignedInSub(m.name);
+
+                let isBlocked = false;
+                let badgeText = '';
+
+                if (currentMode === 'main') {
+                    if (assignedMain) {
+                        isBlocked = true;
+                        badgeText = '已排';
+                    }
+                } else {
+                    // 副戰排他防呆：主戰已排則直接鎖死
+                    if (assignedMain) {
+                        isBlocked = true;
+                        badgeText = '主戰已排';
+                    } else if (assignedSub) {
+                        isBlocked = true;
+                        badgeText = '副戰已排';
+                    }
+                }
+
                 const row = document.createElement('div');
-                row.className = `flex items-center justify-between px-2.5 py-1.5 rounded-xl border text-xs transition bg-white ${assigned ? 'opacity-50 border-gray-200' : 'border-gray-200 shadow-xs hover:border-indigo-400'}`;
-                
-                let actionHtml = assigned ? 
-                    `<span class="text-gray-400 font-bold bg-gray-100 px-2 py-0.5 rounded text-[10px]">已排</span>` :
-                    `<button onclick="assignToFirstAvailable('${m.name}')" class="bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white font-bold px-2.5 py-0.5 rounded-md transition text-[10px]">指派</button>`;
+                row.className = `flex items-center justify-between px-2 py-1 rounded-lg border text-[11px] transition bg-white ${
+                    isBlocked ? 'opacity-40 border-gray-200' : 'border-gray-200 shadow-2xs hover:border-indigo-400'
+                }`;
+
+                let actionHtml = isBlocked ? 
+                    `<span class="text-gray-400 font-bold bg-gray-100 px-1 py-0.5 rounded text-[9px] shrink-0">${badgeText}</span>` :
+                    `<button onclick="assignToFirstAvailable('${m.name}')" class="bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white font-bold px-2 py-0.5 rounded transition text-[10px] shrink-0">指派</button>`;
 
                 row.innerHTML = `
-                    <div class="flex items-center gap-1.5 min-w-0">
-                        <span class="job-card-${m.job} px-1.5 py-0.5 rounded font-bold text-[9px] border shrink-0">${m.job}</span>
+                    <div class="flex items-center gap-1 min-w-0">
+                        <span class="job-card-${m.job} px-1 py-0.2 rounded font-bold text-[9px] border shrink-0">${m.job}</span>
                         <span class="font-bold text-gray-800 truncate text-[11px]">${m.name}</span>
                     </div>
                     ${actionHtml}
                 `;
 
-                if (!assigned) {
+                if (!isBlocked) {
                     row.draggable = true;
                     row.ondragstart = (e) => e.dataTransfer.setData('text/plain', m.name);
                 }
@@ -503,6 +581,7 @@
         }
 
         function assignToFirstAvailable(name) {
+            const squads = (currentMode === 'main') ? mainSquads : subSquads;
             for (let squad of squads) {
                 if (squad.members.length < 5) {
                     squad.members.push(name);
@@ -514,14 +593,22 @@
             alert('所有隊伍皆已達 5 人滿額！');
         }
 
-        function initMasterOrder() {
-            masterOrder = squads.map(s => ({ type: 'squad', id: s.id }));
+        function initMasterOrder(mode = currentMode) {
+            if (mode === 'main') {
+                mainMasterOrder = mainSquads.map(s => ({ type: 'squad', id: s.id }));
+            } else {
+                subMasterOrder = subSquads.map(s => ({ type: 'squad', id: s.id }));
+            }
         }
 
-        // 🎯 支援合併團隊時顯示團隊名稱 + 內部隊伍橫向並列
+        // 渲染隊伍清單 (主戰每列 6 隊，副戰每列 8 隊)
         function renderSquads() {
             const container = document.getElementById('squads-container');
             container.innerHTML = '';
+
+            const squads = (currentMode === 'main') ? mainSquads : subSquads;
+            const mergedGroups = (currentMode === 'main') ? mainMergedGroups : subMergedGroups;
+            let masterOrder = (currentMode === 'main') ? mainMasterOrder : subMasterOrder;
 
             let totalAssigned = 0;
             let totalCapacity = squads.length * 5;
@@ -545,15 +632,22 @@
                 }
             });
 
+            if (currentMode === 'main') mainMasterOrder = masterOrder;
+            else subMasterOrder = masterOrder;
+
+            // 🎯 排版寬度切換：主戰一列6隊；副戰一列8隊
+            const maxPerRow = (currentMode === 'main') ? 6 : 8;
+            const rowClass = (currentMode === 'main') ? 'roster-grid-row-main' : 'roster-grid-row-sub';
+
             let currentRow = document.createElement('div');
-            currentRow.className = "roster-grid-row";
+            currentRow.className = rowClass;
             let rowItemCount = 0;
 
             function appendToRow(element, span = 1) {
-                if (rowItemCount + span > 6) {
+                if (rowItemCount + span > maxPerRow) {
                     container.appendChild(currentRow);
                     currentRow = document.createElement('div');
-                    currentRow.className = "roster-grid-row";
+                    currentRow.className = rowClass;
                     rowItemCount = 0;
                 }
                 element.style.gridColumn = `span ${span}`;
@@ -574,10 +668,9 @@
                         }
                     }
                 } else if (item.type === 'group') {
-                    // 🎯 合併團隊渲染：顯示清晰的大團隊名稱標籤
                     const group = mergedGroups.find(g => g.name === item.groupName);
                     if (group) {
-                        const spanCount = Math.min(group.squadIds.length, 6);
+                        const spanCount = Math.min(group.squadIds.length, maxPerRow);
                         const groupDiv = document.createElement('div');
                         groupDiv.className = 'border-2 border-purple-500 bg-purple-50/30 rounded-2xl p-2.5 flex flex-col gap-2.5 shadow-sm';
                         
@@ -589,10 +682,10 @@
                                         <span class="text-[10px] bg-purple-700/80 px-2 py-0.5 rounded-full font-bold">合併 ${group.squadIds.length} 隊</span>
                                     </span>
                                     <div class="flex gap-0.5 text-[10px]">
-                                        <button onclick="moveMasterOrderTarget(${index}, 'first')" class="bg-white/20 hover:bg-white/30 text-white px-1 py-0.5 rounded font-bold" title="置前">《</button>
-                                        <button onclick="moveMasterOrder(${index}, -1)" class="bg-white/20 hover:bg-white/30 text-white px-1 py-0.5 rounded font-bold" title="往前">〈</button>
-                                        <button onclick="moveMasterOrder(${index}, 1)" class="bg-white/20 hover:bg-white/30 text-white px-1 py-0.5 rounded font-bold" title="往後">〉</button>
-                                        <button onclick="moveMasterOrderTarget(${index}, 'last')" class="bg-white/20 hover:bg-white/30 text-white px-1 py-0.5 rounded font-bold" title="置後">》</button>
+                                        <button onclick="moveMasterOrderTarget(${index}, 'first')" class="bg-white/20 hover:bg-white/30 text-white px-1 py-0.5 rounded font-bold">《</button>
+                                        <button onclick="moveMasterOrder(${index}, -1)" class="bg-white/20 hover:bg-white/30 text-white px-1 py-0.5 rounded font-bold">〈</button>
+                                        <button onclick="moveMasterOrder(${index}, 1)" class="bg-white/20 hover:bg-white/30 text-white px-1 py-0.5 rounded font-bold">〉</button>
+                                        <button onclick="moveMasterOrderTarget(${index}, 'last')" class="bg-white/20 hover:bg-white/30 text-white px-1 py-0.5 rounded font-bold">》</button>
                                     </div>
                                 </div>
                                 <button onclick="removeMergedGroupByInstance('${group.name}')" class="text-purple-200 hover:text-white text-xs font-bold transition flex items-center gap-1">
@@ -626,7 +719,6 @@
             document.getElementById('total-assigned-badge').innerText = `已配置: ${totalAssigned} / ${totalCapacity}`;
         }
 
-        // 🎯 隊伍卡片生成（隊伍名稱為可編輯 input，改動即時同步進 squads 陣列）
         function createSquadCardHtml(squad) {
             let slotsHtml = '';
             for (let i = 0; i < 5; i++) {
@@ -647,7 +739,7 @@
                         `;
                     } else if (info.isUnknown) {
                         slotsHtml += `
-                            <div class="flex items-center justify-between job-card-unknown px-2 py-1.5 rounded-lg border text-xs font-bold shadow-2xs" title="名冊查無此暱稱（可能已改名或尚未綁定）">
+                            <div class="flex items-center justify-between job-card-unknown px-2 py-1.5 rounded-lg border text-xs font-bold shadow-2xs">
                                 <div class="flex items-center gap-1 min-w-0">
                                     <span class="text-amber-600 text-[11px]"><i class="fa-solid fa-triangle-exclamation"></i></span>
                                     <span class="truncate">${member}</span>
@@ -673,25 +765,26 @@
                 }
             }
 
+            const mergedGroups = (currentMode === 'main') ? mainMergedGroups : subMergedGroups;
             const inGroup = mergedGroups.some(g => g.squadIds.includes(squad.id));
             let sortButtonsHtml = '';
             if (!inGroup) {
+                const masterOrder = (currentMode === 'main') ? mainMasterOrder : subMasterOrder;
                 const mIndex = masterOrder.findIndex(item => item.type === 'squad' && item.id === squad.id);
                 sortButtonsHtml = `
                     <div class="flex gap-0.5 text-[9px] sort-hidden">
-                        <button onclick="moveMasterOrderTarget(${mIndex}, 'first')" class="bg-white hover:bg-gray-200 px-1 py-0.5 rounded font-bold text-gray-600" title="置前">《</button>
-                        <button onclick="moveMasterOrder(${mIndex}, -1)" class="bg-white hover:bg-gray-200 px-1 py-0.5 rounded font-bold text-gray-600" title="往前">〈</button>
-                        <button onclick="moveMasterOrder(${mIndex}, 1)" class="bg-white hover:bg-gray-200 px-1 py-0.5 rounded font-bold text-gray-600" title="往後">〉</button>
-                        <button onclick="moveMasterOrderTarget(${mIndex}, 'last')" class="bg-white hover:bg-gray-200 px-1 py-0.5 rounded font-bold text-gray-600" title="置後">》</button>
+                        <button onclick="moveMasterOrderTarget(${mIndex}, 'first')" class="bg-white hover:bg-gray-200 px-1 py-0.5 rounded font-bold text-gray-600">《</button>
+                        <button onclick="moveMasterOrder(${mIndex}, -1)" class="bg-white hover:bg-gray-200 px-1 py-0.5 rounded font-bold text-gray-600">〈</button>
+                        <button onclick="moveMasterOrder(${mIndex}, 1)" class="bg-white hover:bg-gray-200 px-1 py-0.5 rounded font-bold text-gray-600">〉</button>
+                        <button onclick="moveMasterOrderTarget(${mIndex}, 'last')" class="bg-white hover:bg-gray-200 px-1 py-0.5 rounded font-bold text-gray-600">》</button>
                     </div>
                 `;
             }
 
             return `
                 <div class="bg-white border border-gray-300 rounded-xl shadow-xs overflow-hidden flex flex-col">
-                    <div class="bg-gray-100 px-2 py-1.5 border-b border-gray-200 flex justify-between items-center">
+                    <div class="bg-gray-100 px-2.5 py-1.5 border-b border-gray-200 flex justify-between items-center">
                         <div class="flex items-center gap-1 min-w-0">
-                            <!-- 隊伍名稱可即時修改並保存 -->
                             <input type="text" value="${squad.name}" oninput="updateSquadName(${squad.id}, this.value)" class="bg-transparent text-xs font-black text-gray-800 w-24 focus:outline-none focus:bg-white px-1 py-0.5 rounded border border-transparent focus:border-indigo-400">
                             ${sortButtonsHtml}
                         </div>
@@ -708,13 +801,14 @@
             `;
         }
 
-        // 修改隊名同步寫入記憶體
         function updateSquadName(squadId, newName) {
+            const squads = (currentMode === 'main') ? mainSquads : subSquads;
             const squad = squads.find(s => s.id === squadId);
             if (squad) squad.name = newName.trim();
         }
 
         function moveMasterOrder(index, direction) {
+            let masterOrder = (currentMode === 'main') ? mainMasterOrder : subMasterOrder;
             const newIndex = index + direction;
             if (newIndex < 0 || newIndex >= masterOrder.length) return;
             const temp = masterOrder[index];
@@ -724,6 +818,7 @@
         }
 
         function moveMasterOrderTarget(index, target) {
+            let masterOrder = (currentMode === 'main') ? mainMasterOrder : subMasterOrder;
             const item = masterOrder.splice(index, 1)[0];
             if (target === 'first') masterOrder.unshift(item);
             else if (target === 'last') masterOrder.push(item);
@@ -737,8 +832,18 @@
             e.currentTarget.classList.remove('drag-over');
             const memberName = e.dataTransfer.getData('text/plain');
             if (!memberName) return;
+
+            // 🎯 防呆：副戰不能取主戰已排入成員
+            if (currentMode === 'sub' && isAssignedInMain(memberName)) {
+                alert('該成員已被主戰名單選用，副戰無法重複配置！');
+                return;
+            }
+
+            const squads = (currentMode === 'main') ? mainSquads : subSquads;
             const squad = squads.find(s => s.id === squadId);
-            if (squad && squad.members.length < 5 && !isAssigned(memberName)) {
+            const isAssigned = squads.some(s => s.members.includes(memberName));
+
+            if (squad && squad.members.length < 5 && !isAssigned) {
                 squad.members.push(memberName);
                 renderSquads();
                 renderMemberList();
@@ -748,6 +853,7 @@
         }
 
         function removeMemberFromSquad(squadId, memberIndex) {
+            const squads = (currentMode === 'main') ? mainSquads : subSquads;
             const squad = squads.find(s => s.id === squadId);
             if (squad) {
                 squad.members.splice(memberIndex, 1);
@@ -757,26 +863,42 @@
         }
 
         function addSquad() {
+            const squads = (currentMode === 'main') ? mainSquads : subSquads;
+            const masterOrder = (currentMode === 'main') ? mainMasterOrder : subMasterOrder;
             const newId = squads.length > 0 ? Math.max(...squads.map(s => s.id)) + 1 : 1;
-            const newSquad = { id: newId, name: `隊伍 ${newId}`, members: [] };
+            const newSquad = { id: newId, name: `${currentMode === 'main' ? '隊伍' : '副戰隊'} ${newId}`, members: [] };
             squads.push(newSquad);
             masterOrder.push({ type: 'squad', id: newId });
             renderSquads();
         }
 
         function deleteSquad(squadId) {
+            let squads = (currentMode === 'main') ? mainSquads : subSquads;
+            let mergedGroups = (currentMode === 'main') ? mainMergedGroups : subMergedGroups;
+
             squads = squads.filter(s => s.id !== squadId);
             mergedGroups.forEach(g => g.squadIds = g.squadIds.filter(id => id !== squadId));
             mergedGroups = mergedGroups.filter(g => g.squadIds.length > 0);
+
+            if (currentMode === 'main') {
+                mainSquads = squads;
+                mainMergedGroups = mergedGroups;
+            } else {
+                subSquads = squads;
+                subMergedGroups = mergedGroups;
+            }
+
             renderSquads();
             renderMemberList();
         }
 
-        function resetRoster() {
-            if (confirm('確定清空現有出戰安排嗎？')) {
+        function resetCurrentRoster() {
+            if (confirm(`確定清空現有【${currentMode === 'main' ? '主戰' : '副戰'}】安排嗎？`)) {
+                const squads = (currentMode === 'main') ? mainSquads : subSquads;
                 squads.forEach(s => s.members = []);
-                mergedGroups = [];
-                initMasterOrder();
+                if (currentMode === 'main') mainMergedGroups = [];
+                else subMergedGroups = [];
+                initMasterOrder(currentMode);
                 renderSquads();
                 renderMemberList();
             }
@@ -833,11 +955,9 @@
                         <span class="job-card-${l.job || '其他'} px-2 py-0.5 rounded font-bold text-[10px] border shrink-0">${l.job || '成員'}</span>
                         <span class="font-bold text-gray-800 truncate">${l.name}</span>
                     </div>
-                    <div class="flex items-center gap-1.5 shrink-0">
-                        <span class="${isToday ? 'text-amber-800 font-black' : 'text-gray-400'} text-[11px]">
-                            ${l.date} ${isToday ? '(今天)' : ''}
-                        </span>
-                    </div>
+                    <span class="${isToday ? 'text-amber-800 font-black' : 'text-gray-400'} text-[11px]">
+                        ${l.date} ${isToday ? '(今天)' : ''}
+                    </span>
                 `;
                 container.appendChild(item);
             });
@@ -862,13 +982,16 @@
         function renderMergeCheckboxes() {
             const container = document.getElementById('merge-squad-checkboxes');
             container.innerHTML = '';
+            const squads = (currentMode === 'main') ? mainSquads : subSquads;
+            const mergedGroups = (currentMode === 'main') ? mainMergedGroups : subMergedGroups;
+
             const assignedSquadIds = new Set();
             mergedGroups.forEach(g => g.squadIds.forEach(id => assignedSquadIds.add(id)));
 
             squads.forEach(s => {
                 if (!assignedSquadIds.has(s.id)) {
                     const label = document.createElement('label');
-                    label.className = 'flex items-center gap-2 text-xs font-bold text-gray-700 cursor-pointer';
+                    label.className = 'flex items-center gap-1.5 text-xs font-bold text-gray-700 cursor-pointer';
                     label.innerHTML = `<input type="checkbox" name="merge-squad-cb" value="${s.id}" class="rounded text-purple-600 focus:ring-purple-500"> ${s.name}`;
                     container.appendChild(label);
                 }
@@ -880,21 +1003,29 @@
             const checkboxes = document.querySelectorAll('input[name="merge-squad-cb"]:checked');
             const selectedIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
             if (!groupName || selectedIds.length === 0) { alert('請填寫團隊名稱並勾選小隊！'); return; }
-            
+
+            const mergedGroups = (currentMode === 'main') ? mainMergedGroups : subMergedGroups;
+            const masterOrder = (currentMode === 'main') ? mainMasterOrder : subMasterOrder;
+
             mergedGroups.push({ name: groupName, squadIds: selectedIds });
             masterOrder.push({ type: 'group', groupName: groupName });
-            
+
             document.getElementById('merge-group-name').value = '';
             renderMergeCheckboxes();
             renderExistingMergedGroups();
         }
 
         function removeMergedGroupByInstance(groupName) {
-            mergedGroups = mergedGroups.filter(g => g.name !== groupName);
+            if (currentMode === 'main') {
+                mainMergedGroups = mainMergedGroups.filter(g => g.name !== groupName);
+            } else {
+                subMergedGroups = subMergedGroups.filter(g => g.name !== groupName);
+            }
             renderSquads();
         }
 
         function removeMergedGroup(index) {
+            const mergedGroups = (currentMode === 'main') ? mainMergedGroups : subMergedGroups;
             mergedGroups.splice(index, 1);
             renderMergeCheckboxes();
             renderExistingMergedGroups();
@@ -904,7 +1035,12 @@
         function renderExistingMergedGroups() {
             const container = document.getElementById('existing-merged-groups-list');
             container.innerHTML = '';
-            if (mergedGroups.length === 0) { container.innerHTML = `<span class="text-xs text-gray-400">目前無合併團隊</span>`; return; }
+            const mergedGroups = (currentMode === 'main') ? mainMergedGroups : subMergedGroups;
+
+            if (mergedGroups.length === 0) {
+                container.innerHTML = `<span class="text-xs text-gray-400">目前無合併團隊</span>`;
+                return;
+            }
             mergedGroups.forEach((g, idx) => {
                 const div = document.createElement('div');
                 div.className = 'flex justify-between items-center p-2 bg-purple-50 border border-purple-200 rounded-lg text-xs font-bold text-purple-900';
