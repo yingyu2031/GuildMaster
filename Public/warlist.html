@@ -953,11 +953,13 @@
                     }
                 } else {
                     slotsHtml += `
-                        <div class="slot-card flex items-center justify-center bg-gray-50 border border-dashed border-gray-300 rounded-lg text-[11px] text-gray-400 py-1 sort-hidden"
-                             ondragover="allowDrop(event)" ondragleave="removeDropStyle(event)" ondrop="dropToSquad(event, ${squad.id})">
-                            + 空位
-                        </div>
-                    `;
+                    <div class="slot-card flex items-center justify-center bg-gray-50 hover:bg-indigo-50/50 hover:border-indigo-400 border border-dashed border-gray-300 rounded-lg text-[11px] text-gray-400 hover:text-indigo-600 py-1 cursor-pointer transition sort-hidden"
+                         title="點擊可手動直接輸入成員名稱，或從左側拖曳"
+                         onclick="promptManualAssignToSquad(${squad.id})"
+                         ondragover="allowDrop(event)" ondragleave="removeDropStyle(event)" ondrop="dropToSquad(event, ${squad.id})">
+                        + 空位 (自訂)
+                    </div>
+                `;
                 }
             }
 
@@ -1110,6 +1112,38 @@
                 renderMemberList();
             } else if (squad && squad.members.length >= 5) {
                 alert('該隊伍已滿 5 人！');
+            }
+        }
+
+        // 🎯 點擊空位手動輸入未在表單名冊中的成員
+        function promptManualAssignToSquad(squadId) {
+            const rawName = prompt("請輸入成員遊戲暱稱（適用於尚未填表單或臨時加入的成員）：");
+            if (!rawName) return;
+        
+            const memberName = rawName.trim();
+            if (!memberName) return;
+        
+            // 檢查副戰模式下是否已經被主戰排入
+            if (currentMode === 'sub' && isAssignedInMain(memberName)) {
+                alert(`🚨 衝突警告：【${memberName}】已經被排在主戰場名單中了！`);
+                return;
+            }
+        
+            const squads = (currentMode === 'main') ? mainSquads : subSquads;
+            const squad = squads.find(s => s.id === squadId);
+        
+            // 檢查當前戰場是否已經排過
+            if (squads.some(s => s.members.includes(memberName))) {
+                alert(`【${memberName}】已經在目前的隊伍名單中了！`);
+                return;
+            }
+        
+            if (squad && squad.members.length < 5) {
+                squad.members.push(memberName);
+                renderSquads();
+                renderMemberList();
+            } else {
+                alert("該隊伍已滿 5 人！");
             }
         }
 
