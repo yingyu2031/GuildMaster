@@ -1819,4 +1819,18 @@ app.listen(PORT, () => {
   console.log(`[Server] 伺服器已在連接埠 ${PORT} 上運行`);
 });
 
+// 在 server.js 裡面加入管理員登入 API
+const ADMIN_USER = process.env.ADMIN_USER || "admin";
+const ADMIN_PASS = process.env.ADMIN_PASS || "lv123"; // 您自訂的管理密碼
+
+app.post('/api/auth/login', (req, res) => {
+    const { username, password } = req.body;
+
+    if (username === ADMIN_USER && password === ADMIN_PASS) {
+        return res.json({ status: "success", message: "身分驗證通過" });
+    }
+
+    return res.status(401).json({ status: "error", message: "帳號或密碼錯誤！" });
+});
+
 
