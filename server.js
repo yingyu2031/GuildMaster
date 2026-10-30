@@ -491,7 +491,7 @@ app.post('/api/members/bind', async (req, res) => {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${lineToken}`
+              'Authorization': `Bearer ${LINE_ACCESS_TOKEN}`
             },
             body: JSON.stringify({
               to: adminGroupId,
