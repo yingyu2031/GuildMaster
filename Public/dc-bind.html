@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>公會 Discord 語音綁定</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- LINE LIFF SDK -->
+  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+</head>
+<body class="bg-[#FFFDF7] min-h-screen flex items-center justify-center p-4 text-slate-800">
+
+  <div class="max-w-sm w-full bg-white rounded-3xl p-6 border-2 border-indigo-100 shadow-xl space-y-5 text-center">
+    
+    <!-- 載入中 -->
+    <div id="loadingBox" class="py-10 space-y-3">
+      <div class="w-10 h-10 border-4 border-[#5865F2] border-t-transparent rounded-full animate-spin mx-auto"></div>
+      <p class="text-xs text-slate-400 font-bold">身分驗證中，請稍候...</p>
+    </div>
+
+    <!-- 主內容區 (預設隱藏) -->
+    <div id="contentBox" class="hidden space-y-5">
+      
+      <!-- 頂部圖示與標題 -->
+      <div class="space-y-2">
+        <div class="w-14 h-14 bg-indigo-50 text-[#5865F2] rounded-2xl flex items-center justify-center mx-auto shadow-sm">
+          <svg class="w-8 h-8 fill-current" viewBox="0 0 24 24">
+            <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994.021-.041.001-.09-.041-.106a13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028z"/>
+          </svg>
+        </div>
+        <h1 class="text-lg font-black text-slate-900">Discord 語音身分連動</h1>
+        <p class="text-xs text-slate-500 leading-relaxed px-2">
+          攻城戰、公會聯賽聽指揮必備！<br>授權後機器人會自動將您加入公會專用伺服器。
+        </p>
+      </div>
+
+      <!-- 成員資訊條 -->
+      <div class="bg-slate-50 border border-slate-200/80 rounded-2xl p-3 flex items-center justify-between text-left">
+        <div class="flex items-center gap-2.5">
+          <img id="userAvatar" src="" class="w-9 h-9 rounded-full object-cover border border-slate-200">
+          <div>
+            <div id="userNick" class="text-xs font-black text-slate-800">讀取中...</div>
+            <div id="userLineName" class="text-[10px] text-slate-400 font-bold">-</div>
+          </div>
+        </div>
+        <span id="roleBadge" class="text-[10px] font-black px-2 py-0.5 rounded-full bg-slate-200 text-slate-600">公會成員</span>
+      </div>
+
+      <!-- 狀態 A：尚未綁定 -->
+      <div id="unboundView" class="hidden space-y-3">
+        <button type="button" onclick="handleDiscordAuth()" 
+                class="w-full bg-[#5865F2] hover:bg-[#4752C4] active:scale-98 text-white font-black text-sm py-3.5 rounded-2xl shadow-lg shadow-indigo-100 transition flex items-center justify-center gap-2 cursor-pointer">
+          <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
+            <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994.021-.041.001-.09-.041-.106a13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028z"/>
+          </svg>
+          一鍵連動並加入語音伺服器
+        </button>
+        <p class="text-[10px] text-slate-400">點擊後將使用手機系統瀏覽器開啟 Discord 授權</p>
+      </div>
+
+      <!-- 狀態 B：已完成綁定 -->
+      <div id="boundView" class="hidden space-y-4">
+        <div class="bg-[#F2F3FB] border border-[#D5D9F8] rounded-2xl p-4 flex items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <span class="w-6 h-6 bg-[#5865F2] text-white rounded-full flex items-center justify-center text-xs font-black shadow-xs">✓</span>
+            <span class="text-xs font-black text-[#3C45A5]">已成功加入 Discord 語音伺服器</span>
+          </div>
+          <svg class="w-4 h-4 text-[#5865F2] opacity-80" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994.021-.041.001-.09-.041-.106a13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028z"/>
+          </svg>
+        </div>
+        <button onclick="closePage()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold py-3 rounded-xl transition">
+          返回 LINE 聊天室
+        </button>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    const MY_LIFF_ID = "2011659633-OPPcInzb"; // 你的 LIFF ID
+    const BACKEND_API_URL = "https://guildmaster-lv.duckdns.org";
+    let currentLineUid = "";
+
+    async function init() {
+      try {
+        if (typeof liff !== 'undefined') {
+          await liff.init({ liffId: MY_LIFF_ID });
+          if (liff.isLoggedIn()) {
+            const profile = await liff.getProfile();
+            currentLineUid = profile.userId;
+            document.getElementById('userAvatar').src = profile.pictureUrl || "https://cdn.discordapp.com/embed/avatars/0.png";
+            document.getElementById('userLineName').textContent = profile.displayName;
+          } else {
+            liff.login();
+            return;
+          }
+        }
+
+        // 向後端確認會員資料
+        const res = await fetch(`${BACKEND_API_URL}/api/members/${encodeURIComponent(currentLineUid)}`);
+        const data = await res.json();
+
+        document.getElementById('loadingBox').classList.add('hidden');
+        document.getElementById('contentBox').classList.remove('hidden');
+
+        if (data && data.status === 'found') {
+          document.getElementById('userNick').textContent = `${data.gameNickname} (${data.gameClass || '未填'})`;
+          
+          const isBound = !!(data.dcid && (data.joinedDc === 'Y' || data.joined_dc === 'Y'));
+          if (isBound) {
+            document.getElementById('boundView').classList.remove('hidden');
+          } else {
+            document.getElementById('unboundView').classList.remove('hidden');
+          }
+        } else {
+          document.getElementById('userNick').textContent = "尚未登記遊戲角色";
+          document.getElementById('unboundView').classList.remove('hidden');
+        }
+
+      } catch (err) {
+        console.error("初始化失敗:", err);
+        alert("載入失敗，請確認網路連線！");
+      }
+    }
+
+    function handleDiscordAuth() {
+      if (!currentLineUid) return alert("尚未取得 LINE 身分！");
+      
+      const authUrl = `${BACKEND_API_URL}/api/auth/discord?uid=${encodeURIComponent(currentLineUid)}`;
+      
+      // 強制使用手機外部瀏覽器開啟避免 WebView 攔截
+      if (typeof liff !== 'undefined' && liff.openWindow) {
+        liff.openWindow({ url: authUrl, external: true });
+      } else {
+        window.open(authUrl, '_blank');
+      }
+    }
+
+    function closePage() {
+      if (typeof liff !== 'undefined' && liff.closeWindow) {
+        liff.closeWindow();
+      } else {
+        window.close();
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
