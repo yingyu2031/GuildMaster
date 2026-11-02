@@ -115,17 +115,12 @@ input[type="date"], input[type="time"], select {
  </button>
  </div>
 
- <div id="groupToolBar" class="hidden space-y-2">
- <div class="flex items-center justify-between">
- <div class="flex gap-1 bg-sky-50/80 p-1 rounded-xl border border-sky-100">
- <button id="groupTabActive" onclick="switchGroupSubTab('active')" class="px-2.5 py-1 text-xs font-black rounded-lg bg-white text-sky-900 shadow-xs cursor-pointer">活躍團體</button>
- <button id="groupTabArchived" onclick="switchGroupSubTab('archived')" class="px-2.5 py-1 text-xs font-bold rounded-lg text-slate-500 hover:text-slate-800 cursor-pointer">封存團體</button>
- </div>
- <button onclick="openCreateGroupModal()" class="bg-sky-500 hover:bg-sky-600 active:scale-95 text-white text-xs font-black px-3 py-1.5 rounded-xl shadow-xs transition cursor-pointer">
- + 新增團體
- </button>
- </div>
- </div>
+<!-- 團體速查工具列-->
+<div id="groupToolBar" class="hidden flex justify-end px-1">
+  <button type="button" onclick="openCreateGroupModal()" class="bg-sky-500 hover:bg-sky-600 active:scale-95 text-white text-xs font-black px-3 py-1.5 rounded-xl shadow-xs transition cursor-pointer">
+    + 新增團體
+  </button>
+</div>
 
  <div id="memberListContainer" class="space-y-3 min-h-[260px]"></div>
  </section>
@@ -397,38 +392,44 @@ input[type="date"], input[type="time"], select {
 </div>
 </div>
 
-<!-- 彈窗 2：快速新增團體 Modal -->
-<!-- 快速建立團體 Modal (支援邊搜尋邊勾選) -->
+<!-- 彈窗 2：快速新增團體 Modal (邊搜尋邊勾選優化版) -->
 <div id="createGroupModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
   <div class="bg-white w-full max-w-md rounded-[28px] p-6 border-2 border-sky-200 soft-sky-shadow max-h-[90vh] flex flex-col">
     <!-- 標題與關閉按鈕 -->
     <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
       <h3 class="text-base font-black text-slate-900">快速建立團體</h3>
-      <button type="button" onclick="closeModal('createGroupModal')" class="text-slate-400 hover:text-slate-600 text-sm font-bold cursor-pointer">關閉</button>
+      <button type="button" onclick="closeModal('createGroupModal')" class="text-slate-400 hover:text-slate-600 text-sm font-bold cursor-pointer transition">關閉</button>
     </div>
 
     <form id="createGroupForm" class="flex-1 flex flex-col space-y-3 text-left text-xs font-bold text-slate-700 overflow-hidden">
-      <!-- 團體名稱 -->
+      <!-- 1. 團體名稱輸入 -->
       <div>
         <label class="block mb-1 text-slate-800">團體名稱 <span class="text-rose-500">*</span></label>
-        <input type="text" id="newGroupNameInput" required placeholder="例如：狂暴推王團、親友組" class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:bg-white transition">
+        <input type="text" id="newGroupNameInput" required placeholder="例如：狂暴推王團、親友組" class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:bg-white transition box-border">
       </div>
 
-      <!-- 選擇納入成員區塊 -->
+      <!-- 2. 選擇納入成員區塊 -->
       <div class="flex-1 flex flex-col min-h-0 space-y-2">
         <div class="flex items-center justify-between">
           <label class="text-slate-800">選擇納入成員（僅列出未分組成員）</label>
           <span id="groupSelectedCountBadge" class="text-[10px] font-black text-sky-600 bg-sky-50 px-2 py-0.5 rounded-full border border-sky-200">已選 0 人</span>
         </div>
 
-        <!-- 即時搜尋輸入框 -->
-        <input type="text" id="groupMemberSearchInput" oninput="filterCandidateMembers()" placeholder="搜尋角色暱稱、職業..." class="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:bg-white transition">
+        <!-- 即時搜尋輸入框 (附帶清除按鈕) -->
+        <div class="relative w-full">
+          <input type="text" id="groupMemberSearchInput" oninput="filterCandidateMembers()" placeholder="搜尋角色暱稱、職業..." class="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl pl-3 pr-8 py-2 text-xs font-bold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:bg-white transition box-border">
+          <button type="button" onclick="clearGroupMemberSearch()" id="clearGroupSearchBtn" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 font-black text-xs cursor-pointer">
+            ✕
+          </button>
+        </div>
 
-        <!-- 成員清單滾動容器 -->
-        <div id="groupCandidateList" class="flex-1 overflow-y-auto space-y-1.5 pr-1 border border-sky-100 rounded-xl p-2 bg-[#F8FAFC]"></div>
+        <!-- 成員清單滾動容器 (固定最小高度，避免搜尋抖動) -->
+        <div id="groupCandidateList" class="flex-1 min-h-[160px] overflow-y-auto space-y-1.5 pr-1 border border-sky-100 rounded-xl p-2 bg-[#F8FAFC]">
+          <!-- JS 動態生成勾選名單 -->
+        </div>
       </div>
 
-      <!-- 操作按鈕 -->
+      <!-- 3. 操作按鈕 -->
       <div class="grid grid-cols-2 gap-3 pt-2">
         <button type="button" onclick="closeModal('createGroupModal')" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 rounded-xl transition cursor-pointer">取消</button>
         <button type="submit" id="createGroupSubmitBtn" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-2.5 rounded-xl transition shadow-md shadow-sky-200 cursor-pointer">確認加入</button>
@@ -698,19 +699,6 @@ input[type="date"], input[type="time"], select {
  </div>
 </div>
 
-<!-- 統一風格彈窗：確認封存團體 Modal -->
-<div id="archiveGroupConfirmModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
- <div class="bg-white w-full max-w-xs rounded-[28px] p-6 border-2 border-amber-200 soft-sky-shadow text-center">
- <h3 class="text-base font-black text-slate-900 mb-1 mt-2">確認封存團體？</h3>
- <p id="archiveGroupConfirmText" class="text-xs text-slate-500 mb-5">將此團體移至封存區</p>
- <input type="hidden" id="archiveGroupTargetName">
- <div class="grid grid-cols-2 gap-2">
- <button onclick="closeModal('archiveGroupConfirmModal')" class="bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold py-2.5 rounded-xl transition cursor-pointer">取消</button>
- <button onclick="executeArchiveGroup()" class="bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold py-2.5 rounded-xl transition shadow-md cursor-pointer">確認封存</button>
- </div>
- </div>
-</div>
-
 <!-- 統一風格彈窗：編輯職業名稱與顏色 Modal -->
 <div id="editClassModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
     <div class="bg-white w-full max-w-sm rounded-[28px] p-6 border-2 border-sky-200 soft-sky-shadow text-center">
@@ -840,8 +828,7 @@ async function loadCustomClasses() {
 
 let currentAdminUser = { lineUserId: "", gameNickname: "", gameClass: "", guildRole: "", accountStatus: "" };
 let membersData = [], leavesData = [], leaveRulesData = [], eventsData = [], broadcastSchedules = [];
-let manuallyArchivedGroups = []; 
-let currentMainSection = "members", currentMemberSubTab = "pending", currentGroupSubTab = "active";
+let currentMainSection = "members", currentMemberSubTab = "pending";
 let currentLeaveSubTab = "rank", currentLeaveMetric = "all";
 let currentEventSubTab = "active", currentSettingSubTab = "line";
 let currentViewingEventId = null;
@@ -849,12 +836,6 @@ let selectedCycleDays = [];
 let activeTimeWheelTarget = null; // 
 let selectedGroupMemberUids = new Set();
 let cachedUnassignedMembers = [];
-try {
-  const cached = localStorage.getItem('manuallyArchivedGroups');
-  if (cached) manuallyArchivedGroups = JSON.parse(cached);
-} catch (e) {
-  manuallyArchivedGroups = [];
-}
 
 const TODAY_STR = new Date().toISOString().split('T')[0];
 
@@ -2674,169 +2655,89 @@ async function executeDeleteUrgentRule() {
  }
 
 
- function switchGroupSubTab(subTab) {
-  currentGroupSubTab = subTab;
+function renderGroupOverview() {
+  const container = document.getElementById('memberListContainer');
+  if (!container) return;
+  container.innerHTML = "";
+  
+  const searchInput = document.getElementById('memberSearchInput');
+  const keyword = searchInput ? searchInput.value.trim().toLowerCase() : "";
 
-  const tabActive = document.getElementById('groupTabActive');
-  const tabArchived = document.getElementById('groupTabArchived');
+  // 整理所有成員的 teamGroup
+  const groups = {};
+  (membersData || []).forEach(m => {
+    const groupName = m.teamGroup ? m.teamGroup.trim() : "";
+    if (!groupName || groupName === "未分組") return;
+    if (!groups[groupName]) groups[groupName] = [];
+    groups[groupName].push(m);
+  });
 
-  if (tabActive && tabArchived) {
-    if (subTab === 'active') {
-      tabActive.className = "px-2.5 py-1 text-xs font-black rounded-lg bg-white text-sky-900 shadow-xs cursor-pointer";
-      tabArchived.className = "px-2.5 py-1 text-xs font-bold rounded-lg text-slate-500 hover:text-slate-800 cursor-pointer";
-    } else {
-      tabArchived.className = "px-2.5 py-1 text-xs font-black rounded-lg bg-white text-sky-900 shadow-xs cursor-pointer";
-      tabActive.className = "px-2.5 py-1 text-xs font-bold rounded-lg text-slate-500 hover:text-slate-800 cursor-pointer";
+  const groupKeys = Object.keys(groups);
+  let renderedGroupCount = 0;
+
+  groupKeys.forEach(gName => {
+    let list = groups[gName];
+
+    // 關鍵字搜尋過濾
+    if (keyword) {
+      list = list.filter(m => 
+        (m.gameNickname && m.gameNickname.toLowerCase().includes(keyword)) ||
+        (m.gameClass && m.gameClass.toLowerCase().includes(keyword)) ||
+        (m.lineDisplayName && m.lineDisplayName.toLowerCase().includes(keyword))
+      );
+      if (list.length === 0) return;
     }
+
+    renderedGroupCount++;
+    const activeCount = list.filter(x => x.guildRole !== "退會" && x.accountStatus === "已審核").length;
+
+    const card = document.createElement('div');
+    card.className = "bg-white rounded-2xl p-4 border border-sky-100 soft-sky-shadow text-left space-y-2.5 mb-3 fade-in";
+    card.innerHTML = `
+      <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+        <h3 class="text-sm font-black text-slate-900">${gName}</h3>
+        <span class="text-[10px] bg-sky-100 text-sky-800 px-2 py-0.5 rounded-full font-bold">
+          現任 ${activeCount} 人 / 總計 ${list.length} 人
+        </span>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        ${list.map(member => `
+          <div class="p-2 rounded-xl bg-[#F8FAFC] border border-sky-100 flex items-center justify-between text-xs">
+            <div>
+              <div class="font-black text-slate-800 flex items-center gap-1">
+                <span>${member.gameNickname}</span>
+                <span class="text-[9px] text-slate-400 font-normal">(${member.guildRole || '成員'})</span>
+              </div>
+              <div class="text-[10px] text-slate-500">${member.gameClass || '-'} · LINE: ${member.lineDisplayName || '-'}</div>
+            </div>
+            <button type="button" onclick="openMemberModal('edit', '${member.lineUserId}')" class="text-[10px] bg-sky-50 text-sky-800 border border-sky-200 px-2 py-1 rounded-lg hover:bg-sky-100 transition cursor-pointer">
+              編輯
+            </button>
+          </div>
+        `).join('')}
+      </div>
+    `;
+    container.appendChild(card);
+  });
+
+  if (renderedGroupCount === 0) {
+    container.innerHTML = `<div class="bg-[#F8FAFC] rounded-2xl p-6 text-center text-xs text-slate-400 font-bold border border-sky-100">查無任何團體資料</div>`;
   }
-
-  // 重新過濾並繪製團體名單
-  renderGroupOverview();
-}
- 
- function renderGroupOverview() {
- const container = document.getElementById('memberListContainer');
- container.innerHTML = "";
- const keyword = document.getElementById('memberSearchInput').value.trim().toLowerCase();
-
- const groups = {};
- membersData.forEach(m => {
- const groupName = m.teamGroup ? m.teamGroup.trim() : "";
- if (!groupName) return;
- if (!groups[groupName]) groups[groupName] = [];
- groups[groupName].push(m);
- });
-
- const groupKeys = Object.keys(groups);
- let renderedGroupCount = 0;
-
- groupKeys.forEach(gName => {
- let list = groups[gName];
- const allMembersRetired = list.every(m => m.guildRole === "退會");
- const isArchived = allMembersRetired || manuallyArchivedGroups.includes(gName);
-
- if (currentGroupSubTab === 'active' && isArchived) return;
- if (currentGroupSubTab === 'archived' && !isArchived) return;
-
- if (keyword) {
- list = list.filter(m => (m.gameNickname && m.gameNickname.toLowerCase().includes(keyword)) || (m.lineDisplayName && m.lineDisplayName.toLowerCase().includes(keyword)));
- if (list.length === 0) return;
- }
-
- renderedGroupCount++;
- const activeCount = list.filter(x => x.guildRole !== "退會" && x.accountStatus === "已審核").length;
-
- const card = document.createElement('div');
- card.className = "bg-white rounded-2xl p-4 border border-sky-100 soft-sky-shadow text-left space-y-2.5 fade-in";
- card.innerHTML = `
- <div class="flex items-center justify-between pb-2 border-b border-slate-100">
- <div class="flex items-center gap-2">
- <h3 class="text-sm font-black text-slate-900">${gName}</h3>
- <span class="text-[10px] ${isArchived ? 'bg-slate-100 text-slate-500' : 'bg-sky-100 text-sky-800'} px-2 py-0.5 rounded-full font-bold">現任 ${activeCount} 人 / 總計 ${list.length} 人</span>
- </div>
- <div>
- ${isArchived ? `
- <button onclick="unarchiveGroup('${gName}')" class="text-xs font-bold text-sky-600 hover:text-sky-700 bg-sky-50 border border-sky-200 px-2 py-1 rounded-lg transition cursor-pointer">解除封存</button>
- ` : `
- <button onclick="promptArchiveGroup('${gName}')" class="text-xs font-bold text-slate-500 hover:text-slate-700 bg-slate-50 border border-slate-200 px-2 py-1 rounded-lg transition cursor-pointer">封存團體</button>
- `}
- </div>
- </div>
- <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
- ${list.map(member => `
- <div class="p-2 rounded-xl bg-[#F8FAFC] border border-sky-100 flex items-center justify-between text-xs">
- <div>
- <div class="font-black text-slate-800 flex items-center gap-1">
- <span>${member.gameNickname}</span>
- <span class="text-[9px] text-slate-400 font-normal">(${member.guildRole || '成員'})</span>
- </div>
- <div class="text-[10px] text-slate-500">${member.gameClass} · LINE: ${member.lineDisplayName || '-'}</div>
- </div>
- <button onclick="openMemberModal('edit', '${member.lineUserId}')" class="text-[10px] bg-sky-50 text-sky-800 border border-sky-200 px-2 py-1 rounded-lg cursor-pointer">編輯</button>
- </div>
- `).join('')}
- </div>
- `;
- container.appendChild(card);
- });
-
- if (renderedGroupCount === 0) {
- const emptyMsg = currentGroupSubTab === 'active' ? '查無活躍的小團體' : '目前無封存的團體';
- container.innerHTML = `<div class="bg-[#F8FAFC] rounded-2xl p-6 text-center text-xs text-slate-400 font-bold border border-sky-100">${emptyMsg}</div>`;
- }
- }
-
- function promptArchiveGroup(groupName) {
- document.getElementById('archiveGroupTargetName').value = groupName;
- document.getElementById('archiveGroupConfirmText').textContent = `確定要將【${groupName}】移至封存區嗎？`;
- document.getElementById('archiveGroupConfirmModal').classList.remove('hidden');
- }
-
-// ==========================================
-// 1. 執行封存團體（補上 API 呼叫）
-// ==========================================
-async function executeArchiveGroup() {
-  const groupName = document.getElementById('archiveGroupTargetName').value;
-  if (!groupName) return;
-
-  if (!manuallyArchivedGroups.includes(groupName)) {
-    manuallyArchivedGroups.push(groupName);
-  }
-
-  // A. 本地快取備存（防止重新整理瞬間還原）
-  localStorage.setItem('manuallyArchivedGroups', JSON.stringify(manuallyArchivedGroups));
-
-  // B. 呼叫後端 API 儲存封存狀態
-  try {
-    await fetch(`${BACKEND_API_URL}/api/admin/groups/archive`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ groupName: groupName, isArchived: true })
-    });
-  } catch (err) {
-    console.error("封存 API 呼叫失敗:", err);
-  }
-
-  closeModal('archiveGroupConfirmModal');
-  renderGroupOverview();
 }
 
 // ==========================================
-// 2. 解除封存團體（補上 API 呼叫）
+// 2. 快速建立團體：開啟彈窗
 // ==========================================
-async function unarchiveGroup(groupName) {
-  if (!groupName) return;
-
-  manuallyArchivedGroups = manuallyArchivedGroups.filter(g => g !== groupName);
-
-  // A. 更新本地快取
-  localStorage.setItem('manuallyArchivedGroups', JSON.stringify(manuallyArchivedGroups));
-
-  // B. 呼叫後端 API 解除封存狀態
-  try {
-    await fetch(`${BACKEND_API_URL}/api/admin/groups/archive`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ groupName: groupName, isArchived: false })
-    });
-  } catch (err) {
-    console.error("解封 API 呼叫失敗:", err);
-  }
-
-  renderGroupOverview();
-}
-
-
-// 1. 打開快速建立團體 Modal
 function openCreateGroupModal() {
   document.getElementById('newGroupNameInput').value = "";
-  selectedGroupMemberUids.clear(); // 清空上次勾選名單
+  selectedGroupMemberUids.clear();
 
   const searchInput = document.getElementById('groupMemberSearchInput');
   if (searchInput) searchInput.value = "";
 
-  // 篩選所有未分組之有效現任成員
-  cachedUnassignedMembers = membersData.filter(m => 
+  // 抓出所有在會、已審核、尚未有團體的可用成員
+  cachedUnassignedMembers = (membersData || []).filter(m => 
     m.accountStatus === "已審核" && 
     m.guildRole !== "退會" && 
     (!m.teamGroup || m.teamGroup.trim() === "" || m.teamGroup === "未分組")
@@ -2848,7 +2749,7 @@ function openCreateGroupModal() {
   document.getElementById('createGroupModal').classList.remove('hidden');
 }
 
-// 2. 邊搜尋即時過濾成員清單
+// 邊搜尋即時過濾成員清單
 function filterCandidateMembers() {
   const query = (document.getElementById('groupMemberSearchInput')?.value || "").trim().toLowerCase();
   
@@ -2862,13 +2763,13 @@ function filterCandidateMembers() {
   renderCandidateMemberList(filtered);
 }
 
-// 3. 渲染成員列表（依據 Set 還原勾選狀態）
+// 渲染成員勾選列表（狀態保存在 selectedGroupMemberUids）
 function renderCandidateMemberList(list) {
   const container = document.getElementById('groupCandidateList');
   container.innerHTML = "";
 
   if (list.length === 0) {
-    container.innerHTML = `<div class="py-4 text-center text-xs text-slate-400 font-bold">查無符合條件之未分組成員</div>`;
+    container.innerHTML = `<div class="py-4 text-center text-xs text-slate-400 font-bold">查無可用之未分組成員</div>`;
     return;
   }
 
@@ -2886,7 +2787,6 @@ function renderCandidateMemberList(list) {
       <span class="text-[10px] font-bold text-slate-400">未分組</span>
     `;
 
-    // 監聽勾選狀態，同步記錄至 Set
     const cb = label.querySelector('input[type="checkbox"]');
     cb.addEventListener('change', (e) => {
       if (e.target.checked) {
@@ -2901,7 +2801,6 @@ function renderCandidateMemberList(list) {
   });
 }
 
-// 更新已選人數顯示
 function updateSelectedCountBadge() {
   const badge = document.getElementById('groupSelectedCountBadge');
   if (badge) {
@@ -2909,11 +2808,13 @@ function updateSelectedCountBadge() {
   }
 }
 
-// 4. 表單提交：平行儲存並帶入完整會員欄位 (含 tw 與 dcid)
+// ==========================================
+// 3. 表單送出：平行更新所屬團體
+// ==========================================
 document.getElementById('createGroupForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const groupName = document.getElementById('newGroupNameInput').value.trim();
-  const submitBtn = e.target.querySelector('button[type="submit"]');
+  const submitBtn = document.getElementById('createGroupSubmitBtn');
 
   if (selectedGroupMemberUids.size === 0) {
     alert("請至少勾選一位成員！");
@@ -2926,7 +2827,6 @@ document.getElementById('createGroupForm').addEventListener('submit', async (e) 
   }
 
   try {
-    // 平行送出所有選取成員的更新請求
     const updatePromises = Array.from(selectedGroupMemberUids).map(uid => {
       const m = membersData.find(x => x.lineUserId === uid);
       if (m) {
