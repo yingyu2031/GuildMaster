@@ -964,11 +964,7 @@ async function closeAuthModal() {
  } catch (err) { console.error(err); }
  }
 
- function renderAdminIdentity() {
- document.getElementById('adminNickName').textContent = currentAdminUser.gameNickname;
- document.getElementById('adminClass').textContent = currentAdminUser.gameClass;
- if (currentAdminUser.pictureUrl) document.getElementById('adminAvatar').src = currentAdminUser.pictureUrl;
- }
+ 
 
 // 同步更新頁面中所有的職業下拉選單內容
 function syncAllClassDropdowns() {
