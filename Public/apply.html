@@ -371,7 +371,7 @@
                 if (data.status === "success" && data.events) {
                     eventsDatabase = data.events;
                 }
-                renderEvents();
+                ();
             } catch (err) {
                 console.error("載入活動失敗:", err);
                 document.getElementById('eventCardListContainer').innerHTML = `
@@ -382,23 +382,28 @@
             }
         }
 
-            function renderEvents() {
+// 前端相容 iOS 的時間轉換函式
+function safeParseDate(str) {
+    if (!str) return null;
+    // 將 "2026-11-02 09:00" 換成標準 ISO 格式
+    const formatted = str.replace(/-/g, '/'); // iOS 支援 "2026/11/02 09:00"
+    return new Date(formatted);
+}
+
+function renderEvents() {
     const container = document.getElementById('eventCardListContainer');
     container.innerHTML = "";
 
     const now = new Date();
 
     const openEvents = eventsDatabase.filter(evt => {
-    if (evt.isArchived || evt.status === "已結束") return false;
-
-    // 前端雙重防呆：如果活動時間已經過去，直接不顯示在報名列表
-    if (evt.date) {
-        const eventDateTimeStr = evt.time ? `${evt.date} ${evt.time}` : `${evt.date} 23:59:59`;
-        if (now > new Date(eventDateTimeStr)) return false;
-    }
-
-    return true;
-});
+        if (evt.isArchived || evt.status === "已結束") return false;
+        if (evt.date) {
+            const eventDateTime = safeParseDate(`${evt.date} ${evt.time || '23:59:59'}`);
+            if (eventDateTime && now > eventDateTime) return false;
+        }
+        return true;
+    });
 
     if (openEvents.length === 0) {
         container.innerHTML = `
@@ -420,21 +425,25 @@
         const isUserJoined = !!userRecord;
         const userNote = userRecord ? userRecord.note : "";
 
-        // 1. 判斷是否尚未開始
+        // 1. 判斷是否尚未開始（相容 iOS）
         let isNotStarted = (evt.status === "尚未開始");
         if (evt.signupStart) {
-            const signupStartTime = new Date(evt.signupStart);
-            if (now < signupStartTime) isNotStarted = true;
+            const signupStartTime = safeParseDate(evt.signupStart);
+            if (signupStartTime && !isNaN(signupStartTime)) {
+                isNotStarted = (now < signupStartTime);
+            }
         }
 
-        // 2. 判斷是否已經截止
+        // 2. 判斷是否已截止（相容 iOS）
         let isSignupEnded = (evt.status === "已截止");
         if (evt.signupEnd) {
-            const signupEndTime = new Date(evt.signupEnd);
-            if (now > signupEndTime) isSignupEnded = true;
+            const signupEndTime = safeParseDate(evt.signupEnd);
+            if (signupEndTime && !isNaN(signupEndTime)) {
+                isSignupEnded = (now > signupEndTime);
+            }
         }
 
-        // 狀態標籤文字與樣式
+        // 狀態 Badge 呈現
         let statusBadgeText = "報名中";
         let statusBadgeClass = "bg-amber-500 text-white";
 
