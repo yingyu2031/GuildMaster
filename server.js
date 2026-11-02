@@ -1189,20 +1189,27 @@ app.get('/api/sheet/leaves', async (req, res) => {
 
 // 共用的時間檢查與狀態計算函式
 function getComputedStatus(evt) {
-  // 如果已經手動封存或狀態已被設為已結束，保持原狀
+  // 如果已經手動封存或狀態為已結束，保持原狀
   if (evt.is_archived === 1 || evt.status === '已結束') {
-    return evt.status;
+    return '已結束';
   }
-  
+
   const now = new Date();
-  const eventDateTime = new Date(`${evt.date} ${evt.time || '23:59:59'}`);
+
+  // 1. 優先檢查活動時間是否已過（若活動結束，狀態直接判定為已結束）
+  if (evt.date) {
+    const eventDateTimeStr = evt.time ? `${evt.date} ${evt.time}` : `${evt.date} 23:59:59`;
+    const eventTime = new Date(eventDateTimeStr);
+    if (now > eventTime) {
+      return '已結束';
+    }
+  }
+
   const signupEnd = new Date(evt.signup_end);
   const signupStart = new Date(evt.signup_start);
 
-  // 1. 如果活動時間已經過去，自動判定為「已結束」
-  if (now > eventDateTime) {
-    return '已結束';
-  } else if (now > signupEnd) {
+  // 2. 判斷報名區間
+  if (now > signupEnd) {
     return '已截止';
   } else if (now >= signupStart) {
     return '報名中';
@@ -1255,13 +1262,13 @@ app.get('/api/admin/events', async (req, res) => {
 });
 
 // ==========================================
-// 2. 進行報名 API (POST) - 支援儲存與更新 note 備註
+// 2. 進行報名 API (POST) - 完整卡控版
 // ==========================================
 app.post('/api/events/signup', async (req, res) => {
   const { eventId, lineUserId, gameNickname, gameClass, note } = req.body;
   
   try {
-    // 檢查活動是否存在以及是否已過報名截止時間
+    // 1. 檢查活動是否存在
     const eventResult = await pool.query('SELECT * FROM events WHERE event_id = $1', [eventId]);
     if (eventResult.rows.length === 0) {
       return res.status(404).json({ status: "error", message: "找不到此活動" });
@@ -1269,11 +1276,33 @@ app.post('/api/events/signup', async (req, res) => {
 
     const event = eventResult.rows[0];
     const now = new Date();
-    if (now > new Date(event.signup_end)) {
+
+    // 2. 檢查活動是否已被封存或結束
+    if (event.is_archived === 1 || event.status === '已結束') {
+      return res.status(400).json({ status: "error", message: "該活動已結束或封存，無法進行報名" });
+    }
+
+    // 3. 檢查報名「開始時間」
+    if (event.signup_start && now < new Date(event.signup_start)) {
+      return res.status(400).json({ status: "error", message: "報名尚未開放，無法進行報名" });
+    }
+
+    // 4. 檢查報名「截止時間」
+    if (event.signup_end && now > new Date(event.signup_end)) {
       return res.status(400).json({ status: "error", message: "報名已截止，無法進行報名" });
     }
 
-    // 進行報名寫入（若重複報名則更新報名時間與備註內容，達到可修改備註的效果）
+    // 5. 檢查是否額滿 (已在名單內者修改備註不阻擋)
+    if (event.max_limit && event.max_limit > 0) {
+      const attendeesResult = await pool.query('SELECT line_user_id FROM event_attendees WHERE event_id = $1', [eventId]);
+      const isAlreadyJoined = attendeesResult.rows.some(a => a.line_user_id === lineUserId);
+      
+      if (!isAlreadyJoined && attendeesResult.rows.length >= event.max_limit) {
+        return res.status(400).json({ status: "error", message: "報名人數已滿，無法報名" });
+      }
+    }
+
+    // 6. 寫入或更新報名資料與備註
     const signupTime = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     
     await pool.query(`
