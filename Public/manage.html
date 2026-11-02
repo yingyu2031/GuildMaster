@@ -2725,11 +2725,15 @@ function renderGroupOverview() {
 // 2. 快速建立團體：開啟彈窗
 // ==========================================
 function openCreateGroupModal() {
-  document.getElementById('newGroupNameInput').value = "";
-  selectedGroupMemberUids.clear();
-
+  const nameInput = document.getElementById('newGroupNameInput');
   const searchInput = document.getElementById('groupMemberSearchInput');
+  const clearBtn = document.getElementById('clearGroupSearchBtn');
+
+  if (nameInput) nameInput.value = "";
   if (searchInput) searchInput.value = "";
+  if (clearBtn) clearBtn.classList.add('hidden');
+
+  selectedGroupMemberUids.clear();
 
   // 抓出所有在會、已審核、尚未有團體的可用成員
   cachedUnassignedMembers = (membersData || []).filter(m => 
@@ -2743,7 +2747,7 @@ function openCreateGroupModal() {
 
   document.getElementById('createGroupModal').classList.remove('hidden');
 }
- 
+
 function clearGroupMemberSearch() {
   const input = document.getElementById('groupMemberSearchInput');
   const clearBtn = document.getElementById('clearGroupSearchBtn');
@@ -2754,9 +2758,9 @@ function clearGroupMemberSearch() {
   }
   if (clearBtn) clearBtn.classList.add('hidden');
 }
- 
-// 邊搜尋即時過濾成員清單
-ffunction filterCandidateMembers() {
+
+// 邊搜尋即時過濾成員清單（已修正關鍵字拼寫）
+function filterCandidateMembers() {
   const input = document.getElementById('groupMemberSearchInput');
   const clearBtn = document.getElementById('clearGroupSearchBtn');
   const query = (input?.value || "").trim().toLowerCase();
@@ -2778,9 +2782,10 @@ ffunction filterCandidateMembers() {
 // 渲染成員勾選列表（狀態保存在 selectedGroupMemberUids）
 function renderCandidateMemberList(list) {
   const container = document.getElementById('groupCandidateList');
+  if (!container) return;
   container.innerHTML = "";
 
-  if (list.length === 0) {
+  if (!list || list.length === 0) {
     container.innerHTML = `<div class="py-4 text-center text-xs text-slate-400 font-bold">查無可用之未分組成員</div>`;
     return;
   }
@@ -2788,7 +2793,9 @@ function renderCandidateMemberList(list) {
   list.forEach(m => {
     const isChecked = selectedGroupMemberUids.has(m.lineUserId);
     const label = document.createElement('label');
-    label.className = "flex items-center justify-between p-2 rounded-lg bg-white border border-slate-100 hover:bg-sky-50/50 cursor-pointer select-none transition";
+    label.className = `flex items-center justify-between p-2 rounded-lg border cursor-pointer select-none transition ${
+      isChecked ? 'bg-sky-50/70 border-sky-300' : 'bg-white border-slate-100 hover:bg-sky-50/40'
+    }`;
     
     label.innerHTML = `
       <div class="flex items-center gap-2">
@@ -2803,8 +2810,10 @@ function renderCandidateMemberList(list) {
     cb.addEventListener('change', (e) => {
       if (e.target.checked) {
         selectedGroupMemberUids.add(m.lineUserId);
+        label.className = "flex items-center justify-between p-2 rounded-lg border cursor-pointer select-none transition bg-sky-50/70 border-sky-300";
       } else {
         selectedGroupMemberUids.delete(m.lineUserId);
+        label.className = "flex items-center justify-between p-2 rounded-lg border cursor-pointer select-none transition bg-white border-slate-100 hover:bg-sky-50/40";
       }
       updateSelectedCountBadge();
     });
