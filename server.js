@@ -1081,18 +1081,46 @@ app.get('/api/auth/discord/callback', async (req, res) => {
   }
 });
 
-// 封存 / 解除封存團體 API
-app.post('/api/admin/groups/archive', async (req, res) => {
-  const { groupName, isArchived } = req.body; // isArchived: true (封存) 或 false (活躍)
+// ==========================================
+// 團體狀態管理 API（直接操作 groups 資料表）
+// ==========================================
+
+// 1. 取得所有手動封存的團體清單 (GET)
+app.get('/api/admin/groups/archived', async (req, res) => {
   try {
-    // 依據您團體資料表結構更新 (此處以 guild_groups 為例)
-    await pool.query(
-      'UPDATE guild_groups SET is_archived = $1, update_time = CURRENT_TIMESTAMP WHERE name = $2',
-      [isArchived ? 1 : 0, groupName]
+    // 找出所有狀態為「封存」的團體名稱
+    const result = await pool.query(
+      "SELECT group_name FROM groups WHERE group_status = '封存'"
     );
-    res.json({ status: "success" });
+    const archivedList = result.rows.map(r => r.group_name);
+    res.json({ status: "success", archivedGroups: archivedList });
   } catch (err) {
-    console.error('[Database] 封存團體失敗:', err);
+    console.error('[Database] 讀取封存團體失敗:', err);
+    res.status(500).json({ status: "error", message: err.message });
+  }
+});
+
+// 2. 封存 / 解除封存團體 (POST)
+app.post('/api/admin/groups/archive', async (req, res) => {
+  const { groupName, isArchived } = req.body;
+  if (!groupName) {
+    return res.status(400).json({ status: "error", message: "缺少團體名稱" });
+  }
+
+  const targetStatus = isArchived ? '封存' : '活躍';
+
+  try {
+    // 若該團體在 groups 表中不存在則新增，若已存在則更新狀態
+    await pool.query(`
+      INSERT INTO groups (group_name, group_status)
+      VALUES ($1, $2)
+      ON CONFLICT (group_name)
+      DO UPDATE SET group_status = EXCLUDED.group_status
+    `, [groupName, targetStatus]);
+
+    res.json({ status: "success", message: `團體【${groupName}】已設為${targetStatus}` });
+  } catch (err) {
+    console.error('[Database] 更新團體狀態失敗:', err);
     res.status(500).json({ status: "error", message: err.message });
   }
 });
