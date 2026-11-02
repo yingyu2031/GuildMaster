@@ -1081,6 +1081,21 @@ app.get('/api/auth/discord/callback', async (req, res) => {
   }
 });
 
+// 封存 / 解除封存團體 API
+app.post('/api/admin/groups/archive', async (req, res) => {
+  const { groupName, isArchived } = req.body; // isArchived: true (封存) 或 false (活躍)
+  try {
+    // 依據您團體資料表結構更新 (此處以 guild_groups 為例)
+    await pool.query(
+      'UPDATE guild_groups SET is_archived = $1, update_time = CURRENT_TIMESTAMP WHERE name = $2',
+      [isArchived ? 1 : 0, groupName]
+    );
+    res.json({ status: "success" });
+  } catch (err) {
+    console.error('[Database] 封存團體失敗:', err);
+    res.status(500).json({ status: "error", message: err.message });
+  }
+});
 
 // ==========================================
 // 請假表單 API
