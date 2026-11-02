@@ -621,48 +621,86 @@ app.get('/api/admin/members', async (req, res) => {
   }
 });
 
-// 4. 幹部審核與狀態修改 (連動退會自動踢出 Discord)
+// ==========================================
+// 4. 幹部審核與狀態修改 (連動退會：自動踢出 DC 並徹底清空 DC 狀態)
+// ==========================================
 app.post('/api/admin/members/status', async (req, res) => {
   const { lineUserId, accountStatus, guildRole } = req.body;
+  
   try {
-    // A. 先查詢該成員的 dcid 與暱稱
+    // A. 先查詢該成員的 dcid 與遊戲暱稱
     const userRes = await pool.query('SELECT dcid, game_nickname FROM members WHERE line_user_id = $1', [lineUserId]);
     const dcId = userRes.rows[0]?.dcid;
     const nickName = userRes.rows[0]?.game_nickname || lineUserId;
 
-    // B. 更新資料庫
-    await pool.query('UPDATE members SET account_status = $1, guild_role = $2, update_time = CURRENT_TIMESTAMP WHERE line_user_id = $3', [accountStatus, guildRole, lineUserId]);
+    // B. 若設為「退會」
+    if (guildRole === '退會') {
+      // 💡 關鍵修復：連同 dcid 重置為 NULL、joined_dc 與 joined_line_group 重置為 'N'
+      await pool.query(`
+        UPDATE members 
+        SET account_status = $1, 
+            guild_role = $2, 
+            dcid = NULL, 
+            joined_dc = 'N', 
+            joined_line_group = 'N', 
+            update_time = CURRENT_TIMESTAMP 
+        WHERE line_user_id = $3
+      `, [accountStatus, guildRole, lineUserId]);
 
-    // C. 若設為「退會」且有綁定 DC，自動自伺服器踢出
-    if (guildRole === '退會' && dcId) {
-      try {
-        await fetch(`https://discord.com/api/v10/guilds/${DISCORD_GUILD_ID}/members/${dcId}`, {
-          method: 'DELETE',
-          headers: {
-            Authorization: `Bot ${DISCORD_BOT_TOKEN}`,
-            'X-Audit-Log-Reason': encodeURIComponent(`成員退會移出: ${nickName}`)
+      // 自動從 Discord 伺服器踢出
+      if (dcId) {
+        try {
+          const kickRes = await fetch(`https://discord.com/api/v10/guilds/${DISCORD_GUILD_ID}/members/${dcId}`, {
+            method: 'DELETE',
+            headers: {
+              Authorization: `Bot ${DISCORD_BOT_TOKEN}`,
+              'X-Audit-Log-Reason': encodeURIComponent(`幹部審核退會移出: ${nickName}`)
+            }
+          });
+
+          if (kickRes.status === 204) {
+            console.log(`[Discord] 🚪 退會成員 ${nickName} (${dcId}) 已成功移出伺服器，資料庫狀態已完全重置`);
+          } else {
+            const errTxt = await kickRes.text();
+            console.warn(`[Discord 踢人未成功] 狀態碼: ${kickRes.status}, 回應: ${errTxt}`);
           }
-        });
-        console.log(`[Discord] 退會成員 ${nickName} (${dcId}) 已移出伺服器`);
-      } catch (dcErr) {
-        console.error('[Discord 踢人異常]:', dcErr.message);
+        } catch (dcErr) {
+          console.error('[Discord 踢人異常]:', dcErr.message);
+        }
       }
+    } else {
+      // C. 一般現任或幹部狀態正常更新
+      await pool.query(
+        'UPDATE members SET account_status = $1, guild_role = $2, update_time = CURRENT_TIMESTAMP WHERE line_user_id = $3',
+        [accountStatus, guildRole, lineUserId]
+      );
     }
 
     res.json({ status: "success" });
   } catch (err) {
+    console.error('[Database] 修改會員狀態失敗:', err);
     res.status(500).json({ status: "error", message: err.message });
   }
 });
 
-// 5. 幹部編輯 / 新增會員 (若編輯為退會同樣連動踢出)
+// ==========================================
+// 5. 幹部編輯 / 新增會員 (手動編輯為退會時同樣徹底清除 DC 綁定)
+// ==========================================
 app.post('/api/admin/members/save', async (req, res) => {
   const {
     lineUserId, gameNickname, gameClass, lineDisplayName,
     guildRole, teamGroup, accountStatus, joinedLineGroup,
     joinedDc, tw, dcid
   } = req.body;
+
   try {
+    const isRetire = (guildRole === '退會');
+
+    // 💡 關鍵防呆：若幹部手動選擇「退會」，強制將 DC 與 LINE 入群狀態歸零
+    const finalJoinedDc = isRetire ? 'N' : (joinedDc || 'N');
+    const finalJoinedLine = isRetire ? 'N' : (joinedLineGroup || 'N');
+    const finalDcid = isRetire ? null : (dcid ? String(dcid).trim() : null);
+
     await pool.query(`
       INSERT INTO members (
         line_user_id, game_nickname, game_class, line_display_name, 
@@ -677,37 +715,43 @@ app.post('/api/admin/members/save', async (req, res) => {
         guild_role = EXCLUDED.guild_role, 
         team_group = EXCLUDED.team_group, 
         account_status = EXCLUDED.account_status, 
-        joined_line_group = EXCLUDED.joined_line_group, 
-        joined_dc = EXCLUDED.joined_dc,
+        joined_line_group = $8,
+        joined_dc = $9,
         tw = COALESCE(EXCLUDED.tw, members.tw, 'Y'),
-        dcid = COALESCE(EXCLUDED.dcid, members.dcid),
+        dcid = $11,
         update_time = CURRENT_TIMESTAMP
     `, [
       lineUserId, gameNickname, gameClass, lineDisplayName,
       guildRole, teamGroup, accountStatus,
-      joinedLineGroup || 'N', joinedDc || 'N',
-      tw || 'Y', dcid || null
+      finalJoinedLine, finalJoinedDc,
+      tw || 'Y', finalDcid
     ]);
 
-    // 💡 關鍵防呆：若幹部在編輯彈窗中將該成員身分設為「退會」，也自動踢出 DC
-    const finalDcId = dcid;
-    if (guildRole === '退會' && finalDcId) {
+    // 💡 若手動改為退會且原本有 dcid，連動將其踢出 Discord
+    if (isRetire && dcid) {
       try {
-        await fetch(`https://discord.com/api/v10/guilds/${DISCORD_GUILD_ID}/members/${finalDcId}`, {
+        const kickRes = await fetch(`https://discord.com/api/v10/guilds/${DISCORD_GUILD_ID}/members/${dcid}`, {
           method: 'DELETE',
           headers: {
             Authorization: `Bot ${DISCORD_BOT_TOKEN}`,
             'X-Audit-Log-Reason': encodeURIComponent(`幹部手動編輯退會移出: ${gameNickname}`)
           }
         });
-        console.log(`[Discord] 編輯退會成員 ${gameNickname} (${finalDcId}) 已移出伺服器`);
+
+        if (kickRes.status === 204) {
+          console.log(`[Discord] 🚪 編輯退會成員 ${gameNickname} (${dcid}) 已成功移出伺服器，並清空資料庫 DC 狀態`);
+        } else {
+          const errTxt = await kickRes.text();
+          console.warn(`[Discord 踢人未成功] 狀態碼: ${kickRes.status}, 回應: ${errTxt}`);
+        }
       } catch (dcErr) {
-        console.error('[Discord 踢人異常]:', dcErr.message);
+        console.error('[Discord 踢人連線異常]:', dcErr.message);
       }
     }
 
     res.json({ status: "success" });
   } catch (err) {
+    console.error('[Database] 幹部儲存會員失敗:', err);
     res.status(500).json({ status: "error", message: err.message });
   }
 });
