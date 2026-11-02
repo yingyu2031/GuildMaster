@@ -50,9 +50,16 @@ input[type="date"], input[type="time"], select {
 <main class="max-w-lg w-full mx-auto">
  <!-- 頂部標題區 -->
  <div class="text-center mb-5 pt-1">
- <div id="topBadge" class="in-block bg-sky-100 text-sky-800 text-xs font-black px-4 py-1 rounded-full mb-2.5 border border-sky-200/80">
- 幹部專用
- </div>
+ <!-- 頂部：一鍵重新整理按鈕 -->
+<div class="flex justify-center mb-3">
+  <button type="button" onclick="refreshAdminData()" id="btnRefreshAdmin"
+          class="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-black bg-sky-100 hover:bg-sky-200 text-sky-800 border border-sky-200 shadow-sm active:scale-95 transition cursor-pointer">
+    <svg id="refreshIcon" class="w-3.5 h-3.5 fill-none stroke-current stroke-2 transition-transform duration-500" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+    </svg>
+    <span id="refreshText">重新整理資料</span>
+  </button>
+</div>
  <h1 class="text-2xl font-black text-slate-900 tracking-tight mb-1.5">後台管理中心</h1>
  <p class="text-[13px] font-bold text-slate-500">公會事務、成員審核與活動出勤統整</p>
  </div>
@@ -930,7 +937,7 @@ async function closeAuthModal() {
   renderUrgentRules();
   await fetchBroadcastsFromBackend();
 }
-
+ 
 // ==========================================
 /* 3. 資料非同步同步與 API 互動函式 */
 // ==========================================
@@ -2950,6 +2957,60 @@ document.getElementById('memberForm').addEventListener('submit', async (e) => {
 });
 
 function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+// ==========================================
+// 幹部專用：免關閉頁面，一鍵重新取得後端資料
+// ==========================================
+async function refreshAdminData() {
+  const btn = document.getElementById('btnRefreshAdmin');
+  const icon = document.getElementById('refreshIcon');
+  const text = document.getElementById('refreshText');
+
+  // 1. 動畫與按鈕反灰鎖定
+  if (btn) btn.disabled = true;
+  if (icon) icon.classList.add('animate-spin');
+  if (text) text.textContent = "更新中...";
+
+  try {
+    // 2. 重新呼叫全域抓取資料函式
+    if (typeof fetchAllBackendData === 'function') {
+      await fetchAllBackendData();
+    }
+
+    // 3. 重新渲染統計與名單
+    if (typeof updateMemberCounts === 'function') {
+      updateMemberCounts();
+    }
+
+    // 4. 依據幹部當前停留在哪個分頁，重新渲染畫面
+    if (typeof currentMemberSubTab !== 'undefined' && currentMemberSubTab === 'groups') {
+      if (typeof renderGroupOverview === 'function') renderGroupOverview();
+    } else if (typeof renderMembersList === 'function') {
+      renderMembersList();
+    }
+
+    // 如果當前在請假或活動頁籤，也一併刷新
+    if (typeof renderLeavesList === 'function') renderLeavesList();
+    if (typeof renderActivitiesList === 'function') renderActivitiesList();
+
+    // 成功提示效果
+    if (text) text.textContent = "✓ 更新完成";
+    setTimeout(() => {
+      if (text) text.textContent = "重新整理資料";
+    }, 1200);
+
+  } catch (err) {
+    console.error("重新載入失敗:", err);
+    alert("更新資料失敗，請檢查網路連線！");
+    if (text) text.textContent = "重整失敗";
+  } finally {
+    // 5. 解除旋轉動畫與按鈕鎖定
+    setTimeout(() => {
+      if (icon) icon.classList.remove('animate-spin');
+      if (btn) btn.disabled = false;
+    }, 400);
+  }
+} 
 </script>
 
 <!-- 全螢幕身分登入/驗證彈窗 -->
