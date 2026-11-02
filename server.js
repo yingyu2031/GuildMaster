@@ -264,11 +264,48 @@ app.post('/webhook', async (req, res) => {
     console.warn('[LINE Webhook] 轉發至 n8n 異常:', err.message);
   });
 
-  // ----------------------------------------------------
-  // 以下維持 GuildMaster 原有的群組指令與入群監聽
-  // ----------------------------------------------------
-  for (const ev of events) {
-    // 1. 監聽群組指令：自動綁定 Group ID
+
+ for (const ev of events) {
+    // ----------------------------------------------------
+    // 1. 監聽新成員加入大群 (自動更新 joined_line_group = 'Y')
+    // ----------------------------------------------------
+    if (ev.type === 'memberJoined' && ev.source?.type === 'group') {
+      try {
+        const configRes = await pool.query(
+          "SELECT config_value FROM system_configs WHERE config_key = 'guild_group_id'"
+        );
+        const guildGroupId = configRes.rows.length > 0 ? configRes.rows[0].config_value : null;
+
+        // 僅限公會大群才更新（幹部群加人不誤判）
+        if (guildGroupId && ev.source.groupId === guildGroupId) {
+          const membersList = ev.joined?.members || [];
+          for (const m of membersList) {
+            if (m.type === 'user' && m.userId) {
+              const joinedUid = m.userId;
+              const updateRes = await pool.query(`
+                UPDATE members 
+                SET joined_line_group = 'Y', update_time = CURRENT_TIMESTAMP 
+                WHERE line_user_id = $1 
+                RETURNING game_nickname
+              `, [joinedUid]);
+
+              if (updateRes.rows.length > 0) {
+                console.log(`[LINE 大群] 成員【${updateRes.rows[0].game_nickname}】(${joinedUid}) 已自動標記 joined_line_group = 'Y'`);
+              } else {
+                console.log(`[LINE 大群] UID ${joinedUid} 入群，尚未登記會員資料`);
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.error('[LINE Webhook] 更新入群狀態失敗:', err);
+      }
+      continue;
+    }
+
+    // ----------------------------------------------------
+    // 2. 監聽群組指令：自動綁定 Group ID
+    // ----------------------------------------------------
     if (ev.type === 'message' && ev.message.type === 'text') {
       const userText = ev.message.text.trim();
       const source = ev.source;
@@ -336,7 +373,9 @@ app.post('/webhook', async (req, res) => {
       }
     }
 
-    // 2. Bot 剛被拉進群組時自動發送歡迎引導
+    // ----------------------------------------------------
+    // 3. Bot 剛被拉進群組時自動發送歡迎引導
+    // ----------------------------------------------------
     if (ev.type === 'join' && ev.source && ev.source.type === 'group') {
       await replyLineMessage(ev.replyToken, [
         {
@@ -431,12 +470,15 @@ app.post('/api/members/bind', async (req, res) => {
     const finalTw = oldMember ? (oldMember.tw || tw || 'Y') : (tw || 'Y');
     const finalDcid = oldMember ? (oldMember.dcid || dcid || null) : (dcid || null);
 
-    // 1. 寫入 / 更新會員主資料
+    // 💡 關鍵判定：若為大陸成員（tw === 'N'）或本身帶有 dcid，代表已經過 Discord 授權，joined_dc 自動標記為 'Y'
+    const finalJoinedDc = (finalTw === 'N' || finalDcid) ? 'Y' : (oldMember?.joined_dc || 'N');
+
+    // 1. 寫入 / 更新會員主資料 (補上 joined_dc 欄位)
     await pool.query(`
       INSERT INTO members (
         line_user_id, game_nickname, game_class, line_display_name, 
-        allow_search, account_status, guild_role, tw, dcid, update_time
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP)
+        allow_search, account_status, guild_role, tw, dcid, joined_dc, update_time
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP)
       ON CONFLICT (line_user_id) 
       DO UPDATE SET 
         game_nickname = EXCLUDED.game_nickname, 
@@ -447,6 +489,7 @@ app.post('/api/members/bind', async (req, res) => {
         guild_role = $7,
         tw = COALESCE(members.tw, EXCLUDED.tw),
         dcid = COALESCE(members.dcid, EXCLUDED.dcid),
+        joined_dc = $10,
         update_time = CURRENT_TIMESTAMP
     `, [
       lineUserId, 
@@ -457,7 +500,8 @@ app.post('/api/members/bind', async (req, res) => {
       finalAccountStatus, 
       finalRole, 
       finalTw, 
-      finalDcid
+      finalDcid,
+      finalJoinedDc
     ]);
 
     // 2. 審核歷程紀錄與幹部 LINE 推播
@@ -469,7 +513,7 @@ app.post('/api/members/bind', async (req, res) => {
       );
 
       // 推播 LINE 通知至幹部群
-     try {
+      try {
         const configRes = await pool.query("SELECT config_value FROM system_configs WHERE config_key = 'admin_group_id'");
         const adminGroupId = configRes.rows.length > 0 ? configRes.rows[0].config_value : null;
 
@@ -483,10 +527,11 @@ app.post('/api/members/bind', async (req, res) => {
             `• 遊戲職業：${gameClass}\n` +
             `• 社群暱稱：${lineDisplayName || '無'}\n` +
             `• 註冊管道：${regionText}\n` +
+            `• DC 語音群：已自動加入\n` +
             `• 申請時間：${currentTime}\n\n` +
             `👉 請盡快前往【幹部後台】進行確認喔～`;
 
-          const pushRes = await fetch('https://api.line.me/v2/bot/message/push', {
+          await fetch('https://api.line.me/v2/bot/message/push', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
