@@ -32,7 +32,6 @@ input[type="date"], input[type="time"], select {
  appearance: none;
  min-height: 40px;
  height: 40px;
- -height: 40px;
  box-sizing: border-box;
 }
 /* 強制滾輪式時間選擇器的選項文字置中 */
@@ -101,7 +100,7 @@ input[type="date"], input[type="time"], select {
  <!-- 第一行：搜尋角色與職業篩選 -->
  <div class="flex gap-2 items-center">
  <div class="relative flex-1 min-w-0">
- <input type="text" id="memberSearchInput" oninput="handleMemberSearchInput()" placeholder="搜尋角色或  暱稱..."
+ <input type="text" id="memberSearchInput" oninput="handleMemberSearchInput()" placeholder="搜尋遊戲或LINE暱稱..."
  class="w-full h-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:out-none focus:ring-2 focus:ring-sky-400 focus:bg-white transition box-border">
  </div>
  <select id="memberClassFilter" onchange="renderMembersList()" class="h-[40px] leading-[40px] bg-[#F8FAFC] border border-sky-200 rounded-xl px-2.5 text-xs font-bold text-slate-800 focus:out-none focus:ring-2 focus:ring-sky-400 focus:bg-white transition box-border shrink-0 cursor-pointer">
@@ -2744,11 +2743,28 @@ function openCreateGroupModal() {
 
   document.getElementById('createGroupModal').classList.remove('hidden');
 }
-
+ 
+function clearGroupMemberSearch() {
+  const input = document.getElementById('groupMemberSearchInput');
+  const clearBtn = document.getElementById('clearGroupSearchBtn');
+  if (input) {
+    input.value = "";
+    filterCandidateMembers();
+    input.focus();
+  }
+  if (clearBtn) clearBtn.classList.add('hidden');
+}
+ 
 // 邊搜尋即時過濾成員清單
-function filterCandidateMembers() {
-  const query = (document.getElementById('groupMemberSearchInput')?.value || "").trim().toLowerCase();
-  
+ffunction filterCandidateMembers() {
+  const input = document.getElementById('groupMemberSearchInput');
+  const clearBtn = document.getElementById('clearGroupSearchBtn');
+  const query = (input?.value || "").trim().toLowerCase();
+
+  if (clearBtn) {
+    clearBtn.classList.toggle('hidden', !query);
+  }
+
   const filtered = cachedUnassignedMembers.filter(m => {
     const nick = (m.gameNickname || "").toLowerCase();
     const cls = (m.gameClass || "").toLowerCase();
