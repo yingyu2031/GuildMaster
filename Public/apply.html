@@ -382,154 +382,192 @@
             }
         }
 
-                function renderEvents() {
-            const container = document.getElementById('eventCardListContainer');
-            container.innerHTML = "";
+            function renderEvents() {
+    const container = document.getElementById('eventCardListContainer');
+    container.innerHTML = "";
 
-            const now = new Date();
+    const now = new Date();
 
-            const openEvents = eventsDatabase.filter(evt => {
-                if (evt.isArchived || evt.status === "已結束") return false;
-                return true;
-            });
+    const openEvents = eventsDatabase.filter(evt => {
+    if (evt.isArchived || evt.status === "已結束") return false;
 
-            if (openEvents.length === 0) {
-                container.innerHTML = `
-                    <div class="bg-white rounded-2xl p-8 text-center border-2 border-amber-200/80 soft-amber-shadow">
-                        <div class="text-3xl mb-2">📅</div>
-                        <div class="text-xs font-black text-slate-800">目前沒有開放報名中的活動</div>
-                        <div class="text-[11px] text-amber-800/60 mt-1 font-bold">請留意幹部於群組發布之最新公告</div>
-                    </div>
-                `;
-                return;
-            }
+    // 前端雙重防呆：如果活動時間已經過去，直接不顯示在報名列表
+    if (evt.date) {
+        const eventDateTimeStr = evt.time ? `${evt.date} ${evt.time}` : `${evt.date} 23:59:59`;
+        if (now > new Date(eventDateTimeStr)) return false;
+    }
 
-            openEvents.forEach(evt => {
-                const attendees = evt.attendees || [];
-                const attendeesCount = attendees.length;
-                const isFull = evt.maxLimit && evt.maxLimit > 0 && attendeesCount >= evt.maxLimit;
-                
-                // 找出目前使用者自己的報名記錄與備註
-                const userRecord = attendees.find(a => a.lineUserId === currentUser.userId);
-                const isUserJoined = !!userRecord;
-                const userNote = userRecord ? userRecord.note : "";
+    return true;
+});
 
-                let isSignupEnded = (evt.status === "已截止");
-                if (evt.signupEnd) {
-                    const signupEndTime = new Date(evt.signupEnd);
-                    if (now > signupEndTime) {
-                        isSignupEnded = true;
-                    }
-                }
+    if (openEvents.length === 0) {
+        container.innerHTML = `
+            <div class="bg-white rounded-2xl p-8 text-center border-2 border-amber-200/80 soft-amber-shadow">
+                <div class="text-3xl mb-2">📅</div>
+                <div class="text-xs font-black text-slate-800">目前沒有開放報名中的活動</div>
+                <div class="text-[11px] text-amber-800/60 mt-1 font-bold">請留意幹部於群組發布之最新公告</div>
+            </div>
+        `;
+        return;
+    }
 
-                let actionBtnHtml = "";
-                
-                if (isSignupEnded) {
-                    actionBtnHtml = `
-                        <button disabled class="w-full bg-slate-100 text-slate-400 font-bold text-xs py-2.5 rounded-xl cursor-not-allowed">
-                            報名已截止（無法變更）
-                        </button>
-                    `;
-                } else if (isUserJoined) {
-                    actionBtnHtml = `
-                        <button onclick="handleCancelSignup('${evt.id}')" class="w-full bg-emerald-500 hover:bg-emerald-600 active:scale-98 text-white font-black text-xs py-2.5 rounded-xl transition shadow-md shadow-emerald-200 flex items-center justify-center gap-1.5 cursor-pointer">
-                            <span>✓ 已報名成功</span>
-                            <span class="text-[11px] font-normal opacity-90">(點此取消)</span>
-                        </button>
-                    `;
-                } else if (isFull) {
-                    actionBtnHtml = `
-                        <button disabled class="w-full bg-slate-100 text-slate-400 font-bold text-xs py-2.5 rounded-xl cursor-not-allowed">
-                            名額已滿無法報名
-                        </button>
-                    `;
-                } else {
-                    actionBtnHtml = `
-                        <button onclick="handleJoinSignup('${evt.id}')" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 active:scale-98 text-white font-black text-xs py-2.5 rounded-xl transition shadow-md shadow-orange-200 cursor-pointer">
-                            立即報名參加
-                        </button>
-                    `;
-                }
+    openEvents.forEach(evt => {
+        const attendees = evt.attendees || [];
+        const attendeesCount = attendees.length;
+        const isFull = evt.maxLimit && evt.maxLimit > 0 && attendeesCount >= evt.maxLimit;
+        
+        const userRecord = attendees.find(a => a.lineUserId === currentUser.userId);
+        const isUserJoined = !!userRecord;
+        const userNote = userRecord ? userRecord.note : "";
 
-                // 如果使用者已報名，生成顯示自己備註的區塊（附帶修改按鈕）
-                let userNoteBlockHtml = "";
-                if (isUserJoined && !isSignupEnded) {
-                    userNoteBlockHtml = `
-                        <div class="bg-emerald-50/80 border border-emerald-200 rounded-xl p-2.5 text-xs text-emerald-900 flex items-start justify-between gap-2">
-                            <div class="min-w-0">
-                                <span class="font-black">報名備註：</span>
-                                <span class="font-medium break-words">${userNote ? userNote : '<span class="text-slate-400 italic">無</span>'}</span>
-                            </div>
-                            <button onclick="handleJoinSignup('${evt.id}')" class="shrink-0 text-[11px] font-bold text-emerald-700 hover:text-emerald-900 underline cursor-pointer">
-                                修改
-                            </button>
-                        </div>
-                    `;
-                }
-
-                const percent = evt.maxLimit ? Math.min(100, Math.round((attendeesCount / evt.maxLimit) * 100)) : 100;
-                const limitText = evt.maxLimit ? `${attendeesCount} / ${evt.maxLimit} 人` : `${attendeesCount} 人 (無上限)`;
-
-                const card = document.createElement('div');
-                card.className = "bg-white rounded-2xl p-4 border-2 border-amber-200/70 text-left soft-amber-shadow fade-in space-y-3";
-                card.innerHTML = `
-                    <div class="flex items-start justify-between">
-                        <div>
-                            <span class="bg-amber-500 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full shadow-xs">${isSignupEnded ? '已截止' : (evt.status || '報名中')}</span>
-                            <h3 class="text-base font-black text-slate-900 mt-1.5">${evt.title}</h3>
-                            <div class="text-xs text-slate-600 font-bold mt-0.5">
-                                活動時間：<span class="text-amber-900 font-black font-mono">${evt.date} ${evt.time}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="bg-amber-50/70 border border-amber-200/80 rounded-xl p-2.5 text-[11px] text-slate-700 font-bold space-y-1">
-                        <div class="flex justify-between items-center">
-                            <span class="text-slate-500">報名開放：</span>
-                            <span class="font-mono text-slate-800">${evt.signupStart || '即刻起'}</span>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-slate-500">報名截止：</span>
-                            <span class="font-mono text-orange-700 font-black">${evt.signupEnd || '活動前截止'}</span>
-                        </div>
-                    </div>
-
-                    <p class="text-xs text-slate-600 bg-[#FFFDF7] p-2.5 rounded-xl border border-amber-100 leading-relaxed font-medium whitespace-pre-line break-word">${(evt.desc || '無備註。').trim()}</p>
-                    
-                    <div>
-                        <div class="flex justify-between text-xs font-bold mb-1">
-                            <span class="text-slate-500">已報名人數</span>
-                            <span class="text-slate-900 font-mono font-black">${limitText}</span>
-                        </div>
-                        <div class="w-full h-2 bg-amber-100 rounded-full overflow-hidden">
-                            <div class="h-full bg-gradient-to-r from-amber-400 to-orange-500 rounded-full transition-all duration-300" style="width: ${percent}%"></div>
-                        </div>
-                    </div>
-
-                    <!-- 自己的報名備註資訊框（僅在已報名且未截止時顯示） -->
-                    ${userNoteBlockHtml}
-
-                    <div class="pt-1">
-                        ${actionBtnHtml}
-                    </div>
-                `;
-                container.appendChild(card);
-            });
+        // 1. 判斷是否尚未開始
+        let isNotStarted = (evt.status === "尚未開始");
+        if (evt.signupStart) {
+            const signupStartTime = new Date(evt.signupStart);
+            if (now < signupStartTime) isNotStarted = true;
         }
+
+        // 2. 判斷是否已經截止
+        let isSignupEnded = (evt.status === "已截止");
+        if (evt.signupEnd) {
+            const signupEndTime = new Date(evt.signupEnd);
+            if (now > signupEndTime) isSignupEnded = true;
+        }
+
+        // 狀態標籤文字與樣式
+        let statusBadgeText = "報名中";
+        let statusBadgeClass = "bg-amber-500 text-white";
+
+        if (isSignupEnded) {
+            statusBadgeText = "已截止";
+            statusBadgeClass = "bg-slate-400 text-white";
+        } else if (isNotStarted) {
+            statusBadgeText = "尚未開始";
+            statusBadgeClass = "bg-blue-400 text-white";
+        }
+
+        // 按鈕邏輯
+        let actionBtnHtml = "";
+        if (isSignupEnded) {
+            actionBtnHtml = `
+                <button disabled class="w-full bg-slate-100 text-slate-400 font-bold text-xs py-2.5 rounded-xl cursor-not-allowed">
+                    報名已截止（無法變更）
+                </button>
+            `;
+        } else if (isNotStarted) {
+            actionBtnHtml = `
+                <button disabled class="w-full bg-slate-100 text-slate-400 font-bold text-xs py-2.5 rounded-xl cursor-not-allowed">
+                    尚未開放報名
+                </button>
+            `;
+        } else if (isUserJoined) {
+            actionBtnHtml = `
+                <button onclick="handleCancelSignup('${evt.id}')" class="w-full bg-emerald-500 hover:bg-emerald-600 active:scale-98 text-white font-black text-xs py-2.5 rounded-xl transition shadow-md shadow-emerald-200 flex items-center justify-center gap-1.5 cursor-pointer">
+                    <span>✓ 已報名成功</span>
+                    <span class="text-[11px] font-normal opacity-90">(點此取消)</span>
+                </button>
+            `;
+        } else if (isFull) {
+            actionBtnHtml = `
+                <button disabled class="w-full bg-slate-100 text-slate-400 font-bold text-xs py-2.5 rounded-xl cursor-not-allowed">
+                    名額已滿無法報名
+                </button>
+            `;
+        } else {
+            actionBtnHtml = `
+                <button onclick="handleJoinSignup('${evt.id}')" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 active:scale-98 text-white font-black text-xs py-2.5 rounded-xl transition shadow-md shadow-orange-200 cursor-pointer">
+                    立即報名參加
+                </button>
+            `;
+        }
+
+        // 自己的報名備註資訊框（僅在已報名且未截止時顯示）
+        let userNoteBlockHtml = "";
+        if (isUserJoined && !isSignupEnded) {
+            userNoteBlockHtml = `
+                <div class="bg-emerald-50/80 border border-emerald-200 rounded-xl p-2.5 text-xs text-emerald-900 flex items-start justify-between gap-2">
+                    <div class="min-w-0">
+                        <span class="font-black">報名備註：</span>
+                        <span class="font-medium break-words">${userNote ? escapeHtml(userNote) : '<span class="text-slate-400 italic">無</span>'}</span>
+                    </div>
+                    <button onclick="handleJoinSignup('${evt.id}')" class="shrink-0 text-[11px] font-bold text-emerald-700 hover:text-emerald-900 underline cursor-pointer">
+                        修改
+                    </button>
+                </div>
+            `;
+        }
+
+        const percent = evt.maxLimit ? Math.min(100, Math.round((attendeesCount / evt.maxLimit) * 100)) : 100;
+        const limitText = evt.maxLimit ? `${attendeesCount} / ${evt.maxLimit} 人` : `${attendeesCount} 人 (無上限)`;
+
+        const card = document.createElement('div');
+        card.className = "bg-white rounded-2xl p-4 border-2 border-amber-200/70 text-left soft-amber-shadow fade-in space-y-3";
+        card.innerHTML = `
+            <div class="flex items-start justify-between">
+                <div>
+                    <span class="${statusBadgeClass} text-[10px] font-black px-2.5 py-0.5 rounded-full shadow-xs">${statusBadgeText}</span>
+                    <h3 class="text-base font-black text-slate-900 mt-1.5">${evt.title}</h3>
+                    <div class="text-xs text-slate-600 font-bold mt-0.5">
+                        活動時間：<span class="text-amber-900 font-black font-mono">${evt.date} ${evt.time}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-amber-50/70 border border-amber-200/80 rounded-xl p-2.5 text-[11px] text-slate-700 font-bold space-y-1">
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-500">報名開放：</span>
+                    <span class="font-mono text-slate-800">${evt.signupStart || '即刻起'}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-500">報名截止：</span>
+                    <span class="font-mono text-orange-700 font-black">${evt.signupEnd || '活動前截止'}</span>
+                </div>
+            </div>
+
+            <p class="text-xs text-slate-600 bg-[#FFFDF7] p-2.5 rounded-xl border border-amber-100 leading-relaxed font-medium whitespace-pre-line break-word">${(evt.desc || '無備註。').trim()}</p>
+            
+            <div>
+                <div class="flex justify-between text-xs font-bold mb-1">
+                    <span class="text-slate-500">已報名人數</span>
+                    <span class="text-slate-900 font-mono font-black">${limitText}</span>
+                </div>
+                <div class="w-full h-2 bg-amber-100 rounded-full overflow-hidden">
+                    <div class="h-full bg-gradient-to-r from-amber-400 to-orange-500 rounded-full transition-all duration-300" style="width: ${percent}%"></div>
+                </div>
+            </div>
+
+            ${userNoteBlockHtml}
+
+            <div class="pt-1">
+                ${actionBtnHtml}
+            </div>
+        `;
+        container.appendChild(card);
+    });
+}
 
 
 function handleJoinSignup(eventId) {
     const evt = eventsDatabase.find(e => e.id === eventId);
     if (!evt) return;
 
-    // 檢查使用者是否已經報名過，若有則把先前的備註帶入文字框方便修改
+    const now = new Date();
+    if (evt.signupStart && now < new Date(evt.signupStart)) {
+        alert("⚠️ 該活動尚未開放報名！");
+        return;
+    }
+    if (evt.signupEnd && now > new Date(evt.signupEnd)) {
+        alert("⚠️ 報名已截止，無法報名！");
+        return;
+    }
+
     const attendees = evt.attendees || [];
     const userRecord = attendees.find(a => a.lineUserId === currentUser.userId);
     const existingNote = userRecord ? (userRecord.note || "") : "";
 
     document.getElementById('eventSignupTargetId').value = eventId;
     document.getElementById('eventSignupConfirmText').textContent = `確定要報名參加【${evt.title}】嗎？`;
-    document.getElementById('eventSignupNoteInput').value = existingNote; // 自動帶入舊備註
+    document.getElementById('eventSignupNoteInput').value = existingNote;
     document.getElementById('eventSignupConfirmModal').classList.remove('hidden');
 }
 
