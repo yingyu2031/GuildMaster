@@ -469,11 +469,9 @@ app.post('/api/members/bind', async (req, res) => {
 
     const finalTw = oldMember ? (oldMember.tw || tw || 'Y') : (tw || 'Y');
     const finalDcid = oldMember ? (oldMember.dcid || dcid || null) : (dcid || null);
-
-    // 💡 關鍵判定：若為大陸成員（tw === 'N'）或本身帶有 dcid，代表已經過 Discord 授權，joined_dc 自動標記為 'Y'
     const finalJoinedDc = (finalTw === 'N' || finalDcid) ? 'Y' : (oldMember?.joined_dc || 'N');
 
-    // 1. 寫入 / 更新會員主資料 (補上 joined_dc 欄位)
+    // 1. 寫入 / 更新會員主資料
     await pool.query(`
       INSERT INTO members (
         line_user_id, game_nickname, game_class, line_display_name, 
@@ -504,15 +502,33 @@ app.post('/api/members/bind', async (req, res) => {
       finalJoinedDc
     ]);
 
+    // 💡 關鍵補上：若有綁定 Discord (大陸或台灣)，按下送出時順便修改 DC 伺服器暱稱！
+    if (finalDcid && DISCORD_BOT_TOKEN && DISCORD_GUILD_ID) {
+      fetch(`https://discord.com/api/v10/guilds/${DISCORD_GUILD_ID}/members/${finalDcid}`, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bot ${DISCORD_BOT_TOKEN}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ nick: gameNickname })
+      }).then(async r => {
+        if (r.ok) {
+          console.log(`[Discord] 成功將成員 (${finalDcid}) 的伺服器暱稱改為: ${gameNickname}`);
+        } else {
+          const errTxt = await r.text();
+          console.warn(`[Discord 改暱稱失敗] 狀態碼: ${r.status}, 回應: ${errTxt}`);
+        }
+      }).catch(err => console.error('[Discord API 異常]:', err.message));
+    }
+
     // 2. 審核歷程紀錄與幹部 LINE 推播
     if (isNewRegistration) {
-      // 統一記錄為新會員註冊
       await pool.query(
         'INSERT INTO member_audit_logs (line_user_id, field, old_value, new_value) VALUES ($1, $2, $3, $4)', 
         [lineUserId, '新會員註冊', '-', `${gameNickname} (${gameClass})`]
       );
 
-      // 推播 LINE 通知至幹部群
+      // 推播通知幹部群
       try {
         const configRes = await pool.query("SELECT config_value FROM system_configs WHERE config_key = 'admin_group_id'");
         const adminGroupId = configRes.rows.length > 0 ? configRes.rows[0].config_value : null;
@@ -527,7 +543,6 @@ app.post('/api/members/bind', async (req, res) => {
             `• 遊戲職業：${gameClass}\n` +
             `• 社群暱稱：${lineDisplayName || '無'}\n` +
             `• 註冊管道：${regionText}\n` +
-            `• DC 語音群：已自動加入\n` +
             `• 申請時間：${currentTime}\n\n` +
             `👉 請盡快前往【幹部後台】進行確認喔～`;
 
@@ -544,15 +559,12 @@ app.post('/api/members/bind', async (req, res) => {
           });
 
           console.log(`[LINE 推播] 成功向幹部群發送新成員【${gameNickname}】審核通知`);
-        } else {
-          console.warn('[LINE 推播] 尚未設定幹部群 ID (admin_group_id) 或 Token，略過通知');
         }
       } catch (pushErr) {
         console.error('[LINE 推播幹部群失敗]:', pushErr.message);
       }
 
     } else {
-      // 舊會員一般修改資料紀錄
       if (oldMember.game_nickname !== gameNickname) {
         await pool.query(
           'INSERT INTO member_audit_logs (line_user_id, field, old_value, new_value) VALUES ($1, $2, $3, $4)', 
