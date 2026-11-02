@@ -184,12 +184,16 @@
     }
 
     function closePage() {
-      if (typeof liff !== 'undefined' && liff.closeWindow) {
-        liff.closeWindow();
-      } else {
-        window.close();
-      }
-    }
+  // 1. 若在 LINE 內嵌環境，嘗試直接關閉 LIFF 視窗回到前一個聊天畫面
+  if (typeof liff !== 'undefined' && liff.isInClient()) {
+    liff.closeWindow();
+    return;
+  }
+  
+  // 2. 若在外部瀏覽器或 closeWindow 未觸發，直接導回官方帳號聊天室
+  // 請替換為你公會官方帳號的加入好友/聊天連結 (lin.ee)
+  window.location.href = "https://lin.ee/vZ9iCZHj";
+}
 
     document.addEventListener('DOMContentLoaded', init);
   </script>
