@@ -804,15 +804,16 @@ app.get('/api/sheet/members', async (req, res) => {
 const DISCORD_CLIENT_ID = '1561789656478130337';
 const DISCORD_CLIENT_SECRET = 'YlFXNoWW9F5iGa6yk3Z0' + '75zOPp7-OVy7';
 const DISCORD_BOT_TOKEN = 'MTU2MTc4OTY1NjQ3ODEzMDMzNw' + '.' + 'GSjvoT' + '.' + 'nTJB8MvPJ_zeg5g3dkDn2QfJP5ZA_i-ZFx2I3w';
-const DISCORD_IRECT_URI = 'https://guildmaster-lv.duckdns.org/api/auth/discord/callback';
+const DISCORD_REDIRECT_URI = 'https://guildmaster-lv.duckdns.org/api/auth/discord/callback'; // 👈 修正拼字
 const DISCORD_GUILD_ID = '1471191307736186931';
 
 // 1. 發起 Discord 授權跳轉
 app.get('/api/auth/discord', (req, res) => {
   const fromUid = req.query.uid || 'login_only';
   const state = encodeURIComponent(fromUid);
-  const scope = encodeURIComponent('identify guilds guilds.join');
-  const authUrl = `https://discord.com/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&response_type=code&irect_uri=${encodeURIComponent(DISCORD_IRECT_URI)}&scope=${scope}&state=${state}`;
+  const scope = encodeURIComponent('identify guilds.join'); // identify + guilds.join 即可
+  // 👈 修正拼字：redirect_uri
+  const authUrl = `https://discord.com/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&response_type=code&redirect_uri=${encodeURIComponent(DISCORD_REDIRECT_URI)}&scope=${scope}&state=${state}`;
   res.redirect(authUrl);
 });
 
@@ -828,7 +829,7 @@ app.get('/api/auth/discord/callback', async (req, res) => {
       client_secret: DISCORD_CLIENT_SECRET,
       grant_type: 'authorization_code',
       code: code,
-      irect_uri: DISCORD_IRECT_URI,
+      redirect_uri: DISCORD_REDIRECT_URI, // 👈 修正拼字
     });
 
     const tokenRes = await fetch('https://discord.com/api/oauth2/token', {
@@ -856,7 +857,18 @@ app.get('/api/auth/discord/callback', async (req, res) => {
       ? `https://cdn.discordapp.com/avatars/${dcId}/${dcUser.avatar}.png`
       : `https://cdn.discordapp.com/embed/avatars/0.png`;
 
-    // C. 自動拉進 Discord 伺服器 (若新加入則賦予身分組)
+    const targetLineUid = state ? decodeURIComponent(state) : 'login_only';
+
+    // 💡 關鍵：先去資料庫查該會員的遊戲暱稱（用以修改 DC 伺服器暱稱）
+    let memberNick = dcName;
+    if (targetLineUid && targetLineUid !== 'login_only') {
+      const memRes = await pool.query('SELECT game_nickname FROM members WHERE line_user_id = $1', [targetLineUid]);
+      if (memRes.rows.length > 0 && memRes.rows[0].game_nickname) {
+        memberNick = memRes.rows[0].game_nickname;
+      }
+    }
+
+    // C. 自動拉進 Discord 伺服器 (附帶身分組與伺服器暱稱)
     try {
       const MEMBER_ROLE_ID = '1471192518036164651'; // 成員身分組 ID
 
@@ -868,7 +880,8 @@ app.get('/api/auth/discord/callback', async (req, res) => {
         },
         body: JSON.stringify({ 
           access_token: userAccessToken,
-          roles: [MEMBER_ROLE_ID]
+          roles: [MEMBER_ROLE_ID],
+          nick: memberNick // 👈 加群時直接指定伺服器暱稱
         })
       });
 
@@ -876,17 +889,33 @@ app.get('/api/auth/discord/callback', async (req, res) => {
       console.log(`[Discord 加群回應] 狀態碼: ${joinRes.status}, 回應: ${resText}`);
 
       if (joinRes.status === 201) {
-        console.log(`[Discord] 🎉 成功將新成員 ${dcName} (${dcId}) 拉進公會並賦予身分組！`);
+        console.log(`[Discord] 🎉 成功將新成員【${memberNick}】(${dcId}) 拉進公會並賦予身分組！`);
       } else if (joinRes.status === 204) {
-        console.log(`[Discord] ℹ️ 成員 ${dcName} (${dcId}) 原先就已經在伺服器內。`);
+        console.log(`[Discord] ℹ️ 成員 ${dcName} (${dcId}) 原先就已在伺服器內，補發身分組並同步暱稱...`);
+
+        // 1. 補發身分組
+        await fetch(`https://discord.com/api/v10/guilds/${DISCORD_GUILD_ID}/members/${dcId}/roles/${MEMBER_ROLE_ID}`, {
+          method: 'PUT',
+          headers: { Authorization: `Bot ${DISCORD_BOT_TOKEN}` }
+        });
+
+        // 2. 補改伺服器暱稱 (成員階層低於 Bot 時生效)
+        if (memberNick) {
+          await fetch(`https://discord.com/api/v10/guilds/${DISCORD_GUILD_ID}/members/${dcId}`, {
+            method: 'PATCH',
+            headers: {
+              Authorization: `Bot ${DISCORD_BOT_TOKEN}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ nick: memberNick })
+          });
+        }
       }
     } catch (botErr) {
-      console.error('[Discord 自動加群異常]:', botErr.message);
+      console.error('[Discord 自動加群/改名異常]:', botErr.message);
     }
 
     // D. 依據來源分流處理
-    const targetLineUid = state ? decodeURIComponent(state) : 'login_only';
-
     if (targetLineUid && targetLineUid !== 'login_only') {
       // ----------------------------------------------------
       // 情境一：台灣成員從 LINE LIFF 系統加綁 DC
@@ -926,10 +955,10 @@ app.get('/api/auth/discord/callback', async (req, res) => {
             <div class="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-2xl font-black">✓</div>
             <h2 class="text-base font-black text-slate-900">Discord 綁定成功！</h2>
             <p class="text-xs text-slate-500 leading-relaxed">
-              已成功綁定您的 Discord 帳號，機器人已自動將您加入公會語音伺服器。<br><br>
+              已成功綁定您的 Discord 帳號，伺服器暱稱已更新為【${memberNick}】。<br><br>
               <b>請直接關閉此分頁，返回 LINE 即可！</b>
             </p>
-            <a href="https://line.me" class="block w-full bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold py-3 rounded-xl transition">
+            <a href="https://lin.ee/pAPeNUT" class="block w-full bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold py-3 rounded-xl transition">
               返回 LINE
             </a>
           </div>
@@ -975,8 +1004,7 @@ app.get('/api/auth/discord/callback', async (req, res) => {
         `);
       }
 
-      // 👉【關鍵改動】：這裡完全不對 members 做任何 INSERT / UPDATE！
-      // 單純將使用者資訊帶到前端 cn-hub.html，等他填完資料按「送出」才寫入資料庫
+      // 大陸成員直接轉導至 cn-hub.html，送出申請才入庫
       res.redirect(`/cn-hub.html?uid=${encodeURIComponent(dcId)}&name=${encodeURIComponent(dcName)}&avatar=${encodeURIComponent(dcAvatar)}`);
     }
 
