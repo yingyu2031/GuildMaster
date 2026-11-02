@@ -398,27 +398,43 @@ input[type="date"], input[type="time"], select {
 </div>
 
 <!-- 彈窗 2：快速新增團體 Modal -->
+<!-- 快速建立團體 Modal (支援邊搜尋邊勾選) -->
 <div id="createGroupModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
- <div class="bg-white w-full max-w-md rounded-[28px] p-6 border-2 border-sky-200 soft-sky-shadow max-h-[90vh] flex flex-col">
- <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
- <h3 class="text-base font-black text-slate-900">快速建立團體</h3>
- <button onclick="closeModal('createGroupModal')" class="text-slate-400 hover:text-slate-600 text-sm font-bold cursor-pointer">關閉</button>
- </div>
- <form id="createGroupForm" class="flex-1 flex flex-col space-y-3 text-left text-xs font-bold text-slate-700 overflow-hidden">
- <div>
- <label class="block mb-1 text-slate-800">團體名稱 <span class="text-rose-500">*</span></label>
- <input type="text" id="newGroupNameInput" required placeholder="例如：狂暴推王團、親友組" class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900">
- </div>
- <div class="flex-1 flex flex-col min-h-0">
- <label class="block mb-1 text-slate-800">選擇納入成員（可多選，僅列出未分組成員）</label>
- <div id="groupCandidateList" class="flex-1 overflow-y-auto space-y-1.5 pr-1 border border-sky-100 rounded-xl p-2 bg-[#F8FAFC]"></div>
- </div>
- <div class="grid grid-cols-2 gap-3 pt-2">
- <button type="button" onclick="closeModal('createGroupModal')" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 rounded-xl transition cursor-pointer">取消</button>
- <button type="submit" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-2.5 rounded-xl transition shadow-md shadow-sky-200 cursor-pointer">確認加入</button>
- </div>
- </form>
- </div>
+  <div class="bg-white w-full max-w-md rounded-[28px] p-6 border-2 border-sky-200 soft-sky-shadow max-h-[90vh] flex flex-col">
+    <!-- 標題與關閉按鈕 -->
+    <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
+      <h3 class="text-base font-black text-slate-900">快速建立團體</h3>
+      <button type="button" onclick="closeModal('createGroupModal')" class="text-slate-400 hover:text-slate-600 text-sm font-bold cursor-pointer">關閉</button>
+    </div>
+
+    <form id="createGroupForm" class="flex-1 flex flex-col space-y-3 text-left text-xs font-bold text-slate-700 overflow-hidden">
+      <!-- 團體名稱 -->
+      <div>
+        <label class="block mb-1 text-slate-800">團體名稱 <span class="text-rose-500">*</span></label>
+        <input type="text" id="newGroupNameInput" required placeholder="例如：狂暴推王團、親友組" class="w-full bg-[#F8FAFC] border border-sky-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:bg-white transition">
+      </div>
+
+      <!-- 選擇納入成員區塊 -->
+      <div class="flex-1 flex flex-col min-h-0 space-y-2">
+        <div class="flex items-center justify-between">
+          <label class="text-slate-800">選擇納入成員（僅列出未分組成員）</label>
+          <span id="groupSelectedCountBadge" class="text-[10px] font-black text-sky-600 bg-sky-50 px-2 py-0.5 rounded-full border border-sky-200">已選 0 人</span>
+        </div>
+
+        <!-- 即時搜尋輸入框 -->
+        <input type="text" id="groupMemberSearchInput" oninput="filterCandidateMembers()" placeholder="搜尋角色暱稱、職業..." class="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:bg-white transition">
+
+        <!-- 成員清單滾動容器 -->
+        <div id="groupCandidateList" class="flex-1 overflow-y-auto space-y-1.5 pr-1 border border-sky-100 rounded-xl p-2 bg-[#F8FAFC]"></div>
+      </div>
+
+      <!-- 操作按鈕 -->
+      <div class="grid grid-cols-2 gap-3 pt-2">
+        <button type="button" onclick="closeModal('createGroupModal')" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 rounded-xl transition cursor-pointer">取消</button>
+        <button type="submit" id="createGroupSubmitBtn" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-2.5 rounded-xl transition shadow-md shadow-sky-200 cursor-pointer">確認加入</button>
+      </div>
+    </form>
+  </div>
 </div>
 
 <!-- 彈窗 3：活動 新增/編輯 Modal -->
@@ -823,13 +839,22 @@ async function loadCustomClasses() {
 }
 
 let currentAdminUser = { lineUserId: "", gameNickname: "", gameClass: "", guildRole: "", accountStatus: "" };
-let membersData = [], leavesData = [], leaveRulesData = [], eventsData = [], broadcastSchedules = [], manuallyArchivedGroups = [];
+let membersData = [], leavesData = [], leaveRulesData = [], eventsData = [], broadcastSchedules = [];
+let manuallyArchivedGroups = []; 
 let currentMainSection = "members", currentMemberSubTab = "pending", currentGroupSubTab = "active";
 let currentLeaveSubTab = "rank", currentLeaveMetric = "all";
 let currentEventSubTab = "active", currentSettingSubTab = "line";
 let currentViewingEventId = null;
 let selectedCycleDays = [];
-let activeTimeWheelTarget = null; // 記錄目前時間滾輪的操作目標 ('rule' 或 'bc')
+let activeTimeWheelTarget = null; // 
+let selectedGroupMemberUids = new Set();
+let cachedUnassignedMembers = [];
+try {
+  const cached = localStorage.getItem('manuallyArchivedGroups');
+  if (cached) manuallyArchivedGroups = JSON.parse(cached);
+} catch (e) {
+  manuallyArchivedGroups = [];
+}
 
 const TODAY_STR = new Date().toISOString().split('T')[0];
 
@@ -1045,13 +1070,7 @@ function syncAllClassDropdowns() {
  renderLeavesContent();
  }
 
- function switchGroupSubTab(subTab) {
- currentGroupSubTab = subTab;
- document.getElementById('groupTabActive').className = (subTab === 'active') ? "px-2.5 py-1 text-xs font-black rounded-lg bg-white text-sky-900 shadow-xs cursor-pointer" : "px-2.5 py-1 text-xs font-bold rounded-lg text-slate-500 hover:text-slate-800 cursor-pointer";
- document.getElementById('groupTabArchived').className = (subTab === 'archived') ? "px-2.5 py-1 text-xs font-black rounded-lg bg-white text-sky-900 shadow-xs cursor-pointer" : "px-2.5 py-1 text-xs font-bold rounded-lg text-slate-500 hover:text-slate-800 cursor-pointer";
- renderGroupOverview();
- }
-
+ 
  function handleMemberSearchInput() {
  if (currentMemberSubTab === 'groups') renderGroupOverview();
  else renderMembersList();
@@ -2654,6 +2673,27 @@ async function executeDeleteUrgentRule() {
  else renderMembersList();
  }
 
+
+ function switchGroupSubTab(subTab) {
+  currentGroupSubTab = subTab;
+
+  const tabActive = document.getElementById('groupTabActive');
+  const tabArchived = document.getElementById('groupTabArchived');
+
+  if (tabActive && tabArchived) {
+    if (subTab === 'active') {
+      tabActive.className = "px-2.5 py-1 text-xs font-black rounded-lg bg-white text-sky-900 shadow-xs cursor-pointer";
+      tabArchived.className = "px-2.5 py-1 text-xs font-bold rounded-lg text-slate-500 hover:text-slate-800 cursor-pointer";
+    } else {
+      tabArchived.className = "px-2.5 py-1 text-xs font-black rounded-lg bg-white text-sky-900 shadow-xs cursor-pointer";
+      tabActive.className = "px-2.5 py-1 text-xs font-bold rounded-lg text-slate-500 hover:text-slate-800 cursor-pointer";
+    }
+  }
+
+  // 重新過濾並繪製團體名單
+  renderGroupOverview();
+}
+ 
  function renderGroupOverview() {
  const container = document.getElementById('memberListContainer');
  container.innerHTML = "";
@@ -2732,69 +2772,195 @@ async function executeDeleteUrgentRule() {
  document.getElementById('archiveGroupConfirmModal').classList.remove('hidden');
  }
 
- function executeArchiveGroup() {
- const groupName = document.getElementById('archiveGroupTargetName').value;
- if (!groupName) return;
- if (!manuallyArchivedGroups.includes(groupName)) manuallyArchivedGroups.push(groupName);
- closeModal('archiveGroupConfirmModal');
- renderGroupOverview();
- }
+// ==========================================
+// 1. 執行封存團體（補上 API 呼叫）
+// ==========================================
+async function executeArchiveGroup() {
+  const groupName = document.getElementById('archiveGroupTargetName').value;
+  if (!groupName) return;
 
- function unarchiveGroup(groupName) {
- manuallyArchivedGroups = manuallyArchivedGroups.filter(g => g !== groupName);
- renderGroupOverview();
- }
+  if (!manuallyArchivedGroups.includes(groupName)) {
+    manuallyArchivedGroups.push(groupName);
+  }
 
- function openCreateGroupModal() {
- const container = document.getElementById('groupCandidateList');
- container.innerHTML = "";
- const activeMembers = membersData.filter(m => m.accountStatus === "已審核" && m.guildRole !== "退會" && (!m.teamGroup || m.teamGroup.trim() === ""));
- 
- if (activeMembers.length === 0) {
- container.innerHTML = `<div class="py-4 text-center text-xs text-slate-400 font-bold">目前沒有無團體的可用成員</div>`;
- document.getElementById('newGroupNameInput').value = "";
- document.getElementById('createGroupModal').classList.remove('hidden');
- return;
- }
+  // A. 本地快取備存（防止重新整理瞬間還原）
+  localStorage.setItem('manuallyArchivedGroups', JSON.stringify(manuallyArchivedGroups));
 
- activeMembers.forEach(m => {
- const label = document.createElement('label');
- label.className = "flex items-center justify-between p-2 rounded-lg bg-white border border-slate-100 hover:bg-sky-50/50 cursor-pointer";
- label.innerHTML = `
- <div class="flex items-center gap-2">
- <input type="checkbox" name="groupMemberPick" value="${m.lineUserId}" class="w-4 h-4 accent-sky-500 cursor-pointer">
- <span class="text-xs font-black text-slate-800">${m.gameNickname}</span>
- <span class="text-[10px] text-slate-400">(${m.gameClass})</span>
- </div>
- <span class="text-[10px] font-bold text-slate-400">未分組</span>
- `;
- container.appendChild(label);
- });
- document.getElementById('newGroupNameInput').value = "";
- document.getElementById('createGroupModal').classList.remove('hidden');
- }
+  // B. 呼叫後端 API 儲存封存狀態
+  try {
+    await fetch(`${BACKEND_API_URL}/api/admin/groups/archive`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ groupName: groupName, isArchived: true })
+    });
+  } catch (err) {
+    console.error("封存 API 呼叫失敗:", err);
+  }
 
- document.getElementById('createGroupForm').addEventListener('submit', async (e) => {
- e.preventDefault();
- const groupName = document.getElementById('newGroupNameInput').value.trim();
- const checkedBoxes = Array.from(document.querySelectorAll('input[name="groupMemberPick"]:checked'));
- if (checkedBoxes.length === 0) { alert("請至少勾選一位成員！"); return; }
+  closeModal('archiveGroupConfirmModal');
+  renderGroupOverview();
+}
 
- for (const cb of checkedBoxes) {
- const uid = cb.value;
- const m = membersData.find(x => x.lineUserId === uid);
- if (m) {
- m.teamGroup = groupName;
- await fetch(`${BACKEND_API_URL}/api/admin/members/save`, {
- method: 'POST', headers: { 'Content-Type': 'application/json' },
- body: JSON.stringify({ ...m, joinedLineGroup: m.joinedLineGroup || 'N', joinedDc: m.joinedDc || 'N' })
- });
- }
- }
- closeModal('createGroupModal');
- await fetchAllBackendData();
- renderGroupOverview();
- });
+// ==========================================
+// 2. 解除封存團體（補上 API 呼叫）
+// ==========================================
+async function unarchiveGroup(groupName) {
+  if (!groupName) return;
+
+  manuallyArchivedGroups = manuallyArchivedGroups.filter(g => g !== groupName);
+
+  // A. 更新本地快取
+  localStorage.setItem('manuallyArchivedGroups', JSON.stringify(manuallyArchivedGroups));
+
+  // B. 呼叫後端 API 解除封存狀態
+  try {
+    await fetch(`${BACKEND_API_URL}/api/admin/groups/archive`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ groupName: groupName, isArchived: false })
+    });
+  } catch (err) {
+    console.error("解封 API 呼叫失敗:", err);
+  }
+
+  renderGroupOverview();
+}
+
+
+// 1. 打開快速建立團體 Modal
+function openCreateGroupModal() {
+  document.getElementById('newGroupNameInput').value = "";
+  selectedGroupMemberUids.clear(); // 清空上次勾選名單
+
+  const searchInput = document.getElementById('groupMemberSearchInput');
+  if (searchInput) searchInput.value = "";
+
+  // 篩選所有未分組之有效現任成員
+  cachedUnassignedMembers = membersData.filter(m => 
+    m.accountStatus === "已審核" && 
+    m.guildRole !== "退會" && 
+    (!m.teamGroup || m.teamGroup.trim() === "" || m.teamGroup === "未分組")
+  );
+
+  renderCandidateMemberList(cachedUnassignedMembers);
+  updateSelectedCountBadge();
+
+  document.getElementById('createGroupModal').classList.remove('hidden');
+}
+
+// 2. 邊搜尋即時過濾成員清單
+function filterCandidateMembers() {
+  const query = (document.getElementById('groupMemberSearchInput')?.value || "").trim().toLowerCase();
+  
+  const filtered = cachedUnassignedMembers.filter(m => {
+    const nick = (m.gameNickname || "").toLowerCase();
+    const cls = (m.gameClass || "").toLowerCase();
+    const lineName = (m.lineDisplayName || "").toLowerCase();
+    return nick.includes(query) || cls.includes(query) || lineName.includes(query);
+  });
+
+  renderCandidateMemberList(filtered);
+}
+
+// 3. 渲染成員列表（依據 Set 還原勾選狀態）
+function renderCandidateMemberList(list) {
+  const container = document.getElementById('groupCandidateList');
+  container.innerHTML = "";
+
+  if (list.length === 0) {
+    container.innerHTML = `<div class="py-4 text-center text-xs text-slate-400 font-bold">查無符合條件之未分組成員</div>`;
+    return;
+  }
+
+  list.forEach(m => {
+    const isChecked = selectedGroupMemberUids.has(m.lineUserId);
+    const label = document.createElement('label');
+    label.className = "flex items-center justify-between p-2 rounded-lg bg-white border border-slate-100 hover:bg-sky-50/50 cursor-pointer select-none transition";
+    
+    label.innerHTML = `
+      <div class="flex items-center gap-2">
+        <input type="checkbox" value="${m.lineUserId}" ${isChecked ? 'checked' : ''} class="w-4 h-4 accent-sky-500 cursor-pointer">
+        <span class="text-xs font-black text-slate-800">${m.gameNickname}</span>
+        <span class="text-[10px] text-slate-400">(${m.gameClass || '未設定'})</span>
+      </div>
+      <span class="text-[10px] font-bold text-slate-400">未分組</span>
+    `;
+
+    // 監聽勾選狀態，同步記錄至 Set
+    const cb = label.querySelector('input[type="checkbox"]');
+    cb.addEventListener('change', (e) => {
+      if (e.target.checked) {
+        selectedGroupMemberUids.add(m.lineUserId);
+      } else {
+        selectedGroupMemberUids.delete(m.lineUserId);
+      }
+      updateSelectedCountBadge();
+    });
+
+    container.appendChild(label);
+  });
+}
+
+// 更新已選人數顯示
+function updateSelectedCountBadge() {
+  const badge = document.getElementById('groupSelectedCountBadge');
+  if (badge) {
+    badge.textContent = `已選 ${selectedGroupMemberUids.size} 人`;
+  }
+}
+
+// 4. 表單提交：平行儲存並帶入完整會員欄位 (含 tw 與 dcid)
+document.getElementById('createGroupForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const groupName = document.getElementById('newGroupNameInput').value.trim();
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+
+  if (selectedGroupMemberUids.size === 0) {
+    alert("請至少勾選一位成員！");
+    return;
+  }
+
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = "加入中...";
+  }
+
+  try {
+    // 平行送出所有選取成員的更新請求
+    const updatePromises = Array.from(selectedGroupMemberUids).map(uid => {
+      const m = membersData.find(x => x.lineUserId === uid);
+      if (m) {
+        m.teamGroup = groupName;
+        return fetch(`${BACKEND_API_URL}/api/admin/members/save`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...m,
+            tw: m.tw || 'Y',
+            dcid: m.dcid || null,
+            joinedLineGroup: m.joinedLineGroup || 'N',
+            joinedDc: m.joinedDc || 'N'
+          })
+        });
+      }
+      return Promise.resolve();
+    });
+
+    await Promise.all(updatePromises);
+
+    closeModal('createGroupModal');
+    await fetchAllBackendData();
+    renderGroupOverview();
+  } catch (err) {
+    console.error("更新團體失敗:", err);
+    alert("儲存失敗，請檢查網路連線");
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "確認加入";
+    }
+  }
+});
 
 // 💡 1. 宣告全域暫存變數，用來記住當前編輯成員的 Discord ID
 let currentEditingDcid = '';
