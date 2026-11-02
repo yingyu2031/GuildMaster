@@ -958,7 +958,7 @@ app.get('/api/auth/discord/callback', async (req, res) => {
               已成功綁定您的 Discord 帳號，伺服器暱稱已更新為【${memberNick}】。<br><br>
               <b>請直接關閉此分頁，返回 LINE 即可！</b>
             </p>
-            <a href="https://lin.ee/pAPeNUT" class="block w-full bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold py-3 rounded-xl transition">
+            <a href="https://lin.ee/vZ9iCZHj" class="block w-full bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold py-3 rounded-xl transition">
               返回 LINE
             </a>
           </div>
@@ -995,7 +995,7 @@ app.get('/api/auth/discord/callback', async (req, res) => {
                 系統偵測到此 Discord 帳號已綁定於 <b>LINE 會員身分</b>。<br><br>
                 為避免產生重複紀錄，<b>請直接使用 LINE 管理系統進行各項操作</b>，無須使用大陸專屬通道註冊。
               </p>
-              <a href="https://lin.ee/pAPeNUT" class="inline-block w-full bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold py-3 rounded-xl transition">
+              <a href="https://lin.ee/vZ9iCZHj" class="inline-block w-full bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold py-3 rounded-xl transition">
                 返回 LINE 使用系統
               </a>
             </div>
