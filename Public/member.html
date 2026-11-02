@@ -498,61 +498,68 @@
         initApp();
     }
 
+    
     // 身分驗證與分流渲染
-    async function verifyAndDisplayView(errorMsg) {
-        if (!currentUser.userId) {
-            document.getElementById('loadingSpinner').classList.add('hidden');
-            document.getElementById('loadingTitle').textContent = "無法辨識 LINE 身分";
-            document.getElementById('loadingDesc').textContent = "請確認您是點擊 LINE 官方專用連結開啟";
-            const errBox = document.getElementById('errorBox');
-            const errDetail = document.getElementById('errorDetail');
-            errDetail.textContent = errorMsg || "LIFF 未能取得 Profile。";
-            errBox.classList.remove('hidden');
-            return;
-        }
-
-        const result = await queryMemberFromBackend(currentUser.userId);
-        
-        if (result && (result.status === "timeout" || result.status === "error")) {
-            document.getElementById('loadingSpinner').classList.add('hidden');
-            document.getElementById('loadingTitle').textContent = "連線後台逾時";
-            document.getElementById('loadingDesc').textContent = "伺服器回應較慢，請點擊下方重試";
-            const errBox = document.getElementById('errorBox');
-            const errDetail = document.getElementById('errorDetail');
-            errDetail.textContent = "請確認網路是否正常";
-            errBox.classList.remove('hidden');
-            return;
-        }
-
-        if (result && result.status === "found") {
-            currentUser.gameNickname = result.gameNickname || "";
-            currentUser.gameClass = result.gameClass || "";
-            currentUser.displayName = result.lineDisplayName || currentUser.displayName;
-            currentUser.allowSearch = (result.allowSearch === 'Y' || result.allowSearch === true) ? 'Y' : 'N';
-            currentUser.accountStatus = String(result.accountStatus || "").trim();
-            currentUser.guildRole = String(result.guildRole || "現任").trim();
-            currentUser.dcid = result.dcid || "";
-            currentUser.joinedDc = result.joinedDc || result.joined_dc || "N";
-            currentUser.isRegistered = true;
-        }
-
-        document.getElementById('loadingCard').classList.add('hidden');
-
-        // 身分分流判斷
-        if (currentUser.isRegistered && currentUser.accountStatus === "待審核") {
-            applyPendingReviewUI();
-        } else {
-            const formCard = document.getElementById('mainFormCard');
-            formCard.classList.remove('hidden');
-            formCard.classList.add('fade-in');
-
-            if (currentUser.isRegistered && currentUser.accountStatus === "已審核") {
-                applyEditModeUI(); // 進入修改模式 (保留顯示是否加入DC)
-            } else {
-                applyNewMemberUI(); // 進入新註冊模式 (隱藏表單底部DC區塊)
-            }
-        }
+  async function verifyAndDisplayView(errorMsg) {
+    if (!currentUser.userId) {
+      document.getElementById('loadingSpinner').classList.add('hidden');
+      document.getElementById('loadingTitle').textContent = "無法辨識 LINE 身分";
+      document.getElementById('loadingDesc').textContent = "請確認您是點擊 LINE 官方專用連結開啟";
+      const errBox = document.getElementById('errorBox');
+      const errDetail = document.getElementById('errorDetail');
+      errDetail.textContent = errorMsg || "LIFF 未能取得 Profile。";
+      errBox.classList.remove('hidden');
+      return;
     }
+
+    const result = await queryMemberFromBackend(currentUser.userId);
+    
+    if (result && (result.status === "timeout" || result.status === "error")) {
+      document.getElementById('loadingSpinner').classList.add('hidden');
+      document.getElementById('loadingTitle').textContent = "連線後台逾時";
+      document.getElementById('loadingDesc').textContent = "伺服器回應較慢，請點擊下方重試";
+      const errBox = document.getElementById('errorBox');
+      const errDetail = document.getElementById('errorDetail');
+      errDetail.textContent = "請確認網路是否正常";
+      errBox.classList.remove('hidden');
+      return;
+    }
+
+    if (result && result.status === "found") {
+      currentUser.gameNickname = result.gameNickname || "";
+      currentUser.gameClass = result.gameClass || "";
+      currentUser.displayName = result.lineDisplayName || currentUser.displayName;
+      currentUser.allowSearch = (result.allowSearch === 'Y' || result.allowSearch === true) ? 'Y' : 'N';
+      currentUser.accountStatus = String(result.accountStatus || "").trim();
+      currentUser.guildRole = String(result.guildRole || "現任").trim();
+      currentUser.dcid = result.dcid || "";
+      currentUser.joinedDc = result.joinedDc || result.joined_dc || "N";
+      currentUser.isRegistered = true;
+    }
+
+    document.getElementById('loadingCard').classList.add('hidden');
+
+    // 💡 關鍵修正：判斷是否為「退會」身分
+    const isRetired = (currentUser.guildRole === '退會');
+
+    // 身分分流判斷
+    if (currentUser.isRegistered && currentUser.accountStatus === "待審核" && !isRetired) {
+      // 1. 正常在會且等待審核中的成員
+      applyPendingReviewUI();
+    } else {
+      const formCard = document.getElementById('mainFormCard');
+      formCard.classList.remove('hidden');
+      formCard.classList.add('fade-in');
+
+      // 2. 只有「已註冊」、「已審核通過」且「非退會身分」才進入修改模式
+      if (currentUser.isRegistered && currentUser.accountStatus === "已審核" && !isRetired) {
+        applyEditModeUI(); // 進入修改模式
+      } else {
+        // 3. 全新未登記成員 或 退會重新入會成員，一律進入註冊登記模式
+        applyNewMemberUI();
+      }
+    }
+  }
 
     // 審核中專屬畫面 (提供 DC 綁定捷徑按鈕)
     function applyPendingReviewUI() {
@@ -626,7 +633,7 @@
         document.getElementById('toggleAllowSearch').checked = true;
 
         document.getElementById('successTitle').textContent = "綁定資料已送出";
-        document.getElementById('successDesc').textContent = "申請已送出！請前往下一步進行語音群連動～";
+        document.getElementById('successDesc').textContent = "申請已送出！請前往下一步進行DC語音群連動～";
 
         updateProfileCard();
 
