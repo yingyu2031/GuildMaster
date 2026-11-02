@@ -3056,8 +3056,8 @@ async function refreshAdminData() {
     }
 
     // 如果當前在請假或活動頁籤，也一併刷新
-    if (typeof renderLeavesList === 'function') renderLeavesList();
-    if (typeof renderActivitiesList === 'function') renderActivitiesList();
+    if (typeof renderLeavesContent === 'function') renderLeavesContent();
+    if (typeof renderEventsList === 'function') renderEventsList();
 
     // 成功提示效果
     if (text) text.textContent = "✓ 更新完成";
