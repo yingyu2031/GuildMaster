@@ -1414,7 +1414,7 @@ app.get('/api/admin/events', async (req, res) => {
 });
 
 // ==========================================
-// 2. 進行報名 API (POST) - 完整卡控版
+// 2. 進行報名 API (POST) - 完整卡控 + 台灣時區修正版
 // ==========================================
 app.post('/api/events/signup', async (req, res) => {
   const { eventId, lineUserId, gameNickname, gameClass, note } = req.body;
@@ -1454,8 +1454,23 @@ app.post('/api/events/signup', async (req, res) => {
       }
     }
 
-    // 6. 寫入或更新報名資料與備註
-    const signupTime = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    // 💡 6. 寫入或更新報名資料與備註 (強制鎖定台灣 Asia/Taipei UTC+8 時區)
+    const formatter = new Intl.DateTimeFormat('zh-TW', {
+      timeZone: 'Asia/Taipei',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
+    const parts = formatter.formatToParts(now);
+    const y = parts.find(p => p.type === 'year').value;
+    const m = parts.find(p => p.type === 'month').value;
+    const d = parts.find(p => p.type === 'day').value;
+    const h = parts.find(p => p.type === 'hour').value;
+    const min = parts.find(p => p.type === 'minute').value;
+    const signupTime = `${y}-${m}-${d} ${h}:${min}`;
     
     await pool.query(`
       INSERT INTO event_attendees (event_id, line_user_id, game_nickname, game_class, signup_time, note)
@@ -1466,6 +1481,7 @@ app.post('/api/events/signup', async (req, res) => {
     
     res.json({ status: "success" });
   } catch (err) {
+    console.error('[活動報名失敗]:', err);
     res.status(500).json({ status: "error", message: err.message });
   }
 });
