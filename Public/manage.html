@@ -2789,7 +2789,32 @@ async function executeDeleteUrgentRule() {
  renderGroupOverview();
  });
 
- async function openMemberModal(mode, lineUserId = null) {
+// 💡 1. 宣告全域暫存變數，用來記住當前編輯成員的 Discord ID
+let currentEditingDcid = '';
+
+// 💡 2. 監聽「已加入 DC 語音群」勾選框的點擊事件 (不改版面，動態彈出輸入框)
+const joinedDcCheckbox = document.getElementById('formJoinedDc');
+if (joinedDcCheckbox) {
+  joinedDcCheckbox.addEventListener('change', function () {
+    if (this.checked) {
+      // 當幹部打勾時，動態彈出輸入視窗詢問 Discord ID
+      const inputId = prompt('請輸入此成員的 Discord ID (dcid)：', currentEditingDcid || '');
+      
+      if (inputId && inputId.trim() !== '') {
+        currentEditingDcid = inputId.trim();
+      } else {
+        alert('⚠️ 必須填寫 Discord ID 才能標記為已加入 DC！');
+        this.checked = false; // 未輸入或取消時，強制退回未打勾狀態
+      }
+    } else {
+      // 取消打勾時，清空暫存的 dcid
+      currentEditingDcid = '';
+    }
+  });
+}
+
+// 💡 3. 開啟成員編輯 / 新增彈窗
+async function openMemberModal(mode, lineUserId = null) {
   document.getElementById('memberForm').reset();
   syncAllClassDropdowns();
 
@@ -2808,6 +2833,9 @@ async function executeDeleteUrgentRule() {
     document.getElementById('formAllowSearch').checked = true;
     document.getElementById('formJoinedLineGroup').checked = false;
     document.getElementById('formJoinedDc').checked = false;
+    
+    currentEditingDcid = ''; // 新增時清空暫存 dcid
+
     auditSection.classList.add('hidden');
     document.getElementById('deleteMemberBtnWrapper').classList.add('hidden');
   } else {
@@ -2827,7 +2855,11 @@ async function executeDeleteUrgentRule() {
     
     document.getElementById('formAllowSearch').checked = (m.allowSearch === 'Y');
     document.getElementById('formJoinedLineGroup').checked = (m.joinedLineGroup === 'Y');
-    document.getElementById('formJoinedDc').checked = (m.joinedDc === 'Y');
+    
+    // 💡 回填該成員既有的 dcid 與打勾狀態
+    currentEditingDcid = m.dcid || '';
+    document.getElementById('formJoinedDc').checked = (m.joinedDc === 'Y' || m.joined_dc === 'Y');
+
     auditSection.classList.remove('hidden');
     document.getElementById('deleteMemberBtnWrapper').classList.remove('hidden');
 
@@ -2866,10 +2898,18 @@ async function executeDeleteUrgentRule() {
   document.getElementById('memberModal').classList.remove('hidden');
 }
 
-// 儲存成員表單：將 tw 欄位打包送出
+// 💡 4. 儲存成員表單：將 dcid 一併打包送給後端
 document.getElementById('memberForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const selectedTw = document.getElementById('formMemberTw').value;
+  const isJoinedDc = document.getElementById('formJoinedDc').checked;
+
+  // 防呆：如果打勾但暫存 dcid 莫名為空，攔截提醒
+  if (isJoinedDc && (!currentEditingDcid || currentEditingDcid.trim() === '')) {
+    alert("⚠️ 請先填入 Discord ID (dcid) 後再勾選已加入 DC！");
+    document.getElementById('formJoinedDc').checked = false;
+    return;
+  }
   
   const data = {
     lineUserId: document.getElementById('formMemberUid').value || (selectedTw === 'N' ? ("DC_" + Date.now()) : ("U_" + Date.now())),
@@ -2881,7 +2921,8 @@ document.getElementById('memberForm').addEventListener('submit', async (e) => {
     accountStatus: document.getElementById('formAccountStatus').value,
     tw: selectedTw, // 傳送地區代碼 ('Y' 或 'N')
     joinedLineGroup: document.getElementById('formJoinedLineGroup').checked ? 'Y' : 'N',
-    joinedDc: document.getElementById('formJoinedDc').checked ? 'Y' : 'N'
+    joinedDc: isJoinedDc ? 'Y' : 'N',
+    dcid: isJoinedDc ? currentEditingDcid.trim() : null // 👈 打勾才送出 dcid，未打勾為 null
   };
 
   try {
@@ -2908,7 +2949,7 @@ document.getElementById('memberForm').addEventListener('submit', async (e) => {
   }
 });
 
- function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
 </script>
 
 <!-- 全螢幕身分登入/驗證彈窗 -->
