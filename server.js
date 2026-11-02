@@ -830,6 +830,7 @@ app.get('/api/auth/discord', (req, res) => {
 });
 
 // 2. 接收 Discord 授權回調
+
 app.get('/api/auth/discord/callback', async (req, res) => {
   const { code, state } = req.query;
   if (!code) return res.status(400).send("授權失敗：未取得驗證碼");
@@ -841,7 +842,7 @@ app.get('/api/auth/discord/callback', async (req, res) => {
       client_secret: DISCORD_CLIENT_SECRET,
       grant_type: 'authorization_code',
       code: code,
-      redirect_uri: DISCORD_REDIRECT_URI, // 👈 修正拼字
+      redirect_uri: DISCORD_REDIRECT_URI,
     });
 
     const tokenRes = await fetch('https://discord.com/api/oauth2/token', {
@@ -871,7 +872,50 @@ app.get('/api/auth/discord/callback', async (req, res) => {
 
     const targetLineUid = state ? decodeURIComponent(state) : 'login_only';
 
-    // 💡 關鍵：先去資料庫查該會員的遊戲暱稱（用以修改 DC 伺服器暱稱）
+    // ----------------------------------------------------
+    // 🛡️ 關鍵修正 1：最優先執行防呆阻擋！(在動任何 DC 暱稱之前)
+    // ----------------------------------------------------
+    if (!targetLineUid || targetLineUid === 'login_only') {
+      // 檢查此 DC 帳號是否已經綁定在台灣成員名下
+      const checkExistingTw = await pool.query(
+        "SELECT line_user_id, game_nickname, tw FROM members WHERE dcid = $1 AND (tw = 'Y' OR line_user_id != $1)",
+        [dcId]
+      );
+
+      if (checkExistingTw.rows.length > 0) {
+        const twUser = checkExistingTw.rows[0];
+        console.warn(`[Discord 防呆] 台灣成員【${twUser.game_nickname}】誤觸大陸通道，直接阻擋且不更動任何 DC 資料`);
+        return res.status(403).send(`
+          <!DOCTYPE html>
+          <html lang="zh-Hant">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>帳號登入限制</title>
+            <script src="https://cdn.tailwindcss.com"></script>
+          </head>
+          <body class="bg-[#FFFDF7] min-h-screen flex items-center justify-center p-4 text-slate-800">
+            <div class="max-w-md w-full bg-white rounded-3xl p-6 border-2 border-rose-200 shadow-xl text-center space-y-4">
+              <div class="w-12 h-12 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto text-2xl font-black">⚠️</div>
+              <h2 class="text-base font-black text-slate-900">此 Discord 帳號已綁定台灣成員</h2>
+              <p class="text-xs text-slate-500 leading-relaxed text-left bg-rose-50/50 p-3.5 rounded-2xl border border-rose-100">
+                親愛的 <b>${twUser.game_nickname || '公會成員'}</b>：<br>
+                系統偵測到此 Discord 帳號已綁定於 <b>LINE 會員身分</b>。<br><br>
+                為避免產生重複紀錄，<b>請直接使用 LINE 管理系統進行各項操作</b>，無須使用大陸專屬通道註冊。
+              </p>
+              <a href="https://lin.ee/pAPeNUT" class="inline-block w-full bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold py-3 rounded-xl transition">
+                返回 LINE 使用系統
+              </a>
+            </div>
+          </body>
+          </html>
+        `);
+      }
+    }
+
+    // ----------------------------------------------------
+    // C. 查詢要設定的遊戲暱稱
+    // ----------------------------------------------------
     let memberNick = dcName;
     if (targetLineUid && targetLineUid !== 'login_only') {
       const memRes = await pool.query('SELECT game_nickname FROM members WHERE line_user_id = $1', [targetLineUid]);
@@ -880,9 +924,17 @@ app.get('/api/auth/discord/callback', async (req, res) => {
       }
     }
 
-    // C. 自動拉進 Discord 伺服器 (附帶身分組與伺服器暱稱)
+    // ----------------------------------------------------
+    // D. 自動拉進 Discord 伺服器並同步暱稱與身分組
+    // ----------------------------------------------------
     try {
       const MEMBER_ROLE_ID = '1471192518036164651'; // 成員身分組 ID
+
+      const joinPayload = {
+        access_token: userAccessToken,
+        roles: [MEMBER_ROLE_ID],
+        nick: memberNick
+      };
 
       const joinRes = await fetch(`https://discord.com/api/v10/guilds/${DISCORD_GUILD_ID}/members/${dcId}`, {
         method: 'PUT',
@@ -890,18 +942,14 @@ app.get('/api/auth/discord/callback', async (req, res) => {
           Authorization: `Bot ${DISCORD_BOT_TOKEN}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ 
-          access_token: userAccessToken,
-          roles: [MEMBER_ROLE_ID],
-          nick: memberNick // 👈 加群時直接指定伺服器暱稱
-        })
+        body: JSON.stringify(joinPayload)
       });
 
       const resText = await joinRes.text();
       console.log(`[Discord 加群回應] 狀態碼: ${joinRes.status}, 回應: ${resText}`);
 
       if (joinRes.status === 201) {
-        console.log(`[Discord] 🎉 成功將新成員【${memberNick}】(${dcId}) 拉進公會並賦予身分組！`);
+        console.log(`[Discord] 🎉 成功將新成員 ${memberNick} (${dcId}) 拉進公會、賦予身分組並修改暱稱！`);
       } else if (joinRes.status === 204) {
         console.log(`[Discord] ℹ️ 成員 ${dcName} (${dcId}) 原先就已在伺服器內，補發身分組並同步暱稱...`);
 
@@ -911,8 +959,8 @@ app.get('/api/auth/discord/callback', async (req, res) => {
           headers: { Authorization: `Bot ${DISCORD_BOT_TOKEN}` }
         });
 
-        // 2. 補改伺服器暱稱 (成員階層低於 Bot 時生效)
-        if (memberNick) {
+        // 2. 補改伺服器暱稱為遊戲角色名稱 (只有在確定有查到遊戲暱稱時才改，避免改回原名)
+        if (memberNick && memberNick !== dcName) {
           await fetch(`https://discord.com/api/v10/guilds/${DISCORD_GUILD_ID}/members/${dcId}`, {
             method: 'PATCH',
             headers: {
@@ -927,11 +975,11 @@ app.get('/api/auth/discord/callback', async (req, res) => {
       console.error('[Discord 自動加群/改名異常]:', botErr.message);
     }
 
-    // D. 依據來源分流處理
+    // ----------------------------------------------------
+    // E. 依據來源分流跳轉
+    // ----------------------------------------------------
     if (targetLineUid && targetLineUid !== 'login_only') {
-      // ----------------------------------------------------
-      // 情境一：台灣成員從 LINE LIFF 系統加綁 DC
-      // ----------------------------------------------------
+      // 台灣成員加綁 DC
       const duplicateCheck = await pool.query(
         "SELECT game_nickname FROM members WHERE dcid = $1 AND line_user_id != $2",
         [dcId, targetLineUid]
@@ -970,7 +1018,7 @@ app.get('/api/auth/discord/callback', async (req, res) => {
               已成功綁定您的 Discord 帳號，伺服器暱稱已更新為【${memberNick}】。<br><br>
               <b>請直接關閉此分頁，返回 LINE 即可！</b>
             </p>
-            <a href="https://lin.ee/vZ9iCZHj" class="block w-full bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold py-3 rounded-xl transition">
+            <a href="https://lin.ee/pAPeNUT" class="block w-full bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold py-3 rounded-xl transition">
               返回 LINE
             </a>
           </div>
@@ -979,44 +1027,7 @@ app.get('/api/auth/discord/callback', async (req, res) => {
       `);
 
     } else {
-      // ----------------------------------------------------
-      // 情境二：大陸成員專屬通道進入
-      // ----------------------------------------------------
-      const checkExistingTw = await pool.query(
-        "SELECT line_user_id, game_nickname, tw FROM members WHERE dcid = $1 AND (tw = 'Y' OR line_user_id != $1)",
-        [dcId]
-      );
-
-      if (checkExistingTw.rows.length > 0) {
-        const twUser = checkExistingTw.rows[0];
-        return res.status(403).send(`
-          <!DOCTYPE html>
-          <html lang="zh-Hant">
-          <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>帳號登入限制</title>
-            <script src="https://cdn.tailwindcss.com"></script>
-          </head>
-          <body class="bg-[#FFFDF7] min-h-screen flex items-center justify-center p-4 text-slate-800">
-            <div class="max-w-md w-full bg-white rounded-3xl p-6 border-2 border-rose-200 shadow-xl text-center space-y-4">
-              <div class="w-12 h-12 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto text-2xl font-black">⚠️</div>
-              <h2 class="text-base font-black text-slate-900">此 Discord 帳號已綁定台灣成員</h2>
-              <p class="text-xs text-slate-500 leading-relaxed text-left bg-rose-50/50 p-3.5 rounded-2xl border border-rose-100">
-                親愛的 <b>${twUser.game_nickname || '公會成員'}</b>：<br>
-                系統偵測到此 Discord 帳號已綁定於 <b>LINE 會員身分</b>。<br><br>
-                為避免產生重複紀錄，<b>請直接使用 LINE 管理系統進行各項操作</b>，無須使用大陸專屬通道註冊。
-              </p>
-              <a href="https://lin.ee/vZ9iCZHj" class="inline-block w-full bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold py-3 rounded-xl transition">
-                返回 LINE 使用系統
-              </a>
-            </div>
-          </body>
-          </html>
-        `);
-      }
-
-      // 大陸成員直接轉導至 cn-hub.html，送出申請才入庫
+      // 合法的大陸新成員/舊成員進入 cn-hub.html
       res.redirect(`/cn-hub.html?uid=${encodeURIComponent(dcId)}&name=${encodeURIComponent(dcName)}&avatar=${encodeURIComponent(dcAvatar)}`);
     }
 
