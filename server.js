@@ -586,13 +586,14 @@ app.post('/api/members/bind', async (req, res) => {
   }
 });
 
-// 3. 幹部後台會員清單 (依職業權重 -> 職業中文名稱 -> 入會時間)
+// 3. 幹部後台會員清單 (建議優化：關聯 groups 取出團體狀態)
 app.get('/api/admin/members', async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT m.* 
+      SELECT m.*, g.group_status 
       FROM members m
       LEFT JOIN game_classes c ON m.game_class = c.class_name
+      LEFT JOIN groups g ON m.team_group = g.group_name
       ORDER BY 
         COALESCE(c.sort_order, 999) ASC,
         m.game_class ASC,
@@ -610,6 +611,7 @@ app.get('/api/admin/members', async (req, res) => {
       accountStatus: m.account_status,
       guildRole: m.guild_role,
       teamGroup: m.team_group,
+      groupStatus: m.group_status || '活躍', 
       tw: m.tw || 'Y',
       dcid: m.dcid || '',
       updateTime: m.update_time
