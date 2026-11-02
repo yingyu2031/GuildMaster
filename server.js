@@ -1187,37 +1187,49 @@ app.get('/api/sheet/leaves', async (req, res) => {
 // 活動列表 API
 // ==========================================
 
-// 共用的時間檢查與狀態計算函式
+// 輔助函式：安全解析 YYYY-MM-DD HH:mm 字串（支援台灣時區 +08:00）
+function parseDateTime(str) {
+  if (!str) return null;
+  // 將 "2026-11-02 09:00" 轉為 "2026-11-02T09:00:00+08:00"
+  let cleanStr = str.trim().replace(' ', 'T');
+  if (cleanStr.length === 16) {
+    cleanStr += ':00';
+  }
+  // 若字串沒有附帶時區，強制綁定台灣時區 +08:00
+  if (!cleanStr.includes('+') && !cleanStr.endsWith('Z')) {
+    cleanStr += '+08:00';
+  }
+  return new Date(cleanStr);
+}
+
 function getComputedStatus(evt) {
-  // 如果已經手動封存或狀態為已結束，保持原狀
   if (evt.is_archived === 1 || evt.status === '已結束') {
     return '已結束';
   }
 
   const now = new Date();
 
-  // 1. 優先檢查活動時間是否已過（若活動結束，狀態直接判定為已結束）
+  // 1. 活動進行時間
   if (evt.date) {
-    const eventDateTimeStr = evt.time ? `${evt.date} ${evt.time}` : `${evt.date} 23:59:59`;
-    const eventTime = new Date(eventDateTimeStr);
-    if (now > eventTime) {
+    const eventTimeStr = evt.time ? `${evt.date} ${evt.time}` : `${evt.date} 23:59:59`;
+    const eventDate = parseDateTime(eventTimeStr);
+    if (eventDate && now > eventDate) {
       return '已結束';
     }
   }
 
-  const signupEnd = new Date(evt.signup_end);
-  const signupStart = new Date(evt.signup_start);
+  const signupEnd = parseDateTime(evt.signup_end);
+  const signupStart = parseDateTime(evt.signup_start);
 
-  // 2. 判斷報名區間
-  if (now > signupEnd) {
+  // 2. 判斷報名時間區間
+  if (signupEnd && now > signupEnd) {
     return '已截止';
-  } else if (now >= signupStart) {
-    return '報名中';
-  } else {
+  } else if (signupStart && now < signupStart) {
     return '尚未開始';
+  } else {
+    return '報名中';
   }
 }
-
 // ==========================================
 // 1. 取得所有活動與報名名單 API (GET) - 包含 note 備註
 // ==========================================
