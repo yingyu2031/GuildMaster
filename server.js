@@ -778,7 +778,7 @@ app.delete('/api/admin/members/:uid', async (req, res) => {
 });
 
 // ==========================================
-// 提供給 Google 試算表同步會員資料用的 API (依職業排序)
+// 提供給 Google 試算表同步會員資料用的 API (依職業自訂順序 -> 依裝評由高到低排序)
 // ==========================================
 app.get('/api/sheet/members', async (req, res) => {
   const secretKey = req.query.key;
@@ -787,19 +787,22 @@ app.get('/api/sheet/members', async (req, res) => {
   }
 
   try {
-    // 💡 關鍵改動：關聯 game_classes 依照自訂職業順序排序，同職業再依更新時間排序
+    // 關聯職業順序表，職業相同時依照 gear_score 降冪（高到低）排序
     const result = await pool.query(`
       SELECT m.* 
       FROM members m
       LEFT JOIN game_classes c ON m.game_class = c.class_name
-      ORDER BY COALESCE(c.sort_order, 999) ASC, m.update_time DESC
+      ORDER BY 
+        COALESCE(c.sort_order, 999) ASC, 
+        COALESCE(m.gear_score, 0) DESC, 
+        m.update_time DESC
     `);
     
-    // 將資料庫欄位對應轉換成試算表格格式
     const members = result.rows.map(m => ({
       lineUserId: m.line_user_id || "",
       gameNickname: m.game_nickname || "",
       gameClass: m.game_class || "",
+      gearScore: Number(m.gear_score) || 0, // 
       lineDisplayName: m.line_display_name || "",
       allowSearch: m.allow_search || "N",
       accountStatus: m.account_status || "待審核",
@@ -818,7 +821,6 @@ app.get('/api/sheet/members', async (req, res) => {
     res.status(500).json({ status: "error", message: err.message });
   }
 });
-
 // ==========================================
 // Google 試算表更新成員裝備評價 API
 // ==========================================
