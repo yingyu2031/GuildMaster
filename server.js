@@ -2059,43 +2059,44 @@ app.get('/api/members/match-by-line-name', async (req, res) => {
 });
 
 // ==========================================
-// 裝評系統：2. 記錄最新裝評與新 UID (防止他人冒領覆蓋)
+// 裝評系統：依 LINE 暱稱比對會員 (改用 POST + 容錯查詢)
 // ==========================================
-app.post('/api/members/update-power-uid', async (req, res) => {
-  const { lineUserId, lineDisplayName, gameNickname, combatPower } = req.body;
-
-  if (!gameNickname || !lineUserId) {
-    return res.status(400).json({ status: 'error', message: '缺少必要欄位' });
+app.post('/api/members/match-by-line-name', async (req, res) => {
+  const lineName = (req.body.name || '').trim();
+  if (!lineName) {
+    return res.json({ status: "not_found" });
   }
+
+  console.log(`[裝評比對] 收到 LINE 暱稱: 【${lineName}】`);
 
   try {
-    // 🛡️ 防呆防搶：只有在「尚未有人登記新UID」或「本人再次修改」時才允許更新
+    // 使用與您在 phpPgAdmin 一樣的查詢方式，並去除可能存在的前後空白
     const result = await pool.query(`
-      UPDATE members 
-      SET new_line_user_id = $1,
-          combat_power = $2,
-          update_time = CURRENT_TIMESTAMP
-      WHERE game_nickname = $3
-        AND (new_line_user_id IS NULL OR new_line_user_id = $1)
-      RETURNING game_nickname, combat_power, new_line_user_id
-    `, [lineUserId, parseInt(combatPower, 10) || 0, gameNickname]);
+      SELECT game_nickname, game_class, line_display_name, combat_power, new_line_user_id
+      FROM members 
+      WHERE TRIM(line_display_name) LIKE $1 
+         OR line_display_name LIKE $2
+      LIMIT 2
+    `, [lineName, `%${lineName}%`]);
 
-    if (result.rowCount === 0) {
-      return res.status(403).json({ 
-        status: 'error', 
-        message: '此角色已被其他成員完成認領！如需更正請聯繫公會幹部。' 
+    if (result.rows.length === 1) {
+      const member = result.rows[0];
+      console.log(`[裝評比對] 成功對中角色: ${member.game_nickname}`);
+      return res.json({
+        status: "matched",
+        gameNickname: member.game_nickname,
+        gameClass: member.game_class,
+        combatPower: member.combat_power || 0,
+        isBound: !!member.new_line_user_id
       });
+    } else if (result.rows.length > 1) {
+      return res.json({ status: "multiple", count: result.rows.length });
     }
 
-    res.json({
-      status: 'success',
-      message: '裝評與新身分記錄成功',
-      data: result.rows[0]
-    });
+    res.json({ status: "not_found" });
   } catch (err) {
-    console.error('[裝評記錄失敗]:', err);
-    res.status(500).json({ status: 'error', message: err.message });
+    console.error('[裝評比對失敗]:', err);
+    res.status(500).json({ status: "error", message: err.message });
   }
 });
-
 
