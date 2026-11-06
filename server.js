@@ -551,7 +551,9 @@ app.post('/api/members/bind', async (req, res) => {
   }
 });
 
-// 3. 幹部後台會員清單 
+
+// 3. 幹部後台會員清單 (依職業順序 -> 同職業依裝備評價由高到低排序)
+
 app.get('/api/admin/members', async (req, res) => {
   try {
     const result = await pool.query(`
@@ -560,14 +562,15 @@ app.get('/api/admin/members', async (req, res) => {
       LEFT JOIN game_classes c ON m.game_class = c.class_name
       ORDER BY 
         COALESCE(c.sort_order, 999) ASC,
-        m.game_class ASC,
-        m.update_time ASC
+        COALESCE(m.gear_score, 0) DESC,
+        m.update_time DESC
     `);
 
     const members = result.rows.map(m => ({
       lineUserId: m.line_user_id,
       gameNickname: m.game_nickname,
       gameClass: m.game_class,
+      gearScore: Number(m.gear_score) || 0, 
       lineDisplayName: m.line_display_name,
       allowSearch: m.allow_search || 'N',
       joinedLineGroup: m.joined_line_group || 'N',
