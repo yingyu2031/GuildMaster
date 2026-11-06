@@ -52,7 +52,7 @@ async function initDatabase() {
         team_group VARCHAR(255) DEFAULT '',
         dcid VARCHAR(255),
         tw VARCHAR(10) DEFAULT 'Y',
-        gear_score 0,
+        gear_score NUMERIC DEFAULT 0,
         update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
 
@@ -816,6 +816,47 @@ app.get('/api/sheet/members', async (req, res) => {
   } catch (err) {
     console.error('[Database] 同步會員至試算表失敗:', err);
     res.status(500).json({ status: "error", message: err.message });
+  }
+});
+
+// ==========================================
+// Google 試算表更新成員裝備評價 API
+// ==========================================
+app.post('/api/sheet/gear-scores', async (req, res) => {
+  const secretKey = req.query.key;
+  if (secretKey !== 'gm-lv') {
+    return res.status(403).json({ status: "error", message: "無權存取" });
+  }
+
+  const { items } = req.body;
+  if (!items || !Array.isArray(items)) {
+    return res.status(400).json({ status: "error", message: "資料格式錯誤" });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // 逐筆依遊戲暱稱更新裝備評價 (gear_score)
+    for (const item of items) {
+      if (item.gameNickname) {
+        await client.query(
+          `UPDATE members 
+           SET gear_score = $1, update_time = NOW() 
+           WHERE game_nickname = $2`,
+          [item.gearScore, item.gameNickname]
+        );
+      }
+    }
+
+    await client.query('COMMIT');
+    res.json({ status: "success", message: `成功更新 ${items.length} 筆裝備評價！` });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('[Database] 更新裝備評價失敗:', err);
+    res.status(500).json({ status: "error", message: err.message });
+  } finally {
+    client.release();
   }
 });
 
