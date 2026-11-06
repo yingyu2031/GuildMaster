@@ -101,211 +101,206 @@
     </form>
   </div>
 
-  <script>
-    // ⚙️ 請替換為您在 LINE Developers 申請的新 LIFF ID
-    const MY_LIFF_ID = "2012419937-mEUF9Qih";
+ <script>
+  // ⚙️ 請替換為您在 LINE Developers 申請的新 LIFF ID
+  const MY_LIFF_ID = "2012419937-mEUF9Qih";
 
-    let currentProfile = null;
-    let allMembers = [];
+  let currentProfile = null;
+  let allMembers = [];
 
-    
-
-    // 初始化 LIFF
-    async function initLiff() {
-      try {
-        await liff.init({ liffId: MY_LIFF_ID });
-        if (!liff.isLoggedIn()) {
-          liff.login();
-          return;
-        }
-
-        currentProfile = await liff.getProfile();
-        document.getElementById('userName').textContent = currentProfile.displayName || "LINE 成員";
-        if (currentProfile.pictureUrl) {
-          document.getElementById('userAvatar').src = currentProfile.pictureUrl;
-        }
-
-        // 1. 先載入所有名冊供備用搜尋
-        await loadAllMembers();
-
-        // 2. 自動以 LINE 暱稱比對資料庫
-    async function autoMatchMember(displayName) {
-      try {
-        const res = await fetch('/api/members/match-by-line-name', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: displayName })
-        });
-        const data = await res.json();
-
-        if (data.status === 'matched') {
-          selectMember(data.gameNickname, data.gameClass, data.combatPower, true);
-        } else {
-          showManualSearch();
-        }
-      } catch (err) {
-        showManualSearch();
-      }
-    }
-
-    // 取得現有名單供手動搜尋
-    async function loadAllMembers() {
-      try {
-        const res = await fetch('/api/admin/members');
-        const data = await res.json();
-        if (data.status === 'success') {
-          allMembers = data.members.filter(m => m.guildRole !== '退會');
-        }
-      } catch (e) {
-        console.error('名冊載入異常:', e);
-      }
-    }
-
-    // 依 LINE 暱稱自動匹配
-    async function autoMatchMember(displayName) {
-      try {
-        const res = await fetch(`/api/members/match-by-line-name?name=${encodeURIComponent(displayName)}`);
-        const data = await res.json();
-
-        if (data.status === 'matched') {
-          selectMember(data.gameNickname, data.gameClass, data.combatPower, true);
-        } else {
-          // 找不到人或多筆同名：開啟搜尋框
-          showManualSearch();
-        }
-      } catch (err) {
-        showManualSearch();
-      }
-    }
-
-    // 選取角色
-    function selectMember(nick, job, existingPower, isAuto = false) {
-      document.getElementById('selectedGameName').value = nick;
-      document.getElementById('selectedGameClass').value = job;
-      document.getElementById('matchedRoleText').textContent = `${nick} ${job ? `(${job})` : ''}`;
-
-      document.getElementById('autoMatchedNotice').classList.remove('hidden');
-      document.getElementById('searchSelectorArea').classList.add('hidden');
-
-      if (existingPower && existingPower > 0) {
-        document.getElementById('powerInput').value = existingPower;
-        formatPowerReadable(existingPower);
-      }
-    }
-
-    function showManualSearch() {
-      document.getElementById('autoMatchedNotice').classList.add('hidden');
-      document.getElementById('searchSelectorArea').classList.remove('hidden');
-    }
-
-    document.getElementById('btnSwitchManual').addEventListener('click', showManualSearch);
-
-    // 搜尋即時過濾下拉
-    const searchInput = document.getElementById('searchInput');
-    const dropdownList = document.getElementById('dropdownList');
-
-    searchInput.addEventListener('input', (e) => {
-      const val = e.target.value.trim().toLowerCase();
-      if (!val) {
-        dropdownList.classList.add('hidden');
+  // 初始化 LIFF
+  async function initLiff() {
+    try {
+      await liff.init({ liffId: MY_LIFF_ID });
+      if (!liff.isLoggedIn()) {
+        liff.login();
         return;
       }
 
-      const matches = allMembers.filter(m => 
-        (m.gameNickname && m.gameNickname.toLowerCase().includes(val)) ||
-        (m.lineDisplayName && m.lineDisplayName.toLowerCase().includes(val))
-      );
-
-      if (matches.length === 0) {
-        dropdownList.innerHTML = `<div class="p-3 text-xs text-slate-400 text-center">查無匹配角色</div>`;
-      } else {
-        dropdownList.innerHTML = matches.map(m => `
-  <div class="p-2.5 hover:bg-sky-50 cursor-pointer flex items-center justify-between border-b border-slate-100 last:border-0"
-       onclick="onSelectFromSearch('${m.gameNickname}', '${m.gameClass}', ${m.combat_power || 0})">
-    <span class="text-sm font-bold text-slate-800">
-      ${m.gameNickname} <span class="text-xs font-normal text-slate-500">(${m.gameClass || '未填寫'})</span>
-    </span>
-  </div>
-`).join('');
+      currentProfile = await liff.getProfile();
+      document.getElementById('userName').textContent = currentProfile.displayName || "LINE 成員";
+      if (currentProfile.pictureUrl) {
+        document.getElementById('userAvatar').src = currentProfile.pictureUrl;
       }
-      dropdownList.classList.remove('hidden');
-    });
 
-    window.onSelectFromSearch = function(nick, job, power) {
-      selectMember(nick, job, power, false);
+      // 1. 先載入所有名冊供手動備用搜尋
+      await loadAllMembers();
+
+      // 2. 執行自動比對 (POST)
+      await autoMatchMember(currentProfile.displayName);
+
+    } catch (err) {
+      console.warn('LIFF 初始化失敗或處於非 LINE 測試環境:', err);
+      // 本地測試模擬
+      currentProfile = { userId: "TEST_USER_999", displayName: "Chloe💕" };
+      document.getElementById('userName').textContent = currentProfile.displayName + " (測試環境)";
+      await loadAllMembers();
+      await autoMatchMember(currentProfile.displayName);
+    }
+  }
+
+  // 取得現有名單供手動搜尋
+  async function loadAllMembers() {
+    try {
+      const res = await fetch('/api/admin/members');
+      const data = await res.json();
+      if (data.status === 'success') {
+        allMembers = data.members.filter(m => m.guildRole !== '退會');
+      }
+    } catch (e) {
+      console.error('名冊載入異常:', e);
+    }
+  }
+
+  // 依 LINE 暱稱自動匹配 (唯一正確的 POST 宣告)
+  async function autoMatchMember(displayName) {
+    try {
+      const res = await fetch('/api/members/match-by-line-name', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: displayName })
+      });
+      const data = await res.json();
+
+      if (data.status === 'matched') {
+        selectMember(data.gameNickname, data.gameClass, data.combatPower, true);
+      } else {
+        showManualSearch();
+      }
+    } catch (err) {
+      console.error('自動比對異常:', err);
+      showManualSearch();
+    }
+  }
+
+  // 選取角色
+  function selectMember(nick, job, existingPower, isAuto = false) {
+    document.getElementById('selectedGameName').value = nick;
+    document.getElementById('selectedGameClass').value = job;
+    document.getElementById('matchedRoleText').textContent = `${nick} ${job ? `(${job})` : ''}`;
+
+    document.getElementById('autoMatchedNotice').classList.remove('hidden');
+    document.getElementById('searchSelectorArea').classList.add('hidden');
+
+    if (existingPower && existingPower > 0) {
+      document.getElementById('powerInput').value = existingPower;
+      formatPowerReadable(existingPower);
+    }
+  }
+
+  function showManualSearch() {
+    document.getElementById('autoMatchedNotice').classList.add('hidden');
+    document.getElementById('searchSelectorArea').classList.remove('hidden');
+  }
+
+  document.getElementById('btnSwitchManual').addEventListener('click', showManualSearch);
+
+  // 搜尋即時過濾下拉
+  const searchInput = document.getElementById('searchInput');
+  const dropdownList = document.getElementById('dropdownList');
+
+  searchInput.addEventListener('input', (e) => {
+    const val = e.target.value.trim().toLowerCase();
+    if (!val) {
       dropdownList.classList.add('hidden');
-      searchInput.value = '';
-    };
-
-    // 裝評中文萬位提示
-    const powerInput = document.getElementById('powerInput');
-    const powerReadable = document.getElementById('powerReadable');
-
-    function formatPowerReadable(val) {
-      const num = parseInt(val, 10);
-      if (!isNaN(num) && num > 0) {
-        const wan = (num / 10000).toFixed(1);
-        powerReadable.textContent = `≈ ${wan} 萬 (${num.toLocaleString()} 分)`;
-      } else {
-        powerReadable.textContent = '';
-      }
+      return;
     }
 
-    powerInput.addEventListener('input', (e) => {
-      formatPowerReadable(e.target.value);
-    });
+    const matches = allMembers.filter(m => 
+      (m.gameNickname && m.gameNickname.toLowerCase().includes(val)) ||
+      (m.lineDisplayName && m.lineDisplayName.toLowerCase().includes(val))
+    );
 
-    // 確認送出
-    document.getElementById('btnSubmit').addEventListener('click', async () => {
-      const gameNickname = document.getElementById('selectedGameName').value;
-      const combatPower = document.getElementById('powerInput').value;
+    if (matches.length === 0) {
+      dropdownList.innerHTML = `<div class="p-3 text-xs text-slate-400 text-center">查無匹配角色</div>`;
+    } else {
+      dropdownList.innerHTML = matches.map(m => `
+        <div class="p-2.5 hover:bg-sky-50 cursor-pointer flex items-center justify-between border-b border-slate-100 last:border-0"
+             onclick="onSelectFromSearch('${m.gameNickname}', '${m.gameClass}', ${m.combat_power || 0})">
+          <span class="text-sm font-bold text-slate-800">
+            ${m.gameNickname} <span class="text-xs font-normal text-slate-500">(${m.gameClass || '未填寫'})</span>
+          </span>
+        </div>
+      `).join('');
+    }
+    dropdownList.classList.remove('hidden');
+  });
 
-      if (!gameNickname) {
-        alert('請先選擇或認領您的遊戲角色！');
-        return;
-      }
-      if (!combatPower || parseInt(combatPower, 10) <= 0) {
-        alert('請輸入正確的裝評數值！');
-        return;
-      }
+  window.onSelectFromSearch = function(nick, job, power) {
+    selectMember(nick, job, power, false);
+    dropdownList.classList.add('hidden');
+    searchInput.value = '';
+  };
 
-      const btn = document.getElementById('btnSubmit');
-      btn.disabled = true;
-      btn.textContent = '送出中...';
+  // 裝評中文萬位提示
+  const powerInput = document.getElementById('powerInput');
+  const powerReadable = document.getElementById('powerReadable');
 
-      try {
-        const payload = {
-          lineUserId: currentProfile ? currentProfile.userId : 'UNKNOWN_UID',
-          lineDisplayName: currentProfile ? currentProfile.displayName : '',
-          gameNickname: gameNickname,
-          combatPower: parseInt(combatPower, 10)
-        };
+  function formatPowerReadable(val) {
+    const num = parseInt(val, 10);
+    if (!isNaN(num) && num > 0) {
+      const wan = (num / 10000).toFixed(1);
+      powerReadable.textContent = `≈ ${wan} 萬 (${num.toLocaleString()} 分)`;
+    } else {
+      powerReadable.textContent = '';
+    }
+  }
 
-        const res = await fetch('/api/members/update-power-uid', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
+  powerInput.addEventListener('input', (e) => {
+    formatPowerReadable(e.target.value);
+  });
 
-        const data = await res.json();
+  // 確認送出
+  document.getElementById('btnSubmit').addEventListener('click', async () => {
+    const gameNickname = document.getElementById('selectedGameName').value;
+    const combatPower = document.getElementById('powerInput').value;
 
-        if (res.ok && data.status === 'success') {
-          alert(`【${gameNickname}】裝評 ${combatPower} 回報完成！感謝您的配合。`);
-          if (liff.isInClient()) {
-            liff.closeWindow();
-          }
-        } else {
-          alert(data.message || '送出失敗，請洽幹部！');
+    if (!gameNickname) {
+      alert('請先選擇或認領您的遊戲角色！');
+      return;
+    }
+    if (!combatPower || parseInt(combatPower, 10) <= 0) {
+      alert('請輸入正確的裝評數值！');
+      return;
+    }
+
+    const btn = document.getElementById('btnSubmit');
+    btn.disabled = true;
+    btn.textContent = '送出中...';
+
+    try {
+      const payload = {
+        lineUserId: currentProfile ? currentProfile.userId : 'UNKNOWN_UID',
+        lineDisplayName: currentProfile ? currentProfile.displayName : '',
+        gameNickname: gameNickname,
+        combatPower: parseInt(combatPower, 10)
+      };
+
+      const res = await fetch('/api/members/update-power-uid', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.status === 'success') {
+        alert(`【${gameNickname}】裝評 ${combatPower} 回報完成！感謝您的配合。`);
+        if (typeof liff !== 'undefined' && liff.isInClient()) {
+          liff.closeWindow();
         }
-      } catch (err) {
-        alert('網路異常，請重試！');
-      } finally {
-        btn.disabled = false;
-        btn.textContent = '確認送出';
+      } else {
+        alert(data.message || '送出失敗，請洽幹部！');
       }
-    });
+    } catch (err) {
+      alert('網路異常，請重試！');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '確認送出';
+    }
+  });
 
-    initLiff();
-  </script>
+  initLiff();
+</script>
 </body>
 </html>
