@@ -1073,7 +1073,7 @@ function syncAllClassDropdowns() {
  }
 
 // ==========================================
-// 5. 會員名冊清單渲染 (含裝備評分展示)
+// 5. 會員名冊清單渲染 (依職業分組、同職業依裝評降冪排序、資訊分行顯示)
 // ==========================================
 function renderMembersList() {
     const container = document.getElementById('memberListContainer');
@@ -1086,9 +1086,39 @@ function renderMembersList() {
         if (currentMemberSubTab === 'active') return m.accountStatus === "已審核" && m.guildRole !== "退會";
         return m.guildRole === "退會";
     }).filter(m => {
-        const matchKey = (m.gameNickname && m.gameNickname.toLowerCase().includes(keyword)) || (m.lineDisplayName && m.lineDisplayName.toLowerCase().includes(keyword));
+        const matchKey = (m.gameNickname && m.gameNickname.toLowerCase().includes(keyword)) || 
+                         (m.lineDisplayName && m.lineDisplayName.toLowerCase().includes(keyword));
         const matchClass = !classFilter || (m.gameClass === classFilter);
         return matchKey && matchClass;
+    });
+
+    // 🎯 核心排序：先按職業順序，同職業再依裝評由大到小排序
+    list.sort((a, b) => {
+        const classOrder = (typeof ORDERED_CLASSES !== 'undefined' && ORDERED_CLASSES.length > 0)
+            ? ORDERED_CLASSES
+            : (typeof gameClasses !== 'undefined' ? gameClasses : []);
+
+        const idxA = classOrder.indexOf(a.gameClass);
+        const idxB = classOrder.indexOf(b.gameClass);
+
+        const rankA = idxA === -1 ? 999 : idxA;
+        const rankB = idxB === -1 ? 999 : idxB;
+
+        // 1. 職業不同：依職業預設順序排列
+        if (rankA !== rankB) {
+            return rankA - rankB;
+        }
+
+        // 若都不在清單內，依職業文字名稱排序
+        const nameComp = (a.gameClass || '').localeCompare(b.gameClass || '', 'zh-Hant');
+        if (nameComp !== 0) {
+            return nameComp;
+        }
+
+        // 2. 同職業：依裝備評分由高到低（降冪）排序
+        const scoreA = Number(a.gearScore || a.gear_score || a.combat_power || 0);
+        const scoreB = Number(b.gearScore || b.gear_score || b.combat_power || 0);
+        return scoreB - scoreA;
     });
 
     if (currentMemberSubTab === 'active') {
@@ -1109,34 +1139,45 @@ function renderMembersList() {
         if (role === '幹部') roleBadgeClass = "bg-sky-100 text-sky-800";
         if (role === '退會') roleBadgeClass = "bg-slate-100 text-slate-600";
 
-        const lineTag = (m.joinedLineGroup === 'Y') ? '<span class="bg-emerald-50 text-emerald-700 text-[9px] font-bold px-1.5 py-0.2 rounded border border-emerald-100">已入LINE群</span>' : '<span class="bg-slate-50 text-slate-400 text-[9px] px-1.5 py-0.2 rounded border border-slate-100">未入LINE群</span>';
-        const dcTag = (m.joinedDc === 'Y') ? '<span class="bg-indigo-50 text-indigo-700 text-[9px] font-bold px-1.5 py-0.2 rounded border border-indigo-100">已入DC</span>' : '<span class="bg-slate-50 text-slate-400 text-[9px] px-1.5 py-0.2 rounded border border-slate-100">未入DC</span>';
+        const lineTag = (m.joinedLineGroup === 'Y') 
+            ? '<span class="bg-emerald-50 text-emerald-700 text-[9px] font-bold px-1.5 py-0.2 rounded border border-emerald-100">已入LINE群</span>' 
+            : '<span class="bg-slate-50 text-slate-400 text-[9px] px-1.5 py-0.2 rounded border border-slate-100">未入LINE群</span>';
+        const dcTag = (m.joinedDc === 'Y') 
+            ? '<span class="bg-indigo-50 text-indigo-700 text-[9px] font-bold px-1.5 py-0.2 rounded border border-indigo-100">已入DC</span>' 
+            : '<span class="bg-slate-50 text-slate-400 text-[9px] px-1.5 py-0.2 rounded border border-slate-100">未入DC</span>';
 
-        // 💡 取得該職業在後台設定的實心飽和代表色標籤樣式
+        // 💡 取得該職業代表色樣式
         const badgeStyle = getBadgeStyleByClass(m.gameClass);
 
-        // ⚔️ 處理裝備評分顯示 (容錯 gearScore 或 gear_score，大於 0 時顯示千分位)
-        const rawScore = Number(m.gearScore || m.gear_score || 0);
+        // ⚔️ 裝備評分：無黃框底色、純灰色字體、千分位逗號
+        const rawScore = Number(m.gearScore || m.gear_score || m.combat_power || 0);
         const gearScoreHtml = rawScore > 0 
-            ? `<span class="inline-flex items-center gap-0.5 text-[11px] font-black text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200/80 font-mono shadow-2xs"> ${rawScore.toLocaleString()}</span>` 
+            ? `<div class="text-xs font-semibold text-slate-400 font-mono">裝評: ${rawScore.toLocaleString()}</div>` 
             : '';
 
         if (currentMemberSubTab === 'pending') {
             card.innerHTML = `
                 <div class="flex items-start justify-between">
-                    <div>
+                    <div class="space-y-1 flex-1 pr-2">
                         <span class="bg-rose-50 text-rose-700 text-[10px] font-black px-2 py-0.5 rounded border border-rose-100">新申請待審</span>
-                        <div class="flex items-center gap-2 mt-1.5 flex-wrap">
-                            <!-- 職業移至最前 -->
+                        
+                        <!-- 第一行：職業 ➔ 暱稱 ➔ ID -->
+                        <div class="flex items-center gap-2 mt-1 flex-wrap">
                             ${m.gameClass ? `<span class="text-[11px] font-bold px-2 py-0.5 rounded-md border shadow-xs ${badgeStyle}">${m.gameClass}</span>` : ''}
-                            <!-- 暱稱字體放大為 text-base -->
                             <h3 class="text-base font-black text-slate-900 tracking-tight">${m.gameNickname}</h3>
-                            <!-- 裝備評分 -->
-                            ${gearScoreHtml}
                             ${m.gameId ? `<span class="text-xs font-bold text-slate-400 font-mono">${m.gameId}</span>` : ''}
                         </div>
-                        <p class="text-xs font-bold text-slate-500 mt-1">LINE: ${m.lineDisplayName || '-'}</p>
-                        <div class="flex items-center gap-1 mt-1.5">${lineTag} ${dcTag}</div>
+
+                        <!-- 第二行：裝備評分 (獨立一行，灰字) -->
+                        ${gearScoreHtml}
+
+                        <!-- 第三行：LINE 資訊 (獨立一行) -->
+                        <div class="text-xs text-slate-500 font-bold">
+                            LINE: <span class="text-slate-700">${m.lineDisplayName || '-'}</span>
+                        </div>
+
+                        <!-- 第四行：群組綁定狀態 -->
+                        <div class="flex items-center gap-1.5 pt-0.5">${lineTag} ${dcTag}</div>
                     </div>
                 </div>
                 <div class="flex items-center gap-2 pt-2.5 border-t border-slate-100 mt-2.5">
@@ -1149,25 +1190,24 @@ function renderMembersList() {
             card.innerHTML = `
                 <div class="flex items-start justify-between">
                     <!-- 左側：主要個人資訊 -->
-                    <div class="space-y-1.5 flex-1 pr-2">
-                        <!-- 第一行：職業標籤 ➔ 暱稱 ➔ 裝備評分 ➔ 隊伍標籤 / ID -->
+                    <div class="space-y-1 flex-1 pr-2">
+                        <!-- 第一行：職業 ➔ 暱稱 ➔ 隊伍標籤 / ID -->
                         <div class="flex items-center gap-2 flex-wrap">
-                            <!-- 職業移至最前 -->
                             ${m.gameClass ? `<span class="text-[11px] font-bold px-2 py-0.5 rounded-md border shadow-xs ${badgeStyle}">${m.gameClass}</span>` : ''}
-                            <!-- 暱稱放大為 text-base -->
                             <h3 class="text-base font-black text-slate-900 tracking-tight">${m.gameNickname}</h3>
-                            <!-- 裝備評分標籤 -->
-                            ${gearScoreHtml}
                             ${m.teamGroup ? `<span class="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-bold">${m.teamGroup}</span>` : ''}
                             ${m.gameId ? `<span class="text-xs font-bold text-slate-400 font-mono">${m.gameId}</span>` : ''}
                         </div>
                         
-                        <!-- 第二行：LINE 資訊 -->
+                        <!-- 第二行：裝備評分 (獨立一行，灰字) -->
+                        ${gearScoreHtml}
+
+                        <!-- 第三行：LINE 資訊 (獨立一行) -->
                         <div class="text-xs text-slate-500 font-bold">
                             LINE: <span class="text-slate-700">${m.lineDisplayName || '-'}</span>
                         </div>
 
-                        <!-- 第三行：群組綁定狀態 -->
+                        <!-- 第四行：群組綁定狀態 -->
                         <div class="flex items-center gap-1.5 pt-0.5">${lineTag} ${dcTag}</div>
                     </div>
 
