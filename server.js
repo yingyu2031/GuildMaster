@@ -267,7 +267,7 @@ app.post('/webhook', async (req, res) => {
 
  for (const ev of events) {
 // ----------------------------------------------------
-    // 1. 監聽新成員加入大群 (支援 UID + LINE 暱稱雙重比對)
+    // 1. 監聽新成員加入大群 (支援 UID + LINE 暱稱雙重比對，附完整 Log)
     // ----------------------------------------------------
     if (ev.type === 'memberJoined' && ev.source?.type === 'group') {
       try {
@@ -276,7 +276,6 @@ app.post('/webhook', async (req, res) => {
         );
         const guildGroupId = configRes.rows.length > 0 ? configRes.rows[0].config_value : null;
 
-        // 僅限公會大群才處理
         if (guildGroupId && ev.source.groupId === guildGroupId) {
           const membersList = ev.joined?.members || [];
 
@@ -285,7 +284,7 @@ app.post('/webhook', async (req, res) => {
               const joinedUid = m.userId;
               const token = process.env.LINE_ACCESS_TOKEN || (typeof LINE_ACCESS_TOKEN !== 'undefined' ? LINE_ACCESS_TOKEN : '');
 
-              // 步驟 1：先嘗試直接用 UID 比對更新
+              // 步驟 1：UID 比對
               let updateRes = await pool.query(`
                 UPDATE members 
                 SET joined_line_group = 'Y', update_time = CURRENT_TIMESTAMP 
@@ -293,51 +292,58 @@ app.post('/webhook', async (req, res) => {
                 RETURNING game_nickname, line_display_name
               `, [joinedUid]);
 
-              // 步驟 2：若 UID 比對不到 (跨 Provider 情況)，呼叫 LINE API 抓取入群暱稱
-              if (updateRes.rows.length === 0 && token) {
-                try {
-                  const profileRes = await fetch(
-                    `https://api.line.me/v2/bot/group/${guildGroupId}/member/${joinedUid}`,
-                    {
+              let fetchedLineNick = null;
+
+              // 步驟 2：UID 比對未中，呼叫 LINE API 撈取該成員在群組的資料
+              if (updateRes.rows.length === 0) {
+                if (!token) {
+                  console.error('[LINE 大群 API] 找不到有效的 LINE_ACCESS_TOKEN，無法查詢成員暱稱');
+                } else {
+                  try {
+                    const apiUrl = `https://api.line.me/v2/bot/group/${guildGroupId}/member/${joinedUid}`;
+                    const profileRes = await fetch(apiUrl, {
                       headers: { Authorization: `Bearer ${token}` }
+                    });
+
+                    if (profileRes.ok) {
+                      const profile = await profileRes.json();
+                      fetchedLineNick = profile.displayName ? profile.displayName.trim() : null;
+                      console.log(`[LINE 大群 API] 成功取得 UID ${joinedUid} 的 LINE 暱稱: 【${fetchedLineNick}】`);
+
+                      // 步驟 3：以 LINE 暱稱進行不分大小寫與空白修剪比對
+                      if (fetchedLineNick) {
+                        updateRes = await pool.query(`
+                          UPDATE members 
+                          SET joined_line_group = 'Y', 
+                              line_user_id = $1, 
+                              update_time = CURRENT_TIMESTAMP 
+                          WHERE TRIM(line_display_name) ILIKE $2 
+                          RETURNING game_nickname, line_display_name
+                        `, [joinedUid, fetchedLineNick]);
+                      }
+                    } else {
+                      const errStatus = profileRes.status;
+                      const errBody = await profileRes.text();
+                      console.error(`[LINE 大群 API] 查詢成員失敗 HTTP ${errStatus}: ${errBody}`);
                     }
-                  );
-
-                  if (profileRes.ok) {
-                    const profile = await profileRes.json();
-                    const lineNick = profile.displayName; // 取得加入時的 LINE 暱稱
-
-                    console.log(`[LINE 大群] UID ${joinedUid} 跨 Provider，取得 LINE 暱稱為:【${lineNick}】`);
-
-                    // 步驟 3：用 LINE 暱稱去比對資料庫的 line_display_name
-                    if (lineNick) {
-                      updateRes = await pool.query(`
-                        UPDATE members 
-                        SET joined_line_group = 'Y', 
-                            line_user_id = $1, -- 自動將資料庫校正為大群 UID
-                            update_time = CURRENT_TIMESTAMP 
-                        WHERE line_display_name = $2 
-                        RETURNING game_nickname, line_display_name
-                      `, [joinedUid, lineNick]);
-                    }
+                  } catch (apiErr) {
+                    console.error('[LINE 大群 API] 網路或請求異常:', apiErr.message);
                   }
-                } catch (apiErr) {
-                  console.error('[LINE 大群] 查詢成員個人檔案失敗:', apiErr);
                 }
               }
 
-              // 輸出結果 Log
+              // 輸出最終比對結果
               if (updateRes && updateRes.rows.length > 0) {
                 const member = updateRes.rows[0];
-                console.log(`[LINE 大群] 🎉 成功配對成員【${member.game_nickname}】(LINE: ${member.line_display_name})，已標記已入群！`);
+                console.log(`[LINE 大群] 🎉 成功配對成員【${member.game_nickname}】(LINE: ${member.line_display_name})，已更新 joined_line_group = 'Y'！`);
               } else {
-                console.log(`[LINE 大群] UID ${joinedUid} 入群，UID 與 LINE 暱稱皆未匹配到登記資料。`);
+                console.log(`[LINE 大群] UID ${joinedUid} 入群未匹配。抓取暱稱: 【${fetchedLineNick || '未取得'}】。請檢查 members.line_display_name 是否相符。`);
               }
             }
           }
         }
       } catch (err) {
-        console.error('[LINE Webhook] 更新入群狀態失敗:', err);
+        console.error('[LINE Webhook] 處理入群事件錯誤:', err);
       }
       continue;
     }
