@@ -1998,90 +1998,51 @@ app.post('/api/auth/login', (req, res) => {
 });
 
 // ==========================================
-// 裝評系統：依 LINE 顯示名稱比對會員 (高容錯與 Emoji 淨化版)
+// 裝評系統：依 LINE 暱稱比對會員 (支援 GET / POST 雙通道 + 高容錯 ILIKE)
 // ==========================================
-app.get('/api/members/match-by-line-name', async (req, res) => {
-  const rawLineName = (req.query.name || '').trim();
-  if (!rawLineName) {
-    return res.json({ status: "not_found" });
-  }
+async function handleMatchMemberByLineName(req, res) {
+  // 自動適配 GET (req.query.name) 或 POST (req.body.name)
+  const rawLineName = (req.method === 'POST' ? req.body.name : req.query.name) || '';
+  const lineName = String(rawLineName).trim();
 
-  // 淨化字串：移除常見 Emoji、特殊符號與空白，轉小寫以利高容錯比對
-  const cleanName = rawLineName
-    .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{FE00}-\u{FE0F}\u{1F900}-\u{1F9FF}\s]/gu, '')
-    .toLowerCase();
-
-  console.log(`[裝評比對] 收到前端傳入 LINE 暱稱: 【${rawLineName}】，淨化後關鍵字: 【${cleanName}】`);
-
-  try {
-    // 1. 先用原本字串嘗試完全吻合 (忽略大小寫與前後空白)
-    let result = await pool.query(`
-      SELECT game_nickname, game_class, line_display_name, combat_power, new_line_user_id
-      FROM members 
-      WHERE TRIM(line_display_name) ILIKE $1 
-        AND (guild_role IS NULL OR guild_role != '退會')
-    `, [rawLineName]);
-
-    // 2. 若完全吻合查不到，且去符號後還有英數中文，使用模糊比對
-    if (result.rows.length === 0 && cleanName.length > 0) {
-      result = await pool.query(`
-        SELECT game_nickname, game_class, line_display_name, combat_power, new_line_user_id
-        FROM members 
-        WHERE (
-          LOWER(line_display_name) LIKE $1 
-          OR LOWER(REGEXP_REPLACE(line_display_name, '[^a-zA-Z0-9\u4e00-\u9fa5]', '', 'g')) = $2
-        )
-        AND (guild_role IS NULL OR guild_role != '退會')
-      `, [`%${cleanName}%`, cleanName]);
-    }
-
-    if (result.rows.length === 1) {
-      const member = result.rows[0];
-      console.log(`[裝評比對] 成功匹配到角色: 【${member.game_nickname} (${member.game_class})】`);
-      return res.json({
-        status: "matched",
-        gameNickname: member.game_nickname,
-        gameClass: member.game_class,
-        combatPower: member.combat_power || 0,
-        isBound: !!member.new_line_user_id
-      });
-    } else if (result.rows.length > 1) {
-      console.warn(`[裝評比對] 匹配到多筆資料 (共 ${result.rows.length} 筆)，引導至手動選擇`);
-      return res.json({ status: "multiple", count: result.rows.length });
-    }
-
-    console.log(`[裝評比對] 資料庫中查無符合「${rawLineName}」的會員資料`);
-    res.json({ status: "not_found" });
-  } catch (err) {
-    console.error('[裝評比對失敗]:', err);
-    res.status(500).json({ status: "error", message: err.message });
-  }
-});
-
-// ==========================================
-// 裝評系統：依 LINE 暱稱比對會員 (改用 POST + 容錯查詢)
-// ==========================================
-app.post('/api/members/match-by-line-name', async (req, res) => {
-  const lineName = (req.body.name || '').trim();
   if (!lineName) {
     return res.json({ status: "not_found" });
   }
 
-  console.log(`[裝評比對] 收到 LINE 暱稱: 【${lineName}】`);
+  // 淨化字串：移除 Emoji、常見符號與空格，轉小寫作為備用模糊比對
+  const cleanName = lineName
+    .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{FE00}-\u{FE0F}\u{1F900}-\u{1F9FF}\s]/gu, '')
+    .toLowerCase();
+
+  console.log(`[裝評比對] 收到 LINE 暱稱: 【${lineName}】 (方法: ${req.method})`);
 
   try {
-    // 使用與您在 phpPgAdmin 一樣的查詢方式，並去除可能存在的前後空白
-    const result = await pool.query(`
+    // 1. 優先使用 ILIKE 模糊與去空白完全匹配 (不分大小寫)
+    let result = await pool.query(`
       SELECT game_nickname, game_class, line_display_name, combat_power, new_line_user_id
       FROM members 
-      WHERE TRIM(line_display_name) LIKE $1 
-         OR line_display_name LIKE $2
+      WHERE (
+        TRIM(line_display_name) ILIKE $1 
+        OR line_display_name ILIKE $2
+      )
+      AND (guild_role IS NULL OR guild_role != '退會')
       LIMIT 2
     `, [lineName, `%${lineName}%`]);
 
+    // 2. 若第一步找不到，且去 Emoji 後還有文字，嘗試用淨化後的文字做搜尋
+    if (result.rows.length === 0 && cleanName.length > 0) {
+      result = await pool.query(`
+        SELECT game_nickname, game_class, line_display_name, combat_power, new_line_user_id
+        FROM members 
+        WHERE line_display_name ILIKE $1
+          AND (guild_role IS NULL OR guild_role != '退會')
+        LIMIT 2
+      `, [`%${cleanName}%`]);
+    }
+
     if (result.rows.length === 1) {
       const member = result.rows[0];
-      console.log(`[裝評比對] 成功對中角色: ${member.game_nickname}`);
+      console.log(`[裝評比對] 🎉 成功匹配角色: 【${member.game_nickname} (${member.game_class})】`);
       return res.json({
         status: "matched",
         gameNickname: member.game_nickname,
@@ -2090,13 +2051,18 @@ app.post('/api/members/match-by-line-name', async (req, res) => {
         isBound: !!member.new_line_user_id
       });
     } else if (result.rows.length > 1) {
+      console.warn(`[裝評比對] ⚠️ 匹配到多筆資料 (共 ${result.rows.length} 筆)，轉由手動選擇`);
       return res.json({ status: "multiple", count: result.rows.length });
     }
 
+    console.log(`[裝評比對] 查無符合【${lineName}】的現任會員`);
     res.json({ status: "not_found" });
   } catch (err) {
     console.error('[裝評比對失敗]:', err);
     res.status(500).json({ status: "error", message: err.message });
   }
-});
+}
 
+// 註冊端點：無論前端寫 fetch get 還是 post 都能通
+app.get('/api/members/match-by-line-name', handleMatchMemberByLineName);
+app.post('/api/members/match-by-line-name', handleMatchMemberByLineName);
