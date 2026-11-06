@@ -566,24 +566,23 @@
         }
 
         async function fetchMembersFromDB() {
-    try {
-        const res = await fetch(`${BACKEND_API_URL}/api/admin/members`);
-        const result = await res.json();
-        if (result.status === 'success' && result.members) {
-            masterMembers = result.members
-                .filter(m => m.guildRole !== '退會' && m.accountStatus === '已審核')
-                .map(m => ({
-                    uid: m.lineUserId || m.uid || m.id,
-                    name: m.gameNickname || m.name,
-                    job: m.gameClass || m.job || '其他',
-                    // 🎯 新增：裝備評價（根據您的後端欄位名稱對應，若無則預設為 0 或 '-'）
-                    gearScore: m.gearScore || m.equipScore || m.power || '-'
-                }));
+            try {
+                const res = await fetch(`${BACKEND_API_URL}/api/admin/members`);
+                const result = await res.json();
+                if (result.status === 'success' && result.members) {
+                    masterMembers = result.members
+                        .filter(m => m.guildRole !== '退會' && m.accountStatus === '已審核')
+                        .map(m => ({
+                            uid: m.lineUserId || m.uid || m.id,
+                            name: m.gameNickname || m.name,
+                            job: m.gameClass || m.job || '其他',
+                            gearScore: m.gearScore || m.gear_score || m.combat_power || m.equipScore || m.power || 0
+                        }));
+                }
+            } catch (err) {
+                console.error('載入會員失敗:', err);
+            }
         }
-    } catch (err) {
-        console.error('載入會員失敗:', err);
-    }
-}
 
         async function fetchLeavesFromDB() {
             try {
@@ -689,6 +688,7 @@
             return leaveList.some(l => l.name === name && l.date === todayStr);
         }
 
+        // 🎯 核心渲染：左側名冊（先按職業順序，同職業再依裝評由高到低，裝評獨立第二行灰字）
         function renderMemberList() {
             const container = document.getElementById('member-list-container');
             const search = document.getElementById('search-input').value.trim();
@@ -712,10 +712,33 @@
                 return matchSearch && matchJob;
             });
 
+            // 🎯 核心排序：先依 ORDERED_CLASSES 職業順序，同職業再依裝評由高到低
             filtered.sort((a, b) => {
-                const scoreA = parseFloat(a.gearScore) || 0;
-                const scoreB = parseFloat(b.gearScore) || 0;
-                return scoreB - scoreA; 
+                const classOrder = (typeof ORDERED_CLASSES !== 'undefined' && ORDERED_CLASSES.length > 0)
+                    ? ORDERED_CLASSES
+                    : (typeof gameClasses !== 'undefined' ? gameClasses : []);
+
+                const idxA = classOrder.indexOf(a.job);
+                const idxB = classOrder.indexOf(b.job);
+
+                const rankA = idxA === -1 ? 999 : idxA;
+                const rankB = idxB === -1 ? 999 : idxB;
+
+                // 1. 職業不同：依職業預設順序排列
+                if (rankA !== rankB) {
+                    return rankA - rankB;
+                }
+
+                // 若都不在清單內，依職業文字名稱排序
+                const nameComp = (a.job || '').localeCompare(b.job || '', 'zh-Hant');
+                if (nameComp !== 0) {
+                    return nameComp;
+                }
+
+                // 2. 同職業：依裝備評分由高到低（降冪）排序
+                const scoreA = Number(a.gearScore || 0);
+                const scoreB = Number(b.gearScore || 0);
+                return scoreB - scoreA;
             });
 
             document.getElementById('available-count').innerText = filtered.length;
@@ -748,7 +771,7 @@
                 }
 
                 const row = document.createElement('div');
-                row.className = `flex items-center justify-between px-2 py-1 rounded-lg border text-[11px] transition bg-white ${
+                row.className = `flex items-center justify-between px-2 py-1.5 rounded-lg border text-[11px] transition bg-white ${
                     isBlocked ? 'opacity-40 border-gray-200' : 'border-gray-200 shadow-2xs hover:border-indigo-400'
                 }`;
 
@@ -756,17 +779,24 @@
                     `<span class="text-gray-400 font-bold bg-gray-100 px-1.5 py-0.5 rounded text-[9px] shrink-0">${badgeText}</span>` :
                     `<button onclick="assignToFirstAvailable('${m.name}')" class="bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white font-bold px-2 py-0.5 rounded transition text-[10px] shrink-0">指派</button>`;
 
+                // ⚔️ 裝評：第二行顯示、純灰字、千分位、大於 0 才顯示
+                const rawScore = Number(m.gearScore || 0);
+                const gearScoreHtml = rawScore > 0 
+                    ? `<div class="text-[10px] font-medium text-slate-400 font-mono tracking-tight pl-0.5">裝評: ${rawScore.toLocaleString()}</div>` 
+                    : '';
+
                 row.innerHTML = `
-                    <div class="flex items-center gap-1 min-w-0">
-                    <span class="job-card-${m.job} px-1 py-0.2 rounded font-bold text-[9px] border shrink-0">${m.job}</span>
-                    <span class="font-bold text-gray-800 truncate text-[11px]">${m.name}</span>
-                    <!-- 🎯 新增：裝備評價標籤 -->
-                    <span class="bg-amber-50 text-amber-700 border border-amber-200 text-[9px] font-bold px-1 rounded shrink-0" title="裝備評價">
-                        ${m.gearScore}
-                    </span>
-                </div>
-                ${actionHtml}
-            `;
+                    <div class="flex flex-col min-w-0 pr-1 gap-0.5">
+                        <!-- 第一行：職業膠囊 ➔ 成員暱稱 -->
+                        <div class="flex items-center gap-1 min-w-0">
+                            <span class="job-card-${m.job} px-1 py-0.2 rounded font-bold text-[9px] border shrink-0">${m.job}</span>
+                            <span class="font-bold text-gray-800 truncate text-[11px]">${m.name}</span>
+                        </div>
+                        <!-- 第二行：裝備評分 (灰字) -->
+                        ${gearScoreHtml}
+                    </div>
+                    ${actionHtml}
+                `;
 
                 if (!isBlocked) {
                     row.draggable = true;
@@ -912,7 +942,6 @@
 
             document.getElementById('total-assigned-badge').innerText = `已配置: ${totalAssigned} / ${totalCapacity}`;
 
-            // 🎯 隊伍更新時，同時更新底部的職業分類統計表！
             renderClassStatsTable();
         }
 
@@ -1011,7 +1040,7 @@
             `;
         }
 
-        // 🎯 核心渲染：動態依已安排人員之「職業分類統計表」
+        // 🎯 底部：動態依已安排人員之「職業分類統計表」
         function renderClassStatsTable() {
             const container = document.getElementById('class-stats-container');
             if (!container) return;
@@ -1019,7 +1048,6 @@
 
             const squads = (currentMode === 'main') ? mainSquads : subSquads;
 
-            // 1. 遍歷目前隊伍中所有已配置的隊員人名
             const assignedMembers = [];
             squads.forEach(s => {
                 s.members.forEach(name => {
@@ -1027,7 +1055,6 @@
                 });
             });
 
-            // 2. 按照 15 大職業歸類分桶
             const classBuckets = {};
             ORDERED_CLASSES.forEach(c => classBuckets[c] = []);
 
@@ -1038,7 +1065,6 @@
                 }
             });
 
-            // 3. 動態渲染出 15 欄直立列表 (比照試算表排版)
             ORDERED_CLASSES.forEach(className => {
                 const colDiv = document.createElement('div');
                 colDiv.className = 'flex flex-col bg-white rounded-xl border border-gray-200 overflow-hidden shadow-2xs';
@@ -1046,7 +1072,6 @@
                 const memberList = classBuckets[className] || [];
                 const count = memberList.length;
 
-                // 標題欄 (帶職業背景色)
                 let headerHtml = `
                     <div class="job-card-${className} py-1 px-1.5 text-center font-black text-[11px] border-b border-gray-200 flex items-center justify-center gap-1">
                         <span>${className}</span>
@@ -1054,7 +1079,6 @@
                     </div>
                 `;
 
-                // 隊員人名清單直排
                 let listHtml = `<div class="flex flex-col p-1 gap-1 min-h-[140px] bg-white">`;
                 if (count === 0) {
                     listHtml += `<div class="text-[10px] text-gray-300 text-center py-4">-</div>`;
@@ -1127,7 +1151,6 @@
             }
         }
 
-        // 🎯 點擊空位手動輸入未在表單名冊中的成員
         function promptManualAssignToSquad(squadId) {
             const rawName = prompt("請輸入成員遊戲暱稱（適用於尚未填表單或臨時加入的成員）：");
             if (!rawName) return;
@@ -1135,7 +1158,6 @@
             const memberName = rawName.trim();
             if (!memberName) return;
         
-            // 檢查副戰模式下是否已經被主戰排入
             if (currentMode === 'sub' && isAssignedInMain(memberName)) {
                 alert(`🚨 衝突警告：【${memberName}】已經被排在主戰場名單中了！`);
                 return;
@@ -1144,7 +1166,6 @@
             const squads = (currentMode === 'main') ? mainSquads : subSquads;
             const squad = squads.find(s => s.id === squadId);
         
-            // 檢查當前戰場是否已經排過
             if (squads.some(s => s.members.includes(memberName))) {
                 alert(`【${memberName}】已經在目前的隊伍名單中了！`);
                 return;
@@ -1281,15 +1302,15 @@
             if (badge) badge.innerText = todayLeaves.length;
         }
 
-        function openMergeModal() {
-            document.getElementById('merge-modal').classList.remove('hidden');
-            renderMergeCheckboxes();
-            renderExistingMergedGroups();
+        function openMergeModal() { 
+            document.getElementById('merge-modal').classList.remove('hidden'); 
+            renderMergeCheckboxes(); 
+            renderExistingMergedGroups(); 
         }
 
-        function closeMergeModal() {
-            document.getElementById('merge-modal').classList.add('hidden');
-            renderSquads();
+        function closeMergeModal() { 
+            document.getElementById('merge-modal').classList.add('hidden'); 
+            renderSquads(); 
         }
 
         function renderMergeCheckboxes() {
