@@ -52,6 +52,8 @@ async function initDatabase() {
         team_group VARCHAR(255) DEFAULT '',
         dcid VARCHAR(255),
         tw VARCHAR(10) DEFAULT 'Y',
+        combat_power INT DEFAULT 0,
+        new_line_user_id VARCHAR(255),
         update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
 
@@ -1993,6 +1995,83 @@ app.post('/api/auth/login', (req, res) => {
     }
 
     return res.status(401).json({ status: "error", message: "帳號或密碼錯誤！" });
+});
+
+// ==========================================
+// 裝評系統：1. 依 LINE 顯示名稱預先匹配會員 (防呆自動帶入)
+// ==========================================
+app.get('/api/members/match-by-line-name', async (req, res) => {
+  const lineName = (req.query.name || '').trim();
+  if (!lineName) {
+    return res.json({ status: "not_found" });
+  }
+
+  try {
+    const result = await pool.query(`
+      SELECT game_nickname, game_class, line_display_name, combat_power, new_line_user_id
+      FROM members 
+      WHERE line_display_name = $1 
+        AND guild_role != '退會'
+    `, [lineName]);
+
+    if (result.rows.length === 1) {
+      const member = result.rows[0];
+      return res.json({
+        status: "matched",
+        gameNickname: member.game_nickname,
+        gameClass: member.game_class,
+        combatPower: member.combat_power || 0,
+        isBound: !!member.new_line_user_id
+      });
+    } else if (result.rows.length > 1) {
+      return res.json({ status: "multiple", count: result.rows.length });
+    }
+
+    res.json({ status: "not_found" });
+  } catch (err) {
+    console.error('[裝評比對失敗]:', err);
+    res.status(500).json({ status: "error", message: err.message });
+  }
+});
+
+// ==========================================
+// 裝評系統：2. 記錄最新裝評與新 UID (防止他人冒領覆蓋)
+// ==========================================
+app.post('/api/members/update-power-uid', async (req, res) => {
+  const { lineUserId, lineDisplayName, gameNickname, combatPower } = req.body;
+
+  if (!gameNickname || !lineUserId) {
+    return res.status(400).json({ status: 'error', message: '缺少必要欄位' });
+  }
+
+  try {
+    // 🛡️ 防呆防搶：只有在「尚未有人登記新UID」或「本人再次修改」時才允許更新
+    const result = await pool.query(`
+      UPDATE members 
+      SET new_line_user_id = $1,
+          combat_power = $2,
+          update_time = CURRENT_TIMESTAMP
+      WHERE game_nickname = $3
+        AND (new_line_user_id IS NULL OR new_line_user_id = $1)
+      RETURNING game_nickname, combat_power, new_line_user_id
+    `, [lineUserId, parseInt(combatPower, 10) || 0, gameNickname]);
+
+    if (result.rowCount === 0) {
+      return res.status(403).json({ 
+        status: 'error', 
+        message: '此角色已被其他成員完成認領！如需更正請聯繫公會幹部。' 
+      });
+    }
+
+    res.json({
+      status: 'success',
+      message: '裝評與新身分記錄成功',
+      data: result.rows[0]
+    });
+  } catch (err) {
+    console.error('[裝評記錄失敗]:', err);
+    res.status(500).json({ status: 'error', message: err.message });
+  }
 });
 
 
