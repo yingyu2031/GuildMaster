@@ -1073,7 +1073,7 @@ function syncAllClassDropdowns() {
  }
 
 // ==========================================
-// 5. 會員名冊清單渲染
+// 5. 會員名冊清單渲染 (含裝備評分展示)
 // ==========================================
 function renderMembersList() {
     const container = document.getElementById('memberListContainer');
@@ -1115,6 +1115,12 @@ function renderMembersList() {
         // 💡 取得該職業在後台設定的實心飽和代表色標籤樣式
         const badgeStyle = getBadgeStyleByClass(m.gameClass);
 
+        // ⚔️ 處理裝備評分顯示 (容錯 gearScore 或 gear_score，大於 0 時顯示千分位)
+        const rawScore = Number(m.gearScore || m.gear_score || 0);
+        const gearScoreHtml = rawScore > 0 
+            ? `<span class="inline-flex items-center gap-0.5 text-[11px] font-black text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200/80 font-mono shadow-2xs"> ${rawScore.toLocaleString()}</span>` 
+            : '';
+
         if (currentMemberSubTab === 'pending') {
             card.innerHTML = `
                 <div class="flex items-start justify-between">
@@ -1125,6 +1131,8 @@ function renderMembersList() {
                             ${m.gameClass ? `<span class="text-[11px] font-bold px-2 py-0.5 rounded-md border shadow-xs ${badgeStyle}">${m.gameClass}</span>` : ''}
                             <!-- 暱稱字體放大為 text-base -->
                             <h3 class="text-base font-black text-slate-900 tracking-tight">${m.gameNickname}</h3>
+                            <!-- 裝備評分 -->
+                            ${gearScoreHtml}
                             ${m.gameId ? `<span class="text-xs font-bold text-slate-400 font-mono">${m.gameId}</span>` : ''}
                         </div>
                         <p class="text-xs font-bold text-slate-500 mt-1">LINE: ${m.lineDisplayName || '-'}</p>
@@ -1142,12 +1150,14 @@ function renderMembersList() {
                 <div class="flex items-start justify-between">
                     <!-- 左側：主要個人資訊 -->
                     <div class="space-y-1.5 flex-1 pr-2">
-                        <!-- 第一行：職業標籤 ➔ 暱稱 ➔ 隊伍標籤 / ID -->
+                        <!-- 第一行：職業標籤 ➔ 暱稱 ➔ 裝備評分 ➔ 隊伍標籤 / ID -->
                         <div class="flex items-center gap-2 flex-wrap">
                             <!-- 職業移至最前 -->
                             ${m.gameClass ? `<span class="text-[11px] font-bold px-2 py-0.5 rounded-md border shadow-xs ${badgeStyle}">${m.gameClass}</span>` : ''}
                             <!-- 暱稱放大為 text-base -->
                             <h3 class="text-base font-black text-slate-900 tracking-tight">${m.gameNickname}</h3>
+                            <!-- 裝備評分標籤 -->
+                            ${gearScoreHtml}
                             ${m.teamGroup ? `<span class="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-bold">${m.teamGroup}</span>` : ''}
                             ${m.gameId ? `<span class="text-xs font-bold text-slate-400 font-mono">${m.gameId}</span>` : ''}
                         </div>
@@ -1175,7 +1185,6 @@ function renderMembersList() {
         container.appendChild(card);
     });
 }
-
  // ==========================================
  // 6. 請假紀錄與統計排名邏輯
  // ==========================================
