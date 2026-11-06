@@ -566,22 +566,24 @@
         }
 
         async function fetchMembersFromDB() {
-            try {
-                const res = await fetch(`${BACKEND_API_URL}/api/admin/members`);
-                const result = await res.json();
-                if (result.status === 'success' && result.members) {
-                    masterMembers = result.members
-                        .filter(m => m.guildRole !== '退會' && m.accountStatus === '已審核')
-                        .map(m => ({
-                            uid: m.lineUserId || m.uid || m.id,
-                            name: m.gameNickname || m.name,
-                            job: m.gameClass || m.job || '其他'
-                        }));
-                }
-            } catch (err) {
-                console.error('載入會員失敗:', err);
-            }
+    try {
+        const res = await fetch(`${BACKEND_API_URL}/api/admin/members`);
+        const result = await res.json();
+        if (result.status === 'success' && result.members) {
+            masterMembers = result.members
+                .filter(m => m.guildRole !== '退會' && m.accountStatus === '已審核')
+                .map(m => ({
+                    uid: m.lineUserId || m.uid || m.id,
+                    name: m.gameNickname || m.name,
+                    job: m.gameClass || m.job || '其他',
+                    // 🎯 新增：裝備評價（根據您的後端欄位名稱對應，若無則預設為 0 或 '-'）
+                    gearScore: m.gearScore || m.equipScore || m.power || '-'
+                }));
         }
+    } catch (err) {
+        console.error('載入會員失敗:', err);
+    }
+}
 
         async function fetchLeavesFromDB() {
             try {
@@ -710,6 +712,12 @@
                 return matchSearch && matchJob;
             });
 
+            filtered.sort((a, b) => {
+                const scoreA = parseFloat(a.gearScore) || 0;
+                const scoreB = parseFloat(b.gearScore) || 0;
+                return scoreB - scoreA; 
+            });
+
             document.getElementById('available-count').innerText = filtered.length;
 
             if (filtered.length === 0) {
@@ -750,11 +758,15 @@
 
                 row.innerHTML = `
                     <div class="flex items-center gap-1 min-w-0">
-                        <span class="job-card-${m.job} px-1 py-0.2 rounded font-bold text-[9px] border shrink-0">${m.job}</span>
-                        <span class="font-bold text-gray-800 truncate text-[11px]">${m.name}</span>
-                    </div>
-                    ${actionHtml}
-                `;
+                    <span class="job-card-${m.job} px-1 py-0.2 rounded font-bold text-[9px] border shrink-0">${m.job}</span>
+                    <span class="font-bold text-gray-800 truncate text-[11px]">${m.name}</span>
+                    <!-- 🎯 新增：裝備評價標籤 -->
+                    <span class="bg-amber-50 text-amber-700 border border-amber-200 text-[9px] font-bold px-1 rounded shrink-0" title="裝備評價">
+                        ${m.gearScore}
+                    </span>
+                </div>
+                ${actionHtml}
+            `;
 
                 if (!isBlocked) {
                     row.draggable = true;
