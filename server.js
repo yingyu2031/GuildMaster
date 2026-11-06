@@ -266,90 +266,9 @@ app.post('/webhook', async (req, res) => {
 
 
  for (const ev of events) {
-// ----------------------------------------------------
-    // 1. 監聽新成員加入大群 (支援 UID + LINE 暱稱雙重比對，附完整 Log)
-    // ----------------------------------------------------
-    if (ev.type === 'memberJoined' && ev.source?.type === 'group') {
-      try {
-        const configRes = await pool.query(
-          "SELECT config_value FROM system_configs WHERE config_key = 'guild_group_id'"
-        );
-        const guildGroupId = configRes.rows.length > 0 ? configRes.rows[0].config_value : null;
-
-        if (guildGroupId && ev.source.groupId === guildGroupId) {
-          const membersList = ev.joined?.members || [];
-
-          for (const m of membersList) {
-            if (m.type === 'user' && m.userId) {
-              const joinedUid = m.userId;
-              const token = process.env.LINE_ACCESS_TOKEN || (typeof LINE_ACCESS_TOKEN !== 'undefined' ? LINE_ACCESS_TOKEN : '');
-
-              // 步驟 1：UID 比對
-              let updateRes = await pool.query(`
-                UPDATE members 
-                SET joined_line_group = 'Y', update_time = CURRENT_TIMESTAMP 
-                WHERE line_user_id = $1 
-                RETURNING game_nickname, line_display_name
-              `, [joinedUid]);
-
-              let fetchedLineNick = null;
-
-              // 步驟 2：UID 比對未中，呼叫 LINE API 撈取該成員在群組的資料
-              if (updateRes.rows.length === 0) {
-                if (!token) {
-                  console.error('[LINE 大群 API] 找不到有效的 LINE_ACCESS_TOKEN，無法查詢成員暱稱');
-                } else {
-                  try {
-                    const apiUrl = `https://api.line.me/v2/bot/group/${guildGroupId}/member/${joinedUid}`;
-                    const profileRes = await fetch(apiUrl, {
-                      headers: { Authorization: `Bearer ${token}` }
-                    });
-
-                    if (profileRes.ok) {
-                      const profile = await profileRes.json();
-                      fetchedLineNick = profile.displayName ? profile.displayName.trim() : null;
-                      console.log(`[LINE 大群 API] 成功取得 UID ${joinedUid} 的 LINE 暱稱: 【${fetchedLineNick}】`);
-
-                      // 步驟 3：以 LINE 暱稱進行不分大小寫與空白修剪比對
-                      if (fetchedLineNick) {
-                        updateRes = await pool.query(`
-                          UPDATE members 
-                          SET joined_line_group = 'Y', 
-                              line_user_id = $1, 
-                              update_time = CURRENT_TIMESTAMP 
-                          WHERE TRIM(line_display_name) ILIKE $2 
-                          RETURNING game_nickname, line_display_name
-                        `, [joinedUid, fetchedLineNick]);
-                      }
-                    } else {
-                      const errStatus = profileRes.status;
-                      const errBody = await profileRes.text();
-                      console.error(`[LINE 大群 API] 查詢成員失敗 HTTP ${errStatus}: ${errBody}`);
-                    }
-                  } catch (apiErr) {
-                    console.error('[LINE 大群 API] 網路或請求異常:', apiErr.message);
-                  }
-                }
-              }
-
-              // 輸出最終比對結果
-              if (updateRes && updateRes.rows.length > 0) {
-                const member = updateRes.rows[0];
-                console.log(`[LINE 大群] 🎉 成功配對成員【${member.game_nickname}】(LINE: ${member.line_display_name})，已更新 joined_line_group = 'Y'！`);
-              } else {
-                console.log(`[LINE 大群] UID ${joinedUid} 入群未匹配。抓取暱稱: 【${fetchedLineNick || '未取得'}】。請檢查 members.line_display_name 是否相符。`);
-              }
-            }
-          }
-        }
-      } catch (err) {
-        console.error('[LINE Webhook] 處理入群事件錯誤:', err);
-      }
-      continue;
-    }
 
     // ----------------------------------------------------
-    // 2. 監聽群組指令：自動綁定 Group ID
+    // 監聽群組指令：自動綁定 Group ID
     // ----------------------------------------------------
     if (ev.type === 'message' && ev.message.type === 'text') {
       const userText = ev.message.text.trim();
