@@ -129,15 +129,22 @@
         await loadAllMembers();
 
         // 2. 自動以 LINE 暱稱比對資料庫
-        await autoMatchMember(currentProfile.displayName);
+    async function autoMatchMember(displayName) {
+      try {
+        const res = await fetch('/api/members/match-by-line-name', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: displayName })
+        });
+        const data = await res.json();
 
+        if (data.status === 'matched') {
+          selectMember(data.gameNickname, data.gameClass, data.combatPower, true);
+        } else {
+          showManualSearch();
+        }
       } catch (err) {
-        console.warn('LIFF 初始化失敗或處於非 LINE 測試環境:', err);
-        // 本地測試模擬
-        currentProfile = { userId: "TEST_USER_999", displayName: "克蘿伊" };
-        document.getElementById('userName').textContent = currentProfile.displayName + " (測試環境)";
-        await loadAllMembers();
-        await autoMatchMember(currentProfile.displayName);
+        showManualSearch();
       }
     }
 
