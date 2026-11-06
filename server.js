@@ -266,42 +266,50 @@ app.post('/webhook', async (req, res) => {
 
 
  for (const ev of events) {
-    // ----------------------------------------------------
-    // 1. 監聽新成員加入大群 (自動更新 joined_line_group = 'Y')
-    // ----------------------------------------------------
-    if (ev.type === 'memberJoined' && ev.source?.type === 'group') {
-      try {
-        const configRes = await pool.query(
-          "SELECT config_value FROM system_configs WHERE config_key = 'guild_group_id'"
-        );
-        const guildGroupId = configRes.rows.length > 0 ? configRes.rows[0].config_value : null;
+  // ----------------------------------------------------
+// 1. 監聽新成員加入大群 (自動更新 joined_line_group = 'Y')
+// ----------------------------------------------------
+if (ev.type === 'memberJoined') {
+  console.log('[LINE Webhook] 收到 memberJoined 事件:', JSON.stringify(ev));
 
-        // 僅限公會大群才更新（幹部群加人不誤判）
-        if (guildGroupId && ev.source.groupId === guildGroupId) {
-          const membersList = ev.joined?.members || [];
-          for (const m of membersList) {
-            if (m.type === 'user' && m.userId) {
-              const joinedUid = m.userId;
-              const updateRes = await pool.query(`
-                UPDATE members 
-                SET joined_line_group = 'Y', update_time = CURRENT_TIMESTAMP 
-                WHERE line_user_id = $1 
-                RETURNING game_nickname
-              `, [joinedUid]);
+  if (ev.source?.type === 'group') {
+    try {
+      const configRes = await pool.query(
+        "SELECT config_value FROM system_configs WHERE config_key = 'guild_group_id'"
+      );
+      const guildGroupId = configRes.rows.length > 0 ? configRes.rows[0].config_value : null;
 
-              if (updateRes.rows.length > 0) {
-                console.log(`[LINE 大群] 成員【${updateRes.rows[0].game_nickname}】(${joinedUid}) 已自動標記 joined_line_group = 'Y'`);
-              } else {
-                console.log(`[LINE 大群] UID ${joinedUid} 入群，尚未登記會員資料`);
-              }
+      console.log(`[LINE Webhook] 當前群組: ${ev.source.groupId} | 目標大群: ${guildGroupId}`);
+
+      // 僅限公會大群才更新
+      if (guildGroupId && ev.source.groupId === guildGroupId) {
+        const membersList = ev.joined?.members || [];
+        for (const m of membersList) {
+          if (m.type === 'user' && m.userId) {
+            const joinedUid = m.userId;
+            const updateRes = await pool.query(`
+              UPDATE members 
+              SET joined_line_group = 'Y', update_time = CURRENT_TIMESTAMP 
+              WHERE line_user_id = $1 
+              RETURNING game_nickname
+            `, [joinedUid]);
+
+            if (updateRes.rows.length > 0) {
+              console.log(`[LINE 大群] 成員【${updateRes.rows[0].game_nickname}】(${joinedUid}) 已自動標記 joined_line_group = 'Y'`);
+            } else {
+              console.log(`[LINE 大群] UID ${joinedUid} 入群，尚未登記會員資料`);
             }
           }
         }
-      } catch (err) {
-        console.error('[LINE Webhook] 更新入群狀態失敗:', err);
+      } else {
+        console.log('[LINE Webhook] 非公會大群或尚未綁定大群 ID，跳過更新');
       }
-      continue;
+    } catch (err) {
+      console.error('[LINE Webhook] 更新入群狀態失敗:', err);
     }
+  }
+  continue;
+}
 
     // ----------------------------------------------------
     // 2. 監聽群組指令：自動綁定 Group ID
