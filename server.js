@@ -52,7 +52,7 @@ async function initDatabase() {
         team_group VARCHAR(255) DEFAULT '',
         dcid VARCHAR(255),
         tw VARCHAR(10) DEFAULT 'Y',
-        combat_power INT DEFAULT 0,
+        gear_score 0,
         update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
 
