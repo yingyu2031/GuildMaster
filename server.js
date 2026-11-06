@@ -53,7 +53,6 @@ async function initDatabase() {
         dcid VARCHAR(255),
         tw VARCHAR(10) DEFAULT 'Y',
         combat_power INT DEFAULT 0,
-        new_line_user_id VARCHAR(255),
         update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
 
