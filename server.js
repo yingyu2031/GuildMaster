@@ -50,6 +50,7 @@ async function initDatabase() {
         dcid VARCHAR(255),
         tw VARCHAR(10) DEFAULT 'Y',
         gear_score NUMERIC DEFAULT 0,
+        is_migrated VARCHAR(10) DEFAULT 'N',
         update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
 
@@ -400,7 +401,7 @@ app.post('/api/members/check-identity', async (req, res) => {
 
   const client = await pool.connect();
   try {
-    // A. 先比對當前 UID 是否已存在
+    // 1. 先比對當前 UID 是否已存在 (已轉移成功的老成員或新成員)
     const uidCheck = await client.query(`
       SELECT * FROM members 
       WHERE line_user_id = $1 AND (guild_role IS NULL OR guild_role != '退會')
@@ -409,6 +410,11 @@ app.post('/api/members/check-identity', async (req, res) => {
 
     if (uidCheck.rows.length > 0) {
       const m = uidCheck.rows[0];
+      // 順手確保標記為 Y
+      if (m.is_migrated !== 'Y') {
+        await client.query("UPDATE members SET is_migrated = 'Y' WHERE line_user_id = $1", [currentUid]);
+      }
+
       return res.json({
         status: "found",
         member: {
@@ -425,7 +431,7 @@ app.post('/api/members/check-identity', async (req, res) => {
       });
     }
 
-    // B. UID 查無，比對 LINE 顯示暱稱 (嚴格吻合 1 筆，排除退會)
+    // 2. 當前 UID 找不到，比對 LINE 顯示暱稱 (嚴格吻合 1 筆，排除退會)
     if (lineName) {
       const nameCheck = await client.query(`
         SELECT * FROM members 
@@ -440,23 +446,24 @@ app.post('/api/members/check-identity', async (req, res) => {
 
         await client.query('BEGIN');
 
-        // 🎯 直接把舊主鍵更新為新 UID
+        // 🎯 覆蓋主鍵 line_user_id + 標記 is_migrated = 'Y'
         await client.query(`
           UPDATE members 
           SET line_user_id = $1,
               line_display_name = $2,
+              is_migrated = 'Y',
               update_time = CURRENT_TIMESTAMP
           WHERE line_user_id = $3
         `, [currentUid, lineName, oldUid]);
 
-        // 🎯 同步更新所有歷史記錄表格
+        // 同步更新所有歷史記錄表格
         await client.query('UPDATE leaves SET target_uid = $1 WHERE target_uid = $2', [currentUid, oldUid]);
         await client.query('UPDATE event_attendees SET line_user_id = $1 WHERE line_user_id = $2', [currentUid, oldUid]);
         await client.query('UPDATE bulletin_reads SET line_user_id = $1 WHERE line_user_id = $2', [currentUid, oldUid]);
         await client.query('UPDATE member_audit_logs SET line_user_id = $1 WHERE line_user_id = $2', [currentUid, oldUid]);
 
         await client.query('COMMIT');
-        console.log(`[UID 直接轉正成功] 暱稱【${lineName}】: 原 UID ${oldUid} -> 新主鍵 ${currentUid}`);
+        console.log(`[UID 直接轉正成功] 暱稱【${lineName}】: 原 UID ${oldUid} -> 新主鍵 ${currentUid} (is_migrated = Y)`);
 
         return res.json({
           status: "found",
@@ -475,7 +482,7 @@ app.post('/api/members/check-identity', async (req, res) => {
       }
     }
 
-    // C. 兩者皆查無
+    // 3. 兩者皆查無
     return res.json({ status: "not_found" });
 
   } catch (err) {
@@ -515,23 +522,24 @@ app.post('/api/members/claim-by-game-nick', async (req, res) => {
 
     await client.query('BEGIN');
 
-    // 🎯 直接把舊主鍵更新為新 UID
+    // 🎯 覆蓋主鍵 line_user_id + 標記 is_migrated = 'Y'
     await client.query(`
       UPDATE members 
       SET line_user_id = $1,
           line_display_name = $2,
+          is_migrated = 'Y',
           update_time = CURRENT_TIMESTAMP
       WHERE line_user_id = $3
     `, [currentUid, lineDisplayName || target.line_display_name, oldUid]);
 
-    // 🎯 同步更新所有歷史記錄表格
+    // 同步更新關聯表
     await client.query('UPDATE leaves SET target_uid = $1 WHERE target_uid = $2', [currentUid, oldUid]);
     await client.query('UPDATE event_attendees SET line_user_id = $1 WHERE line_user_id = $2', [currentUid, oldUid]);
     await client.query('UPDATE bulletin_reads SET line_user_id = $1 WHERE line_user_id = $2', [currentUid, oldUid]);
     await client.query('UPDATE member_audit_logs SET line_user_id = $1 WHERE line_user_id = $2', [currentUid, oldUid]);
 
     await client.query('COMMIT');
-    console.log(`[手動認領直接轉正] 角色【${gameNick}】: 原 UID ${oldUid} -> 新主鍵 ${currentUid}`);
+    console.log(`[手動認領直接轉正] 角色【${gameNick}】: 原 UID ${oldUid} -> 新主鍵 ${currentUid} (is_migrated = Y)`);
 
     res.json({
       status: "success",
@@ -615,37 +623,38 @@ app.post('/api/members/bind', async (req, res) => {
     const finalJoinedDc = (finalTw === 'N' || finalDcid) ? 'Y' : (oldMember?.joined_dc || 'N');
 
     await pool.query(`
-      INSERT INTO members (
-        line_user_id, game_nickname, game_class, line_display_name, 
-        allow_search, account_status, guild_role, tw, dcid, joined_dc, 
-        gear_score, update_time
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, CURRENT_TIMESTAMP)
-      ON CONFLICT (line_user_id) 
-      DO UPDATE SET 
-        game_nickname = EXCLUDED.game_nickname, 
-        game_class = EXCLUDED.game_class, 
-        line_display_name = EXCLUDED.line_display_name, 
-        allow_search = EXCLUDED.allow_search, 
-        account_status = $6,
-        guild_role = $7,
-        tw = COALESCE(members.tw, EXCLUDED.tw),
-        dcid = COALESCE(members.dcid, EXCLUDED.dcid),
-        joined_dc = $10,
-        gear_score = $11,
-        update_time = CURRENT_TIMESTAMP
-    `, [
-      lineUserId, 
-      gameNickname.trim(), 
-      gameClass, 
-      lineDisplayName || "", 
-      allowSearch || 'N', 
-      finalAccountStatus, 
-      finalRole, 
-      finalTw, 
-      finalDcid,
-      finalJoinedDc,
-      score
-    ]);
+  INSERT INTO members (
+    line_user_id, game_nickname, game_class, line_display_name, 
+    allow_search, account_status, guild_role, tw, dcid, joined_dc, 
+    gear_score, is_migrated, update_time
+  ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'Y', CURRENT_TIMESTAMP)
+  ON CONFLICT (line_user_id) 
+  DO UPDATE SET 
+    game_nickname = EXCLUDED.game_nickname, 
+    game_class = EXCLUDED.game_class, 
+    line_display_name = EXCLUDED.line_display_name, 
+    allow_search = EXCLUDED.allow_search, 
+    account_status = $6,
+    guild_role = $7,
+    tw = COALESCE(members.tw, EXCLUDED.tw),
+    dcid = COALESCE(members.dcid, EXCLUDED.dcid),
+    joined_dc = $10,
+    gear_score = $11,
+    is_migrated = 'Y',
+    update_time = CURRENT_TIMESTAMP
+`, [
+  lineUserId, 
+  gameNickname.trim(), 
+  gameClass, 
+  lineDisplayName || "", 
+  allowSearch || 'N', 
+  finalAccountStatus, 
+  finalRole, 
+  finalTw, 
+  finalDcid,
+  finalJoinedDc,
+  score
+]);
 
     if (finalDcid && typeof DISCORD_BOT_TOKEN !== 'undefined' && typeof DISCORD_GUILD_ID !== 'undefined' && DISCORD_BOT_TOKEN && DISCORD_GUILD_ID) {
       fetch(`https://discord.com/api/v10/guilds/${DISCORD_GUILD_ID}/members/${finalDcid}`, {
