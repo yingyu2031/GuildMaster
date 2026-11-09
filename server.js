@@ -255,6 +255,60 @@ app.post('/webhook', async (req, res) => {
   });
 
   for (const ev of events) {
+    
+// ----------------------------------------------------
+// 1. 監聽新成員加入大群 (若未登記則預先建檔)
+// ----------------------------------------------------
+if (ev.type === 'memberJoined' && ev.source && ev.source.type === 'group') {
+  const currentGroupId = ev.source.groupId;
+
+  try {
+    const configRes = await pool.query("SELECT config_value FROM system_configs WHERE config_key = 'guild_group_id'");
+    const guildGroupId = configRes.rows.length > 0 ? configRes.rows[0].config_value : null;
+
+    if (guildGroupId && currentGroupId === guildGroupId) {
+      const joinedMembers = ev.joined?.members || [];
+
+      for (const m of joinedMembers) {
+        if (m.type === 'user' && m.userId) {
+          const joinedUid = m.userId;
+
+          // 1. 先嘗試更新既有會員 (無論已審核或待審核)
+          const updateRes = await pool.query(`
+            UPDATE members 
+            SET joined_line_group = 'Y', update_time = CURRENT_TIMESTAMP 
+            WHERE line_user_id = $1 
+            RETURNING game_nickname
+          `, [joinedUid]);
+
+          if (updateRes.rows.length > 0) {
+            console.log(`[LINE 大群] 成員【${updateRes.rows[0].game_nickname}】已更新為已入群 (Y)`);
+          } else {
+            // 2. 尚未登記過：預先建立待審核資料，確保 joined_line_group = 'Y'
+            await pool.query(`
+              INSERT INTO members (
+                line_user_id, game_nickname, game_class, 
+                account_status, guild_role, joined_line_group, tw, update_time
+              ) VALUES ($1, '新進群待填表', '未設定', '待審核', '現任', 'Y', 'Y', CURRENT_TIMESTAMP)
+              ON CONFLICT (line_user_id) 
+              DO UPDATE SET joined_line_group = 'Y', update_time = CURRENT_TIMESTAMP
+            `, [joinedUid]);
+
+            console.log(`[LINE 大群] UID ${joinedUid} 先進群，已自動預先建檔並標記入群 (Y)`);
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.error('[LINE Webhook] 處理 memberJoined 失敗:', err);
+  }
+  continue;
+}
+
+// ----------------------------------------------------
+// 2. 自動回寫幹部群/公會群ID
+// ----------------------------------------------------
+    
     if (ev.type === 'message' && ev.message.type === 'text') {
       const userText = ev.message.text.trim();
       const source = ev.source;
