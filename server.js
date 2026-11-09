@@ -1637,7 +1637,43 @@ app.delete('/api/events/signup', async (req, res) => {
 
 app.post('/api/admin/events/save', async (req, res) => {
   const { id, title, date, time, signupStart, signupEnd, maxLimit, status, desc, isArchived } = req.body;
+
+  if (!title || !date) {
+    return res.status(400).json({ status: "error", message: "活動標題與活動日期為必填欄位！" });
+  }
+
   try {
+    // 💡 1. 取得各時間物件（使用 parseDateTime 強制帶入台灣時區）
+    const eventTimeStr = time ? `${date} ${time}` : `${date} 23:59:59`;
+    const eventDateTime = parseDateTime(eventTimeStr);
+    const startDateTime = parseDateTime(signupStart);
+    const endDateTime = parseDateTime(signupEnd);
+
+    // 🛑 防呆 1：報名截止時間不可早於報名開始時間
+    if (startDateTime && endDateTime && endDateTime < startDateTime) {
+      return res.status(400).json({ 
+        status: "error", 
+        message: "【設定錯誤】報名截止時間不可早於報名開始時間！" 
+      });
+    }
+
+    // 🛑 防呆 2：報名開始時間不可晚於活動進行時間
+    if (startDateTime && eventDateTime && startDateTime > eventDateTime) {
+      return res.status(400).json({ 
+        status: "error", 
+        message: "【設定錯誤】報名開始時間不可設定在活動開始之後！" 
+      });
+    }
+
+    // 🛑 防呆 3：報名截止時間不可晚於活動進行時間
+    if (endDateTime && eventDateTime && endDateTime > eventDateTime) {
+      return res.status(400).json({ 
+        status: "error", 
+        message: "【設定錯誤】報名截止時間不可設定在活動開始之後！" 
+      });
+    }
+
+    // 驗證皆通過，寫入資料庫
     await pool.query(`
       INSERT INTO events (event_id, title, date, time, signup_start, signup_end, max_limit, status, description, is_archived)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
@@ -1646,13 +1682,26 @@ app.post('/api/admin/events/save', async (req, res) => {
                     signup_start = EXCLUDED.signup_start, signup_end = EXCLUDED.signup_end, 
                     max_limit = EXCLUDED.max_limit, status = EXCLUDED.status, 
                     description = EXCLUDED.description, is_archived = EXCLUDED.is_archived
-    `, [id, title, date, time, signupStart, signupEnd, maxLimit, status, desc, isArchived ? 1 : 0]);
+    `, [
+      id, 
+      title.trim(), 
+      date, 
+      time || '', 
+      signupStart || '', 
+      signupEnd || '', 
+      maxLimit || 0, 
+      status || '報名中', 
+      desc || '', 
+      isArchived ? 1 : 0
+    ]);
 
-    res.json({ status: "success" });
+    res.json({ status: "success", message: "活動設定已成功儲存！" });
   } catch (err) {
+    console.error('[儲存活動失敗]:', err);
     res.status(500).json({ status: "error", message: err.message });
   }
 });
+
 
 app.delete('/api/admin/events/:id', async (req, res) => {
   const eventId = req.params.id;
