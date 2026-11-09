@@ -1687,20 +1687,61 @@ async function deleteCurrentEvent() {
 // 儲存/建立活動表單送出 API
 document.getElementById('eventForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const eId = document.getElementById('formEventId').value;
-    const signupStartVal = `${document.getElementById('formEventSignupStartDate').value} ${document.getElementById('formEventSignupStartTime').value}`;
-    const signupEndVal = `${document.getElementById('formEventSignupEndDate').value} ${document.getElementById('formEventSignupEndTime').value}`;
-    const eventDateVal = document.getElementById('formEventDate').value;
 
+    // 1. 抓取表單各項欄位數值
+    const eId = document.getElementById('formEventId').value;
+    const eventDateVal = document.getElementById('formEventDate').value;
+    const eventTimeVal = document.getElementById('formEventTime').value;
+
+    const startDateVal = document.getElementById('formEventSignupStartDate').value;
+    const startTimeVal = document.getElementById('formEventSignupStartTime').value;
+    const endDateVal = document.getElementById('formEventSignupEndDate').value;
+    const endTimeVal = document.getElementById('formEventSignupEndTime').value;
+
+    const signupStartVal = `${startDateVal} ${startTimeVal}`;
+    const signupEndVal = `${endDateVal} ${endTimeVal}`;
+
+    // 2. 轉為 Date 物件進行比對
+    const eventDateTime = new Date(`${eventDateVal}T${eventTimeVal || '23:59'}:00`);
+    const startDateTime = startDateVal ? new Date(`${startDateVal}T${startTimeVal || '00:00'}:00`) : null;
+    const endDateTime = endDateVal ? new Date(`${endDateVal}T${endTimeVal || '23:59'}:00`) : null;
+
+    // ----------------------------------------------------
+    // 🛑 核心防呆檢查
+    // ----------------------------------------------------
+
+    // 防呆 1：報名截止日期不可早於報名開始日
+    if (startDateTime && endDateTime && endDateTime < startDateTime) {
+        alert("⚠️【設定錯誤】\n報名截止時間不可早於報名開始時間！");
+        document.getElementById('formEventSignupEndDate').focus();
+        return; // 終止送出
+    }
+
+    // 防呆 2：報名開始日不可晚於活動日期時間
+    if (startDateTime && startDateTime > eventDateTime) {
+        alert("⚠️【設定錯誤】\n報名開始時間不可設定在活動開始時間之後！");
+        document.getElementById('formEventSignupStartDate').focus();
+        return; // 終止送出
+    }
+
+    // 防呆 3：報名截止日不可晚於活動日期時間
+    if (endDateTime && endDateTime > eventDateTime) {
+        alert("⚠️【設定錯誤】\n報名截止時間不可設定在活動開始時間之後！");
+        document.getElementById('formEventSignupEndDate').focus();
+        return; // 終止送出
+    }
+
+    // ----------------------------------------------------
+    // 3. 驗證通過，打包資料送往後端
+    // ----------------------------------------------------
     const data = {
         id: eId || ("EVT" + Date.now()),
         title: document.getElementById('formEventTitle').value.trim(),
         date: eventDateVal,
-        time: document.getElementById('formEventTime').value,
+        time: eventTimeVal,
         signupStart: signupStartVal,
         signupEnd: signupEndVal,
         maxLimit: parseInt(document.getElementById('formEventMaxLimit').value) || null,
-        // status 不再由前端下拉選單決定，可以不傳，或傳空值讓後端依時間運算
         desc: document.getElementById('formEventDesc').value.trim(),
         isArchived: (eventDateVal < TODAY_STR)
     };
