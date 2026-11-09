@@ -330,6 +330,28 @@
                 </div>
             </div>
         </div>
+        
+        <!-- 🚨 已綁定警示彈窗 (找媽咪確認) -->
+<div id="alreadyMigratedModal" class="hidden fixed inset-0 bg-stone-900/60 backdrop-blur-sm p-4 flex items-center justify-center z-50 fade-in">
+    <div class="bg-white rounded-3xl p-6 w-full max-w-sm border-2 border-rose-200 shadow-2xl text-center">
+        <div class="w-14 h-14 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-3 text-3xl font-black border border-rose-200">
+            ⚠️
+        </div>
+        <h3 class="text-base font-black text-rose-950 mb-1.5">角色已被對齊綁定</h3>
+        
+        <div class="bg-rose-50/70 rounded-2xl p-4 border border-rose-200/80 mb-5 text-left text-xs leading-relaxed text-rose-900">
+            角色【<b id="migratedRoleName" class="text-rose-950 underline"></b>】已於新系統完成過渡與身分綁定。<br><br>
+            為維護帳號安全，系統不允許重複轉移。<br>
+            👉 <b>若此角色為您本人所有，請洽「克蘿伊/媽咪/Chloe💕」協助核對處理！</b>
+        </div>
+
+        <button type="button" onclick="document.getElementById('alreadyMigratedModal').classList.add('hidden')" 
+                class="w-full bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 active:scale-95 text-white font-bold py-3 rounded-xl text-xs shadow-md shadow-rose-200 transition cursor-pointer">
+            我知道了
+        </button>
+    </div>
+</div>
+
 
         <p class="text-[11px] text-amber-800/40 text-center mt-6">&copy; 2026 GuildMaster</p>
     </main>
@@ -608,32 +630,36 @@
     }
 
     async function selectMemberToClaim(gameNickname) {
-        if (!confirm(`確定認領並同步【${gameNickname}】的資料到此 LINE 帳號嗎？`)) return;
+    if (!confirm(`確定認領並同步【${gameNickname}】的資料到此 LINE 帳號嗎？`)) return;
 
-        try {
-            const res = await fetch(`${BACKEND_API_URL}/api/members/claim-by-game-nick`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    newUid: currentUser.userId,
-                    lineDisplayName: currentUser.displayName,
-                    gameNickname: gameNickname
-                })
-            });
-            const data = await res.json();
+    try {
+        const res = await fetch(`${BACKEND_API_URL}/api/members/claim-by-game-nick`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                newUid: currentUser.userId,
+                lineDisplayName: currentUser.displayName,
+                gameNickname: gameNickname
+            })
+        });
+        const data = await res.json();
 
-            if (data.status === 'success' && data.member) {
-                document.getElementById('searchClaimModal').classList.add('hidden');
-                alert(`🎉 角色【${gameNickname}】身分對齊完成！已為您同步最新資料。`);
-                applyMemberDataToState(data.member);
-                renderAppropriateCard();
-            } else {
-                alert(data.message || "認領失敗，請稍後再試！");
-            }
-        } catch (e) {
-            alert("網路異常，身分對齊失敗！");
+        if (data.status === 'success' && data.member) {
+            document.getElementById('searchClaimModal').classList.add('hidden');
+            alert(`🎉 角色【${gameNickname}】身分對齊完成！已為您同步最新資料。`);
+            applyMemberDataToState(data.member);
+            renderAppropriateCard();
+        } else if (data.status === 'already_migrated') {
+            // 🛑 核心阻擋：已被註記轉換過，跳出「找媽咪確認」彈窗
+            document.getElementById('migratedRoleName').textContent = gameNickname;
+            document.getElementById('alreadyMigratedModal').classList.remove('hidden');
+        } else {
+            alert(data.message || "認領失敗，請稍後再試！");
         }
+    } catch (e) {
+        alert("網路異常，身分對齊失敗！");
     }
+}
 
     function cancelClaimToNewMember() {
         document.getElementById('searchClaimModal').classList.add('hidden');
