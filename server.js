@@ -653,19 +653,19 @@ app.post('/api/admin/members/status', async (req, res) => {
 });
 
 // ==========================================
-// 5. 幹部編輯 / 新增會員 (手動編輯為退會時同樣徹底清除 DC 綁定)
+// 5. 幹部編輯 / 新增會員 (已加入 gear_score 儲存)
 // ==========================================
 app.post('/api/admin/members/save', async (req, res) => {
   const {
     lineUserId, gameNickname, gameClass, lineDisplayName,
     guildRole, teamGroup, accountStatus, joinedLineGroup,
-    joinedDc, tw, dcid
+    joinedDc, tw, dcid, gearScore
   } = req.body;
+
+  const score = parseInt(gearScore, 10) || 0;
 
   try {
     const isRetire = (guildRole === '退會');
-
-    // 💡 關鍵防呆：若幹部手動選擇「退會」，強制將 DC 與 LINE 入群狀態歸零
     const finalJoinedDc = isRetire ? 'N' : (joinedDc || 'N');
     const finalJoinedLine = isRetire ? 'N' : (joinedLineGroup || 'N');
     const finalDcid = isRetire ? null : (dcid ? String(dcid).trim() : null);
@@ -674,8 +674,8 @@ app.post('/api/admin/members/save', async (req, res) => {
       INSERT INTO members (
         line_user_id, game_nickname, game_class, line_display_name, 
         guild_role, team_group, account_status, joined_line_group, 
-        joined_dc, tw, dcid, update_time
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, CURRENT_TIMESTAMP)
+        joined_dc, tw, dcid, gear_score, update_time
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, CURRENT_TIMESTAMP)
       ON CONFLICT (line_user_id) 
       DO UPDATE SET 
         game_nickname = EXCLUDED.game_nickname, 
@@ -688,15 +688,16 @@ app.post('/api/admin/members/save', async (req, res) => {
         joined_dc = $9,
         tw = COALESCE(EXCLUDED.tw, members.tw, 'Y'),
         dcid = $11,
+        gear_score = EXCLUDED.gear_score,
         update_time = CURRENT_TIMESTAMP
     `, [
       lineUserId, gameNickname, gameClass, lineDisplayName,
       guildRole, teamGroup, accountStatus,
       finalJoinedLine, finalJoinedDc,
-      tw || 'Y', finalDcid
+      tw || 'Y', finalDcid, score
     ]);
 
-    // 💡 若手動改為退會且原本有 dcid，連動將其踢出 Discord
+    // 若手動改為退會且原本有 dcid，連動將其踢出 Discord
     if (isRetire && dcid) {
       try {
         const kickRes = await fetch(`https://discord.com/api/v10/guilds/${DISCORD_GUILD_ID}/members/${dcid}`, {
@@ -706,12 +707,8 @@ app.post('/api/admin/members/save', async (req, res) => {
             'X-Audit-Log-Reason': encodeURIComponent(`幹部手動編輯退會移出: ${gameNickname}`)
           }
         });
-
         if (kickRes.status === 204) {
-          console.log(`[Discord] 🚪 編輯退會成員 ${gameNickname} (${dcid}) 已成功移出伺服器，並清空資料庫 DC 狀態`);
-        } else {
-          const errTxt = await kickRes.text();
-          console.warn(`[Discord 踢人未成功] 狀態碼: ${kickRes.status}, 回應: ${errTxt}`);
+          console.log(`[Discord] 🚪 編輯退會成員 ${gameNickname} (${dcid}) 已移出伺服器`);
         }
       } catch (dcErr) {
         console.error('[Discord 踢人連線異常]:', dcErr.message);
@@ -724,7 +721,6 @@ app.post('/api/admin/members/save', async (req, res) => {
     res.status(500).json({ status: "error", message: err.message });
   }
 });
-
 
 // 6. 會員修改紀錄
 app.get('/api/admin/members/logs/:uid', async (req, res) => {
@@ -2028,7 +2024,85 @@ app.listen(PORT, () => {
   console.log(`[Server] 伺服器已在連接埠 ${PORT} 上運行`);
 });
 
-// 在 server.js 裡面加入管理員登入 API
+// ==========================================
+// 依 LINE 顯示暱稱完全比對並無感替換 UID
+// ==========================================
+app.post('/api/members/match-by-line-name', async (req, res) => {
+  const { newUid, lineDisplayName } = req.body;
+  const lineName = (lineDisplayName || '').trim();
+
+  if (!newUid || !lineName) {
+    return res.json({ status: "not_found" });
+  }
+
+  try {
+    // 先看 newUid 是否已存在 (已完成移轉或已註冊)
+    const uidCheck = await pool.query('SELECT * FROM members WHERE line_user_id = $1', [newUid]);
+    if (uidCheck.rows.length > 0) {
+      const m = uidCheck.rows[0];
+      return res.json({
+        status: "matched",
+        member: {
+          gameNickname: m.game_nickname,
+          gameClass: m.game_class,
+          lineDisplayName: m.line_display_name,
+          allowSearch: m.allow_search,
+          accountStatus: m.account_status,
+          guildRole: m.guild_role,
+          dcid: m.dcid,
+          joinedDc: m.joined_dc
+        }
+      });
+    }
+
+    // 以 LINE 暱稱嚴格比對 (排除退會)
+    const matchRes = await pool.query(`
+      SELECT * FROM members 
+      WHERE TRIM(line_display_name) ILIKE $1 
+        AND (guild_role IS NULL OR guild_role != '退會')
+      LIMIT 2
+    `, [lineName]);
+
+    // 只有 1 筆命中：將舊 UID 替換成新 LIFF 的 newUid
+    if (matchRes.rows.length === 1) {
+      const target = matchRes.rows[0];
+      const oldUid = target.line_user_id;
+
+      await pool.query(`
+        UPDATE members 
+        SET line_user_id = $1, 
+            line_display_name = $2,
+            update_time = CURRENT_TIMESTAMP
+        WHERE line_user_id = $3
+      `, [newUid, lineName, oldUid]);
+
+      await pool.query('UPDATE member_audit_logs SET line_user_id = $1 WHERE line_user_id = $2', [newUid, oldUid]);
+      console.log(`[UID 移轉成功] LINE 暱稱【${lineName}】: 原 UID ${oldUid} -> 新 UID ${newUid}`);
+
+      return res.json({
+        status: "matched",
+        member: {
+          gameNickname: target.game_nickname,
+          gameClass: target.game_class,
+          lineDisplayName: lineName,
+          allowSearch: target.allow_search,
+          accountStatus: target.account_status,
+          guildRole: target.guild_role,
+          dcid: target.dcid,
+          joinedDc: target.joined_dc
+        }
+      });
+    }
+
+    return res.json({ status: "not_found" });
+  } catch (err) {
+    console.error('[比對 LINE 暱稱失敗]:', err);
+    res.status(500).json({ status: "error", message: err.message });
+  }
+});
+
+
+// 主副戰名單系統管理員登入 API
 const ADMIN_USER = process.env.ADMIN_USER || "admin";
 const ADMIN_PASS = process.env.ADMIN_PASS || "lv123"; // 您自訂的管理密碼
 
