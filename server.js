@@ -645,36 +645,51 @@ app.get('/api/members/:uid', async (req, res) => {
 });
 
 // ==========================================
-// 2. 會員前台登記 / 更新資料 (新入會與舊會員修改)
+// 2. 會員前台登記 / 更新資料 (完整修復：保留審核狀態 + 支援新舊UID + 裝評)
 // ==========================================
 app.post('/api/members/bind', async (req, res) => {
-  const { lineUserId, lineDisplayName, gameNickname, gameClass, allowSearch, tw, dcid } = req.body;
+  const { 
+    lineUserId, lineDisplayName, gameNickname, gameClass, 
+    allowSearch, tw, dcid, gearScore 
+  } = req.body;
   
   if (!lineUserId || !gameNickname || !gameClass) {
     return res.status(400).json({ status: "error", message: "缺少必要欄位" });
   }
 
+  const score = parseInt(gearScore, 10) || 0;
+
   try {
-    const oldRes = await pool.query('SELECT * FROM members WHERE line_user_id = $1', [lineUserId]);
+    // 💡 1. 雙重檢查：同時比對 line_user_id 或已轉換的 new_line_user_id，確保能認出老成員
+    const oldRes = await pool.query(`
+      SELECT * FROM members 
+      WHERE line_user_id = $1 OR new_line_user_id = $1
+      LIMIT 1
+    `, [lineUserId]);
     const oldMember = oldRes.rows[0];
 
-    // 原本是「退會」或「全新會員」，一律視為新入會
-    const isNewRegistration = !oldMember || (oldMember.guild_role === '退會');
+    // 💡 2. 只有在「完全查無資料」或「已被標記退會」時，才視為新入會
+    const isRetired = oldMember && (oldMember.guild_role === '退會');
+    const isNewRegistration = !oldMember || isRetired;
 
-    // 新入會一律強制重置為「現任」與「待審核」；已在會舊會員保持原狀
+    // 💡 3. 關鍵修正：已審核的老成員維持「已審核」，絕不降回待審核！
     const finalRole = isNewRegistration ? '現任' : (oldMember.guild_role || '現任');
-    const finalAccountStatus = isNewRegistration ? '待審核' : (oldMember.account_status || '待審核');
+    const finalAccountStatus = isNewRegistration ? '待審核' : (oldMember.account_status || '已審核');
 
     const finalTw = oldMember ? (oldMember.tw || tw || 'Y') : (tw || 'Y');
     const finalDcid = oldMember ? (oldMember.dcid || dcid || null) : (dcid || null);
     const finalJoinedDc = (finalTw === 'N' || finalDcid) ? 'Y' : (oldMember?.joined_dc || 'N');
 
-    // 1. 寫入 / 更新會員主資料
+    // 💡 4. 若有舊資料，主鍵保持沿用原本的 line_user_id，同時將當前操作的 lineUserId 寫入 new_line_user_id
+    const targetPrimaryKey = oldMember ? oldMember.line_user_id : lineUserId;
+
+    // 寫入 / 更新會員主資料 (含 gear_score、new_line_user_id、is_migrated)
     await pool.query(`
       INSERT INTO members (
         line_user_id, game_nickname, game_class, line_display_name, 
-        allow_search, account_status, guild_role, tw, dcid, joined_dc, update_time
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP)
+        allow_search, account_status, guild_role, tw, dcid, joined_dc, 
+        gear_score, new_line_user_id, is_migrated, update_time
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'Y', CURRENT_TIMESTAMP)
       ON CONFLICT (line_user_id) 
       DO UPDATE SET 
         game_nickname = EXCLUDED.game_nickname, 
@@ -686,10 +701,13 @@ app.post('/api/members/bind', async (req, res) => {
         tw = COALESCE(members.tw, EXCLUDED.tw),
         dcid = COALESCE(members.dcid, EXCLUDED.dcid),
         joined_dc = $10,
+        gear_score = $11,
+        new_line_user_id = $12,
+        is_migrated = 'Y',
         update_time = CURRENT_TIMESTAMP
     `, [
-      lineUserId, 
-      gameNickname, 
+      targetPrimaryKey, 
+      gameNickname.trim(), 
       gameClass, 
       lineDisplayName || "", 
       allowSearch || 'N', 
@@ -697,21 +715,23 @@ app.post('/api/members/bind', async (req, res) => {
       finalRole, 
       finalTw, 
       finalDcid,
-      finalJoinedDc
+      finalJoinedDc,
+      score,
+      lineUserId // 記錄當前 LIFF 拿到的 UID
     ]);
 
-    // 💡 關鍵補上：若有綁定 Discord (大陸或台灣)，按下送出時順便修改 DC 伺服器暱稱！
-    if (finalDcid && DISCORD_BOT_TOKEN && DISCORD_GUILD_ID) {
+    // 💡 5. 若有綁定 Discord，同步更新 Discord 伺服器暱稱
+    if (finalDcid && typeof DISCORD_BOT_TOKEN !== 'undefined' && typeof DISCORD_GUILD_ID !== 'undefined' && DISCORD_BOT_TOKEN && DISCORD_GUILD_ID) {
       fetch(`https://discord.com/api/v10/guilds/${DISCORD_GUILD_ID}/members/${finalDcid}`, {
         method: 'PATCH',
         headers: {
           Authorization: `Bot ${DISCORD_BOT_TOKEN}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ nick: gameNickname })
+        body: JSON.stringify({ nick: gameNickname.trim() })
       }).then(async r => {
         if (r.ok) {
-          console.log(`[Discord] 成功將成員 (${finalDcid}) 的伺服器暱稱改為: ${gameNickname}`);
+          console.log(`[Discord] 成功將成員 (${finalDcid}) 的伺服器暱稱改為: ${gameNickname.trim()}`);
         } else {
           const errTxt = await r.text();
           console.warn(`[Discord 改暱稱失敗] 狀態碼: ${r.status}, 回應: ${errTxt}`);
@@ -719,19 +739,18 @@ app.post('/api/members/bind', async (req, res) => {
       }).catch(err => console.error('[Discord API 異常]:', err.message));
     }
 
-    // 2. 審核歷程紀錄與幹部 LINE 推播
+    // 💡 6. 只有「真正的新會員」或「退會重新入會」才發送推播給幹部審核，老成員修改不打擾幹部
     if (isNewRegistration) {
       await pool.query(
         'INSERT INTO member_audit_logs (line_user_id, field, old_value, new_value) VALUES ($1, $2, $3, $4)', 
-        [lineUserId, '新會員註冊', '-', `${gameNickname} (${gameClass})`]
+        [targetPrimaryKey, isRetired ? '退會重新申請入會' : '新會員註冊', '-', `${gameNickname} (${gameClass})`]
       );
 
-      // 推播通知幹部群
       try {
         const configRes = await pool.query("SELECT config_value FROM system_configs WHERE config_key = 'admin_group_id'");
         const adminGroupId = configRes.rows.length > 0 ? configRes.rows[0].config_value : null;
 
-        if (adminGroupId && LINE_ACCESS_TOKEN) {
+        if (adminGroupId && typeof LINE_ACCESS_TOKEN !== 'undefined' && LINE_ACCESS_TOKEN) {
           const currentTime = new Date().toLocaleString("zh-TW", { timeZone: "Asia/Taipei" });
           const regionText = finalTw === 'N' ? '大陸(DC)' : '台灣(LINE)';
 
@@ -739,6 +758,7 @@ app.post('/api/members/bind', async (req, res) => {
             `🔔【新成員入會待審核】\n\n` +
             `• 遊戲暱稱：${gameNickname}\n` +
             `• 遊戲職業：${gameClass}\n` +
+            `• 裝備評分：${score.toLocaleString()}\n` +
             `• 社群暱稱：${lineDisplayName || '無'}\n` +
             `• 註冊管道：${regionText}\n` +
             `• 申請時間：${currentTime}\n\n` +
@@ -763,16 +783,23 @@ app.post('/api/members/bind', async (req, res) => {
       }
 
     } else {
+      // 舊成員一般修改紀錄日誌
       if (oldMember.game_nickname !== gameNickname) {
         await pool.query(
           'INSERT INTO member_audit_logs (line_user_id, field, old_value, new_value) VALUES ($1, $2, $3, $4)', 
-          [lineUserId, '遊戲暱稱', oldMember.game_nickname, gameNickname]
+          [targetPrimaryKey, '遊戲暱稱', oldMember.game_nickname, gameNickname]
         );
       }
       if (oldMember.game_class !== gameClass) {
         await pool.query(
           'INSERT INTO member_audit_logs (line_user_id, field, old_value, new_value) VALUES ($1, $2, $3, $4)', 
-          [lineUserId, '遊戲職業', oldMember.game_class, gameClass]
+          [targetPrimaryKey, '遊戲職業', oldMember.game_class, gameClass]
+        );
+      }
+      if (Number(oldMember.gear_score || 0) !== score) {
+        await pool.query(
+          'INSERT INTO member_audit_logs (line_user_id, field, old_value, new_value) VALUES ($1, $2, $3, $4)', 
+          [targetPrimaryKey, '裝備評分', String(oldMember.gear_score || 0), String(score)]
         );
       }
     }
@@ -824,33 +851,40 @@ app.get('/api/admin/members', async (req, res) => {
 });
 
 // ==========================================
-// 4. 幹部審核與狀態修改 (連動退會：自動踢出 DC 並徹底清空 DC 狀態)
+// 4. 幹部審核與狀態修改 (連動退會：踢出 DC 並重置 DC 狀態，保留新 UID 綁定)
 // ==========================================
 app.post('/api/admin/members/status', async (req, res) => {
   const { lineUserId, accountStatus, guildRole } = req.body;
   
   try {
-    // A. 先查詢該成員的 dcid 與遊戲暱稱
-    const userRes = await pool.query('SELECT dcid, game_nickname FROM members WHERE line_user_id = $1', [lineUserId]);
+    // 查詢該成員的 dcid 與遊戲暱稱 (相容舊 UID 與新暫存 UID)
+    const userRes = await pool.query(`
+      SELECT line_user_id, dcid, game_nickname 
+      FROM members 
+      WHERE line_user_id = $1 OR new_line_user_id = $1
+      LIMIT 1
+    `, [lineUserId]);
+
+    const targetUid = userRes.rows[0]?.line_user_id || lineUserId;
     const dcId = userRes.rows[0]?.dcid;
     const nickName = userRes.rows[0]?.game_nickname || lineUserId;
 
-    // B. 若設為「退會」
+    // 若設為「退會」
     if (guildRole === '退會') {
-      // 💡 關鍵修復：連同 dcid 重置為 NULL、joined_dc 與 joined_line_group 重置為 'N'
+      // 💡 僅重置 DC 狀態與入群狀態，保留 new_line_user_id 與 is_migrated！
       await pool.query(`
         UPDATE members 
         SET account_status = $1, 
             guild_role = $2, 
             dcid = NULL, 
             joined_dc = 'N', 
-            joined_line_group = 'N', 
+            joined_line_group = 'N',
             update_time = CURRENT_TIMESTAMP 
         WHERE line_user_id = $3
-      `, [accountStatus, guildRole, lineUserId]);
+      `, [accountStatus, guildRole, targetUid]);
 
       // 自動從 Discord 伺服器踢出
-      if (dcId) {
+      if (dcId && typeof DISCORD_BOT_TOKEN !== 'undefined' && DISCORD_BOT_TOKEN && typeof DISCORD_GUILD_ID !== 'undefined' && DISCORD_GUILD_ID) {
         try {
           const kickRes = await fetch(`https://discord.com/api/v10/guilds/${DISCORD_GUILD_ID}/members/${dcId}`, {
             method: 'DELETE',
@@ -861,7 +895,7 @@ app.post('/api/admin/members/status', async (req, res) => {
           });
 
           if (kickRes.status === 204) {
-            console.log(`[Discord] 🚪 退會成員 ${nickName} (${dcId}) 已成功移出伺服器，資料庫狀態已完全重置`);
+            console.log(`[Discord] 🚪 退會成員 ${nickName} (${dcId}) 已移出伺服器，DC 狀態已重置`);
           } else {
             const errTxt = await kickRes.text();
             console.warn(`[Discord 踢人未成功] 狀態碼: ${kickRes.status}, 回應: ${errTxt}`);
@@ -871,10 +905,10 @@ app.post('/api/admin/members/status', async (req, res) => {
         }
       }
     } else {
-      // C. 一般現任或幹部狀態正常更新
+      // 一般現任或幹部狀態正常更新
       await pool.query(
         'UPDATE members SET account_status = $1, guild_role = $2, update_time = CURRENT_TIMESTAMP WHERE line_user_id = $3',
-        [accountStatus, guildRole, lineUserId]
+        [accountStatus, guildRole, targetUid]
       );
     }
 
@@ -886,7 +920,7 @@ app.post('/api/admin/members/status', async (req, res) => {
 });
 
 // ==========================================
-// 5. 幹部編輯 / 新增會員 (已加入 gear_score 儲存)
+// 5. 幹部編輯 / 新增會員 (保留 new_line_user_id 與 is_migrated)
 // ==========================================
 app.post('/api/admin/members/save', async (req, res) => {
   const {
@@ -903,12 +937,21 @@ app.post('/api/admin/members/save', async (req, res) => {
     const finalJoinedLine = isRetire ? 'N' : (joinedLineGroup || 'N');
     const finalDcid = isRetire ? null : (dcid ? String(dcid).trim() : null);
 
+    // 比對舊主鍵
+    const oldRes = await pool.query(
+      'SELECT * FROM members WHERE line_user_id = $1 OR new_line_user_id = $1 LIMIT 1',
+      [lineUserId]
+    );
+    const oldMember = oldRes.rows[0];
+    const targetPrimaryKey = oldMember ? oldMember.line_user_id : lineUserId;
+
     await pool.query(`
       INSERT INTO members (
         line_user_id, game_nickname, game_class, line_display_name, 
         guild_role, team_group, account_status, joined_line_group, 
-        joined_dc, tw, dcid, gear_score, update_time
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, CURRENT_TIMESTAMP)
+        joined_dc, tw, dcid, gear_score, 
+        new_line_user_id, is_migrated, update_time
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, 'Y', CURRENT_TIMESTAMP)
       ON CONFLICT (line_user_id) 
       DO UPDATE SET 
         game_nickname = EXCLUDED.game_nickname, 
@@ -922,16 +965,19 @@ app.post('/api/admin/members/save', async (req, res) => {
         tw = COALESCE(EXCLUDED.tw, members.tw, 'Y'),
         dcid = $11,
         gear_score = EXCLUDED.gear_score,
+        new_line_user_id = COALESCE(members.new_line_user_id, EXCLUDED.new_line_user_id),
+        is_migrated = 'Y',
         update_time = CURRENT_TIMESTAMP
     `, [
-      lineUserId, gameNickname, gameClass, lineDisplayName,
-      guildRole, teamGroup, accountStatus,
+      targetPrimaryKey, gameNickname.trim(), gameClass, lineDisplayName || "",
+      guildRole, teamGroup || "", accountStatus,
       finalJoinedLine, finalJoinedDc,
-      tw || 'Y', finalDcid, score
+      tw || 'Y', finalDcid, score,
+      oldMember?.new_line_user_id || lineUserId
     ]);
 
     // 若手動改為退會且原本有 dcid，連動將其踢出 Discord
-    if (isRetire && dcid) {
+    if (isRetire && dcid && typeof DISCORD_BOT_TOKEN !== 'undefined' && DISCORD_BOT_TOKEN && typeof DISCORD_GUILD_ID !== 'undefined' && DISCORD_GUILD_ID) {
       try {
         const kickRes = await fetch(`https://discord.com/api/v10/guilds/${DISCORD_GUILD_ID}/members/${dcid}`, {
           method: 'DELETE',
@@ -955,29 +1001,45 @@ app.post('/api/admin/members/save', async (req, res) => {
   }
 });
 
+// ==========================================
 // 6. 會員修改紀錄
+// ==========================================
 app.get('/api/admin/members/logs/:uid', async (req, res) => {
   const lineUserId = req.params.uid;
   try {
-    const result = await pool.query("SELECT field, old_value, TO_CHAR(update_time, 'YYYY-MM-DD HH24:MI:SS') AS update_time, new_value FROM member_audit_logs WHERE line_user_id = $1 ORDER BY update_time DESC", [lineUserId]);
-    const logs = result.rows.map(l => ({ field: l.field, oldValue: l.old_value, newValue: l.new_value, updateTime: l.update_time }));
+    const result = await pool.query(`
+      SELECT field, old_value, TO_CHAR(update_time, 'YYYY-MM-DD HH24:MI:SS') AS update_time, new_value 
+      FROM member_audit_logs 
+      WHERE line_user_id = $1 
+      ORDER BY update_time DESC
+    `, [lineUserId]);
+    const logs = result.rows.map(l => ({ 
+      field: l.field, 
+      oldValue: l.old_value, 
+      newValue: l.new_value, 
+      updateTime: l.update_time 
+    }));
     res.json({ status: "success", logs });
   } catch (err) {
     res.status(500).json({ status: "error", message: err.message });
   }
 });
 
+// ==========================================
 // 7. 刪除會員 (連動踢出 Discord 伺服器)
+// ==========================================
 app.delete('/api/admin/members/:uid', async (req, res) => {
   const lineUserId = req.params.uid;
   try {
-    // A. 先查詢該成員是否有綁定 dcid
-    const memberRes = await pool.query('SELECT dcid, game_nickname FROM members WHERE line_user_id = $1', [lineUserId]);
+    const memberRes = await pool.query(
+      'SELECT line_user_id, dcid, game_nickname FROM members WHERE line_user_id = $1 OR new_line_user_id = $1 LIMIT 1', 
+      [lineUserId]
+    );
+    const targetUid = memberRes.rows[0]?.line_user_id || lineUserId;
     const dcId = memberRes.rows[0]?.dcid;
     const nickName = memberRes.rows[0]?.game_nickname || lineUserId;
 
-    // B. 如果有綁定 Discord，呼叫 Discord API 踢出伺服器
-    if (dcId) {
+    if (dcId && typeof DISCORD_BOT_TOKEN !== 'undefined' && DISCORD_BOT_TOKEN && typeof DISCORD_GUILD_ID !== 'undefined' && DISCORD_GUILD_ID) {
       try {
         const kickRes = await fetch(`https://discord.com/api/v10/guilds/${DISCORD_GUILD_ID}/members/${dcId}`, {
           method: 'DELETE',
@@ -986,21 +1048,16 @@ app.delete('/api/admin/members/:uid', async (req, res) => {
             'X-Audit-Log-Reason': encodeURIComponent(`公會名冊刪除成員: ${nickName}`)
           }
         });
-
         if (kickRes.status === 204) {
           console.log(`[Discord] 已將刪除的成員 ${nickName} (${dcId}) 移出伺服器`);
-        } else {
-          const kickErr = await kickRes.text();
-          console.warn(`[Discord 踢人未成功] 狀態碼: ${kickRes.status}, 回應: ${kickErr}`);
         }
       } catch (dcErr) {
         console.error('[Discord 踢人連線異常]:', dcErr.message);
       }
     }
 
-    // C. 刪除資料庫資料與稽核紀錄
-    await pool.query('DELETE FROM members WHERE line_user_id = $1', [lineUserId]);
-    await pool.query('DELETE FROM member_audit_logs WHERE line_user_id = $1', [lineUserId]);
+    await pool.query('DELETE FROM members WHERE line_user_id = $1', [targetUid]);
+    await pool.query('DELETE FROM member_audit_logs WHERE line_user_id = $1', [targetUid]);
 
     res.json({ status: "success" });
   } catch (err) {
@@ -1010,7 +1067,7 @@ app.delete('/api/admin/members/:uid', async (req, res) => {
 });
 
 // ==========================================
-// 提供給 Google 試算表同步會員資料用的 API (依職業自訂順序 -> 依裝評由高到低排序)
+// 提供給 Google 試算表同步會員資料用的 API (依職業排序 -> 裝評降冪)
 // ==========================================
 app.get('/api/sheet/members', async (req, res) => {
   const secretKey = req.query.key;
@@ -1019,11 +1076,10 @@ app.get('/api/sheet/members', async (req, res) => {
   }
 
   try {
-    // 關聯職業順序表，職業相同時依照 gear_score 降冪（高到低）排序
     const result = await pool.query(`
       SELECT m.* 
-      FROM members m
-      LEFT JOIN game_classes c ON m.game_class = c.class_name
+      FROM members m 
+      LEFT JOIN game_classes c ON m.game_class = c.class_name 
       ORDER BY 
         COALESCE(c.sort_order, 999) ASC, 
         COALESCE(m.gear_score, 0) DESC, 
@@ -1032,9 +1088,11 @@ app.get('/api/sheet/members', async (req, res) => {
     
     const members = result.rows.map(m => ({
       lineUserId: m.line_user_id || "",
+      newLineUserId: m.new_line_user_id || "",
+      isMigrated: m.is_migrated || "N",
       gameNickname: m.game_nickname || "",
       gameClass: m.game_class || "",
-      gearScore: Number(m.gear_score) || 0, // 
+      gearScore: Number(m.gear_score) || 0,
       lineDisplayName: m.line_display_name || "",
       allowSearch: m.allow_search || "N",
       accountStatus: m.account_status || "待審核",
@@ -1053,6 +1111,7 @@ app.get('/api/sheet/members', async (req, res) => {
     res.status(500).json({ status: "error", message: err.message });
   }
 });
+
 // ==========================================
 // Google 試算表更新成員裝備評價 API
 // ==========================================
@@ -1071,15 +1130,13 @@ app.post('/api/sheet/gear-scores', async (req, res) => {
   try {
     await client.query('BEGIN');
 
-    // 逐筆依遊戲暱稱更新裝備評價 (gear_score)
     for (const item of items) {
       if (item.gameNickname) {
-        await client.query(
-          `UPDATE members 
-           SET gear_score = $1, update_time = NOW() 
-           WHERE game_nickname = $2`,
-          [item.gearScore, item.gameNickname]
-        );
+        await client.query(`
+          UPDATE members 
+          SET gear_score = $1, update_time = NOW() 
+          WHERE TRIM(game_nickname) ILIKE $2
+        `, [parseInt(item.gearScore, 10) || 0, item.gameNickname.trim()]);
       }
     }
 
@@ -1094,28 +1151,25 @@ app.post('/api/sheet/gear-scores', async (req, res) => {
   }
 });
 
-
 // ==========================================
-// Discord OAuth2 授權端點（整合台灣加綁與大陸登入）
+// Discord OAuth2 授權端點（完整支援新舊 UID 相容）
 // ==========================================
 const DISCORD_CLIENT_ID = '1561789656478130337';
 const DISCORD_CLIENT_SECRET = 'YlFXNoWW9F5iGa6yk3Z0' + '75zOPp7-OVy7';
 const DISCORD_BOT_TOKEN = 'MTU2MTc4OTY1NjQ3ODEzMDMzNw' + '.' + 'GSjvoT' + '.' + 'nTJB8MvPJ_zeg5g3dkDn2QfJP5ZA_i-ZFx2I3w';
-const DISCORD_REDIRECT_URI = 'https://guildmaster-lv.duckdns.org/api/auth/discord/callback'; // 👈 修正拼字
+const DISCORD_REDIRECT_URI = 'https://guildmaster-lv.duckdns.org/api/auth/discord/callback';
 const DISCORD_GUILD_ID = '1471191307736186931';
 
 // 1. 發起 Discord 授權跳轉
 app.get('/api/auth/discord', (req, res) => {
   const fromUid = req.query.uid || 'login_only';
   const state = encodeURIComponent(fromUid);
-  const scope = encodeURIComponent('identify guilds.join'); // identify + guilds.join 即可
-  // 👈 修正拼字：redirect_uri
+  const scope = encodeURIComponent('identify guilds.join');
   const authUrl = `https://discord.com/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&response_type=code&redirect_uri=${encodeURIComponent(DISCORD_REDIRECT_URI)}&scope=${scope}&state=${state}`;
   res.redirect(authUrl);
 });
 
 // 2. 接收 Discord 授權回調
-
 app.get('/api/auth/discord/callback', async (req, res) => {
   const { code, state } = req.query;
   if (!code) return res.status(400).send("授權失敗：未取得驗證碼");
@@ -1158,10 +1212,9 @@ app.get('/api/auth/discord/callback', async (req, res) => {
     const targetLineUid = state ? decodeURIComponent(state) : 'login_only';
 
     // ----------------------------------------------------
-    // 🛡️ 關鍵修正 1：最優先執行防呆阻擋！(在動任何 DC 暱稱之前)
+    // 🛡️ 最優先執行防呆阻擋 (避免台灣成員誤闖大陸專屬通道)
     // ----------------------------------------------------
     if (!targetLineUid || targetLineUid === 'login_only') {
-      // 檢查此 DC 帳號是否已經綁定在台灣成員名下
       const checkExistingTw = await pool.query(
         "SELECT line_user_id, game_nickname, tw FROM members WHERE dcid = $1 AND (tw = 'Y' OR line_user_id != $1)",
         [dcId]
@@ -1169,7 +1222,7 @@ app.get('/api/auth/discord/callback', async (req, res) => {
 
       if (checkExistingTw.rows.length > 0) {
         const twUser = checkExistingTw.rows[0];
-        console.warn(`[Discord 防呆] 台灣成員【${twUser.game_nickname}】誤觸大陸通道，直接阻擋且不更動任何 DC 資料`);
+        console.warn(`[Discord 防呆] 台灣成員【${twUser.game_nickname}】誤觸大陸通道，阻擋登入`);
         return res.status(403).send(`
           <!DOCTYPE html>
           <html lang="zh-Hant">
@@ -1186,7 +1239,7 @@ app.get('/api/auth/discord/callback', async (req, res) => {
               <p class="text-xs text-slate-500 leading-relaxed text-left bg-rose-50/50 p-3.5 rounded-2xl border border-rose-100">
                 親愛的 <b>${twUser.game_nickname || '公會成員'}</b>：<br>
                 系統偵測到此 Discord 帳號已綁定於 <b>LINE 會員身分</b>。<br><br>
-                為避免產生重複紀錄，<b>請直接使用 LINE 管理系統進行各項操作</b>，無須使用大陸專屬通道註冊。
+                請直接使用 LINE 管理系統操作，無須使用大陸通道註冊。
               </p>
               <a href="https://lin.ee/pAPeNUT" class="inline-block w-full bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold py-3 rounded-xl transition">
                 返回 LINE 使用系統
@@ -1199,11 +1252,14 @@ app.get('/api/auth/discord/callback', async (req, res) => {
     }
 
     // ----------------------------------------------------
-    // C. 查詢要設定的遊戲暱稱
+    // C. 查詢要設定的遊戲暱稱 (關鍵：同時比對舊 UID 與新 UID)
     // ----------------------------------------------------
     let memberNick = dcName;
     if (targetLineUid && targetLineUid !== 'login_only') {
-      const memRes = await pool.query('SELECT game_nickname FROM members WHERE line_user_id = $1', [targetLineUid]);
+      const memRes = await pool.query(
+        'SELECT game_nickname FROM members WHERE line_user_id = $1 OR new_line_user_id = $1 LIMIT 1', 
+        [targetLineUid]
+      );
       if (memRes.rows.length > 0 && memRes.rows[0].game_nickname) {
         memberNick = memRes.rows[0].game_nickname;
       }
@@ -1234,9 +1290,9 @@ app.get('/api/auth/discord/callback', async (req, res) => {
       console.log(`[Discord 加群回應] 狀態碼: ${joinRes.status}, 回應: ${resText}`);
 
       if (joinRes.status === 201) {
-        console.log(`[Discord] 🎉 成功將新成員 ${memberNick} (${dcId}) 拉進公會、賦予身分組並修改暱稱！`);
+        console.log(`[Discord] 🎉 成功將新成員 ${memberNick} (${dcId}) 拉進公會！`);
       } else if (joinRes.status === 204) {
-        console.log(`[Discord] ℹ️ 成員 ${dcName} (${dcId}) 原先就已在伺服器內，補發身分組並同步暱稱...`);
+        console.log(`[Discord] ℹ️ 成員 ${dcName} (${dcId}) 原先就已在伺服器內，補發身分組與同步暱稱...`);
 
         // 1. 補發身分組
         await fetch(`https://discord.com/api/v10/guilds/${DISCORD_GUILD_ID}/members/${dcId}/roles/${MEMBER_ROLE_ID}`, {
@@ -1244,7 +1300,7 @@ app.get('/api/auth/discord/callback', async (req, res) => {
           headers: { Authorization: `Bot ${DISCORD_BOT_TOKEN}` }
         });
 
-        // 2. 補改伺服器暱稱為遊戲角色名稱 (只有在確定有查到遊戲暱稱時才改，避免改回原名)
+        // 2. 補改伺服器暱稱
         if (memberNick && memberNick !== dcName) {
           await fetch(`https://discord.com/api/v10/guilds/${DISCORD_GUILD_ID}/members/${dcId}`, {
             method: 'PATCH',
@@ -1264,9 +1320,9 @@ app.get('/api/auth/discord/callback', async (req, res) => {
     // E. 依據來源分流跳轉
     // ----------------------------------------------------
     if (targetLineUid && targetLineUid !== 'login_only') {
-      // 台灣成員加綁 DC
+      // 台灣成員加綁 DC：檢查是否有其他人綁過此 DC
       const duplicateCheck = await pool.query(
-        "SELECT game_nickname FROM members WHERE dcid = $1 AND line_user_id != $2",
+        "SELECT game_nickname FROM members WHERE dcid = $1 AND (line_user_id != $2 AND COALESCE(new_line_user_id, '') != $2)",
         [dcId, targetLineUid]
       );
 
@@ -1279,10 +1335,11 @@ app.get('/api/auth/discord/callback', async (req, res) => {
         `);
       }
 
+      // 關鍵更新：同時比對 line_user_id 或 new_line_user_id
       await pool.query(
         `UPDATE members 
          SET dcid = $1, joined_dc = 'Y', update_time = CURRENT_TIMESTAMP 
-         WHERE line_user_id = $2`,
+         WHERE line_user_id = $2 OR new_line_user_id = $2`,
         [dcId, targetLineUid]
       );
 
@@ -1322,13 +1379,12 @@ app.get('/api/auth/discord/callback', async (req, res) => {
   }
 });
 
-
 // ==========================================
 // 請假表單 API
 // ==========================================
 
 // ==========================================
-// 1. 檢查特定日期與活動是否已有請假紀錄 (供前端防呆檢查)
+// 1. 檢查特定日期與活動是否已有請假紀錄 (支援新舊 UID 相容防呆)
 // ==========================================
 app.get('/api/leaves/check', async (req, res) => {
   const { targetUid, leaveDate, leaveEvent } = req.query;
@@ -1337,9 +1393,20 @@ app.get('/api/leaves/check', async (req, res) => {
   }
 
   try {
+    // 💡 關鍵 1：先找出該成員的主要主鍵 line_user_id，同時相容新舊 UID
+    const memRes = await pool.query(
+      'SELECT line_user_id, new_line_user_id FROM members WHERE line_user_id = $1 OR new_line_user_id = $1 LIMIT 1',
+      [targetUid]
+    );
+    
+    // 如果找得到主鍵就用主鍵，找不到就 fallback 用傳入的 targetUid
+    const primaryUid = memRes.rows[0]?.line_user_id || targetUid;
+    const secondaryUid = memRes.rows[0]?.new_line_user_id || targetUid;
+
+    // 💡 關鍵 2：防呆檢查時，同時比對主要 UID 與新 UID，杜絕因換 UID 造成的重複請假！
     const result = await pool.query(
-      'SELECT * FROM leaves WHERE target_uid = $1 AND leave_date = $2 AND leave_event = $3',
-      [targetUid, leaveDate, leaveEvent]
+      'SELECT * FROM leaves WHERE (target_uid = $1 OR target_uid = $2) AND leave_date = $3 AND leave_event = $4',
+      [primaryUid, secondaryUid, leaveDate, leaveEvent]
     );
 
     if (result.rows.length > 0) {
@@ -1348,12 +1415,13 @@ app.get('/api/leaves/check', async (req, res) => {
       res.json({ status: "available", message: "可正常請假" });
     }
   } catch (err) {
+    console.error('[請假檢查異常]:', err);
     res.status(500).json({ status: "error", message: err.message });
   }
 });
 
 // ==========================================
-// 2. 請假表單送出 API (含後端防重複 + 超時自動判定 + 幹部群 LINE 推播)
+// 2. 請假表單送出 API (含 UID 相容 + 防重複 + 超時自動判定 + 幹部推播)
 // ==========================================
 app.post('/api/leaves', async (req, res) => {
   const { 
@@ -1367,10 +1435,18 @@ app.post('/api/leaves', async (req, res) => {
   }
 
   try {
-    // 💡 後端雙重防呆：確保同一人同一天同一活動不會重複寫入
+    // 💡 關鍵 1：取得該成員在 members 主表中的主要 line_user_id
+    const memRes = await pool.query(
+      'SELECT line_user_id, new_line_user_id FROM members WHERE line_user_id = $1 OR new_line_user_id = $1 LIMIT 1',
+      [targetUid]
+    );
+    const primaryUid = memRes.rows[0]?.line_user_id || targetUid;
+    const secondaryUid = memRes.rows[0]?.new_line_user_id || targetUid;
+
+    // 💡 關鍵 2：後端雙重防呆：比對新舊 UID，確保不被重複寫入
     const duplicateCheck = await pool.query(
-      'SELECT leave_id FROM leaves WHERE target_uid = $1 AND leave_date = $2 AND leave_event = $3',
-      [targetUid, leaveDate, leaveEvent]
+      'SELECT leave_id FROM leaves WHERE (target_uid = $1 OR target_uid = $2) AND leave_date = $3 AND leave_event = $4',
+      [primaryUid, secondaryUid, leaveDate, leaveEvent]
     );
     if (duplicateCheck.rows.length > 0) {
       return res.status(400).json({ status: "exists", message: "該成員此日期與活動已完成請假，請勿重複送出！" });
@@ -1381,7 +1457,7 @@ app.post('/api/leaves', async (req, res) => {
     const finalReason = note ? `${leaveReason} (備註: ${note})` : leaveReason;
     const nowTaipei = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Taipei" }));
 
-    // 💡 自動比對該活動規則的最晚截止時間
+    // 💡 3. 比對截止時間，自動判定超時
     let finalUrgent = isUrgent || 'N';
     const ruleRes = await pool.query('SELECT latest_time, enabled FROM leave_rules WHERE event = $1', [leaveEvent]);
 
@@ -1400,7 +1476,7 @@ app.post('/api/leaves', async (req, res) => {
       }
     }
 
-    // 寫入請假紀錄
+    // 💡 關鍵 4：寫入 leaves 資料表時，統一寫入 primaryUid（保持歷史紀錄乾淨完整）
     await pool.query(`
       INSERT INTO leaves (
         leave_id, leave_date, leave_event, target_uid, 
@@ -1411,26 +1487,25 @@ app.post('/api/leaves', async (req, res) => {
       leaveId, 
       leaveDate, 
       leaveEvent, 
-      targetUid, 
-      gameNickname, 
+      primaryUid, // 👈 寫入統一的主要 UID
+      gameNickname.trim(), 
       gameClass || '', 
       finalReason, 
       finalUrgent, 
-      operatorUid || targetUid, 
-      operatorName || '本人',
+      operatorUid || primaryUid, 
+      operatorName || '本人', 
       nowTaipei 
     ]);
 
     // ----------------------------------------------------
-    // 🚨 判定臨時/超時請假：立即發送推播通知至幹部群
+    // 🚨 5. 判定臨時/超時請假：立即發送推播通知至幹部群
     // ----------------------------------------------------
     if (finalUrgent === 'Y') {
       try {
         const configRes = await pool.query("SELECT config_value FROM system_configs WHERE config_key = 'admin_group_id'");
         const adminGroupId = configRes.rows.length > 0 ? configRes.rows[0].config_value : null;
 
-        // ✅ 直接使用您檔案上方宣告好的 LINE_ACCESS_TOKEN
-        if (adminGroupId && LINE_ACCESS_TOKEN) {
+        if (adminGroupId && typeof LINE_ACCESS_TOKEN !== 'undefined' && LINE_ACCESS_TOKEN) {
           const timeStr = nowTaipei.toLocaleString("zh-TW", { 
             timeZone: "Asia/Taipei", 
             month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false 
@@ -1470,7 +1545,7 @@ app.post('/api/leaves', async (req, res) => {
     res.json({ 
       status: "success", 
       message: "請假申請已成功送出並記錄", 
-      leaveId,
+      leaveId, 
       isUrgent: finalUrgent 
     });
 
@@ -1480,9 +1555,9 @@ app.post('/api/leaves', async (req, res) => {
   }
 });
 
-
-
-// 幹部讀取請假紀錄規則 API
+// ==========================================
+// 3. 幹部讀取請假紀錄 API (維持原狀，已相容)
+// ==========================================
 app.get('/api/admin/leaves', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM leaves ORDER BY submit_time DESC');
@@ -1495,7 +1570,7 @@ app.get('/api/admin/leaves', async (req, res) => {
       reason: l.leave_reason,
       isUrgent: l.is_urgent === 'Y',
       operator: l.operator_name || '本人',
-      operator_name: l.operator_name || '本人', // 👈 多加這行，確保前端用 operator_name 也能抓到
+      operator_name: l.operator_name || '本人',
       submitTime: l.submit_time
     }));
     res.json({ status: "success", leaves });
@@ -1504,8 +1579,9 @@ app.get('/api/admin/leaves', async (req, res) => {
   }
 });
 
-
-// 儲存或更新請假項目規則 API
+// ==========================================
+// 4. 請假規則儲存與刪除 (維持原狀)
+// ==========================================
 app.post('/api/admin/leave-rules/save', async (req, res) => {
   const { originalEvent, event, latestTime, cycle, enabled } = req.body;
   try {
@@ -1524,7 +1600,6 @@ app.post('/api/admin/leave-rules/save', async (req, res) => {
   }
 });
 
-// 刪除請假項目規則 API
 app.delete('/api/admin/leave-rules/:event', async (req, res) => {
   const eventName = req.params.event;
   try {
@@ -1535,18 +1610,17 @@ app.delete('/api/admin/leave-rules/:event', async (req, res) => {
   }
 });
 
-// 提供給 Google 試算表同步請假紀錄用的 API
+// ==========================================
+// 5. 提供給 Google 試算表同步請假紀錄用的 API (維持原狀)
+// ==========================================
 app.get('/api/sheet/leaves', async (req, res) => {
   const secretKey = req.query.key;
-  if (secretKey !== 'gm-lv') { // 請保持與您原本的 key 一致
+  if (secretKey !== 'gm-lv') {
     return res.status(403).json({ status: "error", message: "無權存取" });
   }
 
   try {
     const result = await pool.query('SELECT * FROM leaves ORDER BY submit_time DESC');
-    
-    // 將資料庫欄位對應轉換成試算表 A ~ H 欄的格式
-    // 對應欄位：請假日期(A), 遊戲暱稱(B), 遊戲職業(C), 請假活動(D), 請假原因(E), 填單時間(F), 請假人(G), 註記(H)
     const leaves = result.rows.map(l => ({
       leaveDate: l.leave_date || "",
       gameNickname: l.game_nickname || "",
@@ -1612,7 +1686,7 @@ function getComputedStatus(evt) {
   }
 }
 // ==========================================
-// 1. 取得所有活動與報名名單 API (GET) - 包含 note 備註
+// 1. 取得所有活動與報名名單 API (GET) - 保持原狀
 // ==========================================
 app.get('/api/admin/events', async (req, res) => {
   try {
@@ -1627,10 +1701,9 @@ app.get('/api/admin/events', async (req, res) => {
           gameNickname: a.game_nickname,
           gameClass: a.game_class,
           signupTime: a.signup_time,
-          note: a.note || "" // 👈 支援帶出備註
+          note: a.note || ""
         }));
 
-      // 動態計算當前真實狀態
       const computedStatus = getComputedStatus(evt);
 
       return {
@@ -1655,7 +1728,7 @@ app.get('/api/admin/events', async (req, res) => {
 });
 
 // ==========================================
-// 2. 進行報名 API (POST) - 完整卡控 + 台灣時區修正版
+// 2. 進行報名 API (POST) - 支援新舊 UID 相容 + 完整卡控 + 台灣時區
 // ==========================================
 app.post('/api/events/signup', async (req, res) => {
   const { eventId, lineUserId, gameNickname, gameClass, note } = req.body;
@@ -1685,17 +1758,25 @@ app.post('/api/events/signup', async (req, res) => {
       return res.status(400).json({ status: "error", message: "報名已截止，無法進行報名" });
     }
 
-    // 5. 檢查是否額滿 (已在名單內者修改備註不阻擋)
+    // 💡 關鍵 A：取得該成員在 members 主表中的主要 line_user_id (相容新舊 UID)
+    const memRes = await pool.query(
+      'SELECT line_user_id, new_line_user_id FROM members WHERE line_user_id = $1 OR new_line_user_id = $1 LIMIT 1',
+      [lineUserId]
+    );
+    const primaryUid = memRes.rows[0]?.line_user_id || lineUserId;
+    const secondaryUid = memRes.rows[0]?.new_line_user_id || lineUserId;
+
+    // 5. 檢查是否額滿 (已在名單內者修改備註不阻擋，新舊 UID 均納入比對)
     if (event.max_limit && event.max_limit > 0) {
       const attendeesResult = await pool.query('SELECT line_user_id FROM event_attendees WHERE event_id = $1', [eventId]);
-      const isAlreadyJoined = attendeesResult.rows.some(a => a.line_user_id === lineUserId);
+      const isAlreadyJoined = attendeesResult.rows.some(a => a.line_user_id === primaryUid || a.line_user_id === secondaryUid);
       
       if (!isAlreadyJoined && attendeesResult.rows.length >= event.max_limit) {
         return res.status(400).json({ status: "error", message: "報名人數已滿，無法報名" });
       }
     }
 
-    // 💡 6. 寫入或更新報名資料與備註 (強制鎖定台灣 Asia/Taipei UTC+8 時區)
+    // 6. 產生台灣時區報名時間
     const formatter = new Intl.DateTimeFormat('zh-TW', {
       timeZone: 'Asia/Taipei',
       year: 'numeric',
@@ -1713,12 +1794,13 @@ app.post('/api/events/signup', async (req, res) => {
     const min = parts.find(p => p.type === 'minute').value;
     const signupTime = `${y}-${m}-${d} ${h}:${min}`;
     
+    // 💡 關鍵 B：統一用 primaryUid 寫入/更新，避免同一個人因為 UID 變更重複佔名額
     await pool.query(`
       INSERT INTO event_attendees (event_id, line_user_id, game_nickname, game_class, signup_time, note)
       VALUES ($1, $2, $3, $4, $5, $6)
       ON CONFLICT (event_id, line_user_id) DO UPDATE 
       SET signup_time = EXCLUDED.signup_time, note = EXCLUDED.note
-    `, [eventId, lineUserId, gameNickname, gameClass, signupTime, note || '']);
+    `, [eventId, primaryUid, gameNickname.trim(), gameClass, signupTime, note || '']);
     
     res.json({ status: "success" });
   } catch (err) {
@@ -1728,7 +1810,7 @@ app.post('/api/events/signup', async (req, res) => {
 });
 
 // ==========================================
-// 3. 取消報名 API (DELETE)
+// 3. 取消報名 API (DELETE) - 支援新舊 UID 相容刪除
 // ==========================================
 app.delete('/api/events/signup', async (req, res) => {
   const { eventId, lineUserId } = req.body;
@@ -1745,16 +1827,24 @@ app.delete('/api/events/signup', async (req, res) => {
       return res.status(400).json({ status: "error", message: "報名已截止，無法自行取消報名" });
     }
 
+    // 💡 關鍵：取得主要主鍵，並同時刪除符合 primaryUid 或傳入 UID 的紀錄
+    const memRes = await pool.query(
+      'SELECT line_user_id FROM members WHERE line_user_id = $1 OR new_line_user_id = $1 LIMIT 1',
+      [lineUserId]
+    );
+    const primaryUid = memRes.rows[0]?.line_user_id || lineUserId;
+
     await pool.query(`
-      DELETE FROM event_attendees WHERE event_id = $1 AND line_user_id = $2
-    `, [eventId, lineUserId]);
+      DELETE FROM event_attendees 
+      WHERE event_id = $1 AND (line_user_id = $2 OR line_user_id = $3)
+    `, [eventId, primaryUid, lineUserId]);
     
     res.json({ status: "success" });
   } catch (err) {
+    console.error('[取消報名失敗]:', err);
     res.status(500).json({ status: "error", message: err.message });
   }
 });
-
 // ==========================================
 // 4. 建立或更新活動 API (POST)
 // ==========================================
