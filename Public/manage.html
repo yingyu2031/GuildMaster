@@ -91,9 +91,9 @@ input[type="date"], input[type="time"], select {
  <!-- 區塊 1：會員名冊 -->
  <section id="sectionMembers" class="space-y-4">
  <div class="grid grid-cols-4 gap-1 p-1 bg-sky-50 rounded-xl border border-sky-100 text-xs font-bold">
+  <button id="subTabPending" onclick="switchMemberSubTab('pending')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800 cursor-pointer">待審核</button>
   <button id="subTabActive" onclick="switchMemberSubTab('active')" class="py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black cursor-pointer">現任成員</button>
   <button id="subTabGroups" onclick="switchMemberSubTab('groups')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800 cursor-pointer">團體速查</button>
-  <button id="subTabPending" onclick="switchMemberSubTab('pending')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800 cursor-pointer">待審核</button>
   <button id="subTabRetired" onclick="switchMemberSubTab('retired')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800 cursor-pointer">退會封存</button>
  </div>
 
@@ -127,11 +127,11 @@ input[type="date"], input[type="time"], select {
  <!-- 區塊 2：請假紀錄 -->
  <section id="sectionLeaves" class="hidden space-y-4 text-left">
  <div class="grid grid-cols-3 gap-1 p-1 bg-sky-50 rounded-xl border border-sky-100 text-[11px] font-bold">
+  <button id="leaveSubTabRank" onclick="switchLeaveSubView('rank')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800 cursor-pointer">排名統計</button>
   <button id="leaveSubTabToday" onclick="switchLeaveSubView('today')" class="py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black flex items-center justify-center gap-1 cursor-pointer">
    <span>今日請假</span>
    <span id="badgeTodayLeaveCount" class="bg-rose-500 text-white text-[10px] px-1.5 py-0.2 rounded-full hidden">0</span>
   </button>
-  <button id="leaveSubTabRank" onclick="switchLeaveSubView('rank')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800 cursor-pointer">排名統計</button>
   <button id="leaveSubTabList" onclick="switchLeaveSubView('list')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800 cursor-pointer">全部紀錄列表</button>
  </div>
 
