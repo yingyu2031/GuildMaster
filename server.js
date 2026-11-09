@@ -494,7 +494,9 @@ app.post('/api/members/check-identity', async (req, res) => {
   }
 });
 
-// 3. 手動認領角色 API (直接覆蓋主鍵 line_user_id + 同步關聯表)
+// ==========================================
+// 3. 手動認領角色 API (已轉換者阻擋重新對應)
+// ==========================================
 app.post('/api/members/claim-by-game-nick', async (req, res) => {
   const { newUid, lineDisplayName, gameNickname } = req.body;
   const gameNick = String(gameNickname || '').trim();
@@ -518,11 +520,20 @@ app.post('/api/members/claim-by-game-nick', async (req, res) => {
     }
 
     const target = memRes.rows[0];
+
+    // 🛑 核心防呆：如果已經轉換過 (is_migrated === 'Y')，阻擋重複對應！
+    if (target.is_migrated === 'Y') {
+      return res.json({
+        status: "already_migrated",
+        message: "該角色已被對應綁定，請找媽咪確認！"
+      });
+    }
+
     const oldUid = target.line_user_id;
 
     await client.query('BEGIN');
 
-    // 🎯 覆蓋主鍵 line_user_id + 標記 is_migrated = 'Y'
+    // 🎯 直接把舊主鍵更新為新 UID + 標記已轉換
     await client.query(`
       UPDATE members 
       SET line_user_id = $1,
