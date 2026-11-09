@@ -2101,6 +2101,94 @@ app.post('/api/members/match-by-line-name', async (req, res) => {
   }
 });
 
+// ==========================================
+// 前台手動搜尋名冊（依遊戲暱稱搜尋，排除退會）
+// ==========================================
+app.get('/api/members/search-for-claim', async (req, res) => {
+  const keyword = (req.query.q || '').trim();
+  if (!keyword) {
+    return res.json({ status: "success", members: [] });
+  }
+
+  try {
+    const searchRes = await pool.query(`
+      SELECT game_nickname, game_class, line_display_name 
+      FROM members 
+      WHERE game_nickname ILIKE $1 
+        AND (guild_role IS NULL OR guild_role != '退會')
+      LIMIT 10
+    `, [`%${keyword}%`]);
+
+    res.json({
+      status: "success",
+      members: searchRes.rows.map(r => ({
+        gameNickname: r.game_nickname,
+        gameClass: r.game_class,
+        lineDisplayName: r.line_display_name
+      }))
+    });
+  } catch (err) {
+    console.error('[搜尋成員失敗]:', err);
+    res.status(500).json({ status: "error", message: err.message });
+  }
+});
+
+// ==========================================
+// 點選搜尋結果完成認領對應
+// ==========================================
+app.post('/api/members/claim-by-game-nick', async (req, res) => {
+  const { newUid, lineDisplayName, gameNickname } = req.body;
+  const gameNick = (gameNickname || '').trim();
+
+  if (!newUid || !gameNick) {
+    return res.status(400).json({ status: "error", message: "缺少必要參數" });
+  }
+
+  try {
+    const memRes = await pool.query(`
+      SELECT * FROM members 
+      WHERE TRIM(game_nickname) ILIKE $1 
+        AND (guild_role IS NULL OR guild_role != '退會')
+      LIMIT 1
+    `, [gameNick]);
+
+    if (memRes.rows.length === 0) {
+      return res.json({ status: "not_found", message: "查無此遊戲角色！" });
+    }
+
+    const target = memRes.rows[0];
+    const oldUid = target.line_user_id;
+
+    await pool.query(`
+      UPDATE members 
+      SET line_user_id = $1, 
+          line_display_name = $2,
+          update_time = CURRENT_TIMESTAMP
+      WHERE line_user_id = $3
+    `, [newUid, lineDisplayName, oldUid]);
+
+    await pool.query('UPDATE member_audit_logs SET line_user_id = $1 WHERE line_user_id = $2', [newUid, oldUid]);
+    console.log(`[手動認領成功] 角色【${gameNick}】原 UID ${oldUid} -> 新 UID ${newUid}`);
+
+    res.json({
+      status: "success",
+      member: {
+        gameNickname: target.game_nickname,
+        gameClass: target.game_class,
+        lineDisplayName: lineDisplayName,
+        allowSearch: target.allow_search,
+        accountStatus: target.account_status,
+        guildRole: target.guild_role,
+        dcid: target.dcid,
+        joinedDc: target.joined_dc
+      }
+    });
+  } catch (err) {
+    console.error('[手動認領失敗]:', err);
+    res.status(500).json({ status: "error", message: err.message });
+  }
+});
+
 
 // 主副戰名單系統管理員登入 API
 const ADMIN_USER = process.env.ADMIN_USER || "admin";
