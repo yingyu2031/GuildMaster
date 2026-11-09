@@ -783,44 +783,54 @@
     }
 
     async function executeFinalSubmit() {
-        if (!pendingPayload) return;
+    if (!pendingPayload) return;
 
-        const modalConfirmBtn = document.getElementById('modalConfirmBtn');
-        modalConfirmBtn.textContent = "傳送中...";
-        modalConfirmBtn.disabled = true;
+    const modalConfirmBtn = document.getElementById('modalConfirmBtn');
+    modalConfirmBtn.textContent = "傳送中...";
+    modalConfirmBtn.disabled = true;
 
-        try {
-            await fetch(`${BACKEND_API_URL}/api/members/bind`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(pendingPayload)
-            });
-        } catch (err) {
-            console.error(err);
-        }
+    // 💡 關鍵 1：先判斷是否為全新成員（送出前就判定）
+    const wasNewOrPending = (!currentUser.isRegistered || currentUser.accountStatus === '待審核');
 
-        modalConfirmBtn.textContent = "確認送出";
-        modalConfirmBtn.disabled = false;
-        document.getElementById('confirmModal').classList.add('hidden');
-
-        isJustRegisteredNew = (!currentUser.isRegistered || currentUser.accountStatus === '待審核');
-
-        currentUser.gameNickname = pendingPayload.gameNickname;
-        currentUser.gameClass = pendingPayload.gameClass;
-        currentUser.gearScore = pendingPayload.gearScore;
-        currentUser.displayName = pendingPayload.lineDisplayName;
-        currentUser.allowSearch = pendingPayload.allowSearch;
-        currentUser.isRegistered = true;
-        currentUser.accountStatus = "待審核";
-        
-        document.getElementById('resGameNick').textContent = pendingPayload.gameNickname;
-        document.getElementById('resGameClass').textContent = pendingPayload.gameClass;
-        document.getElementById('resGearScore').textContent = pendingPayload.gearScore.toLocaleString();
-        document.getElementById('resLineName').textContent = pendingPayload.lineDisplayName;
-        document.getElementById('resAllowSearch').textContent = pendingPayload.allowSearch === "Y" ? "開啟" : "關閉";
-        
-        document.getElementById('successModal').classList.remove('hidden');
+    try {
+        const response = await fetch(`${BACKEND_API_URL}/api/members/bind`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(pendingPayload)
+        });
+        const resJson = await response.json();
+    } catch (err) {
+        console.error(err);
     }
+
+    modalConfirmBtn.textContent = "確認送出";
+    modalConfirmBtn.disabled = false;
+    document.getElementById('confirmModal').classList.add('hidden');
+
+    isJustRegisteredNew = wasNewOrPending;
+
+    currentUser.gameNickname = pendingPayload.gameNickname;
+    currentUser.gameClass = pendingPayload.gameClass;
+    currentUser.gearScore = pendingPayload.gearScore;
+    currentUser.displayName = pendingPayload.lineDisplayName;
+    currentUser.allowSearch = pendingPayload.allowSearch;
+    currentUser.isRegistered = true;
+
+    // 💡 關鍵 2：如果是已經通過審核的老成員修改資料，狀態保持「已審核」
+    if (!wasNewOrPending) {
+        currentUser.accountStatus = "已審核";
+    } else {
+        currentUser.accountStatus = "待審核";
+    }
+    
+    document.getElementById('resGameNick').textContent = pendingPayload.gameNickname;
+    document.getElementById('resGameClass').textContent = pendingPayload.gameClass;
+    document.getElementById('resGearScore').textContent = Number(pendingPayload.gearScore).toLocaleString();
+    document.getElementById('resLineName').textContent = pendingPayload.lineDisplayName;
+    document.getElementById('resAllowSearch').textContent = pendingPayload.allowSearch === "Y" ? "開啟" : "關閉";
+    
+    document.getElementById('successModal').classList.remove('hidden');
+}
 
     function handleSuccessModalClose() {
         document.getElementById('successModal').classList.add('hidden');
