@@ -281,6 +281,40 @@
             </div>
         </div>
 
+        <!-- 身分對齊彈窗 (UID 與 LINE 暱稱皆查無時顯示) -->
+<div id="searchClaimModal" class="hidden fixed inset-0 bg-stone-900/60 backdrop-blur-sm p-4 flex items-center justify-center z-50">
+    <div class="bg-white rounded-3xl p-5 w-full max-w-sm border-2 border-amber-200 shadow-2xl text-center">
+        <div class="w-12 h-12 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center mx-auto mb-2.5 text-2xl font-black">
+            🔄
+        </div>
+        <h3 class="text-base font-black text-amber-950 mb-1">公會名冊資料同步</h3>
+        
+        <!-- 致歉與說明文案 -->
+        <p class="text-[11px] text-amber-900/80 leading-relaxed bg-amber-50/90 p-3 rounded-2xl border border-amber-200/70 mb-3 text-left">
+            因近期系統進行<b>資料庫架構升級優化</b>，未能自動匹配到您的帳號（可能是資料移轉遺漏或 LINE 暱稱曾異動）。<br>
+            若您是<b>既有公會成員</b>，請在下方輸入您的<b>遊戲角色暱稱</b>進行查詢並對齊身分；若是新加入的夥伴，請點擊下方按鈕進行新註冊。造成不便敬請見諒！
+        </p>
+
+        <!-- 搜尋輸入框 -->
+        <div class="text-left mb-2">
+            <input type="text" id="claimSearchInput" placeholder="輸入遊戲角色暱稱 (例如：甜心小補師)" 
+                   class="w-full bg-[#FFFDF9] border border-amber-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400 placeholder:text-amber-800/30 transition">
+        </div>
+
+        <!-- 搜尋即時結果列表 (非下拉選單) -->
+        <div id="claimSearchResults" class="max-h-40 overflow-y-auto space-y-1.5 mb-3 text-left divide-y divide-amber-50">
+            <div class="text-[11px] text-stone-400 text-center py-4">請在上方輸入遊戲暱稱查詢</div>
+        </div>
+
+        <!-- 按鈕區：轉重新註冊 -->
+        <div class="pt-2 border-t border-amber-100">
+            <button type="button" onclick="cancelClaimToNewMember()" class="w-full bg-stone-100 hover:bg-stone-200 active:scale-98 text-stone-700 text-xs font-bold py-2.5 rounded-xl transition cursor-pointer">
+                我是新夥伴，前往重新註冊 ➔
+            </button>
+        </div>
+    </div>
+</div>
+
         <p class="text-[11px] text-amber-800/40 text-center mt-6">&copy; 2026 GuildMaster</p>
     </main>
 
@@ -502,169 +536,169 @@ if (document.readyState === 'loading') {
 // -------------------------------------------------------------
 // 身分驗證流程：LINE 暱稱比對 -> 找不到跳搜尋彈窗 / 新入會
 // -------------------------------------------------------------
+// 身分驗證分流流程
 async function verifyAndDisplayView(errorMsg) {
-    if (!currentUser.userId) {
-        document.getElementById('loadingSpinner').classList.add('hidden');
-        document.getElementById('loadingTitle').textContent = "無法辨識 LINE 身分";
-        document.getElementById('loadingDesc').textContent = "請確認您是點擊 LINE 官方專用連結開啟";
-        const errBox = document.getElementById('errorBox');
-        const errDetail = document.getElementById('errorDetail');
-        errDetail.textContent = errorMsg || "LIFF 未能取得 Profile。";
-        errBox.classList.remove('hidden');
-        return;
-    }
+  if (!currentUser.userId) {
+    document.getElementById('loadingSpinner').classList.add('hidden');
+    document.getElementById('loadingTitle').textContent = "無法辨識 LINE 身分";
+    document.getElementById('loadingDesc').textContent = "請確認您是點擊 LINE 官方專用連結開啟";
+    const errBox = document.getElementById('errorBox');
+    const errDetail = document.getElementById('errorDetail');
+    errDetail.textContent = errorMsg || "LIFF 未能取得 Profile。";
+    errBox.classList.remove('hidden');
+    return;
+  }
 
-    let matchResult = null;
-    try {
-        // 先以 LINE 暱稱進行完全比對並自動替換 UID
-        const response = await fetch(`${BACKEND_API_URL}/api/members/match-by-line-name`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                newUid: currentUser.userId,
-                lineDisplayName: currentUser.displayName
-            })
-        });
-        matchResult = await response.json();
-    } catch (err) {
-        console.error("比對 API 異常:", err);
-        matchResult = { status: "error" };
-    }
+  let resData = null;
+  try {
+    const res = await fetch(`${BACKEND_API_URL}/api/members/check-identity`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: currentUser.userId,
+        displayName: currentUser.displayName
+      })
+    });
+    resData = await res.json();
+  } catch (err) {
+    console.error("驗證異常:", err);
+    resData = { status: "error" };
+  }
 
-    document.getElementById('loadingCard').classList.add('hidden');
+  document.getElementById('loadingCard').classList.add('hidden');
 
-    // 1. 完全比對到 LINE 暱稱：直接帶入資料並進入介面
-    if (matchResult && matchResult.status === "matched" && matchResult.member) {
-        applyMemberDataToState(matchResult.member);
-        renderAppropriateCard();
-        return;
-    }
+  // 1. 成功由 UID 或 LINE 暱稱命中
+  if (resData && resData.status === "found" && resData.member) {
+    applyMemberDataToState(resData.member);
+    renderAppropriateCard();
+    return;
+  }
 
-    // 2. 找不到或多筆：跳出提供搜尋欄位與新入會按鈕的彈窗
-    openSearchClaimModal();
+  // 2. 兩者皆查無資料：彈窗說明資料庫優化中，提供搜尋置換與重新註冊按鈕
+  openSearchClaimModal();
 }
 
-// 開啟手動搜尋認領彈窗
+// 開啟手動搜尋置換彈窗
 function openSearchClaimModal() {
-    const modal = document.getElementById('searchClaimModal');
-    const searchInput = document.getElementById('claimSearchInput');
-    const resultsContainer = document.getElementById('claimSearchResults');
+  const modal = document.getElementById('searchClaimModal');
+  const searchInput = document.getElementById('claimSearchInput');
+  const resultsContainer = document.getElementById('claimSearchResults');
 
-    searchInput.value = '';
-    resultsContainer.innerHTML = '<div class="text-[11px] text-stone-400 text-center py-4">請在上方輸入暱稱進行查詢</div>';
-    modal.classList.remove('hidden');
+  searchInput.value = '';
+  resultsContainer.innerHTML = '<div class="text-[11px] text-stone-400 text-center py-4">請在上方輸入遊戲暱稱查詢</div>';
+  modal.classList.remove('hidden');
 
-    // 監聽即時輸入搜尋 (防抖動 300ms)
-    let debounceTimer;
-    searchInput.oninput = (e) => {
-        clearTimeout(debounceTimer);
-        const query = e.target.value.trim();
-        if (!query) {
-            resultsContainer.innerHTML = '<div class="text-[11px] text-stone-400 text-center py-4">請在上方輸入暱稱進行查詢</div>';
-            return;
-        }
+  // 防抖動即時搜尋 (300ms)
+  let debounceTimer;
+  searchInput.oninput = (e) => {
+    clearTimeout(debounceTimer);
+    const query = e.target.value.trim();
+    if (!query) {
+      resultsContainer.innerHTML = '<div class="text-[11px] text-stone-400 text-center py-4">請在上方輸入遊戲暱稱查詢</div>';
+      return;
+    }
 
-        debounceTimer = setTimeout(async () => {
-            resultsContainer.innerHTML = '<div class="text-[11px] text-amber-700 text-center py-3">搜尋中...</div>';
-            try {
-                const res = await fetch(`${BACKEND_API_URL}/api/members/search-for-claim?q=${encodeURIComponent(query)}`);
-                const data = await res.json();
-
-                if (data.status === 'success' && data.members.length > 0) {
-                    resultsContainer.innerHTML = data.members.map(m => `
-                        <div onclick="selectMemberToClaim('${escapeHtml(m.gameNickname)}')" 
-                             class="p-2.5 rounded-xl hover:bg-amber-100/70 bg-[#FFFDF9] border border-amber-100 cursor-pointer flex items-center justify-between transition">
-                            <div>
-                                <span class="text-xs font-black text-amber-950">${escapeHtml(m.gameNickname)}</span>
-                                <span class="text-[10px] text-amber-800/70 ml-1.5 font-bold">(${escapeHtml(m.gameClass)})</span>
-                            </div>
-                            <span class="text-[10px] bg-amber-500 text-white px-2 py-0.5 rounded-md font-bold">對齊身分</span>
-                        </div>
-                    `).join('');
-                } else {
-                    resultsContainer.innerHTML = '<div class="text-[11px] text-stone-400 text-center py-4">查無匹配成員，請確認字詞或直接登記新入會</div>';
-                }
-            } catch (err) {
-                resultsContainer.innerHTML = '<div class="text-[11px] text-rose-500 text-center py-3">查詢失敗，請稍後再試</div>';
-            }
-        }, 300);
-    };
-}
-
-// 點選搜尋清單中的角色認領
-async function selectMemberToClaim(gameNickname) {
-    if (!confirm(`確定認領並同步【${gameNickname}】的資料到此 LINE 帳號嗎？`)) return;
-
-    try {
-        const res = await fetch(`${BACKEND_API_URL}/api/members/claim-by-game-nick`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                newUid: currentUser.userId,
-                lineDisplayName: currentUser.displayName,
-                gameNickname: gameNickname
-            })
-        });
+    debounceTimer = setTimeout(async () => {
+      resultsContainer.innerHTML = '<div class="text-[11px] text-amber-700 text-center py-3">搜尋中...</div>';
+      try {
+        const res = await fetch(`${BACKEND_API_URL}/api/members/search-for-claim?q=${encodeURIComponent(query)}`);
         const data = await res.json();
 
-        if (data.status === 'success' && data.member) {
-            document.getElementById('searchClaimModal').classList.add('hidden');
-            alert(`🎉 角色【${gameNickname}】身分對齊成功！`);
-            applyMemberDataToState(data.member);
-            renderAppropriateCard();
+        if (data.status === 'success' && data.members.length > 0) {
+          resultsContainer.innerHTML = data.members.map(m => `
+            <div onclick="selectMemberToClaim('${escapeHtml(m.gameNickname)}')" 
+                 class="p-2.5 rounded-xl hover:bg-amber-100/70 bg-[#FFFDF9] border border-amber-100 cursor-pointer flex items-center justify-between transition">
+              <div>
+                <span class="text-xs font-black text-amber-950">${escapeHtml(m.gameNickname)}</span>
+                <span class="text-[10px] text-amber-800/70 ml-1 font-bold">(${escapeHtml(m.gameClass)})</span>
+              </div>
+              <span class="text-[10px] bg-amber-500 hover:bg-amber-600 text-white px-2 py-0.5 rounded-md font-bold transition">對齊身分</span>
+            </div>
+          `).join('');
         } else {
-            alert(data.message || "認領失敗，請稍後再試！");
+          resultsContainer.innerHTML = '<div class="text-[11px] text-stone-400 text-center py-4">查無匹配成員，請確認字詞或直接前往註冊</div>';
         }
-    } catch (e) {
-        alert("網路異常，對齊失敗！");
-    }
+      } catch (err) {
+        resultsContainer.innerHTML = '<div class="text-[11px] text-rose-500 text-center py-3">查詢連線失敗，請稍後再試</div>';
+      }
+    }, 300);
+  };
 }
 
-// 點擊「我是新入會成員」按鈕
+// 點選列表中的角色進行認領與 UID 置換
+async function selectMemberToClaim(gameNickname) {
+  if (!confirm(`確定認領並同步【${gameNickname}】的資料到此 LINE 帳號嗎？`)) return;
+
+  try {
+    const res = await fetch(`${BACKEND_API_URL}/api/members/claim-by-game-nick`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        newUid: currentUser.userId,
+        lineDisplayName: currentUser.displayName,
+        gameNickname: gameNickname
+      })
+    });
+    const data = await res.json();
+
+    if (data.status === 'success' && data.member) {
+      document.getElementById('searchClaimModal').classList.add('hidden');
+      alert(`🎉 角色【${gameNickname}】身分對齊完成！已為您同步最新資料。`);
+      applyMemberDataToState(data.member);
+      renderAppropriateCard();
+    } else {
+      alert(data.message || "認領失敗，請稍後再試！");
+    }
+  } catch (e) {
+    alert("網路異常，身分對齊失敗！");
+  }
+}
+
+// 點擊「我是新夥伴，前往重新註冊」
 function cancelClaimToNewMember() {
-    document.getElementById('searchClaimModal').classList.add('hidden');
-    applyNewMemberUI();
+  document.getElementById('searchClaimModal').classList.add('hidden');
+  applyNewMemberUI();
+  const formCard = document.getElementById('mainFormCard');
+  formCard.classList.remove('hidden');
+  formCard.classList.add('fade-in');
+}
+
+// 資料寫入 currentUser
+function applyMemberDataToState(m) {
+  currentUser.gameNickname = m.gameNickname || "";
+  currentUser.gameClass = m.gameClass || "";
+  currentUser.displayName = m.lineDisplayName || currentUser.displayName;
+  currentUser.allowSearch = (m.allowSearch === 'Y' || m.allowSearch === true) ? 'Y' : 'N';
+  currentUser.accountStatus = String(m.accountStatus || "").trim();
+  currentUser.guildRole = String(m.guildRole || "現任").trim();
+  currentUser.dcid = m.dcid || "";
+  currentUser.joinedDc = m.joinedDc || m.joined_dc || "N";
+  currentUser.isRegistered = true;
+}
+
+// 依身分切換渲染對應畫面
+function renderAppropriateCard() {
+  const isRetired = (currentUser.guildRole === '退會');
+
+  if (currentUser.isRegistered && currentUser.accountStatus === "待審核" && !isRetired) {
+    applyPendingReviewUI();
+  } else {
     const formCard = document.getElementById('mainFormCard');
     formCard.classList.remove('hidden');
     formCard.classList.add('fade-in');
-}
 
-// 將查詢結果寫入 currentUser 全域變數
-function applyMemberDataToState(member) {
-    currentUser.gameNickname = member.gameNickname || "";
-    currentUser.gameClass = member.gameClass || "";
-    currentUser.displayName = member.lineDisplayName || currentUser.displayName;
-    currentUser.allowSearch = (member.allowSearch === 'Y' || member.allowSearch === true) ? 'Y' : 'N';
-    currentUser.accountStatus = String(member.accountStatus || "").trim();
-    currentUser.guildRole = String(member.guildRole || "現任").trim();
-    currentUser.dcid = member.dcid || "";
-    currentUser.joinedDc = member.joinedDc || member.joined_dc || "N";
-    currentUser.isRegistered = true;
-}
-
-// 依身分渲染對應的卡片
-function renderAppropriateCard() {
-    const isRetired = (currentUser.guildRole === '退會');
-
-    if (currentUser.isRegistered && currentUser.accountStatus === "待審核" && !isRetired) {
-        applyPendingReviewUI();
+    if (currentUser.isRegistered && currentUser.accountStatus === "已審核" && !isRetired) {
+      applyEditModeUI();
     } else {
-        const formCard = document.getElementById('mainFormCard');
-        formCard.classList.remove('hidden');
-        formCard.classList.add('fade-in');
-
-        if (currentUser.isRegistered && currentUser.accountStatus === "已審核" && !isRetired) {
-            applyEditModeUI();
-        } else {
-            applyNewMemberUI();
-        }
+      applyNewMemberUI();
     }
+  }
 }
 
-// 字元轉義防 XSS
+// 防 XSS 字元轉義
 function escapeHtml(text) {
-    if (!text) return '';
-    return String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+  if (!text) return '';
+  return String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
 }
 
 // 審核中專屬畫面
