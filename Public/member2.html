@@ -64,7 +64,7 @@
             </div>
         </div>
 
-        <!-- 狀態 2：審核中專屬卡片 (新會員填寫後引導至此綁定 DC) -->
+        <!-- 狀態 2：審核中專屬卡片 -->
         <div id="pendingReviewCard" class="hidden bg-white rounded-[32px] p-6 sm:p-7 border-2 border-amber-200/80 soft-card-shadow text-center relative">
             <div class="w-14 h-14 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-3 border-2 border-amber-200 text-2xl">
                 ⏳
@@ -85,6 +85,10 @@
                     <span id="pendingClass" class="font-bold text-amber-950">-</span>
                 </div>
                 <div class="flex items-center justify-between">
+                    <span class="text-amber-800/80 font-bold">裝備評分：</span>
+                    <span id="pendingGearScore" class="font-mono font-bold text-amber-950">0</span>
+                </div>
+                <div class="flex items-center justify-between">
                     <span class="text-amber-800/80 font-bold">LINE 暱稱：</span>
                     <span id="pendingLineName" class="font-bold text-amber-950">-</span>
                 </div>
@@ -94,9 +98,8 @@
                 </div>
             </div>
 
-            <!-- DC 綁定導引區塊 (未加入時顯示綁定按鈕，已加入顯示已綁定) -->
+            <!-- DC 綁定導引區塊 -->
             <div id="pendingDcSection" class="mb-5 text-left">
-                <!-- 未綁定 DC 顯示 -->
                 <div id="pendingDcUnbound" class="bg-indigo-50/70 border border-indigo-200 rounded-2xl p-3.5 text-center">
                     <button type="button" onclick="startDiscordBind()" 
                             class="w-full bg-[#5865F2] hover:bg-[#4752C4] active:scale-98 text-white font-black text-xs py-2.5 rounded-xl shadow-sm transition flex items-center justify-center gap-2 cursor-pointer">
@@ -108,7 +111,6 @@
                     <p class="text-[10px] text-slate-400 mt-1.5 font-bold">先加入語音群有助於幹部核對身分並加速審核</p>
                 </div>
 
-                <!-- 已綁定 DC 顯示 -->
                 <div id="pendingDcBound" class="hidden bg-[#F2F3FB] border border-[#D5D9F8] rounded-2xl p-3 flex items-center justify-between">
                     <div class="flex items-center gap-2">
                         <span class="w-5 h-5 bg-[#5865F2] text-white rounded-full flex items-center justify-center text-[10px] font-black">✓</span>
@@ -140,7 +142,10 @@
                         <span id="memberDisplayTitle" class="font-black text-base text-amber-950 truncate">新會員</span>
                         <span id="badgeGuildRole" class="hidden text-[10px] font-bold px-2 py-0.5 rounded-full">-</span>
                     </div>
-                    <div class="text-[11px] text-amber-800/70 font-bold truncate mt-0.5" id="memberDisplayClass">尚未選擇職業</div>
+                    <div class="flex items-center gap-2 mt-0.5">
+                        <span class="text-[11px] text-amber-800/70 font-bold truncate" id="memberDisplayClass">尚未選擇職業</span>
+                        <span id="memberDisplayGearScoreBadge" class="hidden text-[10px] font-bold bg-amber-200/60 text-amber-900 px-1.5 py-0.2 rounded-md font-mono">裝評: 0</span>
+                    </div>
                 </div>
             </div>
 
@@ -166,6 +171,15 @@
                     </div>
                 </div>
 
+                <!-- 🎯 新增：裝備評分欄位 -->
+                <div>
+                    <label class="block text-xs font-bold text-amber-900 mb-1.5">
+                        遊戲裝備評分 (Gear Score)
+                    </label>
+                    <input type="number" id="gameGearScore" min="0" placeholder="例如：128438 (選填，若未知可填 0)" 
+                           class="w-full bg-[#FFFDF9] border border-amber-200 rounded-2xl px-4 py-3 text-sm font-bold text-amber-950 placeholder:text-amber-800/30 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white transition font-mono">
+                </div>
+
                 <div>
                     <label class="block text-xs font-bold text-amber-900 mb-1.5">
                         LINE 顯示暱稱 <span class="text-rose-500">*</span>
@@ -189,7 +203,6 @@
 
                 <!-- 既有會員修改模式下顯示 DC 綁定狀態 -->
                 <div id="discordBindBox" class="pt-1 hidden">
-                    <!-- 狀態 A：尚未加入/未綁定 DC 顯示的按鈕 -->
                     <div id="dcUnboundWrapper">
                         <button type="button" onclick="startDiscordBind()" 
                                 class="w-full bg-[#5865F2] hover:bg-[#4752C4] active:scale-98 text-white font-black text-xs py-3 rounded-2xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer">
@@ -201,7 +214,6 @@
                         <p class="text-[10px] text-slate-400 text-center mt-1.5 font-bold">攻城戰、公會聯賽聽指揮必備</p>
                     </div>
                 
-                    <!-- 狀態 B：已加入/已綁定 DC 顯示的狀態標記 -->
                     <div id="dcBoundWrapper" class="hidden bg-[#F2F3FB] border border-[#D5D9F8] rounded-2xl p-3.5 flex items-center justify-between">
                         <div class="flex items-center gap-2.5">
                             <span class="w-6 h-6 bg-[#5865F2] text-white rounded-full flex items-center justify-center text-xs font-black shadow-xs">✓</span>
@@ -219,7 +231,7 @@
                 </button>
             </form>
 
-            <!-- 彈窗 1：送出前確認視窗 (已移除 DC 警告框) -->
+            <!-- 彈窗 1：送出前確認視窗 -->
             <div id="confirmModal" class="hidden fixed inset-0 bg-stone-900/40 backdrop-blur-sm rounded-[32px] p-6 flex flex-col items-center justify-center text-center z-30">
                 <div class="bg-white rounded-3xl p-5 w-full max-w-[340px] border-2 border-amber-200 shadow-2xl">
                     <h3 class="text-base font-black text-amber-950 mb-1">確認資料無誤？</h3>
@@ -233,6 +245,10 @@
                         <div class="flex justify-between items-center">
                             <span class="text-amber-800/80 font-bold">遊戲職業：</span>
                             <span id="previewClass" class="font-bold text-amber-950">-</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-amber-800/80 font-bold">裝備評分：</span>
+                            <span id="previewGearScore" class="font-mono font-bold text-amber-950">0</span>
                         </div>
                         <div class="flex justify-between items-center">
                             <span class="text-amber-800/80 font-bold">LINE 暱稱：</span>
@@ -266,6 +282,10 @@
                         <span id="resGameClass" class="font-bold text-amber-950">-</span>
                     </div>
                     <div class="flex items-center justify-between">
+                        <span class="text-amber-800/80 font-bold">裝備評分：</span>
+                        <span id="resGearScore" class="font-mono font-bold text-amber-950">0</span>
+                    </div>
+                    <div class="flex items-center justify-between">
                         <span class="text-amber-800/80 font-bold">LINE 暱稱：</span>
                         <span id="resLineName" class="font-bold text-amber-950">-</span>
                     </div>
@@ -282,38 +302,34 @@
         </div>
 
         <!-- 身分對齊彈窗 (UID 與 LINE 暱稱皆查無時顯示) -->
-<div id="searchClaimModal" class="hidden fixed inset-0 bg-stone-900/60 backdrop-blur-sm p-4 flex items-center justify-center z-50">
-    <div class="bg-white rounded-3xl p-5 w-full max-w-sm border-2 border-amber-200 shadow-2xl text-center">
-        <div class="w-12 h-12 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center mx-auto mb-2.5 text-2xl font-black">
-            🔄
-        </div>
-        <h3 class="text-base font-black text-amber-950 mb-1">公會名冊資料同步</h3>
-        
-        <!-- 致歉與說明文案 -->
-        <p class="text-[11px] text-amber-900/80 leading-relaxed bg-amber-50/90 p-3 rounded-2xl border border-amber-200/70 mb-3 text-left">
-            因近期系統進行<b>資料庫架構升級優化</b>，未能自動匹配到您的帳號（可能是資料移轉遺漏或 LINE 暱稱曾異動）。<br>
-            若您是<b>既有公會成員</b>，請在下方輸入您的<b>遊戲角色暱稱</b>進行查詢並對齊身分；若是新加入的夥伴，請點擊下方按鈕進行新註冊。造成不便敬請見諒！
-        </p>
+        <div id="searchClaimModal" class="hidden fixed inset-0 bg-stone-900/60 backdrop-blur-sm p-4 flex items-center justify-center z-50">
+            <div class="bg-white rounded-3xl p-5 w-full max-w-sm border-2 border-amber-200 shadow-2xl text-center">
+                <div class="w-12 h-12 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center mx-auto mb-2.5 text-2xl font-black">
+                    🔄
+                </div>
+                <h3 class="text-base font-black text-amber-950 mb-1">公會名冊資料同步</h3>
+                
+                <p class="text-[11px] text-amber-900/80 leading-relaxed bg-amber-50/90 p-3 rounded-2xl border border-amber-200/70 mb-3 text-left">
+                    因近期系統進行<b>資料庫架構升級優化</b>，未能自動匹配到您的帳號（可能是資料移轉遺漏或 LINE 暱稱曾異動）。<br>
+                    若您是<b>既有公會成員</b>，請在下方輸入您的<b>遊戲角色暱稱</b>進行查詢並對齊身分；若是新加入的夥伴，請點擊下方按鈕進行新註冊。造成不便敬請見諒！
+                </p>
 
-        <!-- 搜尋輸入框 -->
-        <div class="text-left mb-2">
-            <input type="text" id="claimSearchInput" placeholder="輸入遊戲角色暱稱 (例如：甜心小補師)" 
-                   class="w-full bg-[#FFFDF9] border border-amber-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400 placeholder:text-amber-800/30 transition">
-        </div>
+                <div class="text-left mb-2">
+                    <input type="text" id="claimSearchInput" placeholder="輸入遊戲角色暱稱 (例如：甜心小補師)" 
+                           class="w-full bg-[#FFFDF9] border border-amber-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400 placeholder:text-amber-800/30 transition">
+                </div>
 
-        <!-- 搜尋即時結果列表 (非下拉選單) -->
-        <div id="claimSearchResults" class="max-h-40 overflow-y-auto space-y-1.5 mb-3 text-left divide-y divide-amber-50">
-            <div class="text-[11px] text-stone-400 text-center py-4">請在上方輸入遊戲暱稱查詢</div>
-        </div>
+                <div id="claimSearchResults" class="max-h-40 overflow-y-auto space-y-1.5 mb-3 text-left divide-y divide-amber-50">
+                    <div class="text-[11px] text-stone-400 text-center py-4">請在上方輸入遊戲暱稱查詢</div>
+                </div>
 
-        <!-- 按鈕區：轉重新註冊 -->
-        <div class="pt-2 border-t border-amber-100">
-            <button type="button" onclick="cancelClaimToNewMember()" class="w-full bg-stone-100 hover:bg-stone-200 active:scale-98 text-stone-700 text-xs font-bold py-2.5 rounded-xl transition cursor-pointer">
-                我是新夥伴，前往重新註冊 ➔
-            </button>
+                <div class="pt-2 border-t border-amber-100">
+                    <button type="button" onclick="cancelClaimToNewMember()" class="w-full bg-stone-100 hover:bg-stone-200 active:scale-98 text-stone-700 text-xs font-bold py-2.5 rounded-xl transition cursor-pointer">
+                        我是新夥伴，前往重新註冊 ➔
+                    </button>
+                </div>
+            </div>
         </div>
-    </div>
-</div>
 
         <p class="text-[11px] text-amber-800/40 text-center mt-6">&copy; 2026 GuildMaster</p>
     </main>
@@ -328,6 +344,7 @@
         pictureUrl: "",
         gameNickname: "",
         gameClass: "",
+        gearScore: 0,
         allowSearch: "Y",
         accountStatus: "",
         guildRole: "現任",
@@ -337,15 +354,13 @@
     };
 
     let pendingPayload = null;
-    let isJustRegisteredNew = false; // 標記是否為剛送出審核的新會員
+    let isJustRegisteredNew = false;
 
-    // 動態更新卡片職業預覽
     function updateCardClassPreview(val) {
         const el = document.getElementById('memberDisplayClass');
         if (el) el.textContent = val || "尚未選擇職業";
     }
 
-    // 動態從後端載入遊戲職業清單
     async function loadGameClasses() {
         try {
             const response = await fetch(`${BACKEND_API_URL}/api/admin/classes`);
@@ -369,31 +384,9 @@
         }
     }
 
-    // 後端會員資料查詢
-    async function queryMemberFromBackend(uid) {
-        try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 15000);
-
-            const response = await fetch(`${BACKEND_API_URL}/api/members/${encodeURIComponent(uid)}`, {
-                method: 'GET',
-                headers: { 'Accept': 'application/json' },
-                signal: controller.signal
-            });
-            clearTimeout(timeoutId);
-
-            if (!response.ok) return { status: "error" };
-            return await response.json();
-        } catch (err) {
-            return { status: "error" };
-        }
-    }
-
-    // 切換 Discord 綁定 UI 顯示
     function updateDiscordBindUI(dcid, joinedDc) {
         const isBound = !!(dcid && String(dcid).trim() !== '' && (joinedDc === 'Y' || joinedDc === true));
 
-        // 1. 表單填寫區塊按鈕切換 (舊會員修改模式用)
         const dcUnbound = document.getElementById('dcUnboundWrapper');
         const dcBound = document.getElementById('dcBoundWrapper');
         if (dcUnbound && dcBound) {
@@ -406,7 +399,6 @@
             }
         }
 
-        // 2. 審核中專屬卡片按鈕切換
         const pendingDcUnbound = document.getElementById('pendingDcUnbound');
         const pendingDcBound = document.getElementById('pendingDcBound');
         if (pendingDcUnbound && pendingDcBound) {
@@ -422,7 +414,6 @@
         return isBound;
     }
 
-    // 啟動 Discord 授權進群綁定
     function startDiscordBind() {
         if (!currentUser.userId) {
             alert("尚未取得您的 LINE 會員身分，請重新整理頁面！");
@@ -441,7 +432,6 @@
         }
     }
 
-    // 初始化 App
     async function initApp() {
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('bindSuccess') === 'dc') {
@@ -450,7 +440,6 @@
 
         await loadGameClasses();
 
-        // 表單送出監聽 (純粹彈出資料確認窗)
         const bindForm = document.getElementById('bindForm');
         if (bindForm) {
             bindForm.addEventListener('submit', function(e) {
@@ -460,6 +449,7 @@
                 const gameClass = document.getElementById('gameClass').value;
                 const lineName = document.getElementById('manualLineName').value.trim();
                 const allowSearch = document.getElementById('toggleAllowSearch').checked ? "Y" : "N";
+                const gearScore = parseInt(document.getElementById('gameGearScore').value, 10) || 0;
 
                 if (!gameNick || !gameClass || !lineName) {
                     alert("請完整填寫必要欄位！");
@@ -474,12 +464,14 @@
                     linePictureUrl: currentUser.pictureUrl,
                     gameNickname: gameNick,
                     gameClass: gameClass,
+                    gearScore: gearScore,
                     allowSearch: allowSearch,
                     updateTime: new Date().toISOString()
                 };
 
                 document.getElementById('previewNick').textContent = gameNick;
                 document.getElementById('previewClass').textContent = gameClass;
+                document.getElementById('previewGearScore').textContent = gearScore.toLocaleString();
                 document.getElementById('previewLine').textContent = lineName;
                 document.getElementById('previewAllowSearch').textContent = allowSearch === "Y" ? "開啟" : "關閉";
 
@@ -487,377 +479,366 @@
             });
         }
 
-        // LIFF 與身分取得
-    const queryUid = urlParams.get('uid') || urlParams.get('userId');
-    const queryName = urlParams.get('name') || urlParams.get('displayName');
+        const queryUid = urlParams.get('uid') || urlParams.get('userId');
+        const queryName = urlParams.get('name') || urlParams.get('displayName');
 
-    let isLiffReady = false;
-    let liffErrorDetail = "";
+        let isLiffReady = false;
+        let liffErrorDetail = "";
 
-    if (MY_LIFF_ID && typeof liff !== 'undefined') {
+        if (MY_LIFF_ID && typeof liff !== 'undefined') {
+            try {
+                await liff.init({ liffId: MY_LIFF_ID });
+                if (liff.isLoggedIn()) {
+                    const profile = await liff.getProfile();
+                    currentUser.userId = profile.userId;
+                    currentUser.displayName = profile.displayName;
+                    currentUser.pictureUrl = profile.pictureUrl || "";
+                    isLiffReady = true;
+                } else {
+                    document.getElementById('loadingSpinner').classList.add('hidden');
+                    document.getElementById('loadingTitle').textContent = "需要登入 LINE";
+                    document.getElementById('loadingDesc').textContent = "請點擊下方按鈕進行驗證授權";
+                    const errBox = document.getElementById('errorBox');
+                    const errDetail = document.getElementById('errorDetail');
+                    errDetail.innerHTML = `<button onclick="liff.login()" class="w-full bg-[#06C755] text-white font-bold py-2.5 rounded-xl shadow-md cursor-pointer">點擊登入 LINE 帳號</button>`;
+                    errBox.classList.remove('hidden');
+                    return;
+                }
+            } catch (err) {
+                liffErrorDetail = err.message || JSON.stringify(err);
+            }
+        }
+
+        if (!isLiffReady && queryUid) {
+            currentUser.userId = queryUid;
+            if (queryName) currentUser.displayName = decodeURIComponent(queryName);
+        }
+
+        await verifyAndDisplayView(liffErrorDetail);
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initApp);
+    } else {
+        initApp();
+    }
+
+    async function verifyAndDisplayView(errorMsg) {
+        if (!currentUser.userId) {
+            document.getElementById('loadingSpinner').classList.add('hidden');
+            document.getElementById('loadingTitle').textContent = "無法辨識 LINE 身分";
+            document.getElementById('loadingDesc').textContent = "請確認您是點擊 LINE 官方專用連結開啟";
+            const errBox = document.getElementById('errorBox');
+            const errDetail = document.getElementById('errorDetail');
+            errDetail.textContent = errorMsg || "LIFF 未能取得 Profile。";
+            errBox.classList.remove('hidden');
+            return;
+        }
+
+        let resData = null;
         try {
-            await liff.init({ liffId: MY_LIFF_ID });
-            if (liff.isLoggedIn()) {
-                const profile = await liff.getProfile();
-                currentUser.userId = profile.userId;
-                currentUser.displayName = profile.displayName;
-                currentUser.pictureUrl = profile.pictureUrl || "";
-                isLiffReady = true;
-            } else {
-                document.getElementById('loadingSpinner').classList.add('hidden');
-                document.getElementById('loadingTitle').textContent = "需要登入 LINE";
-                document.getElementById('loadingDesc').textContent = "請點擊下方按鈕進行驗證授權";
-                const errBox = document.getElementById('errorBox');
-                const errDetail = document.getElementById('errorDetail');
-                errDetail.innerHTML = `<button onclick="liff.login()" class="w-full bg-[#06C755] text-white font-bold py-2.5 rounded-xl shadow-md cursor-pointer">點擊登入 LINE 帳號</button>`;
-                errBox.classList.remove('hidden');
+            const res = await fetch(`${BACKEND_API_URL}/api/members/check-identity`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: currentUser.userId,
+                    displayName: currentUser.displayName
+                })
+            });
+            resData = await res.json();
+        } catch (err) {
+            console.error("驗證異常:", err);
+            resData = { status: "error" };
+        }
+
+        document.getElementById('loadingCard').classList.add('hidden');
+
+        if (resData && resData.status === "found" && resData.member) {
+            applyMemberDataToState(resData.member);
+            renderAppropriateCard();
+            return;
+        }
+
+        openSearchClaimModal();
+    }
+
+    function openSearchClaimModal() {
+        const modal = document.getElementById('searchClaimModal');
+        const searchInput = document.getElementById('claimSearchInput');
+        const resultsContainer = document.getElementById('claimSearchResults');
+
+        searchInput.value = '';
+        resultsContainer.innerHTML = '<div class="text-[11px] text-stone-400 text-center py-4">請在上方輸入遊戲暱稱查詢</div>';
+        modal.classList.remove('hidden');
+
+        let debounceTimer;
+        searchInput.oninput = (e) => {
+            clearTimeout(debounceTimer);
+            const query = e.target.value.trim();
+            if (!query) {
+                resultsContainer.innerHTML = '<div class="text-[11px] text-stone-400 text-center py-4">請在上方輸入遊戲暱稱查詢</div>';
                 return;
             }
-        } catch (err) {
-            liffErrorDetail = err.message || JSON.stringify(err);
+
+            debounceTimer = setTimeout(async () => {
+                resultsContainer.innerHTML = '<div class="text-[11px] text-amber-700 text-center py-3">搜尋中...</div>';
+                try {
+                    const res = await fetch(`${BACKEND_API_URL}/api/members/search-for-claim?q=${encodeURIComponent(query)}`);
+                    const data = await res.json();
+
+                    if (data.status === 'success' && data.members.length > 0) {
+                        resultsContainer.innerHTML = data.members.map(m => `
+                            <div onclick="selectMemberToClaim('${escapeHtml(m.gameNickname)}')" 
+                                 class="p-2.5 rounded-xl hover:bg-amber-100/70 bg-[#FFFDF9] border border-amber-100 cursor-pointer flex items-center justify-between transition">
+                                <div>
+                                    <span class="text-xs font-black text-amber-950">${escapeHtml(m.gameNickname)}</span>
+                                    <span class="text-[10px] text-amber-800/70 ml-1 font-bold">(${escapeHtml(m.gameClass)})</span>
+                                </div>
+                                <span class="text-[10px] bg-amber-500 hover:bg-amber-600 text-white px-2 py-0.5 rounded-md font-bold transition">對齊身分</span>
+                            </div>
+                        `).join('');
+                    } else {
+                        resultsContainer.innerHTML = '<div class="text-[11px] text-stone-400 text-center py-4">查無匹配成員，請確認字詞或直接前往註冊</div>';
+                    }
+                } catch (err) {
+                    resultsContainer.innerHTML = '<div class="text-[11px] text-rose-500 text-center py-3">查詢連線失敗，請稍後再試</div>';
+                }
+            }, 300);
+        };
+    }
+
+    async function selectMemberToClaim(gameNickname) {
+        if (!confirm(`確定認領並同步【${gameNickname}】的資料到此 LINE 帳號嗎？`)) return;
+
+        try {
+            const res = await fetch(`${BACKEND_API_URL}/api/members/claim-by-game-nick`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    newUid: currentUser.userId,
+                    lineDisplayName: currentUser.displayName,
+                    gameNickname: gameNickname
+                })
+            });
+            const data = await res.json();
+
+            if (data.status === 'success' && data.member) {
+                document.getElementById('searchClaimModal').classList.add('hidden');
+                alert(`🎉 角色【${gameNickname}】身分對齊完成！已為您同步最新資料。`);
+                applyMemberDataToState(data.member);
+                renderAppropriateCard();
+            } else {
+                alert(data.message || "認領失敗，請稍後再試！");
+            }
+        } catch (e) {
+            alert("網路異常，身分對齊失敗！");
         }
     }
 
-    if (!isLiffReady && queryUid) {
-        currentUser.userId = queryUid;
-        if (queryName) currentUser.displayName = decodeURIComponent(queryName);
+    function cancelClaimToNewMember() {
+        document.getElementById('searchClaimModal').classList.add('hidden');
+        applyNewMemberUI();
+        const formCard = document.getElementById('mainFormCard');
+        formCard.classList.remove('hidden');
+        formCard.classList.add('fade-in');
     }
 
-    // 啟動身分比對與渲染流程
-    await verifyAndDisplayView(liffErrorDetail);
-}
-
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initApp);
-} else {
-    initApp();
-}
-
-// -------------------------------------------------------------
-// 身分驗證流程：LINE 暱稱比對 -> 找不到跳搜尋彈窗 / 新入會
-// -------------------------------------------------------------
-// 身分驗證分流流程
-async function verifyAndDisplayView(errorMsg) {
-  if (!currentUser.userId) {
-    document.getElementById('loadingSpinner').classList.add('hidden');
-    document.getElementById('loadingTitle').textContent = "無法辨識 LINE 身分";
-    document.getElementById('loadingDesc').textContent = "請確認您是點擊 LINE 官方專用連結開啟";
-    const errBox = document.getElementById('errorBox');
-    const errDetail = document.getElementById('errorDetail');
-    errDetail.textContent = errorMsg || "LIFF 未能取得 Profile。";
-    errBox.classList.remove('hidden');
-    return;
-  }
-
-  let resData = null;
-  try {
-    const res = await fetch(`${BACKEND_API_URL}/api/members/check-identity`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        userId: currentUser.userId,
-        displayName: currentUser.displayName
-      })
-    });
-    resData = await res.json();
-  } catch (err) {
-    console.error("驗證異常:", err);
-    resData = { status: "error" };
-  }
-
-  document.getElementById('loadingCard').classList.add('hidden');
-
-  // 1. 成功由 UID 或 LINE 暱稱命中
-  if (resData && resData.status === "found" && resData.member) {
-    applyMemberDataToState(resData.member);
-    renderAppropriateCard();
-    return;
-  }
-
-  // 2. 兩者皆查無資料：彈窗說明資料庫優化中，提供搜尋置換與重新註冊按鈕
-  openSearchClaimModal();
-}
-
-// 開啟手動搜尋置換彈窗
-function openSearchClaimModal() {
-  const modal = document.getElementById('searchClaimModal');
-  const searchInput = document.getElementById('claimSearchInput');
-  const resultsContainer = document.getElementById('claimSearchResults');
-
-  searchInput.value = '';
-  resultsContainer.innerHTML = '<div class="text-[11px] text-stone-400 text-center py-4">請在上方輸入遊戲暱稱查詢</div>';
-  modal.classList.remove('hidden');
-
-  // 防抖動即時搜尋 (300ms)
-  let debounceTimer;
-  searchInput.oninput = (e) => {
-    clearTimeout(debounceTimer);
-    const query = e.target.value.trim();
-    if (!query) {
-      resultsContainer.innerHTML = '<div class="text-[11px] text-stone-400 text-center py-4">請在上方輸入遊戲暱稱查詢</div>';
-      return;
+    function applyMemberDataToState(m) {
+        currentUser.gameNickname = m.gameNickname || "";
+        currentUser.gameClass = m.gameClass || "";
+        currentUser.gearScore = Number(m.gearScore || m.gear_score || 0);
+        currentUser.displayName = m.lineDisplayName || currentUser.displayName;
+        currentUser.allowSearch = (m.allowSearch === 'Y' || m.allowSearch === true) ? 'Y' : 'N';
+        currentUser.accountStatus = String(m.accountStatus || "").trim();
+        currentUser.guildRole = String(m.guildRole || "現任").trim();
+        currentUser.dcid = m.dcid || "";
+        currentUser.joinedDc = m.joinedDc || m.joined_dc || "N";
+        currentUser.isRegistered = true;
     }
 
-    debounceTimer = setTimeout(async () => {
-      resultsContainer.innerHTML = '<div class="text-[11px] text-amber-700 text-center py-3">搜尋中...</div>';
-      try {
-        const res = await fetch(`${BACKEND_API_URL}/api/members/search-for-claim?q=${encodeURIComponent(query)}`);
-        const data = await res.json();
+    function renderAppropriateCard() {
+        const isRetired = (currentUser.guildRole === '退會');
 
-        if (data.status === 'success' && data.members.length > 0) {
-          resultsContainer.innerHTML = data.members.map(m => `
-            <div onclick="selectMemberToClaim('${escapeHtml(m.gameNickname)}')" 
-                 class="p-2.5 rounded-xl hover:bg-amber-100/70 bg-[#FFFDF9] border border-amber-100 cursor-pointer flex items-center justify-between transition">
-              <div>
-                <span class="text-xs font-black text-amber-950">${escapeHtml(m.gameNickname)}</span>
-                <span class="text-[10px] text-amber-800/70 ml-1 font-bold">(${escapeHtml(m.gameClass)})</span>
-              </div>
-              <span class="text-[10px] bg-amber-500 hover:bg-amber-600 text-white px-2 py-0.5 rounded-md font-bold transition">對齊身分</span>
-            </div>
-          `).join('');
+        if (currentUser.isRegistered && currentUser.accountStatus === "待審核" && !isRetired) {
+            applyPendingReviewUI();
         } else {
-          resultsContainer.innerHTML = '<div class="text-[11px] text-stone-400 text-center py-4">查無匹配成員，請確認字詞或直接前往註冊</div>';
+            const formCard = document.getElementById('mainFormCard');
+            formCard.classList.remove('hidden');
+            formCard.classList.add('fade-in');
+
+            if (currentUser.isRegistered && currentUser.accountStatus === "已審核" && !isRetired) {
+                applyEditModeUI();
+            } else {
+                applyNewMemberUI();
+            }
         }
-      } catch (err) {
-        resultsContainer.innerHTML = '<div class="text-[11px] text-rose-500 text-center py-3">查詢連線失敗，請稍後再試</div>';
-      }
-    }, 300);
-  };
-}
-
-// 點選列表中的角色進行認領與 UID 置換
-async function selectMemberToClaim(gameNickname) {
-  if (!confirm(`確定認領並同步【${gameNickname}】的資料到此 LINE 帳號嗎？`)) return;
-
-  try {
-    const res = await fetch(`${BACKEND_API_URL}/api/members/claim-by-game-nick`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        newUid: currentUser.userId,
-        lineDisplayName: currentUser.displayName,
-        gameNickname: gameNickname
-      })
-    });
-    const data = await res.json();
-
-    if (data.status === 'success' && data.member) {
-      document.getElementById('searchClaimModal').classList.add('hidden');
-      alert(`🎉 角色【${gameNickname}】身分對齊完成！已為您同步最新資料。`);
-      applyMemberDataToState(data.member);
-      renderAppropriateCard();
-    } else {
-      alert(data.message || "認領失敗，請稍後再試！");
     }
-  } catch (e) {
-    alert("網路異常，身分對齊失敗！");
-  }
-}
 
-// 點擊「我是新夥伴，前往重新註冊」
-function cancelClaimToNewMember() {
-  document.getElementById('searchClaimModal').classList.add('hidden');
-  applyNewMemberUI();
-  const formCard = document.getElementById('mainFormCard');
-  formCard.classList.remove('hidden');
-  formCard.classList.add('fade-in');
-}
-
-// 資料寫入 currentUser
-function applyMemberDataToState(m) {
-  currentUser.gameNickname = m.gameNickname || "";
-  currentUser.gameClass = m.gameClass || "";
-  currentUser.displayName = m.lineDisplayName || currentUser.displayName;
-  currentUser.allowSearch = (m.allowSearch === 'Y' || m.allowSearch === true) ? 'Y' : 'N';
-  currentUser.accountStatus = String(m.accountStatus || "").trim();
-  currentUser.guildRole = String(m.guildRole || "現任").trim();
-  currentUser.dcid = m.dcid || "";
-  currentUser.joinedDc = m.joinedDc || m.joined_dc || "N";
-  currentUser.isRegistered = true;
-}
-
-// 依身分切換渲染對應畫面
-function renderAppropriateCard() {
-  const isRetired = (currentUser.guildRole === '退會');
-
-  if (currentUser.isRegistered && currentUser.accountStatus === "待審核" && !isRetired) {
-    applyPendingReviewUI();
-  } else {
-    const formCard = document.getElementById('mainFormCard');
-    formCard.classList.remove('hidden');
-    formCard.classList.add('fade-in');
-
-    if (currentUser.isRegistered && currentUser.accountStatus === "已審核" && !isRetired) {
-      applyEditModeUI();
-    } else {
-      applyNewMemberUI();
+    function escapeHtml(text) {
+        if (!text) return '';
+        return String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
     }
-  }
-}
 
-// 防 XSS 字元轉義
-function escapeHtml(text) {
-  if (!text) return '';
-  return String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
-}
+    function applyPendingReviewUI() {
+        document.getElementById('topBadge').textContent = "資格審核";
+        document.getElementById('pageMainTitle').textContent = "入會申請處理中";
+        document.getElementById('pageSubTitle').textContent = "幹部正在核對名冊，請稍候";
 
-// 審核中專屬畫面
-function applyPendingReviewUI() {
-    document.getElementById('topBadge').textContent = "資格審核";
-    document.getElementById('pageMainTitle').textContent = "入會申請處理中";
-    document.getElementById('pageSubTitle').textContent = "幹部正在核對名冊，請稍候";
+        document.getElementById('pendingNickname').textContent = currentUser.gameNickname || "-";
+        document.getElementById('pendingClass').textContent = currentUser.gameClass || "-";
+        document.getElementById('pendingGearScore').textContent = (currentUser.gearScore || 0).toLocaleString();
+        document.getElementById('pendingLineName').textContent = currentUser.displayName || "-";
+        document.getElementById('pendingAllowSearch').textContent = currentUser.allowSearch === 'Y' ? "開啟" : "關閉";
 
-    document.getElementById('pendingNickname').textContent = currentUser.gameNickname || "-";
-    document.getElementById('pendingClass').textContent = currentUser.gameClass || "-";
-    document.getElementById('pendingLineName').textContent = currentUser.displayName || "-";
-    document.getElementById('pendingAllowSearch').textContent = currentUser.allowSearch === 'Y' ? "開啟" : "關閉";
-
-    if (typeof updateDiscordBindUI === 'function') {
         updateDiscordBindUI(currentUser.dcid, currentUser.joinedDc);
+
+        const pendingCard = document.getElementById('pendingReviewCard');
+        pendingCard.classList.remove('hidden');
+        pendingCard.classList.add('fade-in');
     }
 
-    const pendingCard = document.getElementById('pendingReviewCard');
-    pendingCard.classList.remove('hidden');
-    pendingCard.classList.add('fade-in');
-}
+    function applyEditModeUI() {
+        document.getElementById('topBadge').textContent = "資料修改";
+        document.getElementById('pageMainTitle').textContent = "會員資料修改";
+        document.getElementById('pageSubTitle').textContent = "記得隨時更新您的遊戲角色資訊喔！";
+        
+        document.getElementById('memberDisplayTitle').textContent = currentUser.gameNickname || "已審核成員";
+        document.getElementById('memberDisplayClass').textContent = currentUser.gameClass || "尚未選擇職業";
 
-// 已審核會員進入修改資料介面
-function applyEditModeUI() {
-    document.getElementById('topBadge').textContent = "資料修改";
-    document.getElementById('pageMainTitle').textContent = "會員資料修改";
-    document.getElementById('pageSubTitle').textContent = "記得隨時更新您的遊戲角色資訊喔！";
-    
-    document.getElementById('memberDisplayTitle').textContent = currentUser.gameNickname || "已審核成員";
-    document.getElementById('memberDisplayClass').textContent = currentUser.gameClass || "尚未選擇職業";
-    
-    const badge = document.getElementById('badgeGuildRole');
-    badge.textContent = currentUser.guildRole;
-    badge.classList.remove('hidden');
-    if (currentUser.guildRole === '幹部') {
-        badge.className = "text-[10px] bg-sky-100 text-sky-800 font-bold px-2.5 py-0.5 rounded-full border border-sky-200";
-    } else if (currentUser.guildRole === '退會') {
-        badge.className = "text-[10px] bg-slate-100 text-slate-600 font-bold px-2.5 py-0.5 rounded-full border border-slate-200";
-    } else {
-        currentUser.guildRole = '現任';
-        badge.className = "text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2.5 py-0.5 rounded-full border border-emerald-200";
-    }
+        const gearBadge = document.getElementById('memberDisplayGearScoreBadge');
+        if (gearBadge) {
+            gearBadge.textContent = `裝評: ${(currentUser.gearScore || 0).toLocaleString()}`;
+            gearBadge.classList.remove('hidden');
+        }
+        
+        const badge = document.getElementById('badgeGuildRole');
+        badge.textContent = currentUser.guildRole;
+        badge.classList.remove('hidden');
+        if (currentUser.guildRole === '幹部') {
+            badge.className = "text-[10px] bg-sky-100 text-sky-800 font-bold px-2.5 py-0.5 rounded-full border border-sky-200";
+        } else if (currentUser.guildRole === '退會') {
+            badge.className = "text-[10px] bg-slate-100 text-slate-600 font-bold px-2.5 py-0.5 rounded-full border border-slate-200";
+        } else {
+            currentUser.guildRole = '現任';
+            badge.className = "text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2.5 py-0.5 rounded-full border border-emerald-200";
+        }
 
-    document.getElementById('gameNickname').value = currentUser.gameNickname || "";
-    document.getElementById('gameClass').value = currentUser.gameClass || "";
-    document.getElementById('manualLineName').value = currentUser.displayName || "";
-    document.getElementById('toggleAllowSearch').checked = (currentUser.allowSearch === 'Y');
+        document.getElementById('gameNickname').value = currentUser.gameNickname || "";
+        document.getElementById('gameClass').value = currentUser.gameClass || "";
+        document.getElementById('gameGearScore').value = currentUser.gearScore || 0;
+        document.getElementById('manualLineName').value = currentUser.displayName || "";
+        document.getElementById('toggleAllowSearch').checked = (currentUser.allowSearch === 'Y');
 
-    document.getElementById('submitBtn').textContent = "儲存修改資料";
-    document.getElementById('successTitle').textContent = "資料修改成功！";
-    document.getElementById('successDesc').textContent = "最新資訊已為您更新完成～";
+        document.getElementById('submitBtn').textContent = "儲存修改資料";
+        document.getElementById('successTitle').textContent = "資料修改成功！";
+        document.getElementById('successDesc').textContent = "最新資訊已為您更新完成～";
 
-    updateProfileCard();
+        updateProfileCard();
 
-    const dcBox = document.getElementById('discordBindBox');
-    if (dcBox) {
-        dcBox.classList.remove('hidden');
-        if (typeof updateDiscordBindUI === 'function') {
+        const dcBox = document.getElementById('discordBindBox');
+        if (dcBox) {
+            dcBox.classList.remove('hidden');
             updateDiscordBindUI(currentUser.dcid, currentUser.joinedDc);
         }
     }
-}
 
-// 新會員登記介面
-function applyNewMemberUI() {
-    document.getElementById('topBadge').textContent = "身分登記";
-    document.getElementById('pageMainTitle').textContent = "會員資料填寫綁定";
-    document.getElementById('pageSubTitle').textContent = "完成登記後，即可使用公會各項專屬功能";
+    function applyNewMemberUI() {
+        document.getElementById('topBadge').textContent = "身分登記";
+        document.getElementById('pageMainTitle').textContent = "會員資料填寫綁定";
+        document.getElementById('pageSubTitle').textContent = "完成登記後，即可使用公會各項專屬功能";
 
-    document.getElementById('memberDisplayTitle').textContent = "新會員";
-    document.getElementById('memberDisplayClass').textContent = "尚未選擇職業";
-    document.getElementById('badgeGuildRole').classList.add('hidden');
-    document.getElementById('submitBtn').textContent = "確認送出";
+        document.getElementById('memberDisplayTitle').textContent = "新會員";
+        document.getElementById('memberDisplayClass').textContent = "尚未選擇職業";
+        
+        const gearBadge = document.getElementById('memberDisplayGearScoreBadge');
+        if (gearBadge) gearBadge.classList.add('hidden');
 
-    document.getElementById('gameNickname').value = "";
-    document.getElementById('gameClass').value = "";
-    document.getElementById('manualLineName').value = currentUser.displayName || "";
-    document.getElementById('toggleAllowSearch').checked = true;
+        document.getElementById('badgeGuildRole').classList.add('hidden');
+        document.getElementById('submitBtn').textContent = "確認送出";
 
-    document.getElementById('successTitle').textContent = "綁定資料已送出";
-    document.getElementById('successDesc').textContent = "申請已送出！請前往進行DC語音群連動～";
+        document.getElementById('gameNickname').value = "";
+        document.getElementById('gameClass').value = "";
+        document.getElementById('gameGearScore').value = "";
+        document.getElementById('manualLineName').value = currentUser.displayName || "";
+        document.getElementById('toggleAllowSearch').checked = true;
 
-    updateProfileCard();
+        document.getElementById('successTitle').textContent = "綁定資料已送出";
+        document.getElementById('successDesc').textContent = "申請已送出！請前往下一步進行語音群連動～";
 
-    const dcBox = document.getElementById('discordBindBox');
-    if (dcBox) dcBox.classList.add('hidden');
-}
+        updateProfileCard();
 
-// 更新個人頭像
-function updateProfileCard() {
-    if (currentUser.pictureUrl) {
-        const avatar = document.getElementById('avatarImg');
-        if (avatar) avatar.src = currentUser.pictureUrl;
-    }
-}
-
-// 關閉確認視窗
-function closeConfirmModal() {
-    document.getElementById('confirmModal').classList.add('hidden');
-}
-
-// 執行最後送出
-async function executeFinalSubmit() {
-    if (!pendingPayload) return;
-
-    const modalConfirmBtn = document.getElementById('modalConfirmBtn');
-    modalConfirmBtn.textContent = "傳送中...";
-    modalConfirmBtn.disabled = true;
-
-    try {
-        await fetch(`${BACKEND_API_URL}/api/members/bind`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(pendingPayload)
-        });
-    } catch (err) {
-        console.error(err);
+        const dcBox = document.getElementById('discordBindBox');
+        if (dcBox) dcBox.classList.add('hidden');
     }
 
-    modalConfirmBtn.textContent = "確認送出";
-    modalConfirmBtn.disabled = false;
-    document.getElementById('confirmModal').classList.add('hidden');
-
-    isJustRegisteredNew = (!currentUser.isRegistered || currentUser.accountStatus === '待審核');
-
-    currentUser.gameNickname = pendingPayload.gameNickname;
-    currentUser.gameClass = pendingPayload.gameClass;
-    currentUser.displayName = pendingPayload.lineDisplayName;
-    currentUser.allowSearch = pendingPayload.allowSearch;
-    currentUser.isRegistered = true;
-    currentUser.accountStatus = "待審核";
-    
-    document.getElementById('resGameNick').textContent = pendingPayload.gameNickname;
-    document.getElementById('resGameClass').textContent = pendingPayload.gameClass;
-    document.getElementById('resLineName').textContent = pendingPayload.lineDisplayName;
-    document.getElementById('resAllowSearch').textContent = pendingPayload.allowSearch === "Y" ? "開啟" : "關閉";
-    
-    document.getElementById('successModal').classList.remove('hidden');
-}
-
-// 關閉送出成功彈窗後的行為
-function handleSuccessModalClose() {
-    document.getElementById('successModal').classList.add('hidden');
-    if (isJustRegisteredNew) {
-        document.getElementById('mainFormCard').classList.add('hidden');
-        applyPendingReviewUI();
-    } else {
-        closeLiffWindow();
+    function updateProfileCard() {
+        if (currentUser.pictureUrl) {
+            const avatar = document.getElementById('avatarImg');
+            if (avatar) avatar.src = currentUser.pictureUrl;
+        }
     }
-}
 
-// 關閉 LIFF 視窗
-function closeLiffWindow() {
-    if (typeof liff !== 'undefined' && liff.closeWindow) {
-        liff.closeWindow();
-    } else {
-        window.close();
+    function closeConfirmModal() {
+        document.getElementById('confirmModal').classList.add('hidden');
     }
-}
+
+    async function executeFinalSubmit() {
+        if (!pendingPayload) return;
+
+        const modalConfirmBtn = document.getElementById('modalConfirmBtn');
+        modalConfirmBtn.textContent = "傳送中...";
+        modalConfirmBtn.disabled = true;
+
+        try {
+            await fetch(`${BACKEND_API_URL}/api/members/bind`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(pendingPayload)
+            });
+        } catch (err) {
+            console.error(err);
+        }
+
+        modalConfirmBtn.textContent = "確認送出";
+        modalConfirmBtn.disabled = false;
+        document.getElementById('confirmModal').classList.add('hidden');
+
+        isJustRegisteredNew = (!currentUser.isRegistered || currentUser.accountStatus === '待審核');
+
+        currentUser.gameNickname = pendingPayload.gameNickname;
+        currentUser.gameClass = pendingPayload.gameClass;
+        currentUser.gearScore = pendingPayload.gearScore;
+        currentUser.displayName = pendingPayload.lineDisplayName;
+        currentUser.allowSearch = pendingPayload.allowSearch;
+        currentUser.isRegistered = true;
+        currentUser.accountStatus = "待審核";
+        
+        document.getElementById('resGameNick').textContent = pendingPayload.gameNickname;
+        document.getElementById('resGameClass').textContent = pendingPayload.gameClass;
+        document.getElementById('resGearScore').textContent = pendingPayload.gearScore.toLocaleString();
+        document.getElementById('resLineName').textContent = pendingPayload.lineDisplayName;
+        document.getElementById('resAllowSearch').textContent = pendingPayload.allowSearch === "Y" ? "開啟" : "關閉";
+        
+        document.getElementById('successModal').classList.remove('hidden');
+    }
+
+    function handleSuccessModalClose() {
+        document.getElementById('successModal').classList.add('hidden');
+        if (isJustRegisteredNew) {
+            document.getElementById('mainFormCard').classList.add('hidden');
+            applyPendingReviewUI();
+        } else {
+            closeLiffWindow();
+        }
+    }
+
+    function closeLiffWindow() {
+        if (typeof liff !== 'undefined' && liff.closeWindow) {
+            liff.closeWindow();
+        } else {
+            window.close();
+        }
+    }
 </script>
 </body>
 </html>
