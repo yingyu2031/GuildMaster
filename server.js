@@ -1499,10 +1499,14 @@ app.get('/api/admin/events', async (req, res) => {
   }
 });
 
+// ==========================================
+// 2. 進行報名 API (POST) - 修正時區比對錯誤
+// ==========================================
 app.post('/api/events/signup', async (req, res) => {
   const { eventId, lineUserId, gameNickname, gameClass, note } = req.body;
   
   try {
+    // 1. 檢查活動是否存在
     const eventResult = await pool.query('SELECT * FROM events WHERE event_id = $1', [eventId]);
     if (eventResult.rows.length === 0) {
       return res.status(404).json({ status: "error", message: "找不到此活動" });
@@ -1511,18 +1515,26 @@ app.post('/api/events/signup', async (req, res) => {
     const event = eventResult.rows[0];
     const now = new Date();
 
+    // 2. 檢查活動是否已被封存或結束
     if (event.is_archived === 1 || event.status === '已結束') {
       return res.status(400).json({ status: "error", message: "該活動已結束或封存，無法進行報名" });
     }
 
-    if (event.signup_start && now < new Date(event.signup_start)) {
+    // 💡 關鍵修正：解析時間必須統一使用 parseDateTime 綁定台灣時區 (+08:00)
+    const signupStart = parseDateTime(event.signup_start);
+    const signupEnd = parseDateTime(event.signup_end);
+
+    // 3. 檢查報名「開始時間」
+    if (signupStart && now < signupStart) {
       return res.status(400).json({ status: "error", message: "報名尚未開放，無法進行報名" });
     }
 
-    if (event.signup_end && now > new Date(event.signup_end)) {
+    // 4. 檢查報名「截止時間」
+    if (signupEnd && now > signupEnd) {
       return res.status(400).json({ status: "error", message: "報名已截止，無法進行報名" });
     }
 
+    // 5. 檢查是否額滿 (已在名單內者修改備註不阻擋)
     if (event.max_limit && event.max_limit > 0) {
       const attendeesResult = await pool.query('SELECT line_user_id FROM event_attendees WHERE event_id = $1', [eventId]);
       const isAlreadyJoined = attendeesResult.rows.some(a => a.line_user_id === lineUserId);
@@ -1532,6 +1544,7 @@ app.post('/api/events/signup', async (req, res) => {
       }
     }
 
+    // 6. 產生台灣時區報名時間
     const formatter = new Intl.DateTimeFormat('zh-TW', {
       timeZone: 'Asia/Taipei',
       year: 'numeric',
@@ -1563,10 +1576,18 @@ app.post('/api/events/signup', async (req, res) => {
   }
 });
 
+// ==========================================
+// 3. 取消報名 API (DELETE) - 支援台灣時區截止判定
+// ==========================================
 app.delete('/api/events/signup', async (req, res) => {
   const { eventId, lineUserId } = req.body;
   
+  if (!eventId || !lineUserId) {
+    return res.status(400).json({ status: "error", message: "缺少必要參數 (eventId 或 lineUserId)" });
+  }
+
   try {
+    // 1. 檢查活動是否存在
     const eventResult = await pool.query('SELECT * FROM events WHERE event_id = $1', [eventId]);
     if (eventResult.rows.length === 0) {
       return res.status(404).json({ status: "error", message: "找不到此活動" });
@@ -1574,16 +1595,20 @@ app.delete('/api/events/signup', async (req, res) => {
 
     const event = eventResult.rows[0];
     const now = new Date();
-    if (now > new Date(event.signup_end)) {
+    
+    // 2. 關鍵：使用 parseDateTime 綁定台灣時區 (+08:00)，避免 8 小時時差誤判截止
+    const signupEnd = parseDateTime(event.signup_end);
+    if (signupEnd && now > signupEnd) {
       return res.status(400).json({ status: "error", message: "報名已截止，無法自行取消報名" });
     }
 
+    // 3. 刪除該活動的報名紀錄
     await pool.query(`
       DELETE FROM event_attendees 
       WHERE event_id = $1 AND line_user_id = $2
     `, [eventId, lineUserId]);
     
-    res.json({ status: "success" });
+    res.json({ status: "success", message: "已成功取消報名" });
   } catch (err) {
     console.error('[取消報名失敗]:', err);
     res.status(500).json({ status: "error", message: err.message });
