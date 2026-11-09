@@ -1007,12 +1007,22 @@ app.post('/api/admin/members/save', async (req, res) => {
 app.get('/api/admin/members/logs/:uid', async (req, res) => {
   const lineUserId = req.params.uid;
   try {
+    // 💡 先查出主要 UID
+    const memRes = await pool.query(
+      'SELECT line_user_id, new_line_user_id FROM members WHERE line_user_id = $1 OR new_line_user_id = $1 LIMIT 1',
+      [lineUserId]
+    );
+    const primaryUid = memRes.rows[0]?.line_user_id || lineUserId;
+    const secondaryUid = memRes.rows[0]?.new_line_user_id || lineUserId;
+
+    // 同時查詢新舊 UID 的日誌
     const result = await pool.query(`
       SELECT field, old_value, TO_CHAR(update_time, 'YYYY-MM-DD HH24:MI:SS') AS update_time, new_value 
       FROM member_audit_logs 
-      WHERE line_user_id = $1 
+      WHERE line_user_id = $1 OR line_user_id = $2
       ORDER BY update_time DESC
-    `, [lineUserId]);
+    `, [primaryUid, secondaryUid]);
+
     const logs = result.rows.map(l => ({ 
       field: l.field, 
       oldValue: l.old_value, 
@@ -2139,25 +2149,32 @@ app.post('/api/bulletins/read', async (req, res) => {
   const { postId, lineUserId, gameNickname, gameClass } = req.body;
 
   try {
-    // 檢查是否已經點過已閱
+    // 💡 取得主要 UID
+    const memRes = await pool.query(
+      'SELECT line_user_id, new_line_user_id FROM members WHERE line_user_id = $1 OR new_line_user_id = $1 LIMIT 1',
+      [lineUserId]
+    );
+    const primaryUid = memRes.rows[0]?.line_user_id || lineUserId;
+    const secondaryUid = memRes.rows[0]?.new_line_user_id || lineUserId;
+
+    // 檢查是否已讀 (新舊 UID 均檢查)
     const checkResult = await pool.query(
-      'SELECT * FROM bulletin_reads WHERE post_id = $1 AND line_user_id = $2',
-      [postId, lineUserId]
+      'SELECT * FROM bulletin_reads WHERE post_id = $1 AND (line_user_id = $2 OR line_user_id = $3)',
+      [postId, primaryUid, secondaryUid]
     );
 
-    // 如果已經讀過了，直接回傳成功（不執行刪除）
     if (checkResult.rows.length > 0) {
       return res.json({ status: "success", message: "已經完成已閱，無法重複操作" });
     }
 
-    // 尚未讀過，寫入已閱紀錄
     const now = new Date();
     const timeStr = `${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
+    // 統一寫入 primaryUid
     await pool.query(`
       INSERT INTO bulletin_reads (post_id, line_user_id, game_nickname, game_class, read_time)
       VALUES ($1, $2, $3, $4, $5)
-    `, [postId, lineUserId, gameNickname, gameClass, timeStr]);
+    `, [postId, primaryUid, gameNickname, gameClass, timeStr]);
 
     res.json({ status: "success", action: "added" });
   } catch (err) {
