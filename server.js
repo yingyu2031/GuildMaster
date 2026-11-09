@@ -2109,27 +2109,43 @@ app.post('/api/members/check-identity', async (req, res) => {
 });
 
 // ==========================================
-// 2. 提供彈窗搜尋現有成員 (依遊戲暱稱關鍵字搜尋，排除退會)
+// 前台手動搜尋名冊（診斷加強版）
 // ==========================================
 app.get('/api/members/search-for-claim', async (req, res) => {
   const keyword = (req.query.q || '').trim();
+  console.log(`[認領搜尋] 收到搜尋關鍵字: 【${keyword}】`);
+
   if (!keyword) {
     return res.json({ status: "success", members: [] });
   }
 
   try {
+    // 1. 先用寬鬆條件搜尋（同時印出 guild_role）
     const searchRes = await pool.query(`
-      SELECT game_nickname, game_class, line_display_name 
+      SELECT game_nickname, game_class, line_display_name, guild_role, account_status
       FROM members 
-      WHERE game_nickname ILIKE $1 
-        AND (guild_role IS NULL OR guild_role != '退會')
+      WHERE TRIM(game_nickname) ILIKE $1
       ORDER BY update_time DESC
       LIMIT 10
     `, [`%${keyword}%`]);
 
+    console.log(`[認領搜尋] 關鍵字【${keyword}】在資料庫比對出 ${searchRes.rows.length} 筆資料`);
+    if (searchRes.rows.length > 0) {
+      console.log('[認領搜尋] 命中資料範例:', searchRes.rows[0]);
+    }
+
+    // 2. 如果連一筆都沒有，直接印出目前資料庫前 3 筆角色名稱做對照
+    if (searchRes.rows.length === 0) {
+      const sample = await pool.query('SELECT game_nickname, guild_role FROM members LIMIT 3');
+      console.log('[認領搜尋] 目前資料庫現存的前 3 個角色範例:', sample.rows);
+    }
+
+    // 3. 過濾掉退會成員後回傳
+    const activeMembers = searchRes.rows.filter(r => r.guild_role !== '退會');
+
     res.json({
       status: "success",
-      members: searchRes.rows.map(r => ({
+      members: activeMembers.map(r => ({
         gameNickname: r.game_nickname,
         gameClass: r.game_class,
         lineDisplayName: r.line_display_name
@@ -2140,7 +2156,6 @@ app.get('/api/members/search-for-claim', async (req, res) => {
     res.status(500).json({ status: "error", message: err.message });
   }
 });
-
 // ==========================================
 // 3. 點選搜尋到的角色，執行身分認領與 UID 替換
 // ==========================================
