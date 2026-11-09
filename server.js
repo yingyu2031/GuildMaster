@@ -2025,84 +2025,91 @@ app.listen(PORT, () => {
 });
 
 // ==========================================
-// 依 LINE 顯示暱稱完全比對並無感替換 UID
+// 1. LIFF 開啟時核對：先查 UID，找不到再比對 LINE 暱稱 (完全比對+自動換 UID)
 // ==========================================
-app.post('/api/members/match-by-line-name', async (req, res) => {
-  const { newUid, lineDisplayName } = req.body;
-  const lineName = (lineDisplayName || '').trim();
+app.post('/api/members/check-identity', async (req, res) => {
+  const { userId, displayName } = req.body;
+  const newUid = (userId || '').trim();
+  const lineName = (displayName || '').trim();
 
-  if (!newUid || !lineName) {
-    return res.json({ status: "not_found" });
+  if (!newUid) {
+    return res.status(400).json({ status: "error", message: "缺少必要參數" });
   }
 
   try {
-    // 先看 newUid 是否已存在 (已完成移轉或已註冊)
-    const uidCheck = await pool.query('SELECT * FROM members WHERE line_user_id = $1', [newUid]);
-    if (uidCheck.rows.length > 0) {
-      const m = uidCheck.rows[0];
+    // A. 先查 LINE UID 是否已存在
+    const uidRes = await pool.query('SELECT * FROM members WHERE line_user_id = $1', [newUid]);
+    if (uidRes.rows.length > 0) {
+      const m = uidRes.rows[0];
       return res.json({
-        status: "matched",
+        status: "found",
         member: {
           gameNickname: m.game_nickname,
           gameClass: m.game_class,
-          lineDisplayName: m.line_display_name,
+          lineDisplayName: m.line_display_name || lineName,
           allowSearch: m.allow_search,
           accountStatus: m.account_status,
           guildRole: m.guild_role,
           dcid: m.dcid,
-          joinedDc: m.joined_dc
+          joinedDc: m.joined_dc,
+          gearScore: Number(m.gear_score) || 0
         }
       });
     }
 
-    // 以 LINE 暱稱嚴格比對 (排除退會)
-    const matchRes = await pool.query(`
-      SELECT * FROM members 
-      WHERE TRIM(line_display_name) ILIKE $1 
-        AND (guild_role IS NULL OR guild_role != '退會')
-      LIMIT 2
-    `, [lineName]);
+    // B. UID 查無，再查 LINE 顯示暱稱 (嚴格比對，排除退會)
+    if (lineName) {
+      const nameRes = await pool.query(`
+        SELECT * FROM members 
+        WHERE (TRIM(line_display_name) ILIKE $1 OR line_display_name ILIKE $2)
+          AND (guild_role IS NULL OR guild_role != '退會')
+        LIMIT 2
+      `, [lineName, `%${lineName}%`]);
 
-    // 只有 1 筆命中：將舊 UID 替換成新 LIFF 的 newUid
-    if (matchRes.rows.length === 1) {
-      const target = matchRes.rows[0];
-      const oldUid = target.line_user_id;
+      // 剛好完全命中 1 筆：悄悄將資料庫舊 UID 換成新 UID
+      if (nameRes.rows.length === 1) {
+        const target = nameRes.rows[0];
+        const oldUid = target.line_user_id;
 
-      await pool.query(`
-        UPDATE members 
-        SET line_user_id = $1, 
-            line_display_name = $2,
-            update_time = CURRENT_TIMESTAMP
-        WHERE line_user_id = $3
-      `, [newUid, lineName, oldUid]);
+        await pool.query(`
+          UPDATE members 
+          SET line_user_id = $1, 
+              line_display_name = $2,
+              update_time = CURRENT_TIMESTAMP
+          WHERE line_user_id = $3
+        `, [newUid, lineName, oldUid]);
 
-      await pool.query('UPDATE member_audit_logs SET line_user_id = $1 WHERE line_user_id = $2', [newUid, oldUid]);
-      console.log(`[UID 移轉成功] LINE 暱稱【${lineName}】: 原 UID ${oldUid} -> 新 UID ${newUid}`);
+        await pool.query('UPDATE member_audit_logs SET line_user_id = $1 WHERE line_user_id = $2', [newUid, oldUid]);
+        console.log(`[自動替換 UID] 暱稱【${lineName}】: 原 UID ${oldUid} -> 新 UID ${newUid}`);
 
-      return res.json({
-        status: "matched",
-        member: {
-          gameNickname: target.game_nickname,
-          gameClass: target.game_class,
-          lineDisplayName: lineName,
-          allowSearch: target.allow_search,
-          accountStatus: target.account_status,
-          guildRole: target.guild_role,
-          dcid: target.dcid,
-          joinedDc: target.joined_dc
-        }
-      });
+        return res.json({
+          status: "found",
+          member: {
+            gameNickname: target.game_nickname,
+            gameClass: target.game_class,
+            lineDisplayName: lineName,
+            allowSearch: target.allow_search,
+            accountStatus: target.account_status,
+            guildRole: target.guild_role,
+            dcid: target.dcid,
+            joinedDc: target.joined_dc,
+            gearScore: Number(target.gear_score) || 0
+          }
+        });
+      }
     }
 
+    // C. 兩者皆查無資料
     return res.json({ status: "not_found" });
+
   } catch (err) {
-    console.error('[比對 LINE 暱稱失敗]:', err);
+    console.error('[身分核對異常]:', err);
     res.status(500).json({ status: "error", message: err.message });
   }
 });
 
 // ==========================================
-// 前台手動搜尋名冊（依遊戲暱稱搜尋，排除退會）
+// 2. 提供彈窗搜尋現有成員 (依遊戲暱稱關鍵字搜尋，排除退會)
 // ==========================================
 app.get('/api/members/search-for-claim', async (req, res) => {
   const keyword = (req.query.q || '').trim();
@@ -2116,6 +2123,7 @@ app.get('/api/members/search-for-claim', async (req, res) => {
       FROM members 
       WHERE game_nickname ILIKE $1 
         AND (guild_role IS NULL OR guild_role != '退會')
+      ORDER BY update_time DESC
       LIMIT 10
     `, [`%${keyword}%`]);
 
@@ -2134,7 +2142,7 @@ app.get('/api/members/search-for-claim', async (req, res) => {
 });
 
 // ==========================================
-// 點選搜尋結果完成認領對應
+// 3. 點選搜尋到的角色，執行身分認領與 UID 替換
 // ==========================================
 app.post('/api/members/claim-by-game-nick', async (req, res) => {
   const { newUid, lineDisplayName, gameNickname } = req.body;
@@ -2159,6 +2167,7 @@ app.post('/api/members/claim-by-game-nick', async (req, res) => {
     const target = memRes.rows[0];
     const oldUid = target.line_user_id;
 
+    // 將資料庫該會員 UID 替換為當前新 UID，並繼承所有關聯紀錄
     await pool.query(`
       UPDATE members 
       SET line_user_id = $1, 
@@ -2168,7 +2177,10 @@ app.post('/api/members/claim-by-game-nick', async (req, res) => {
     `, [newUid, lineDisplayName, oldUid]);
 
     await pool.query('UPDATE member_audit_logs SET line_user_id = $1 WHERE line_user_id = $2', [newUid, oldUid]);
-    console.log(`[手動認領成功] 角色【${gameNick}】原 UID ${oldUid} -> 新 UID ${newUid}`);
+    await pool.query('UPDATE leaves SET target_uid = $1 WHERE target_uid = $2', [newUid, oldUid]);
+    await pool.query('UPDATE event_attendees SET line_user_id = $1 WHERE line_user_id = $2', [newUid, oldUid]);
+
+    console.log(`[手動認領置換成功] 角色【${gameNick}】原 UID ${oldUid} -> 新 UID ${newUid}`);
 
     res.json({
       status: "success",
@@ -2180,7 +2192,8 @@ app.post('/api/members/claim-by-game-nick', async (req, res) => {
         accountStatus: target.account_status,
         guildRole: target.guild_role,
         dcid: target.dcid,
-        joinedDc: target.joined_dc
+        joinedDc: target.joined_dc,
+        gearScore: Number(target.gear_score) || 0
       }
     });
   } catch (err) {
