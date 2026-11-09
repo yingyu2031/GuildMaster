@@ -91,10 +91,10 @@ input[type="date"], input[type="time"], select {
  <!-- 區塊 1：會員名冊 -->
  <section id="sectionMembers" class="space-y-4">
  <div class="grid grid-cols-4 gap-1 p-1 bg-sky-50 rounded-xl border border-sky-100 text-xs font-bold">
-  <button id="subTabActive" onclick="switchMemberSubTab('active')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800 cursor-pointer">現任成員</button>
- <button id="subTabGroups" onclick="switchMemberSubTab('groups')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800 cursor-pointer">團體速查</button>
-<button id="subTabPending" onclick="switchMemberSubTab('pending')" class="py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black cursor-pointer">待審核</button>
- <button id="subTabRetired" onclick="switchMemberSubTab('retired')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800 cursor-pointer">退會封存</button>
+  <button id="subTabActive" onclick="switchMemberSubTab('active')" class="py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black cursor-pointer">現任成員</button>
+  <button id="subTabGroups" onclick="switchMemberSubTab('groups')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800 cursor-pointer">團體速查</button>
+  <button id="subTabPending" onclick="switchMemberSubTab('pending')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800 cursor-pointer">待審核</button>
+  <button id="subTabRetired" onclick="switchMemberSubTab('retired')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800 cursor-pointer">退會封存</button>
  </div>
 
  <!-- 第一行：搜尋角色與職業篩選 -->
@@ -107,7 +107,7 @@ input[type="date"], input[type="time"], select {
  </select>
  </div>
 
- <div id="activeMemberActionRow" class="hidden flex items-center justify-between px-1">
+  <div id="activeMemberActionRow" class="flex items-center justify-between px-1">
  <span id="activeMemberCountText" class="text-xs font-black text-sky-900">共 0 名會員</span>
  <button onclick="openMemberModal('create')" class="bg-sky-500 hover:bg-sky-600 active:scale-95 text-white text-xs font-black px-3 py-1.5 rounded-xl shadow-xs transition cursor-pointer">
  + 新增會員
@@ -127,25 +127,16 @@ input[type="date"], input[type="time"], select {
  <!-- 區塊 2：請假紀錄 -->
  <section id="sectionLeaves" class="hidden space-y-4 text-left">
  <div class="grid grid-cols-3 gap-1 p-1 bg-sky-50 rounded-xl border border-sky-100 text-[11px] font-bold">
-  <button id="leaveSubTabToday" onclick="switchLeaveSubView('today')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800 flex items-center justify-center gap-1 cursor-pointer">
- <span>今日請假</span>
- <span id="badgeTodayLeaveCount" class="bg-rose-500 text-white text-[10px] px-1.5 py-0.2 rounded-full hidden">0</span>
- </button>
-<button id="leaveSubTabRank" onclick="switchLeaveSubView('rank')" class="py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black cursor-pointer">排名統計</button>
- <button id="leaveSubTabList" onclick="switchLeaveSubView('list')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800 cursor-pointer">全部紀錄列表</button>
+  <button id="leaveSubTabToday" onclick="switchLeaveSubView('today')" class="py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black flex items-center justify-center gap-1 cursor-pointer">
+   <span>今日請假</span>
+   <span id="badgeTodayLeaveCount" class="bg-rose-500 text-white text-[10px] px-1.5 py-0.2 rounded-full hidden">0</span>
+  </button>
+  <button id="leaveSubTabRank" onclick="switchLeaveSubView('rank')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800 cursor-pointer">排名統計</button>
+  <button id="leaveSubTabList" onclick="switchLeaveSubView('list')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800 cursor-pointer">全部紀錄列表</button>
  </div>
 
- <!-- 視圖 A：今日請假專屬清單 -->
- <div id="leaveTodayView" class="hidden space-y-3">
- <div class="flex items-center justify-between px-1">
- <span class="text-xs font-bold text-slate-500" id="todayDateLabel">今日日期：載入中</span>
- <span class="text-xs font-black text-sky-900" id="todayLeaveSummaryText">共 0 人請假</span>
- </div>
- <div id="leaveTodayContainer" class="space-y-2.5"></div>
- </div>
-
- <!-- 視圖 B：排名儀表板 -->
- <div id="leaveRankView" class="space-y-3">
+ <!-- 視圖 A：排名儀表板 -->
+ <div id="leaveRankView" class="hidden space-y-3">
  <div class="flex items-center justify-between bg-sky-50/60 rounded-xl p-2 border border-sky-100">
  <span class="text-xs font-bold text-slate-600">統計維度：</span>
  <div class="flex gap-1">
@@ -155,6 +146,15 @@ input[type="date"], input[type="time"], select {
  </div>
  </div>
  <div id="rankListContainer" class="space-y-2"></div>
+ </div>
+
+ <!-- 視圖 B：今日請假專屬清單 -->
+ <div id="leaveTodayView" class="space-y-3">
+ <div class="flex items-center justify-between px-1">
+ <span class="text-xs font-bold text-slate-500" id="todayDateLabel">今日日期：載入中</span>
+ <span class="text-xs font-black text-sky-900" id="todayLeaveSummaryText">共 0 人請假</span>
+ </div>
+ <div id="leaveTodayContainer" class="space-y-2.5"></div>
  </div>
 
  <!-- 視圖 C：全部請假紀錄列表 -->
@@ -827,8 +827,8 @@ async function loadCustomClasses() {
 
 let currentAdminUser = { lineUserId: "", gameNickname: "", gameClass: "", guildRole: "", accountStatus: "" };
 let membersData = [], leavesData = [], leaveRulesData = [], eventsData = [], broadcastSchedules = [];
-let currentMainSection = "members", currentMemberSubTab = "pending";
-let currentLeaveSubTab = "rank", currentLeaveMetric = "all";
+let currentMainSection = "members", currentMemberSubTab = "active";
+let currentLeaveSubTab = "today", currentLeaveMetric = "all";
 let currentEventSubTab = "active", currentSettingSubTab = "line";
 let currentViewingEventId = null;
 let selectedCycleDays = [];
@@ -1009,7 +1009,8 @@ function syncAllClassDropdowns() {
  : "text-sky-100 hover:text-white font-bold px-3.5 py-2 text-xs rounded-t-xl transition-all whitespace-nowrap flex items-center gap-1 cursor-pointer";
  }
  });
- if (section === 'leaves') renderLeavesContent();
+if (section === 'members') switchMemberSubTab('active');
+ if (section === 'leaves') switchLeaveSubView('today');
  if (section === 'events') renderEventsList();
  if (section === 'settings') renderSettingsSection();
  }
