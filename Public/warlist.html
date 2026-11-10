@@ -326,6 +326,95 @@
         </div>
     </div>
 
+    <!-- 成員詳細資料與異動歷程 Modal (比照第二張圖) -->
+<div id="memberHistoryModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
+  <div class="bg-white w-full max-w-sm rounded-[32px] p-5 border-2 border-indigo-200 shadow-2xl flex flex-col max-h-[90vh] text-left">
+    
+    <!-- 頂部標題與關閉按鈕 -->
+    <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+      <h3 class="text-sm font-black text-slate-900">成員歷程詳細資訊</h3>
+      <button type="button" onclick="closeMemberHistoryModal()" class="text-slate-400 hover:text-slate-600 text-xs font-bold p-1 cursor-pointer">✕ 關閉</button>
+    </div>
+
+    <!-- 內容滾動區 -->
+    <div class="flex-1 overflow-y-auto space-y-3.5 pr-1 pt-2 text-xs font-bold text-slate-700">
+      
+      <!-- 遊戲角色暱稱 -->
+      <div>
+        <label class="block text-[11px] text-slate-500 mb-1">遊戲角色暱稱</label>
+        <div id="histGameNickname" class="bg-[#F8FAFC] border border-indigo-100 rounded-2xl px-3.5 py-2 text-slate-900 font-black text-sm">-</div>
+      </div>
+
+      <!-- 遊戲職業 -->
+      <div>
+        <label class="block text-[11px] text-slate-500 mb-1">遊戲職業</label>
+        <div id="histGameClass" class="bg-[#F8FAFC] border border-indigo-100 rounded-2xl px-3.5 py-2 text-slate-800 font-bold">-</div>
+      </div>
+
+      <!-- LINE 暱稱 & 公會身分 -->
+      <div class="grid grid-cols-2 gap-2">
+        <div>
+          <label class="block text-[11px] text-slate-500 mb-1">LINE 暱稱</label>
+          <div id="histLineName" class="bg-[#F8FAFC] border border-indigo-100 rounded-2xl px-3 py-2 text-slate-800 truncate">-</div>
+        </div>
+        <div>
+          <label class="block text-[11px] text-slate-500 mb-1">公會身分</label>
+          <div id="histGuildRole" class="bg-[#F8FAFC] border border-indigo-100 rounded-2xl px-3 py-2 text-slate-800 font-black">-</div>
+        </div>
+      </div>
+
+      <!-- 地區通道 & 審核狀態 -->
+      <div class="grid grid-cols-2 gap-2">
+        <div>
+          <label class="block text-[11px] text-slate-500 mb-1">地區通道</label>
+          <div id="histRegion" class="bg-[#F8FAFC] border border-indigo-100 rounded-2xl px-3 py-2 text-slate-800">台灣 (LINE)</div>
+        </div>
+        <div>
+          <label class="block text-[11px] text-slate-500 mb-1">審核狀態</label>
+          <div id="histAccountStatus" class="bg-[#F8FAFC] border border-indigo-100 rounded-2xl px-3 py-2 text-emerald-600 font-black">已審核</div>
+        </div>
+      </div>
+
+      <!-- 小團隊 / 組別 -->
+      <div>
+        <label class="block text-[11px] text-slate-500 mb-1">小團隊</label>
+        <div id="histTeamGroup" class="bg-[#F8FAFC] border border-indigo-100 rounded-2xl px-3.5 py-2 text-slate-800 font-bold">-</div>
+      </div>
+
+      <!-- 群組加入勾選狀態 -->
+      <div class="grid grid-cols-2 gap-2 pt-1">
+        <div class="bg-indigo-50/50 border border-indigo-100 rounded-2xl p-2.5 flex items-center justify-between">
+          <span class="text-[11px] font-black text-slate-800">已加入 LINE 群</span>
+          <span id="histLineGroupCheck" class="w-5 h-5 rounded-md bg-indigo-600 text-white flex items-center justify-center text-xs">✓</span>
+        </div>
+        <div class="bg-indigo-50/50 border border-indigo-100 rounded-2xl p-2.5 flex items-center justify-between">
+          <span class="text-[11px] font-black text-slate-800">已加入 DC 語音群</span>
+          <span id="histDcGroupCheck" class="w-5 h-5 rounded-md bg-indigo-600 text-white flex items-center justify-center text-xs">✓</span>
+        </div>
+      </div>
+
+      <!-- 資料異動歷程明細 -->
+      <div class="pt-2">
+        <div class="flex items-center justify-between mb-1.5">
+          <span class="text-xs font-black text-slate-900">資料異動歷程明細</span>
+          <span id="histLogCount" class="text-[10px] text-slate-400 font-normal">共 0 筆紀錄</span>
+        </div>
+        <div id="histLogsContainer" class="space-y-2 max-h-44 overflow-y-auto pr-1">
+          <!-- 歷程卡片動態渲染 -->
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 底部關閉按鈕 -->
+    <div class="pt-3 border-t border-slate-100 mt-2">
+      <button type="button" onclick="closeMemberHistoryModal()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 rounded-2xl transition cursor-pointer">
+        關閉視窗
+      </button>
+    </div>
+  </div>
+</div>
+
     <!-- 核心 JS 邏輯 -->
     <script>
         const BACKEND_API_URL = window.location.origin;
@@ -688,124 +777,127 @@
             return leaveList.some(l => l.name === name && l.date === todayStr);
         }
 
-        // 🎯 核心渲染：左側名冊（先按職業順序，同職業再依裝評由高到低，裝評獨立第二行灰字）
-        function renderMemberList() {
-            const container = document.getElementById('member-list-container');
-            const search = document.getElementById('search-input').value.trim();
-            const filterJob = document.getElementById('job-filter').value;
-            container.innerHTML = '';
+        // 🎯 核心渲染：左側名冊（先按職業順序，同職業再依裝評由高到低，裝評獨立第二行灰字，支援左鍵點兩下彈出歷程）
+function renderMemberList() {
+    const container = document.getElementById('member-list-container');
+    const search = document.getElementById('search-input').value.trim();
+    const filterJob = document.getElementById('job-filter').value;
+    container.innerHTML = '';
 
-            const availableMembers = masterMembers.filter(m => !isLeave(m.name));
+    const availableMembers = masterMembers.filter(m => !isLeave(m.name));
 
-            const filtered = availableMembers.filter(m => {
-                const matchSearch = m.name.includes(search);
-                const matchJob = (filterJob === '全部') || (m.job === filterJob);
-                
-                const assignedMain = isAssignedInMain(m.name);
-                const assignedSub = isAssignedInSub(m.name);
-                const isAssigned = (currentMode === 'main') ? assignedMain : (assignedMain || assignedSub);
+    const filtered = availableMembers.filter(m => {
+        const matchSearch = m.name.includes(search);
+        const matchJob = (filterJob === '全部') || (m.job === filterJob);
+        
+        const assignedMain = isAssignedInMain(m.name);
+        const assignedSub = isAssignedInSub(m.name);
+        const isAssigned = (currentMode === 'main') ? assignedMain : (assignedMain || assignedSub);
 
-                if (filterOnlyUnassigned && isAssigned) {
-                    return false;
-                }
-
-                return matchSearch && matchJob;
-            });
-
-            // 🎯 核心排序：先依 ORDERED_CLASSES 職業順序，同職業再依裝評由高到低
-            filtered.sort((a, b) => {
-                const classOrder = (typeof ORDERED_CLASSES !== 'undefined' && ORDERED_CLASSES.length > 0)
-                    ? ORDERED_CLASSES
-                    : (typeof gameClasses !== 'undefined' ? gameClasses : []);
-
-                const idxA = classOrder.indexOf(a.job);
-                const idxB = classOrder.indexOf(b.job);
-
-                const rankA = idxA === -1 ? 999 : idxA;
-                const rankB = idxB === -1 ? 999 : idxB;
-
-                // 1. 職業不同：依職業預設順序排列
-                if (rankA !== rankB) {
-                    return rankA - rankB;
-                }
-
-                // 若都不在清單內，依職業文字名稱排序
-                const nameComp = (a.job || '').localeCompare(b.job || '', 'zh-Hant');
-                if (nameComp !== 0) {
-                    return nameComp;
-                }
-
-                // 2. 同職業：依裝備評分由高到低（降冪）排序
-                const scoreA = Number(a.gearScore || 0);
-                const scoreB = Number(b.gearScore || 0);
-                return scoreB - scoreA;
-            });
-
-            document.getElementById('available-count').innerText = filtered.length;
-
-            if (filtered.length === 0) {
-                container.innerHTML = `<div class="text-[10px] text-gray-400 p-3 text-center">無符合成員</div>`;
-                return;
-            }
-
-            filtered.forEach(m => {
-                const assignedMain = isAssignedInMain(m.name);
-                const assignedSub = isAssignedInSub(m.name);
-
-                let isBlocked = false;
-                let badgeText = '';
-
-                if (currentMode === 'main') {
-                    if (assignedMain) {
-                        isBlocked = true;
-                        badgeText = '已排';
-                    }
-                } else {
-                    if (assignedMain) {
-                        isBlocked = true;
-                        badgeText = '主戰已排';
-                    } else if (assignedSub) {
-                        isBlocked = true;
-                        badgeText = '副戰已排';
-                    }
-                }
-
-                const row = document.createElement('div');
-                row.className = `flex items-center justify-between px-2 py-1.5 rounded-lg border text-[11px] transition bg-white ${
-                    isBlocked ? 'opacity-40 border-gray-200' : 'border-gray-200 shadow-2xs hover:border-indigo-400'
-                }`;
-
-                let actionHtml = isBlocked ? 
-                    `<span class="text-gray-400 font-bold bg-gray-100 px-1.5 py-0.5 rounded text-[9px] shrink-0">${badgeText}</span>` :
-                    `<button onclick="assignToFirstAvailable('${m.name}')" class="bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white font-bold px-2 py-0.5 rounded transition text-[10px] shrink-0">指派</button>`;
-
-                // ⚔️ 裝評：第二行顯示、純灰字、千分位、大於 0 才顯示
-                const rawScore = Number(m.gearScore || 0);
-                const gearScoreHtml = rawScore > 0 
-                    ? `<div class="text-[10px] font-medium text-slate-400 font-mono tracking-tight pl-0.5">裝評: ${rawScore.toLocaleString()}</div>` 
-                    : '';
-
-                row.innerHTML = `
-                    <div class="flex flex-col min-w-0 pr-1 gap-0.5">
-                        <!-- 第一行：職業膠囊 ➔ 成員暱稱 -->
-                        <div class="flex items-center gap-1 min-w-0">
-                            <span class="job-card-${m.job} px-1 py-0.2 rounded font-bold text-[9px] border shrink-0">${m.job}</span>
-                            <span class="font-bold text-gray-800 truncate text-[11px]">${m.name}</span>
-                        </div>
-                        <!-- 第二行：裝備評分 (灰字) -->
-                        ${gearScoreHtml}
-                    </div>
-                    ${actionHtml}
-                `;
-
-                if (!isBlocked) {
-                    row.draggable = true;
-                    row.ondragstart = (e) => e.dataTransfer.setData('text/plain', m.name);
-                }
-                container.appendChild(row);
-            });
+        if (filterOnlyUnassigned && isAssigned) {
+            return false;
         }
 
+        return matchSearch && matchJob;
+    });
+
+    // 🎯 核心排序：先依 ORDERED_CLASSES 職業順序，同職業再依裝評由高到低
+    filtered.sort((a, b) => {
+        const classOrder = (typeof ORDERED_CLASSES !== 'undefined' && ORDERED_CLASSES.length > 0)
+            ? ORDERED_CLASSES
+            : (typeof gameClasses !== 'undefined' ? gameClasses : []);
+
+        const idxA = classOrder.indexOf(a.job);
+        const idxB = classOrder.indexOf(b.job);
+
+        const rankA = idxA === -1 ? 999 : idxA;
+        const rankB = idxB === -1 ? 999 : idxB;
+
+        // 1. 職業不同：依職業預設順序排列
+        if (rankA !== rankB) {
+            return rankA - rankB;
+        }
+
+        // 若都不在清單內，依職業文字名稱排序
+        const nameComp = (a.job || '').localeCompare(b.job || '', 'zh-Hant');
+        if (nameComp !== 0) {
+            return nameComp;
+        }
+
+        // 2. 同職業：依裝備評分由高到低（降冪）排序
+        const scoreA = Number(a.gearScore || 0);
+        const scoreB = Number(b.gearScore || 0);
+        return scoreB - scoreA;
+    });
+
+    document.getElementById('available-count').innerText = filtered.length;
+
+    if (filtered.length === 0) {
+        container.innerHTML = `<div class="text-[10px] text-gray-400 p-3 text-center">無符合成員</div>`;
+        return;
+    }
+
+    filtered.forEach(m => {
+        const assignedMain = isAssignedInMain(m.name);
+        const assignedSub = isAssignedInSub(m.name);
+
+        let isBlocked = false;
+        let badgeText = '';
+
+        if (currentMode === 'main') {
+            if (assignedMain) {
+                isBlocked = true;
+                badgeText = '已排';
+            }
+        } else {
+            if (assignedMain) {
+                isBlocked = true;
+                badgeText = '主戰已排';
+            } else if (assignedSub) {
+                isBlocked = true;
+                badgeText = '副戰已排';
+            }
+        }
+
+        const row = document.createElement('div');
+        row.className = `flex items-center justify-between px-2 py-1.5 rounded-lg border text-[11px] transition bg-white cursor-pointer select-none ${
+            isBlocked ? 'opacity-40 border-gray-200' : 'border-gray-200 shadow-2xs hover:border-indigo-400'
+        }`;
+
+        // 🎯 核心改動：左鍵點兩下觸發成員歷程彈窗（無論是否已排班皆可雙擊查看）
+        row.ondblclick = () => openMemberHistoryModal(m.name);
+        row.title = "左鍵點兩下查看成員異動歷程";
+
+        let actionHtml = isBlocked ? 
+            `<span class="text-gray-400 font-bold bg-gray-100 px-1.5 py-0.5 rounded text-[9px] shrink-0">${badgeText}</span>` :
+            `<button onclick="assignToFirstAvailable('${m.name}')" class="bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white font-bold px-2 py-0.5 rounded transition text-[10px] shrink-0">指派</button>`;
+
+        // ⚔️ 裝評：第二行顯示、純灰字、千分位、大於 0 才顯示
+        const rawScore = Number(m.gearScore || 0);
+        const gearScoreHtml = rawScore > 0 
+            ? `<div class="text-[10px] font-medium text-slate-400 font-mono tracking-tight pl-0.5">裝評: ${rawScore.toLocaleString()}</div>` 
+            : '';
+
+        row.innerHTML = `
+            <div class="flex flex-col min-w-0 pr-1 gap-0.5">
+                <!-- 第一行：職業膠囊 ➔ 成員暱稱 -->
+                <div class="flex items-center gap-1 min-w-0">
+                    <span class="job-card-${m.job} px-1 py-0.2 rounded font-bold text-[9px] border shrink-0">${m.job}</span>
+                    <span class="font-bold text-gray-800 truncate text-[11px]">${m.name}</span>
+                </div>
+                <!-- 第二行：裝備評分 (灰字) -->
+                ${gearScoreHtml}
+            </div>
+            ${actionHtml}
+        `;
+
+        if (!isBlocked) {
+            row.draggable = true;
+            row.ondragstart = (e) => e.dataTransfer.setData('text/plain', m.name);
+        }
+        container.appendChild(row);
+    });
+}
         function assignToFirstAvailable(name) {
             const squads = (currentMode === 'main') ? mainSquads : subSquads;
             for (let squad of squads) {
@@ -945,100 +1037,233 @@
             renderClassStatsTable();
         }
 
-        function createSquadCardHtml(squad) {
-            let slotsHtml = '';
-            for (let i = 0; i < 5; i++) {
-                const member = squad.members[i];
-                if (member) {
-                    const info = getMemberJobInfo(member);
-                    const memberIsOnLeave = isLeave(member);
-                    const isConflictInMain = (currentMode === 'sub') && isAssignedInMain(member);
+        // ==========================================
+// 打開成員歷程彈窗（支援左鍵雙擊觸發）
+// ==========================================
+function openMemberHistoryModal(identifier) {
+  if (!identifier) return;
 
-                    if (memberIsOnLeave) {
-                        slotsHtml += `
-                            <div class="flex items-center justify-between job-card-leave-today px-2 py-1.5 rounded-lg border text-xs font-black shadow-xs">
-                                <div class="flex items-center gap-1 min-w-0">
-                                    <span class="bg-red-600 text-white text-[9px] px-1 py-0.2 rounded font-black shrink-0">請假</span>
-                                    <span class="truncate">${member}</span>
-                                </div>
-                                <button onclick="removeMemberFromSquad(${squad.id}, ${i})" class="opacity-80 hover:opacity-100 p-0.5 text-red-700 hover:text-red-900 shrink-0 sort-hidden" title="從隊伍移除"><i class="fa-solid fa-xmark"></i></button>
+  // 1. 在本地會員資料庫 (membersData) 中尋找對應成員 (支援以 遊戲暱稱 或 lineUserId 匹配)
+  const member = (typeof membersData !== 'undefined' ? membersData : []).find(m => 
+    m.gameNickname === identifier || m.lineUserId === identifier
+  );
+
+  if (!member) {
+    alert("找不到該成員詳細資料！");
+    return;
+  }
+
+  // 2. 填入成員基本資料
+  document.getElementById('histGameNickname').textContent = member.gameNickname || '-';
+  document.getElementById('histGameClass').textContent = member.gameClass || '-';
+  document.getElementById('histLineName').textContent = member.lineDisplayName || member.lineName || '-';
+  document.getElementById('histGuildRole').textContent = member.guildRole || '成員';
+  document.getElementById('histAccountStatus').textContent = member.accountStatus || '已審核';
+  document.getElementById('histTeamGroup').textContent = member.teamGroup || '未分配';
+
+  // 勾選狀態 (若無此欄位則預設勾選)
+  const lineCheck = document.getElementById('histLineGroupCheck');
+  const dcCheck = document.getElementById('histDcGroupCheck');
+  if (lineCheck) lineCheck.textContent = member.inLineGroup === false ? '✕' : '✓';
+  if (dcCheck) dcCheck.textContent = member.inDcGroup === false ? '✕' : '✓';
+
+  // 3. 渲染異動歷程明細
+  const logsContainer = document.getElementById('histLogsContainer');
+  const logCount = document.getElementById('histLogCount');
+  logsContainer.innerHTML = '';
+
+  const logs = member.historyLogs || member.auditLogs || [];
+  logCount.textContent = `共 ${logs.length} 筆紀錄`;
+
+  if (logs.length === 0) {
+    logsContainer.innerHTML = `
+      <div class="p-3 rounded-2xl bg-slate-50 border border-slate-100 text-center text-slate-400 text-[11px]">
+        暫無異動紀錄
+      </div>`;
+  } else {
+    logs.forEach(log => {
+      const logItem = document.createElement('div');
+      logItem.className = 'p-2.5 rounded-2xl bg-[#F8FAFC] border border-indigo-50 space-y-1 text-left';
+      logItem.innerHTML = `
+        <div class="flex items-center justify-between text-[10px]">
+          <span class="font-black text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md">${log.action || '資料變更'}</span>
+          <span class="text-slate-400">${log.timestamp || ''}</span>
+        </div>
+        <div class="text-[11px] text-slate-800 font-bold pl-0.5">
+          ${log.detail || `${log.oldValue || ''} ➔ ${log.newValue || ''}`}
+        </div>
+      `;
+      logsContainer.appendChild(logItem);
+    });
+  }
+
+  // 4. 顯示彈窗
+  document.getElementById('memberHistoryModal').classList.remove('hidden');
+}
+
+function closeMemberHistoryModal() {
+  document.getElementById('memberHistoryModal').classList.add('hidden');
+}
+
+       // 🎯 隊伍卡片生成（隊內先按職業排序再依裝評降冪、裝評獨立第二行灰字、左鍵雙擊查看歷程、衝突/請假警告）
+function createSquadCardHtml(squad) {
+    let slotsHtml = '';
+
+    // 1. 取出隊伍中非空的成員
+    const filledMembers = squad.members.filter(m => m && m.trim());
+
+    // 2. 隊內成員排序：先按職業順序，同職業再依裝評由高至低
+    filledMembers.sort((nameA, nameB) => {
+        const infoA = getMemberJobInfo ? getMemberJobInfo(nameA) : { job: getMemberJob(nameA) };
+        const infoB = getMemberJobInfo ? getMemberJobInfo(nameB) : { job: getMemberJob(nameB) };
+
+        const classOrder = (typeof ORDERED_CLASSES !== 'undefined' && ORDERED_CLASSES.length > 0)
+            ? ORDERED_CLASSES
+            : (typeof gameClasses !== 'undefined' ? gameClasses : []);
+
+        const idxA = classOrder.indexOf(infoA.job);
+        const idxB = classOrder.indexOf(infoB.job);
+
+        const rankA = idxA === -1 ? 999 : idxA;
+        const rankB = idxB === -1 ? 999 : idxB;
+
+        // 先依職業順序排序
+        if (rankA !== rankB) {
+            return rankA - rankB;
+        }
+
+        // 若同為未知職業，依文字排序
+        const nameComp = (infoA.job || '').localeCompare(infoB.job || '', 'zh-Hant');
+        if (nameComp !== 0) {
+            return nameComp;
+        }
+
+        // 同職業：從 masterMembers 取得裝備評分降冪排列
+        const memberObjA = (typeof masterMembers !== 'undefined' ? masterMembers : []).find(m => m.name === nameA);
+        const memberObjB = (typeof masterMembers !== 'undefined' ? masterMembers : []).find(m => m.name === nameB);
+        const scoreA = Number((memberObjA && memberObjA.gearScore) || 0);
+        const scoreB = Number((memberObjB && memberObjB.gearScore) || 0);
+
+        return scoreB - scoreA;
+    });
+
+    // 3. 補齊 5 人陣列渲染隊伍格子
+    for (let i = 0; i < 5; i++) {
+        const member = filledMembers[i];
+        if (member) {
+            const info = getMemberJobInfo ? getMemberJobInfo(member) : { job: getMemberJob(member), isUnknown: false };
+            const memberIsOnLeave = isLeave(member);
+            const isConflictInMain = (currentMode === 'sub') && isAssignedInMain(member);
+
+            // 取得裝評數值
+            const memberObj = (typeof masterMembers !== 'undefined' ? masterMembers : []).find(m => m.name === member);
+            const rawScore = Number((memberObj && memberObj.gearScore) || 0);
+            const gearScoreHtml = rawScore > 0 
+                ? `<div class="text-[10px] font-medium text-slate-400 font-mono tracking-tight pl-0.5">裝評: ${rawScore.toLocaleString()}</div>` 
+                : '';
+
+            if (memberIsOnLeave) {
+                // 1. 今日請假
+                slotsHtml += `
+                    <div ondblclick="openMemberHistoryModal('${member}')" class="flex items-center justify-between job-card-leave-today px-2.5 py-1.5 rounded-lg border text-xs font-black shadow-xs cursor-pointer select-none" title="⚠️ 此成員今日已登記請假！(左鍵雙擊查看歷程)">
+                        <div class="flex flex-col min-w-0 pr-1 gap-0.5">
+                            <div class="flex items-center gap-1 min-w-0">
+                                <span class="bg-red-600 text-white text-[9px] px-1 py-0.2 rounded font-black shrink-0">請假</span>
+                                <span class="truncate">${member}</span>
                             </div>
-                        `;
-                    } else if (isConflictInMain) {
-                        slotsHtml += `
-                            <div class="flex items-center justify-between job-card-leave-today px-2 py-1.5 rounded-lg border text-xs font-black shadow-xs">
-                                <div class="flex items-center gap-1 min-w-0">
-                                    <span class="bg-rose-700 text-white text-[9px] px-1 py-0.2 rounded font-black shrink-0">主戰已排</span>
-                                    <span class="truncate font-black text-rose-950">${member}</span>
-                                </div>
-                                <button onclick="removeMemberFromSquad(${squad.id}, ${i})" class="opacity-80 hover:opacity-100 p-0.5 text-red-700 hover:text-red-900 shrink-0 sort-hidden" title="從副戰移除"><i class="fa-solid fa-xmark"></i></button>
-                            </div>
-                        `;
-                    } else if (info.isUnknown) {
-                        slotsHtml += `
-                            <div class="flex items-center justify-between job-card-unknown px-2 py-1.5 rounded-lg border text-xs font-bold shadow-2xs">
-                                <div class="flex items-center gap-1 min-w-0">
-                                    <span class="text-amber-600 text-[11px]"><i class="fa-solid fa-triangle-exclamation"></i></span>
-                                    <span class="truncate">${member}</span>
-                                </div>
-                                <button onclick="removeMemberFromSquad(${squad.id}, ${i})" class="opacity-70 hover:opacity-100 p-0.5 text-gray-500 hover:text-red-600 shrink-0 sort-hidden"><i class="fa-solid fa-xmark"></i></button>
-                            </div>
-                        `;
-                    } else {
-                        slotsHtml += `
-                            <div class="flex items-center justify-between job-card-${info.job} px-2.5 py-1.5 rounded-lg border text-xs font-bold shadow-2xs">
-                                <span class="truncate pr-1">${member}</span>
-                                <button onclick="removeMemberFromSquad(${squad.id}, ${i})" class="opacity-70 hover:opacity-100 p-0.5 shrink-0 sort-hidden"><i class="fa-solid fa-xmark"></i></button>
-                            </div>
-                        `;
-                    }
-                } else {
-                    slotsHtml += `
-                    <div class="slot-card flex items-center justify-center bg-gray-50 hover:bg-indigo-50/50 hover:border-indigo-400 border border-dashed border-gray-300 rounded-lg text-[11px] text-gray-400 hover:text-indigo-600 py-1 cursor-pointer transition sort-hidden"
-                         title="點擊可手動直接輸入成員名稱，或從左側拖曳"
-                         onclick="promptManualAssignToSquad(${squad.id})"
-                         ondragover="allowDrop(event)" ondragleave="removeDropStyle(event)" ondrop="dropToSquad(event, ${squad.id})">
-                        + 空位 (自訂)
+                            ${gearScoreHtml}
+                        </div>
+                        <button onclick="removeMemberFromSquad(${squad.id}, ${i})" class="opacity-80 hover:opacity-100 p-0.5 text-red-700 hover:text-red-900 shrink-0 sort-hidden" title="從隊伍移除"><i class="fa-solid fa-xmark"></i></button>
                     </div>
                 `;
-                }
-            }
-
-            const mergedGroups = (currentMode === 'main') ? mainMergedGroups : subMergedGroups;
-            const inGroup = mergedGroups.some(g => g.squadIds.includes(squad.id));
-            let sortButtonsHtml = '';
-            if (!inGroup) {
-                const masterOrder = (currentMode === 'main') ? mainMasterOrder : subMasterOrder;
-                const mIndex = masterOrder.findIndex(item => item.type === 'squad' && item.id === squad.id);
-                sortButtonsHtml = `
-                    <div class="flex gap-0.5 text-[9px] sort-hidden">
-                        <button onclick="moveMasterOrderTarget(${mIndex}, 'first')" class="bg-white hover:bg-gray-200 px-1 py-0.5 rounded font-bold text-gray-600">《</button>
-                        <button onclick="moveMasterOrder(${mIndex}, -1)" class="bg-white hover:bg-gray-200 px-1 py-0.5 rounded font-bold text-gray-600">〈</button>
-                        <button onclick="moveMasterOrder(${mIndex}, 1)" class="bg-white hover:bg-gray-200 px-1 py-0.5 rounded font-bold text-gray-600">〉</button>
-                        <button onclick="moveMasterOrderTarget(${mIndex}, 'last')" class="bg-white hover:bg-gray-200 px-1 py-0.5 rounded font-bold text-gray-600">》</button>
+            } else if (isConflictInMain) {
+                // 2. 副戰中發現已被主戰排定
+                slotsHtml += `
+                    <div ondblclick="openMemberHistoryModal('${member}')" class="flex items-center justify-between job-card-leave-today px-2.5 py-1.5 rounded-lg border text-xs font-black shadow-xs cursor-pointer select-none" title="🚨 異常警告：此成員已被排在主戰場名單中！(左鍵雙擊查看歷程)">
+                        <div class="flex flex-col min-w-0 pr-1 gap-0.5">
+                            <div class="flex items-center gap-1 min-w-0">
+                                <span class="bg-rose-700 text-white text-[9px] px-1 py-0.2 rounded font-black shrink-0">主戰已排</span>
+                                <span class="truncate font-black text-rose-950">${member}</span>
+                            </div>
+                            ${gearScoreHtml}
+                        </div>
+                        <button onclick="removeMemberFromSquad(${squad.id}, ${i})" class="opacity-80 hover:opacity-100 p-0.5 text-red-700 hover:text-red-900 shrink-0 sort-hidden" title="從副戰移除"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                `;
+            } else if (info.isUnknown) {
+                // 3. 改名或查無資料庫綁定
+                slotsHtml += `
+                    <div ondblclick="openMemberHistoryModal('${member}')" class="flex items-center justify-between job-card-unknown px-2.5 py-1.5 rounded-lg border text-xs font-bold shadow-2xs cursor-pointer select-none" title="名冊查無此暱稱（可能已改名或尚未綁定，左鍵雙擊查看歷程）">
+                        <div class="flex flex-col min-w-0 pr-1 gap-0.5">
+                            <div class="flex items-center gap-1 min-w-0">
+                                <span class="text-amber-600 text-[11px]"><i class="fa-solid fa-triangle-exclamation"></i></span>
+                                <span class="truncate">${member}</span>
+                            </div>
+                            ${gearScoreHtml}
+                        </div>
+                        <button onclick="removeMemberFromSquad(${squad.id}, ${i})" class="opacity-70 hover:opacity-100 p-0.5 text-gray-500 hover:text-red-600 shrink-0 sort-hidden"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                `;
+            } else {
+                // 4. 正常出戰名單
+                slotsHtml += `
+                    <div ondblclick="openMemberHistoryModal('${member}')" class="flex items-center justify-between job-card-${info.job} px-2.5 py-1.5 rounded-lg border text-xs font-bold shadow-2xs cursor-pointer select-none" title="左鍵點兩下查看歷程明細">
+                        <div class="flex flex-col min-w-0 pr-1 gap-0.5">
+                            <span class="truncate pr-1">${member}</span>
+                            ${gearScoreHtml}
+                        </div>
+                        <button onclick="removeMemberFromSquad(${squad.id}, ${i})" class="opacity-70 hover:opacity-100 p-0.5 shrink-0 sort-hidden"><i class="fa-solid fa-xmark"></i></button>
                     </div>
                 `;
             }
-
-            return `
-                <div class="bg-white border border-gray-300 rounded-xl shadow-xs overflow-hidden flex flex-col">
-                    <div class="bg-gray-100 px-2.5 py-1.5 border-b border-gray-200 flex justify-between items-center">
-                        <div class="flex items-center gap-1 min-w-0">
-                            <input type="text" value="${squad.name}" oninput="updateSquadName(${squad.id}, this.value)" class="bg-transparent text-xs font-black text-gray-800 w-24 focus:outline-none focus:bg-white px-1 py-0.5 rounded border border-transparent focus:border-indigo-400">
-                            ${sortButtonsHtml}
-                        </div>
-                        <div class="flex items-center gap-1 shrink-0">
-                            <span class="text-[10px] font-bold ${squad.members.length === 5 ? 'text-emerald-600' : 'text-amber-600'}">${squad.members.length}/5</span>
-                            <button onclick="deleteSquad(${squad.id})" class="text-gray-400 hover:text-red-600 text-xs sort-hidden"><i class="fa-solid fa-trash-can"></i></button>
-                        </div>
-                    </div>
-                    <div class="p-2 flex flex-col gap-1.5 bg-gray-50/50"
-                         ondragover="allowDrop(event)" ondragleave="removeDropStyle(event)" ondrop="dropToSquad(event, ${squad.id})">
-                        ${slotsHtml}
-                    </div>
+        } else {
+            // 空位
+            slotsHtml += `
+                <div class="slot-card flex items-center justify-center bg-gray-50 hover:bg-indigo-50/50 hover:border-indigo-400 border border-dashed border-gray-300 rounded-lg text-[11px] text-gray-400 hover:text-indigo-600 py-1 cursor-pointer transition sort-hidden"
+                     title="點擊可手動直接輸入成員名稱，或從左側拖曳"
+                     onclick="promptManualAssignToSquad(${squad.id})"
+                     ondragover="allowDrop(event)" ondragleave="removeDropStyle(event)" ondrop="dropToSquad(event, ${squad.id})">
+                    + 空位 (自訂)
                 </div>
             `;
         }
+    }
+
+    const mergedGroups = (currentMode === 'main') ? mainMergedGroups : subMergedGroups;
+    const inGroup = mergedGroups.some(g => g.squadIds.includes(squad.id));
+    let sortButtonsHtml = '';
+    if (!inGroup) {
+        const masterOrder = (currentMode === 'main') ? mainMasterOrder : subMasterOrder;
+        const mIndex = masterOrder.findIndex(item => item.type === 'squad' && item.id === squad.id);
+        sortButtonsHtml = `
+            <div class="flex gap-0.5 text-[9px] sort-hidden">
+                <button onclick="moveMasterOrderTarget(${mIndex}, 'first')" class="bg-white hover:bg-gray-200 px-1 py-0.5 rounded font-bold text-gray-600">《</button>
+                <button onclick="moveMasterOrder(${mIndex}, -1)" class="bg-white hover:bg-gray-200 px-1 py-0.5 rounded font-bold text-gray-600">〈</button>
+                <button onclick="moveMasterOrder(${mIndex}, 1)" class="bg-white hover:bg-gray-200 px-1 py-0.5 rounded font-bold text-gray-600">〉</button>
+                <button onclick="moveMasterOrderTarget(${mIndex}, 'last')" class="bg-white hover:bg-gray-200 px-1 py-0.5 rounded font-bold text-gray-600">》</button>
+            </div>
+        `;
+    }
+
+    return `
+        <div class="bg-white border border-gray-300 rounded-xl shadow-xs overflow-hidden flex flex-col">
+            <div class="bg-gray-100 px-2.5 py-1.5 border-b border-gray-200 flex justify-between items-center">
+                <div class="flex items-center gap-1 min-w-0">
+                    <input type="text" value="${squad.name}" oninput="updateSquadName(${squad.id}, this.value)" class="bg-transparent text-xs font-black text-gray-800 w-24 focus:outline-none focus:bg-white px-1 py-0.5 rounded border border-transparent focus:border-indigo-400">
+                    ${sortButtonsHtml}
+                </div>
+                <div class="flex items-center gap-1 shrink-0">
+                    <span class="text-[10px] font-bold ${squad.members.length === 5 ? 'text-emerald-600' : 'text-amber-600'}">${squad.members.length}/5</span>
+                    <button onclick="deleteSquad(${squad.id})" class="text-gray-400 hover:text-red-600 text-xs sort-hidden"><i class="fa-solid fa-trash-can"></i></button>
+                </div>
+            </div>
+            <div class="p-2 flex flex-col gap-1.5 bg-gray-50/50"
+                 ondragover="allowDrop(event)" ondragleave="removeDropStyle(event)" ondrop="dropToSquad(event, ${squad.id})">
+                ${slotsHtml}
+            </div>
+        </div>
+    `;
+}
 
         // 🎯 底部：動態依已安排人員之「職業分類統計表」
         function renderClassStatsTable() {
