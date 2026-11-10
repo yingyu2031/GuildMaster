@@ -1037,79 +1037,115 @@ function renderMemberList() {
         }
 
 // ==========================================
-// 打開成員歷程彈窗（已對接 /api/admin/members/logs API 與精準解析）
+// 打開成員歷程彈窗（精準對焦各項資料欄位）
 // ==========================================
 async function openMemberHistoryModal(name) {
     if (!name || name.trim() === '') return;
 
-    // 1. 本地基本資料尋找
+    // 1. 本地基本資料對焦 (相容 masterMembers / membersData)
     const memberPool = (typeof masterMembers !== 'undefined' && masterMembers.length > 0)
         ? masterMembers
         : (typeof membersData !== 'undefined' ? membersData : []);
 
-    const localMember = memberPool.find(m => (m.name === name || m.gameNickname === name));
+    let m = memberPool.find(x => (x.name === name || x.gameNickname === name));
 
-    // 先帶入畫面預設值
+    // 先打開彈窗並初始化介面
     document.getElementById('histGameNickname').textContent = name;
-    document.getElementById('histGameClass').textContent = localMember ? (localMember.job || localMember.gameClass || '-') : '查詢中...';
-    document.getElementById('histLineName').textContent = '查詢中...';
-    document.getElementById('histGuildRole').textContent = '現任';
-    document.getElementById('histRegion').textContent = '台灣 (LINE)';
-    document.getElementById('histAccountStatus').textContent = '已審核';
-    document.getElementById('histTeamGroup').textContent = (localMember && localMember.teamGroup) || '未分配';
+    document.getElementById('histGameClass').textContent = m ? (m.job || m.gameClass || '-') : '查詢中...';
+    document.getElementById('histLineName').textContent = (m && (m.lineName || m.lineDisplayName)) || '查詢中...';
+    document.getElementById('histGuildRole').textContent = (m && m.guildRole) || '現任';
+    document.getElementById('histRegion').textContent = (m && m.tw === 'N') ? '大陸 (DC)' : '台灣 (LINE)';
+    document.getElementById('histAccountStatus').textContent = (m && m.accountStatus) || '已審核';
+    document.getElementById('histTeamGroup').textContent = (m && m.teamGroup) || '未分配';
     document.getElementById('histLogCount').textContent = '(載入中...)';
     document.getElementById('histLogsContainer').innerHTML = '<div class="text-[10px] text-slate-400 py-3 text-center">⏳ 正在同步歷史異動紀錄...</div>';
 
-    // 打開彈窗
     document.getElementById('memberHistoryModal').classList.remove('hidden');
 
-    let resolvedLineUserId = (localMember && localMember.lineUserId) || (localMember && localMember.uid) || '';
+    let targetUid = (m && (m.lineUserId || m.uid || m.dcid)) || '';
 
-    // 2. 向後端查詢該成員 Profile（確認 lineUserId 與小團隊等資料）
+    // 2. 向完整會員清單或搜尋 API 進行深度對齊
     try {
-        const res = await fetch(`/api/members/search-for-claim?q=${encodeURIComponent(name)}`);
-        const data = await res.json();
+        let fullMember = null;
 
-        if (data && data.status === 'success' && Array.isArray(data.members)) {
-            const m = data.members.find(x => x.gameNickname === name) || data.members[0];
-            if (m) {
-                resolvedLineUserId = m.lineUserId || resolvedLineUserId;
-                document.getElementById('histGameClass').textContent = m.gameClass || localMember?.job || '-';
-                document.getElementById('histLineName').textContent = m.lineDisplayName || '-';
-                document.getElementById('histGuildRole').textContent = m.guildRole || '現任';
-                document.getElementById('histRegion').textContent = (m.tw === 'N' || m.region === '大陸') ? '大陸 (DC)' : '台灣 (LINE)';
-                document.getElementById('histAccountStatus').textContent = m.accountStatus || '已審核';
-                document.getElementById('histTeamGroup').textContent = m.teamGroup || '媽咪團';
+        // A. 優先嘗試從幹部會員列表查詢完整物件
+        const adminRes = await fetch(`/api/admin/members`);
+        if (adminRes.ok) {
+            const adminData = await adminRes.json();
+            if (adminData && adminData.status === 'success' && Array.isArray(adminData.members)) {
+                fullMember = adminData.members.find(x => x.gameNickname === name || x.name === name);
+            }
+        }
 
-                // 群組狀態徽章
-                const lineBadge = document.getElementById('histLineGroupBadge');
-                const dcBadge = document.getElementById('histDcGroupBadge');
-                if (m.joinedLineGroup === 'N') {
-                    lineBadge.className = "flex-1 text-center py-1 rounded-md text-[10px] font-bold border bg-slate-50 text-slate-400 border-slate-200";
-                    lineBadge.textContent = "LINE 群 ✕";
-                } else {
-                    lineBadge.className = "flex-1 text-center py-1 rounded-md text-[10px] font-black border bg-emerald-50 text-emerald-700 border-emerald-200";
-                    lineBadge.textContent = "LINE 群 ✓";
-                }
-
-                if (m.joinedDc === 'N') {
-                    dcBadge.className = "flex-1 text-center py-1 rounded-md text-[10px] font-bold border bg-slate-50 text-slate-400 border-slate-200";
-                    dcBadge.textContent = "DC 群 ✕";
-                } else {
-                    dcBadge.className = "flex-1 text-center py-1 rounded-md text-[10px] font-black border bg-indigo-50 text-indigo-700 border-indigo-200";
-                    dcBadge.textContent = "DC 群 ✓";
+        // B. 若 admin 端點權限不通，降級走 search-for-claim
+        if (!fullMember) {
+            const claimRes = await fetch(`/api/members/search-for-claim?q=${encodeURIComponent(name)}`);
+            if (claimRes.ok) {
+                const claimData = await claimRes.json();
+                if (claimData && claimData.status === 'success' && Array.isArray(claimData.members)) {
+                    fullMember = claimData.members.find(x => x.gameNickname === name) || claimData.members[0];
                 }
             }
         }
+
+        // 3. 取得完整資料後，精準對焦各個欄位
+        if (fullMember) {
+            m = fullMember;
+            targetUid = m.lineUserId || m.uid || targetUid;
+
+            // ① 職業
+            document.getElementById('histGameClass').textContent = m.gameClass || m.job || '-';
+            
+            // ② LINE 暱稱
+            document.getElementById('histLineName').textContent = m.lineDisplayName || m.lineName || '-';
+            
+            // ③ 公會身分 (幹部 / 現任)
+            const roleEl = document.getElementById('histGuildRole');
+            const roleText = m.guildRole || '現任';
+            roleEl.textContent = roleText;
+            roleEl.className = roleText.includes('幹部') 
+                ? "bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-amber-700 font-black truncate"
+                : "bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-indigo-700 font-black truncate";
+
+            // ④ 地區通道 (判定 tw 是否為 N)
+            const isTw = !(m.tw === 'N' || m.region === '大陸');
+            document.getElementById('histRegion').textContent = isTw ? '台灣 (LINE)' : '大陸 (DC)';
+
+            // ⑤ 審核狀態
+            document.getElementById('histAccountStatus').textContent = m.accountStatus || '已審核';
+
+            // ⑥ 小團隊 (真實團隊名稱，若無則顯示未分配)
+            document.getElementById('histTeamGroup').textContent = (m.teamGroup && m.teamGroup.trim()) ? m.teamGroup : '未分配';
+
+            // ⑦ 加入 LINE 群狀態對焦
+            const isLineJoined = (m.joinedLineGroup === 'Y' || m.joinedLine === '已入群' || m.joined_line_group === 'Y');
+            const lineBadge = document.getElementById('histLineGroupBadge');
+            if (lineBadge) {
+                lineBadge.className = isLineJoined 
+                    ? "flex-1 text-center py-1 rounded-md text-[10px] font-black border bg-emerald-50 text-emerald-700 border-emerald-200"
+                    : "flex-1 text-center py-1 rounded-md text-[10px] font-bold border bg-slate-50 text-slate-400 border-slate-200";
+                lineBadge.textContent = isLineJoined ? "LINE 群 ✓" : "LINE 群 ✕";
+            }
+
+            // ⑧ 加入 DC 群狀態對焦
+            const isDcJoined = (m.joinedDc === 'Y' || m.joinedDc === '已入DC' || m.joined_dc === 'Y' || (m.dcid && m.dcid !== '-'));
+            const dcBadge = document.getElementById('histDcGroupBadge');
+            if (dcBadge) {
+                dcBadge.className = isDcJoined 
+                    ? "flex-1 text-center py-1 rounded-md text-[10px] font-black border bg-indigo-50 text-indigo-700 border-indigo-200"
+                    : "flex-1 text-center py-1 rounded-md text-[10px] font-bold border bg-slate-50 text-slate-400 border-slate-200";
+                dcBadge.textContent = isDcJoined ? "DC 群 ✓" : "DC 群 ✕";
+            }
+        }
     } catch (err) {
-        console.warn('查詢成員資料警告:', err);
+        console.warn('會員詳細資料對焦連線警告:', err);
     }
 
-    // 3. 向後端 Logs API 查詢「改名、裝評、職業」歷史明細
+    // 4. 取得該成員專屬的異動日誌 (歷史記錄)
     try {
         let logs = [];
-        if (resolvedLineUserId) {
-            const logRes = await fetch(`/api/admin/members/logs/${encodeURIComponent(resolvedLineUserId)}`);
+        if (targetUid) {
+            const logRes = await fetch(`/api/admin/members/logs/${encodeURIComponent(targetUid)}`);
             if (logRes.ok) {
                 const logData = await logRes.json();
                 if (logData.status === "success" && Array.isArray(logData.logs)) {
@@ -1117,11 +1153,10 @@ async function openMemberHistoryModal(name) {
                 }
             }
         }
-
-        renderDetailedHistoryLogs(logs, name, localMember ? localMember.job : '');
+        renderDetailedHistoryLogs(logs, name, m ? (m.job || m.gameClass) : '');
     } catch (err) {
         console.error('查詢歷程 API 失敗:', err);
-        renderDetailedHistoryLogs([], name, localMember ? localMember.job : '');
+        renderDetailedHistoryLogs([], name, m ? (m.job || m.gameClass) : '');
     }
 }
 
