@@ -2274,6 +2274,10 @@ app.post('/api/squads/:mode/save', async (req, res) => {
 // 🛡️ 在線幹部管理與 IP 記錄模組 (同 IP 精準去重版)
 // ==========================================
 
+// 補回管理帳密定義
+const ADMIN_USER = process.env.ADMIN_USER || "admin";
+const ADMIN_PASS = process.env.ADMIN_PASS || "lv123";
+
 // 儲存當前在線幹部名單 (以 clientIp 作為唯一 key，徹底杜絕重複分身)
 const activeSessions = new Map();
 
