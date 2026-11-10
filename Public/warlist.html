@@ -557,6 +557,70 @@
             }
         }
 
+            // ==========================================
+            // ⚔️ 多幹部協作：版本檢測與即時同步
+            // ==========================================
+            let currentClientVersion = Date.now();
+            let squadSyncTimer = null;
+            
+            // 啟動背景版本檢查（每 5 秒檢查一次）
+            function startSquadSyncPolling() {
+                if (squadSyncTimer) clearInterval(squadSyncTimer);
+                
+                // 初始化基準時間（對齊當前時間）
+                currentClientVersion = Date.now();
+            
+                squadSyncTimer = setInterval(async () => {
+                    try {
+                        const res = await fetch('/api/squads/version');
+                        if (!res.ok) return;
+                        const data = await res.json();
+                        
+                        // 伺服器上的版本比本地載入時間新超過 1.5 秒，代表其他幹部剛送出更新
+                        if (data.updatedAt && Number(data.updatedAt) > currentClientVersion + 1500) {
+                            showSyncNotification(data.updatedBy);
+                        }
+                    } catch (e) {
+                        // 靜默處理網路微斷線
+                    }
+                }, 5000);
+            }
+            
+            // 頂部浮動同步提示條
+            function showSyncNotification(operator) {
+                let bar = document.getElementById('syncNotifyBar');
+                if (!bar) {
+                    bar = document.createElement('div');
+                    bar.id = 'syncNotifyBar';
+                    bar.className = 'fixed top-3 left-1/2 -translate-x-1/2 z-50 bg-amber-500 text-white font-black text-xs px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-3 animate-bounce select-none';
+                    bar.innerHTML = `
+                        <span>⚠️ 偵測到【${operator || '其他幹部'}】剛剛更新了排班名單！</span>
+                        <button onclick="reloadLatestSquads()" class="bg-white text-amber-800 px-2.5 py-1 rounded-xl text-[11px] font-black hover:bg-amber-100 transition shadow-xs cursor-pointer">
+                            立即同步最新名單
+                        </button>
+                    `;
+                    document.body.appendChild(bar);
+                }
+            }
+            
+            // 點擊按鈕無縫重新載入最新資料
+            async function reloadLatestSquads() {
+                const bar = document.getElementById('syncNotifyBar');
+                if (bar) bar.remove();
+                
+                // 對齊您專案中的實際載入函式 (自動相容 preloadAllRosterData 或 onDateChanged)
+                if (typeof preloadAllRosterData === 'function') {
+                    await preloadAllRosterData();
+                } else if (typeof onDateChanged === 'function') {
+                    await onDateChanged();
+                } else if (typeof loadAllData === 'function') {
+                    await loadAllData();
+                }
+                
+                // 重置前端版本時間戳記
+                currentClientVersion = Date.now();
+            }
+
         function setupHorizontalScroll() {
             const wrapper = document.getElementById('rosterWrapper');
             if (!wrapper) return;
