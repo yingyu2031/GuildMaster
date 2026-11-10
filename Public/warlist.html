@@ -1037,72 +1037,112 @@ function renderMemberList() {
             renderClassStatsTable();
         }
 
-        // ==========================================
-// 打開成員歷程彈窗（支援左鍵雙擊觸發）
 // ==========================================
-function openMemberHistoryModal(identifier) {
-  if (!identifier) return;
+// 打開成員歷程彈窗（已修復找不到成員與 API 對接）
+// ==========================================
+async function openMemberHistoryModal(name) {
+    if (!name || name.trim() === '') return;
 
-  // 1. 在本地會員資料庫 (membersData) 中尋找對應成員 (支援以 遊戲暱稱 或 lineUserId 匹配)
-  const member = (typeof membersData !== 'undefined' ? membersData : []).find(m => 
-    m.gameNickname === identifier || m.lineUserId === identifier
-  );
+    // 1. 本地資料尋找：同時支援 m.name (名冊端) 與 m.gameNickname
+    const memberPool = (typeof masterMembers !== 'undefined' && masterMembers.length > 0)
+        ? masterMembers
+        : (typeof membersData !== 'undefined' ? membersData : []);
 
-  if (!member) {
-    alert("找不到該成員詳細資料！");
-    return;
-  }
+    const localMember = memberPool.find(m => (m.name === name || m.gameNickname === name));
 
-  // 2. 填入成員基本資料
-  document.getElementById('histGameNickname').textContent = member.gameNickname || '-';
-  document.getElementById('histGameClass').textContent = member.gameClass || '-';
-  document.getElementById('histLineName').textContent = member.lineDisplayName || member.lineName || '-';
-  document.getElementById('histGuildRole').textContent = member.guildRole || '成員';
-  document.getElementById('histAccountStatus').textContent = member.accountStatus || '已審核';
-  document.getElementById('histTeamGroup').textContent = member.teamGroup || '未分配';
+    // 2. 先帶入已知基本資料（避免空窗等待）
+    document.getElementById('histGameNickname').textContent = name;
+    document.getElementById('histGameClass').textContent = localMember ? (localMember.job || localMember.gameClass || '-') : '查詢中...';
+    document.getElementById('histLineName').textContent = '查詢中...';
+    document.getElementById('histGuildRole').textContent = '查詢中...';
+    document.getElementById('histRegion').textContent = '台灣 (LINE)';
+    document.getElementById('histAccountStatus').textContent = '已審核';
+    document.getElementById('histTeamGroup').textContent = '載入中...';
+    document.getElementById('histLogCount').textContent = '讀取中...';
+    document.getElementById('histLogsContainer').innerHTML = '<div class="text-xs text-slate-400 py-4 text-center">正在向資料庫取得歷程明細...</div>';
 
-  // 勾選狀態 (若無此欄位則預設勾選)
-  const lineCheck = document.getElementById('histLineGroupCheck');
-  const dcCheck = document.getElementById('histDcGroupCheck');
-  if (lineCheck) lineCheck.textContent = member.inLineGroup === false ? '✕' : '✓';
-  if (dcCheck) dcCheck.textContent = member.inDcGroup === false ? '✕' : '✓';
+    // 先打開彈窗
+    document.getElementById('memberHistoryModal').classList.remove('hidden');
 
-  // 3. 渲染異動歷程明細
-  const logsContainer = document.getElementById('histLogsContainer');
-  const logCount = document.getElementById('histLogCount');
-  logsContainer.innerHTML = '';
+    // 3. 向後端 API 查詢該成員的真實 profile 與異動日誌 (依遊戲暱稱精準查詢)
+    try {
+        const res = await fetch(`/api/members/search-for-claim?q=${encodeURIComponent(name)}`);
+        const data = await res.json();
 
-  const logs = member.historyLogs || member.auditLogs || [];
-  logCount.textContent = `共 ${logs.length} 筆紀錄`;
+        let memberDetail = null;
+        if (data && data.status === 'success' && Array.isArray(data.members)) {
+            memberDetail = data.members.find(m => m.gameNickname === name) || data.members[0];
+        }
 
-  if (logs.length === 0) {
-    logsContainer.innerHTML = `
-      <div class="p-3 rounded-2xl bg-slate-50 border border-slate-100 text-center text-slate-400 text-[11px]">
-        暫無異動紀錄
-      </div>`;
-  } else {
-    logs.forEach(log => {
-      const logItem = document.createElement('div');
-      logItem.className = 'p-2.5 rounded-2xl bg-[#F8FAFC] border border-indigo-50 space-y-1 text-left';
-      logItem.innerHTML = `
-        <div class="flex items-center justify-between text-[10px]">
-          <span class="font-black text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md">${log.action || '資料變更'}</span>
-          <span class="text-slate-400">${log.timestamp || ''}</span>
-        </div>
-        <div class="text-[11px] text-slate-800 font-bold pl-0.5">
-          ${log.detail || `${log.oldValue || ''} ➔ ${log.newValue || ''}`}
-        </div>
-      `;
-      logsContainer.appendChild(logItem);
-    });
-  }
+        if (memberDetail) {
+            document.getElementById('histGameClass').textContent = memberDetail.gameClass || localMember?.job || '-';
+            document.getElementById('histLineName').textContent = memberDetail.lineDisplayName || '-';
+            document.getElementById('histGuildRole').textContent = memberDetail.guildRole || '現任';
+            document.getElementById('histRegion').textContent = (memberDetail.tw === 'N' || memberDetail.region === '大陸') ? '大陸 (DC)' : '台灣 (LINE)';
+            document.getElementById('histAccountStatus').textContent = memberDetail.accountStatus || '已審核';
+            document.getElementById('histTeamGroup').textContent = memberDetail.teamGroup || '媽咪團';
 
-  // 4. 顯示彈窗
-  document.getElementById('memberHistoryModal').classList.remove('hidden');
+            // 勾選狀態 (LINE 群 / DC 群)
+            const lineCheck = document.getElementById('histLineGroupCheck');
+            const dcCheck = document.getElementById('histDcGroupCheck');
+            if (lineCheck) lineCheck.textContent = (memberDetail.joinedLineGroup === 'N' || memberDetail.joinedLine === '未入群') ? '✕' : '✓';
+            if (dcCheck) dcCheck.textContent = (memberDetail.joinedDc === 'N' || memberDetail.joinedDc === '未入DC') ? '✕' : '✓';
+
+            // 渲染異動明細
+            renderHistoryLogs(memberDetail.historyLogs || memberDetail.auditLogs || [], name, memberDetail.gameClass || localMember?.job);
+        } else {
+            // 後端若未查到特別明細，以本地資料展示
+            document.getElementById('histLineName').textContent = '未綁定/未填寫';
+            document.getElementById('histGuildRole').textContent = '現任成員';
+            document.getElementById('histTeamGroup').textContent = '媽咪團';
+            renderHistoryLogs([], name, localMember?.job);
+        }
+    } catch (err) {
+        console.warn('查詢成員歷程 API 失敗，使用預設值渲染:', err);
+        renderHistoryLogs([], name, localMember?.job);
+    }
+}
+
+// 輔助函式：渲染日誌列表
+function renderHistoryLogs(logs, name, job) {
+    const container = document.getElementById('histLogsContainer');
+    const logCount = document.getElementById('histLogCount');
+    container.innerHTML = '';
+
+    if (!logs || logs.length === 0) {
+        logCount.textContent = '共 1 筆紀錄';
+        container.innerHTML = `
+            <div class="p-2.5 rounded-2xl bg-[#F8FAFC] border border-indigo-50 space-y-1 text-left">
+                <div class="flex items-center justify-between text-[10px]">
+                    <span class="font-black text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md">公會成員</span>
+                    <span class="text-slate-400">目前狀態</span>
+                </div>
+                <div class="text-[11px] text-slate-800 font-bold pl-0.5">
+                    ➜ ${name} (${job || '已配置出戰'})
+                </div>
+            </div>
+        `;
+    } else {
+        logCount.textContent = `共 ${logs.length} 筆紀錄`;
+        logs.forEach(log => {
+            const div = document.createElement('div');
+            div.className = 'p-2.5 rounded-2xl bg-[#F8FAFC] border border-indigo-50 space-y-1 text-left';
+            div.innerHTML = `
+                <div class="flex items-center justify-between text-[10px]">
+                    <span class="font-black text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md">${log.action || '資料異動'}</span>
+                    <span class="text-slate-400">${log.timestamp || ''}</span>
+                </div>
+                <div class="text-[11px] text-slate-800 font-bold pl-0.5">
+                    ${log.detail || `${log.oldValue || ''} ➜ ${log.newValue || ''}`}
+                </div>
+            `;
+            container.appendChild(div);
+        });
+    }
 }
 
 function closeMemberHistoryModal() {
-  document.getElementById('memberHistoryModal').classList.add('hidden');
+    document.getElementById('memberHistoryModal').classList.add('hidden');
 }
 
        // 🎯 隊伍卡片生成（隊內先按職業排序再依裝評降冪、裝評獨立第二行灰字、左鍵雙擊查看歷程、衝突/請假警告）
