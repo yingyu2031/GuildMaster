@@ -682,23 +682,28 @@
         currentUser.isRegistered = true;
     }
 
-    function renderAppropriateCard() {
-        const isRetired = (currentUser.guildRole === '退會');
+  function renderAppropriateCard() {
+    const isRetired = (currentUser.guildRole === '退會');
+    // 💡 判斷是否為機器人自動建立的暫存占位資料
+    const isPlaceholder = (currentUser.gameNickname === '新進群待填表' || currentUser.gameNickname === '未填表');
 
-        if (currentUser.isRegistered && currentUser.accountStatus === "待審核" && !isRetired) {
-            applyPendingReviewUI();
+    // 只有「非退會」、「待審核」且「不是暫存占位」的真實申請者，才顯示審核中唯讀卡片
+    if (currentUser.isRegistered && currentUser.accountStatus === "待審核" && !isRetired && !isPlaceholder) {
+        applyPendingReviewUI();
+    } else {
+        const formCard = document.getElementById('mainFormCard');
+        formCard.classList.remove('hidden');
+        formCard.classList.add('fade-in');
+
+        // 只有「已審核通過」且「非退會」才進入資料修改模式
+        if (currentUser.isRegistered && currentUser.accountStatus === "已審核" && !isRetired) {
+            applyEditModeUI();
         } else {
-            const formCard = document.getElementById('mainFormCard');
-            formCard.classList.remove('hidden');
-            formCard.classList.add('fade-in');
-
-            if (currentUser.isRegistered && currentUser.accountStatus === "已審核" && !isRetired) {
-                applyEditModeUI();
-            } else {
-                applyNewMemberUI();
-            }
+            // 全新未登記成員、退會重新入會、或「新進群待填表」皆進入填寫模式
+            applyNewMemberUI();
         }
     }
+}
 
     function escapeHtml(text) {
         if (!text) return '';
@@ -808,15 +813,16 @@
         document.getElementById('confirmModal').classList.add('hidden');
     }
 
-    async function executeFinalSubmit() {
+async function executeFinalSubmit() {
     if (!pendingPayload) return;
 
     const modalConfirmBtn = document.getElementById('modalConfirmBtn');
     modalConfirmBtn.textContent = "傳送中...";
     modalConfirmBtn.disabled = true;
 
-    // 💡 關鍵 1：先判斷是否為全新成員（送出前就判定）
-    const wasNewOrPending = (!currentUser.isRegistered || currentUser.accountStatus === '待審核');
+    // 💡 關鍵：未註冊、待審核、或是「新進群待填表」的暫存成員，皆視為新成員申請
+    const isPlaceholder = (currentUser.gameNickname === '新進群待填表' || currentUser.gameNickname === '未填表');
+    const wasNewOrPending = (!currentUser.isRegistered || currentUser.accountStatus === '待審核' || isPlaceholder);
 
     try {
         const response = await fetch(`${BACKEND_API_URL}/api/members/bind`, {
@@ -842,7 +848,7 @@
     currentUser.allowSearch = pendingPayload.allowSearch;
     currentUser.isRegistered = true;
 
-    // 💡 關鍵 2：如果是已經通過審核的老成員修改資料，狀態保持「已審核」
+    // 只有已通過審核的老成員修改資料才維持「已審核」，其餘皆轉為「待審核」
     if (!wasNewOrPending) {
         currentUser.accountStatus = "已審核";
     } else {
