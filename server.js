@@ -316,7 +316,7 @@ if (ev.type === 'memberJoined' && ev.source && ev.source.type === 'group') {
       if (source && source.type === 'group') {
         const currentGroupId = source.groupId;
 
-        if (userText === '/大群ID' || userText === '/綁定大群') {
+        if (userText === '/公會群ID' || userText === '/綁定大群') {
           try {
             await pool.query(`
               INSERT INTO system_configs (config_key, config_value)
@@ -328,7 +328,7 @@ if (ev.type === 'memberJoined' && ev.source && ev.source.type === 'group') {
             await replyLineMessage(ev.replyToken, [
               {
                 type: 'text',
-                text: `【公會大群】設定成功！\n\n📌 群組 ID：\n${currentGroupId}\n\n已自動寫入後台設定，排程推播與活動將發送至此群組。`
+                text: `【公會群】設定成功！\n\n📌 群組 ID：\n${currentGroupId}\n\n已自動寫入後台設定。`
               }
             ]);
             console.log(`[LINE Bot] 成功綁定公會大群 ID: ${currentGroupId}`);
@@ -350,7 +350,7 @@ if (ev.type === 'memberJoined' && ev.source && ev.source.type === 'group') {
             await replyLineMessage(ev.replyToken, [
               {
                 type: 'text',
-                text: `【幹部專用群】設定成功！\n\n📌 群組 ID：\n${currentGroupId}\n\n已自動寫入後台設定，會員審核與臨時請假通知將發送至此群組。`
+                text: `【幹部群】設定成功！\n\n📌 群組 ID：\n${currentGroupId}\n\n已自動寫入後台設定。`
               }
             ]);
             console.log(`[LINE Bot] 成功綁定幹部群 ID: ${currentGroupId}`);
@@ -376,7 +376,7 @@ if (ev.type === 'memberJoined' && ev.source && ev.source.type === 'group') {
       await replyLineMessage(ev.replyToken, [
         {
           type: 'text',
-          text: `👋 大家好！公會管理系統已就緒。\n\n若要將此群組綁定為通知目標，請在此輸入：\n👉「/大群ID」設為公會大群`
+          text: `👋 大家好！我是公會管理系統。`
         }
       ]);
     }
