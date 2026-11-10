@@ -1037,127 +1037,226 @@ function renderMemberList() {
         }
 
 // ==========================================
-// 打開成員歷程彈窗（精準對焦各項資料欄位）
+// 打開成員歷程彈窗（支援改名自動對焦、退會與改名即時提示）
 // ==========================================
 async function openMemberHistoryModal(name) {
     if (!name || name.trim() === '') return;
 
-    // 1. 本地基本資料對焦 (相容 masterMembers / membersData)
+    // 1. 初始化彈窗欄位
     const memberPool = (typeof masterMembers !== 'undefined' && masterMembers.length > 0)
         ? masterMembers
         : (typeof membersData !== 'undefined' ? membersData : []);
 
-    let m = memberPool.find(x => (x.name === name || x.gameNickname === name));
+    const localMember = memberPool.find(x => (x.name === name || x.gameNickname === name));
 
-    // 先打開彈窗並初始化介面
     document.getElementById('histGameNickname').textContent = name;
-    document.getElementById('histGameClass').textContent = m ? (m.job || m.gameClass || '-') : '查詢中...';
-    document.getElementById('histLineName').textContent = (m && (m.lineName || m.lineDisplayName)) || '查詢中...';
-    document.getElementById('histGuildRole').textContent = (m && m.guildRole) || '現任';
-    document.getElementById('histRegion').textContent = (m && m.tw === 'N') ? '大陸 (DC)' : '台灣 (LINE)';
-    document.getElementById('histAccountStatus').textContent = (m && m.accountStatus) || '已審核';
-    document.getElementById('histTeamGroup').textContent = (m && m.teamGroup) || '未分配';
+    document.getElementById('histGameClass').textContent = localMember ? (localMember.job || localMember.gameClass || '-') : '查詢中...';
+    document.getElementById('histLineName').textContent = '查詢中...';
+    document.getElementById('histGuildRole').textContent = '現任';
+    document.getElementById('histRegion').textContent = '台灣 (LINE)';
+    document.getElementById('histAccountStatus').textContent = '已審核';
+    document.getElementById('histTeamGroup').textContent = (localMember && localMember.teamGroup) || '未分配';
     document.getElementById('histLogCount').textContent = '(載入中...)';
     document.getElementById('histLogsContainer').innerHTML = '<div class="text-[10px] text-slate-400 py-3 text-center">⏳ 正在同步歷史異動紀錄...</div>';
 
+    // 移除舊的提示警示條（如果有的話）
+    const existingAlert = document.getElementById('histStatusAlertBox');
+    if (existingAlert) existingAlert.remove();
+
+    // 顯示彈窗
     document.getElementById('memberHistoryModal').classList.remove('hidden');
 
-    let targetUid = (m && (m.lineUserId || m.uid || m.dcid)) || '';
+    let resolvedMember = null;
+    let resolvedLineUserId = (localMember && (localMember.lineUserId || localMember.uid)) || '';
+    let isRenamed = false;
+    let isRetired = false;
+    let latestNickname = name;
 
-    // 2. 向完整會員清單或搜尋 API 進行深度對齊
+    // 2. 獲取公會全部最新成員名單比對 (優先從 admin 端點以取得包含退會的完整資料)
     try {
-        let fullMember = null;
-
-        // A. 優先嘗試從幹部會員列表查詢完整物件
-        const adminRes = await fetch(`/api/admin/members`);
+        let allMembers = [];
+        const adminRes = await fetch('/api/admin/members');
         if (adminRes.ok) {
             const adminData = await adminRes.json();
-            if (adminData && adminData.status === 'success' && Array.isArray(adminData.members)) {
-                fullMember = adminData.members.find(x => x.gameNickname === name || x.name === name);
+            if (adminData.status === 'success' && Array.isArray(adminData.members)) {
+                allMembers = adminData.members;
             }
         }
 
-        // B. 若 admin 端點權限不通，降級走 search-for-claim
-        if (!fullMember) {
+        // 先精準比對現有名稱
+        resolvedMember = allMembers.find(m => m.gameNickname === name || m.name === name);
+
+        // 3. 關鍵對焦：如果現有名稱找不到，代表可能「已改名」！查詢全部異動日誌或單獨查詢
+        if (!resolvedMember) {
+            // 嘗試呼叫搜尋 API (放寬搜尋)
             const claimRes = await fetch(`/api/members/search-for-claim?q=${encodeURIComponent(name)}`);
             if (claimRes.ok) {
                 const claimData = await claimRes.json();
-                if (claimData && claimData.status === 'success' && Array.isArray(claimData.members)) {
-                    fullMember = claimData.members.find(x => x.gameNickname === name) || claimData.members[0];
+                if (claimData.status === 'success' && claimData.members?.length > 0) {
+                    resolvedMember = claimData.members.find(x => x.gameNickname === name) || claimData.members[0];
                 }
             }
         }
 
-        // 3. 取得完整資料後，精準對焦各個欄位
-        if (fullMember) {
-            m = fullMember;
-            targetUid = m.lineUserId || m.uid || targetUid;
-
-            // ① 職業
-            document.getElementById('histGameClass').textContent = m.gameClass || m.job || '-';
-            
-            // ② LINE 暱稱
-            document.getElementById('histLineName').textContent = m.lineDisplayName || m.lineName || '-';
-            
-            // ③ 公會身分 (幹部 / 現任)
-            const roleEl = document.getElementById('histGuildRole');
-            const roleText = m.guildRole || '現任';
-            roleEl.textContent = roleText;
-            roleEl.className = roleText.includes('幹部') 
-                ? "bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-amber-700 font-black truncate"
-                : "bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-indigo-700 font-black truncate";
-
-            // ④ 地區通道 (判定 tw 是否為 N)
-            const isTw = !(m.tw === 'N' || m.region === '大陸');
-            document.getElementById('histRegion').textContent = isTw ? '台灣 (LINE)' : '大陸 (DC)';
-
-            // ⑤ 審核狀態
-            document.getElementById('histAccountStatus').textContent = m.accountStatus || '已審核';
-
-            // ⑥ 小團隊 (真實團隊名稱，若無則顯示未分配)
-            document.getElementById('histTeamGroup').textContent = (m.teamGroup && m.teamGroup.trim()) ? m.teamGroup : '未分配';
-
-            // ⑦ 加入 LINE 群狀態對焦
-            const isLineJoined = (m.joinedLineGroup === 'Y' || m.joinedLine === '已入群' || m.joined_line_group === 'Y');
-            const lineBadge = document.getElementById('histLineGroupBadge');
-            if (lineBadge) {
-                lineBadge.className = isLineJoined 
-                    ? "flex-1 text-center py-1 rounded-md text-[10px] font-black border bg-emerald-50 text-emerald-700 border-emerald-200"
-                    : "flex-1 text-center py-1 rounded-md text-[10px] font-bold border bg-slate-50 text-slate-400 border-slate-200";
-                lineBadge.textContent = isLineJoined ? "LINE 群 ✓" : "LINE 群 ✕";
-            }
-
-            // ⑧ 加入 DC 群狀態對焦
-            const isDcJoined = (m.joinedDc === 'Y' || m.joinedDc === '已入DC' || m.joined_dc === 'Y' || (m.dcid && m.dcid !== '-'));
-            const dcBadge = document.getElementById('histDcGroupBadge');
-            if (dcBadge) {
-                dcBadge.className = isDcJoined 
-                    ? "flex-1 text-center py-1 rounded-md text-[10px] font-black border bg-indigo-50 text-indigo-700 border-indigo-200"
-                    : "flex-1 text-center py-1 rounded-md text-[10px] font-bold border bg-slate-50 text-slate-400 border-slate-200";
-                dcBadge.textContent = isDcJoined ? "DC 群 ✓" : "DC 群 ✕";
+        // 4. 若依然查不到此人，向全體成員日誌檢索是否有此舊名
+        if (!resolvedMember && allMembers.length > 0) {
+            for (const m of allMembers) {
+                if (!m.lineUserId) continue;
+                try {
+                    const logRes = await fetch(`/api/admin/members/logs/${encodeURIComponent(m.lineUserId)}`);
+                    if (logRes.ok) {
+                        const logData = await logRes.json();
+                        if (logData.status === 'success' && Array.isArray(logData.logs)) {
+                            // 檢查日誌是否有改名紀錄，且 oldValue 為當前點擊的名字
+                            const renameLog = logData.logs.find(l => 
+                                (l.field?.includes('暱稱') || l.action?.includes('暱稱')) && 
+                                (l.oldValue === name || String(l.old_value) === name)
+                            );
+                            if (renameLog) {
+                                resolvedMember = m;
+                                resolvedLineUserId = m.lineUserId;
+                                latestNickname = m.gameNickname;
+                                isRenamed = true;
+                                break;
+                            }
+                        }
+                    }
+                } catch (e) {}
             }
         }
+
+        // 5. 欄位填入與狀態解析
+        if (resolvedMember) {
+            resolvedLineUserId = resolvedMember.lineUserId || resolvedLineUserId;
+            isRetired = (resolvedMember.guildRole === '退會' || resolvedMember.guild_role === '退會');
+
+            document.getElementById('histGameNickname').textContent = isRenamed ? `${name} ➔ ${latestNickname}` : resolvedMember.gameNickname;
+            document.getElementById('histGameClass').textContent = resolvedMember.gameClass || resolvedMember.job || '-';
+            document.getElementById('histLineName').textContent = resolvedMember.lineDisplayName || resolvedMember.lineName || '-';
+            document.getElementById('histRegion').textContent = (resolvedMember.tw === 'N' || resolvedMember.region === '大陸') ? '大陸 (DC)' : '台灣 (LINE)';
+            document.getElementById('histAccountStatus').textContent = resolvedMember.accountStatus || '已審核';
+            document.getElementById('histTeamGroup').textContent = resolvedMember.teamGroup || '未分配';
+
+            // 身分與退會標示
+            const roleEl = document.getElementById('histGuildRole');
+            if (isRetired) {
+                roleEl.textContent = '已退會';
+                roleEl.className = "bg-rose-50 border border-rose-200 rounded-lg px-2 py-1 text-rose-700 font-black truncate";
+            } else {
+                const roleText = resolvedMember.guildRole || '現任';
+                roleEl.textContent = roleText;
+                roleEl.className = roleText.includes('幹部') 
+                    ? "bg-amber-50 border border-amber-200 rounded-lg px-2 py-1 text-amber-700 font-black truncate"
+                    : "bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-indigo-700 font-black truncate";
+            }
+
+            // LINE / DC 群徽章
+            const lineBadge = document.getElementById('histLineGroupBadge');
+            const dcBadge = document.getElementById('histDcGroupBadge');
+            const isLine = (resolvedMember.joinedLineGroup === 'Y' || resolvedMember.joined_line_group === 'Y');
+            const isDc = (resolvedMember.joinedDc === 'Y' || resolvedMember.joined_dc === 'Y');
+            if (lineBadge) {
+                lineBadge.className = isLine ? "flex-1 text-center py-1 rounded-md text-[10px] font-black border bg-emerald-50 text-emerald-700 border-emerald-200" : "flex-1 text-center py-1 rounded-md text-[10px] font-bold border bg-slate-50 text-slate-400 border-slate-200";
+                lineBadge.textContent = isLine ? "LINE 群 ✓" : "LINE 群 ✕";
+            }
+            if (dcBadge) {
+                dcBadge.className = isDc ? "flex-1 text-center py-1 rounded-md text-[10px] font-black border bg-indigo-50 text-indigo-700 border-indigo-200" : "flex-1 text-center py-1 rounded-md text-[10px] font-bold border bg-slate-50 text-slate-400 border-slate-200";
+                dcBadge.textContent = isDc ? "DC 群 ✓" : "DC 群 ✕";
+            }
+
+            // ⚠️ 頂部警示條：改名 or 退會醒目提示
+            renderTopStatusAlert(isRenamed, isRetired, name, latestNickname);
+
+        } else {
+            // 完全查無此人
+            renderTopStatusAlert(false, false, name, null, true);
+        }
+
     } catch (err) {
-        console.warn('會員詳細資料對焦連線警告:', err);
+        console.warn('會員詳細資料查詢警告:', err);
     }
 
-    // 4. 取得該成員專屬的異動日誌 (歷史記錄)
+    // 6. 讀取真實異動歷程明細
     try {
         let logs = [];
-        if (targetUid) {
-            const logRes = await fetch(`/api/admin/members/logs/${encodeURIComponent(targetUid)}`);
+        if (resolvedLineUserId) {
+            const logRes = await fetch(`/api/admin/members/logs/${encodeURIComponent(resolvedLineUserId)}`);
             if (logRes.ok) {
                 const logData = await logRes.json();
-                if (logData.status === "success" && Array.isArray(logData.logs)) {
+                if (logData.status === 'success' && Array.isArray(logData.logs)) {
                     logs = logData.logs;
                 }
             }
         }
-        renderDetailedHistoryLogs(logs, name, m ? (m.job || m.gameClass) : '');
+        renderDetailedHistoryLogs(logs, latestNickname, resolvedMember?.gameClass || localMember?.job || '');
     } catch (err) {
-        console.error('查詢歷程 API 失敗:', err);
-        renderDetailedHistoryLogs([], name, m ? (m.job || m.gameClass) : '');
+        renderDetailedHistoryLogs([], name, localMember?.job || '');
     }
+}
+
+// 輔助函式：彈窗頂部狀態提示框（改名 / 退會 / 查無此人）
+function renderTopStatusAlert(isRenamed, isRetired, oldName, newName, isNotFound = false) {
+    const modalContent = document.querySelector('#memberHistoryModal .overflow-y-auto');
+    if (!modalContent) return;
+
+    const alertBox = document.createElement('div');
+    alertBox.id = 'histStatusAlertBox';
+    alertBox.className = 'p-2.5 rounded-xl text-xs font-bold mb-1.5 flex items-center justify-between gap-2 shadow-2xs';
+
+    if (isRenamed) {
+        alertBox.classList.add('bg-amber-50', 'border', 'border-amber-300', 'text-amber-950');
+        alertBox.innerHTML = `
+            <div class="flex items-center gap-1.5 min-w-0">
+                <span class="text-amber-600 text-sm">⚠️</span>
+                <span class="truncate">此成員已更名為 <b>【${newName}】</b></span>
+            </div>
+            <button onclick="syncRenamedMember('${oldName}', '${newName}')" class="bg-amber-500 hover:bg-amber-600 active:scale-95 text-white text-[10px] px-2 py-1 rounded-lg shrink-0 transition shadow-2xs cursor-pointer">
+                更新至名冊
+            </button>
+        `;
+        modalContent.prepend(alertBox);
+    } else if (isRetired) {
+        alertBox.classList.add('bg-rose-50', 'border', 'border-rose-300', 'text-rose-950');
+        alertBox.innerHTML = `
+            <div class="flex items-center gap-1.5">
+                <span class="text-rose-600 text-sm">🚫</span>
+                <span>此成員<b>已退會</b>！建議從出戰隊伍中移除。</span>
+            </div>
+        `;
+        modalContent.prepend(alertBox);
+    } else if (isNotFound) {
+        alertBox.classList.add('bg-slate-100', 'border', 'border-slate-300', 'text-slate-700');
+        alertBox.innerHTML = `
+            <div class="flex items-center gap-1.5">
+                <span class="text-slate-500 text-sm">❓</span>
+                <span>資料庫查無此角色，可能尚未綁定或輸入錯誤。</span>
+            </div>
+        `;
+        modalContent.prepend(alertBox);
+    }
+}
+
+// 輔助函式：點擊按鈕直接將隊伍/名冊中的舊名字一鍵同步更新為新名字
+function syncRenamedMember(oldName, newName) {
+    if (!confirm(`確定要將隊伍中的【${oldName}】更新為最新暱稱【${newName}】嗎？`)) return;
+
+    // 1. 更新主戰名單
+    if (typeof mainSquads !== 'undefined') {
+        mainSquads.forEach(sq => {
+            sq.members = sq.members.map(m => m === oldName ? newName : m);
+        });
+    }
+    // 2. 更新副戰名單
+    if (typeof subSquads !== 'undefined') {
+        subSquads.forEach(sq => {
+            sq.members = sq.members.map(m => m === oldName ? newName : m);
+        });
+    }
+    // 3. 重新渲染畫面並關閉彈窗
+    if (typeof renderCurrentModeView === 'function') renderCurrentModeView();
+    if (typeof renderMemberList === 'function') renderMemberList();
+    closeMemberHistoryModal();
+    alert(`已成功將【${oldName}】替換為【${newName}】！`);
 }
 
 // 輔助函式：比照第二張圖渲染出包含「刪除線舊值 ➔ 新值」的專業卡片
