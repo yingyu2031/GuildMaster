@@ -1207,25 +1207,83 @@ function renderTopStatusAlert(isRenamed, isRetired, oldName, newName, isNotFound
 
 // 輔助函式：點擊按鈕直接將隊伍/名冊中的舊名字一鍵同步更新為新名字
 function syncRenamedMember(oldName, newName) {
+    if (!oldName || !newName) return;
     if (!confirm(`確定要將隊伍中的【${oldName}】更新為最新暱稱【${newName}】嗎？`)) return;
 
-    // 1. 更新主戰名單
-    if (typeof mainSquads !== 'undefined') {
-        mainSquads.forEach(sq => {
-            sq.members = sq.members.map(m => m === oldName ? newName : m);
+    let updatedCount = 0;
+
+    // 1. 同步更新左側名冊庫 (masterMembers / membersData)
+    if (typeof masterMembers !== 'undefined' && Array.isArray(masterMembers)) {
+        masterMembers.forEach(m => {
+            if (m.name === oldName || m.gameNickname === oldName) {
+                m.name = newName;
+                m.gameNickname = newName;
+                updatedCount++;
+            }
         });
     }
-    // 2. 更新副戰名單
-    if (typeof subSquads !== 'undefined') {
-        subSquads.forEach(sq => {
-            sq.members = sq.members.map(m => m === oldName ? newName : m);
+    if (typeof membersData !== 'undefined' && Array.isArray(membersData)) {
+        membersData.forEach(m => {
+            if (m.name === oldName || m.gameNickname === oldName) {
+                m.name = newName;
+                m.gameNickname = newName;
+            }
         });
     }
-    // 3. 重新渲染畫面並關閉彈窗
-    if (typeof renderCurrentModeView === 'function') renderCurrentModeView();
-    if (typeof renderMemberList === 'function') renderMemberList();
+
+    // 輔助置換函式：相容字串陣列與物件陣列
+    const replaceInSquadList = (squads) => {
+        if (!Array.isArray(squads)) return;
+        squads.forEach(sq => {
+            if (!Array.isArray(sq.members)) return;
+            sq.members = sq.members.map(item => {
+                if (typeof item === 'string') {
+                    if (item.trim() === oldName.trim()) {
+                        updatedCount++;
+                        return newName;
+                    }
+                    return item;
+                } else if (item && typeof item === 'object') {
+                    if ((item.name && item.name.trim() === oldName.trim()) || 
+                        (item.gameNickname && item.gameNickname.trim() === oldName.trim())) {
+                        item.name = newName;
+                        if (item.gameNickname) item.gameNickname = newName;
+                        updatedCount++;
+                    }
+                    return item;
+                }
+                return item;
+            });
+        });
+    };
+
+    // 2. 更新主戰隊伍
+    if (typeof mainSquads !== 'undefined') replaceInSquadList(mainSquads);
+    if (typeof squads !== 'undefined') replaceInSquadList(squads);
+
+    // 3. 更新副戰隊伍
+    if (typeof subSquads !== 'undefined') replaceInSquadList(subSquads);
+
+    // 4. 精準重新渲染畫面（呼叫系統現存的渲染函式）
+    if (typeof renderSquads === 'function') {
+        renderSquads();
+    } else if (typeof renderCurrentModeView === 'function') {
+        renderCurrentModeView();
+    } else if (typeof renderMainSquads === 'function' && currentMode === 'main') {
+        renderMainSquads();
+    } else if (typeof renderSubSquads === 'function' && currentMode === 'sub') {
+        renderSubSquads();
+    }
+
+    // 5. 重新整理左側名冊與可用人數
+    if (typeof renderMemberList === 'function') {
+        renderMemberList();
+    }
+
+    // 6. 關閉彈窗
     closeMemberHistoryModal();
-    alert(`已成功將【${oldName}】替換為【${newName}】！`);
+
+    alert(`✅ 已成功將【${oldName}】更新為最新暱稱【${newName}】！`);
 }
 
 // 輔助函式：比照第二張圖渲染出包含「刪除線舊值 ➔ 新值」的專業卡片
