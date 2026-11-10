@@ -1129,7 +1129,7 @@ async function openMemberHistoryModal(name) {
             document.getElementById('histGameClass').textContent = resolvedMember.gameClass || resolvedMember.job || '-';
             document.getElementById('histLineName').textContent = resolvedMember.lineDisplayName || resolvedMember.lineName || '-';
             document.getElementById('histRegion').textContent = (resolvedMember.tw === 'N' || resolvedMember.region === '大陸') ? '大陸 (DC)' : '台灣 (LINE)';
-            document.getElementById('histTeamGroup').textContent = (resolvedMember.teamGroup && resolvedMember.teamGroup.trim()) ? resolvedMember.teamGroup : '未分配';
+            document.getElementById('histTeamGroup').textContent = (resolvedMember.teamGroup && resolvedMember.teamGroup.trim()) ? resolvedMember.teamGroup : '';
 
             // LINE / DC 群徽章
             const lineBadge = document.getElementById('histLineGroupBadge');
