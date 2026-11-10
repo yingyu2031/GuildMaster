@@ -2270,6 +2270,110 @@ app.post('/api/squads/:mode/save', async (req, res) => {
   }
 });
 
+// ==========================================
+// 🛡️ 在線幹部管理與 IP 記錄模組
+// ==========================================
+
+// 儲存當前在線幹部分頁（以 IP + Session 識別）
+const activeSessions = new Map();
+
+// 輔助函式：提取客戶端真實 IP
+function getClientIp(req) {
+  const forwarded = req.headers['x-forwarded-for'];
+  if (forwarded) {
+    return forwarded.split(',')[0].trim();
+  }
+  return req.socket?.remoteAddress || req.ip || '未知 IP';
+}
+
+// 1. 幹部登入驗證：登入成功時寫入日誌與記錄 IP
+const ADMIN_USER = process.env.ADMIN_USER || "admin";
+const ADMIN_PASS = process.env.ADMIN_PASS || "lv123";
+
+app.post('/api/auth/login', (req, res) => {
+  const { username, password, operatorName } = req.body;
+  const clientIp = getClientIp(req);
+  const nowStr = new Date().toLocaleString("zh-TW", { timeZone: "Asia/Taipei" });
+
+  if (username === ADMIN_USER && password === ADMIN_PASS) {
+    const sessionId = `${clientIp}_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    const operator = operatorName || '管理員';
+
+    // 登記在線狀態
+    activeSessions.set(sessionId, {
+      ip: clientIp,
+      operator: operator,
+      loginTime: nowStr,
+      lastSeen: Date.now()
+    });
+
+    console.log(`[幹部登入] 🟢 時間: ${nowStr} | 幹部: ${operator} | 來源 IP: ${clientIp}`);
+
+    return res.json({ 
+      status: "success", 
+      message: "身分驗證通過",
+      sessionId: sessionId,
+      ip: clientIp
+    });
+  }
+
+  console.warn(`[登入失敗] 🔴 時間: ${nowStr} | 帳號: ${username} | 來源 IP: ${clientIp}`);
+  return res.status(401).json({ status: "error", message: "帳號或密碼錯誤！" });
+});
+
+// 2. 心跳回報與版本檢查：每次輪詢自動刷新在線時間
+app.post('/api/squads/heartbeat', (req, res) => {
+  const { sessionId, operatorName } = req.body;
+  const clientIp = getClientIp(req);
+  const now = Date.now();
+
+  if (sessionId) {
+    activeSessions.set(sessionId, {
+      ip: clientIp,
+      operator: operatorName || '幹部',
+      loginTime: activeSessions.get(sessionId)?.loginTime || new Date().toLocaleString("zh-TW", { timeZone: "Asia/Taipei" }),
+      lastSeen: now
+    });
+  }
+
+  // 清除超過 30 秒無回應的離線連線
+  for (const [sId, sess] of activeSessions.entries()) {
+    if (now - sess.lastSeen > 30 * 1000) {
+      activeSessions.delete(sId);
+    }
+  }
+
+  res.json({
+    status: "success",
+    onlineCount: activeSessions.size
+  });
+});
+
+// 3. 查詢當前在線人數與 IP 名單 API
+app.get('/api/admin/online-status', (req, res) => {
+  const now = Date.now();
+  const onlineList = [];
+
+  for (const [sId, sess] of activeSessions.entries()) {
+    if (now - sess.lastSeen <= 30 * 1000) {
+      onlineList.push({
+        ip: sess.ip,
+        operator: sess.operator,
+        loginTime: sess.loginTime,
+        idleSeconds: Math.floor((now - sess.lastSeen) / 1000)
+      });
+    } else {
+      activeSessions.delete(sId);
+    }
+  }
+
+  res.json({
+    status: "success",
+    onlineCount: onlineList.length,
+    users: onlineList
+  });
+});
+
 app.listen(PORT, () => {
   console.log(`[Server] 伺服器已在連接埠 ${PORT} 上運行`);
 });
