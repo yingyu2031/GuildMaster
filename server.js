@@ -660,7 +660,9 @@ app.get('/api/members/:uid', async (req, res) => {
   }
 });
 
+// ==========================================
 // 5. 會員前台登記 / 更新資料 (標準主鍵版)
+// ==========================================
 app.post('/api/members/bind', async (req, res) => {
   const { 
     lineUserId, lineDisplayName, gameNickname, gameClass, 
@@ -687,40 +689,45 @@ app.post('/api/members/bind', async (req, res) => {
     const finalDcid = oldMember ? (oldMember.dcid || dcid || null) : (dcid || null);
     const finalJoinedDc = (finalTw === 'N' || finalDcid) ? 'Y' : (oldMember?.joined_dc || 'N');
 
-    await pool.query(`
-  INSERT INTO members (
-    line_user_id, game_nickname, game_class, line_display_name, 
-    allow_search, account_status, guild_role, tw, dcid, joined_dc, 
-    gear_score, is_migrated, update_time
-  ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'Y', CURRENT_TIMESTAMP)
-  ON CONFLICT (line_user_id) 
-  DO UPDATE SET 
-    game_nickname = EXCLUDED.game_nickname, 
-    game_class = EXCLUDED.game_class, 
-    line_display_name = EXCLUDED.line_display_name, 
-    allow_search = EXCLUDED.allow_search, 
-    account_status = $6,
-    guild_role = $7,
-    tw = COALESCE(members.tw, EXCLUDED.tw),
-    dcid = COALESCE(members.dcid, EXCLUDED.dcid),
-    joined_dc = $10,
-    gear_score = $11,
-    is_migrated = 'Y',
-    update_time = CURRENT_TIMESTAMP
-`, [
-  lineUserId, 
-  gameNickname.trim(), 
-  gameClass, 
-  lineDisplayName || "", 
-  allowSearch || 'N', 
-  finalAccountStatus, 
-  finalRole, 
-  finalTw, 
-  finalDcid,
-  finalJoinedDc,
-  score
-]);
+    // 大陸成員預設公開搜尋 ('Y')，台灣成員若無傳入則預設 'N' 或沿用舊值
+    const finalAllowSearch = (allowSearch !== undefined && allowSearch !== null && allowSearch !== '')
+      ? allowSearch
+      : (finalTw === 'N' ? 'Y' : (oldMember?.allow_search || 'N'));
 
+    await pool.query(`
+      INSERT INTO members (
+        line_user_id, game_nickname, game_class, line_display_name, 
+        allow_search, account_status, guild_role, tw, dcid, joined_dc, 
+        gear_score, update_time
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, CURRENT_TIMESTAMP)
+      ON CONFLICT (line_user_id) 
+      DO UPDATE SET 
+        game_nickname = EXCLUDED.game_nickname, 
+        game_class = EXCLUDED.game_class, 
+        line_display_name = EXCLUDED.line_display_name, 
+        allow_search = EXCLUDED.allow_search, 
+        account_status = $6,
+        guild_role = $7,
+        tw = COALESCE(members.tw, EXCLUDED.tw),
+        dcid = COALESCE(members.dcid, EXCLUDED.dcid),
+        joined_dc = $10,
+        gear_score = $11,
+        update_time = CURRENT_TIMESTAMP
+    `, [
+      lineUserId, 
+      gameNickname.trim(), 
+      gameClass, 
+      lineDisplayName || "", 
+      finalAllowSearch, 
+      finalAccountStatus, 
+      finalRole, 
+      finalTw, 
+      finalDcid,
+      finalJoinedDc,
+      score
+    ]);
+
+    // Discord 伺服器暱稱同步
     if (finalDcid && typeof DISCORD_BOT_TOKEN !== 'undefined' && typeof DISCORD_GUILD_ID !== 'undefined' && DISCORD_BOT_TOKEN && DISCORD_GUILD_ID) {
       fetch(`https://discord.com/api/v10/guilds/${DISCORD_GUILD_ID}/members/${finalDcid}`, {
         method: 'PATCH',
@@ -732,10 +739,11 @@ app.post('/api/members/bind', async (req, res) => {
       }).catch(err => console.error('[Discord 改名異常]:', err.message));
     }
 
+    // 新註冊發送幹部通知與審核日誌[cite: 5]
     if (isNewRegistration) {
       await pool.query(
         'INSERT INTO member_audit_logs (line_user_id, field, old_value, new_value) VALUES ($1, $2, $3, $4)', 
-        [lineUserId, isRetired ? '退會重新申請入會' : '新會員註冊', '-', `${gameNickname} (${gameClass})`]
+        [lineUserId, isRetired ? '退會重新申請入會' : '新會員註冊', '-', `${gameNickname.trim()} (${gameClass})`]
       );
 
       try {
@@ -748,7 +756,7 @@ app.post('/api/members/bind', async (req, res) => {
 
           const notifyMessage = 
             `🔔【新成員入會待審核】\n\n` +
-            `• 遊戲暱稱：${gameNickname}\n` +
+            `• 遊戲暱稱：${gameNickname.trim()}\n` +
             `• 遊戲職業：${gameClass}\n` +
             `• 裝備評分：${score.toLocaleString()}\n` +
             `• 社群暱稱：${lineDisplayName || '無'}\n` +
@@ -768,16 +776,17 @@ app.post('/api/members/bind', async (req, res) => {
             })
           });
 
-          console.log(`[LINE 推播] 成功向幹部群發送新成員【${gameNickname}】審核通知`);
+          console.log(`[LINE 推播] 成功向幹部群發送新成員【${gameNickname.trim()}】審核通知`);
         }
       } catch (pushErr) {
         console.error('[LINE 推播幹部群失敗]:', pushErr.message);
       }
     } else {
-      if (oldMember.game_nickname !== gameNickname) {
+      // 舊會員資料修改日誌
+      if (oldMember.game_nickname !== gameNickname.trim()) {
         await pool.query(
           'INSERT INTO member_audit_logs (line_user_id, field, old_value, new_value) VALUES ($1, $2, $3, $4)', 
-          [lineUserId, '遊戲暱稱', oldMember.game_nickname, gameNickname]
+          [lineUserId, '遊戲暱稱', oldMember.game_nickname, gameNickname.trim()]
         );
       }
       if (oldMember.game_class !== gameClass) {
@@ -1111,11 +1120,11 @@ app.get('/api/auth/discord', (req, res) => {
 });
 
 app.get('/api/auth/discord/callback', async (req, res) => {
-  const { code, state } = req.query;
+  { code, state } = req.query;
   if (!code) return res.status(400).send("授權失敗：未取得驗證碼");
 
   try {
-    const tokenParams = new URLSearchParams({
+    tokenParams = new URLSearchParams({
       client_id: DISCORD_CLIENT_ID,
       client_secret: DISCORD_CLIENT_SECRET,
       grant_type: 'authorization_code',
@@ -1123,27 +1132,27 @@ app.get('/api/auth/discord/callback', async (req, res) => {
       redirect_uri: DISCORD_REDIRECT_URI,
     });
 
-    const tokenRes = await fetch('https://discord.com/api/oauth2/token', {
+    tokenRes = await fetch('https://discord.com/api/oauth2/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: tokenParams.toString()
     });
 
     if (!tokenRes.ok) {
-      const errTxt = await tokenRes.text();
+      errTxt = await tokenRes.text();
       throw new Error(`Token 交換失敗: ${errTxt}`);
     }
 
-    const tokenData = await tokenRes.json();
-    const userAccessToken = tokenData.access_token;
+    tokenData = await tokenRes.json();
+    userAccessToken = tokenData.access_token;
 
-    const userRes = await fetch('https://discord.com/api/v10/users/@me', {
+    userRes = await fetch('https://discord.com/api/v10/users/@me', {
       headers: { Authorization: `Bearer ${userAccessToken}` }
     });
-    const dcUser = await userRes.json();
-    const dcId = String(dcUser.id);
-    const dcName = dcUser.global_name || dcUser.username;
-    const dcAvatar = dcUser.avatar
+    dcUser = await userRes.json();
+    dcId = String(dcUser.id);
+    dcName = dcUser.global_name || dcUser.username;
+    dcAvatar = dcUser.avatar
       ? `https://cdn.discordapp.com/avatars/${dcId}/${dcUser.avatar}.png`
       : `https://cdn.discordapp.com/embed/avatars/0.png`;
 
