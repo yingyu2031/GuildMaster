@@ -1296,7 +1296,7 @@ function closeMemberHistoryModal() {
     document.getElementById('memberHistoryModal').classList.add('hidden');
 }
 
-       // 🎯 隊伍卡片生成（隊內先按職業排序再依裝評降冪、裝評獨立第二行灰字、左鍵雙擊查看歷程、衝突/請假警告）
+// 🎯 隊伍卡片生成（移除裝評、字體放大為 text-[13px]、隊內按職業排序、支援雙擊查看歷程）
 function createSquadCardHtml(squad) {
     let slotsHtml = '';
 
@@ -1305,8 +1305,8 @@ function createSquadCardHtml(squad) {
 
     // 2. 隊內成員排序：先按職業順序，同職業再依裝評由高至低
     filledMembers.sort((nameA, nameB) => {
-        const infoA = getMemberJobInfo ? getMemberJobInfo(nameA) : { job: getMemberJob(nameA) };
-        const infoB = getMemberJobInfo ? getMemberJobInfo(nameB) : { job: getMemberJob(nameB) };
+        const infoA = typeof getMemberJobInfo === 'function' ? getMemberJobInfo(nameA) : { job: getMemberJob(nameA) };
+        const infoB = typeof getMemberJobInfo === 'function' ? getMemberJobInfo(nameB) : { job: getMemberJob(nameB) };
 
         const classOrder = (typeof ORDERED_CLASSES !== 'undefined' && ORDERED_CLASSES.length > 0)
             ? ORDERED_CLASSES
@@ -1318,18 +1318,11 @@ function createSquadCardHtml(squad) {
         const rankA = idxA === -1 ? 999 : idxA;
         const rankB = idxB === -1 ? 999 : idxB;
 
-        // 先依職業順序排序
-        if (rankA !== rankB) {
-            return rankA - rankB;
-        }
+        if (rankA !== rankB) return rankA - rankB;
 
-        // 若同為未知職業，依文字排序
         const nameComp = (infoA.job || '').localeCompare(infoB.job || '', 'zh-Hant');
-        if (nameComp !== 0) {
-            return nameComp;
-        }
+        if (nameComp !== 0) return nameComp;
 
-        // 同職業：從 masterMembers 取得裝備評分降冪排列
         const memberObjA = (typeof masterMembers !== 'undefined' ? masterMembers : []).find(m => m.name === nameA);
         const memberObjB = (typeof masterMembers !== 'undefined' ? masterMembers : []).find(m => m.name === nameB);
         const scoreA = Number((memberObjA && memberObjA.gearScore) || 0);
@@ -1342,27 +1335,17 @@ function createSquadCardHtml(squad) {
     for (let i = 0; i < 5; i++) {
         const member = filledMembers[i];
         if (member) {
-            const info = getMemberJobInfo ? getMemberJobInfo(member) : { job: getMemberJob(member), isUnknown: false };
+            const info = typeof getMemberJobInfo === 'function' ? getMemberJobInfo(member) : { job: getMemberJob(member), isUnknown: false };
             const memberIsOnLeave = isLeave(member);
             const isConflictInMain = (currentMode === 'sub') && isAssignedInMain(member);
-
-            // 取得裝評數值
-            const memberObj = (typeof masterMembers !== 'undefined' ? masterMembers : []).find(m => m.name === member);
-            const rawScore = Number((memberObj && memberObj.gearScore) || 0);
-            const gearScoreHtml = rawScore > 0 
-                ? `<div class="text-[10px] font-medium text-slate-400 font-mono tracking-tight pl-0.5">裝評: ${rawScore.toLocaleString()}</div>` 
-                : '';
 
             if (memberIsOnLeave) {
                 // 1. 今日請假
                 slotsHtml += `
-                    <div ondblclick="openMemberHistoryModal('${member}')" class="flex items-center justify-between job-card-leave-today px-2.5 py-1.5 rounded-lg border text-xs font-black shadow-xs cursor-pointer select-none" title="⚠️ 此成員今日已登記請假！(左鍵雙擊查看歷程)">
-                        <div class="flex flex-col min-w-0 pr-1 gap-0.5">
-                            <div class="flex items-center gap-1 min-w-0">
-                                <span class="bg-red-600 text-white text-[9px] px-1 py-0.2 rounded font-black shrink-0">請假</span>
-                                <span class="truncate">${member}</span>
-                            </div>
-                            ${gearScoreHtml}
+                    <div ondblclick="openMemberHistoryModal('${member}')" class="flex items-center justify-between job-card-leave-today px-2.5 py-2 rounded-lg border text-xs font-black shadow-xs cursor-pointer select-none" title="⚠️ 此成員今日已登記請假！(左鍵雙擊查看歷程)">
+                        <div class="flex items-center gap-1.5 min-w-0">
+                            <span class="bg-red-600 text-white text-[9px] px-1.5 py-0.5 rounded font-black shrink-0">請假</span>
+                            <span class="truncate text-[13px] font-black">${member}</span>
                         </div>
                         <button onclick="removeMemberFromSquad(${squad.id}, ${i})" class="opacity-80 hover:opacity-100 p-0.5 text-red-700 hover:text-red-900 shrink-0 sort-hidden" title="從隊伍移除"><i class="fa-solid fa-xmark"></i></button>
                     </div>
@@ -1370,13 +1353,10 @@ function createSquadCardHtml(squad) {
             } else if (isConflictInMain) {
                 // 2. 副戰中發現已被主戰排定
                 slotsHtml += `
-                    <div ondblclick="openMemberHistoryModal('${member}')" class="flex items-center justify-between job-card-leave-today px-2.5 py-1.5 rounded-lg border text-xs font-black shadow-xs cursor-pointer select-none" title="🚨 異常警告：此成員已被排在主戰場名單中！(左鍵雙擊查看歷程)">
-                        <div class="flex flex-col min-w-0 pr-1 gap-0.5">
-                            <div class="flex items-center gap-1 min-w-0">
-                                <span class="bg-rose-700 text-white text-[9px] px-1 py-0.2 rounded font-black shrink-0">主戰已排</span>
-                                <span class="truncate font-black text-rose-950">${member}</span>
-                            </div>
-                            ${gearScoreHtml}
+                    <div ondblclick="openMemberHistoryModal('${member}')" class="flex items-center justify-between job-card-leave-today px-2.5 py-2 rounded-lg border text-xs font-black shadow-xs cursor-pointer select-none" title="🚨 異常警告：此成員已被排在主戰場名單中！(左鍵雙擊查看歷程)">
+                        <div class="flex items-center gap-1.5 min-w-0">
+                            <span class="bg-rose-700 text-white text-[9px] px-1.5 py-0.5 rounded font-black shrink-0">主戰已排</span>
+                            <span class="truncate text-[13px] font-black text-rose-950">${member}</span>
                         </div>
                         <button onclick="removeMemberFromSquad(${squad.id}, ${i})" class="opacity-80 hover:opacity-100 p-0.5 text-red-700 hover:text-red-900 shrink-0 sort-hidden" title="從副戰移除"><i class="fa-solid fa-xmark"></i></button>
                     </div>
@@ -1384,25 +1364,19 @@ function createSquadCardHtml(squad) {
             } else if (info.isUnknown) {
                 // 3. 改名或查無資料庫綁定
                 slotsHtml += `
-                    <div ondblclick="openMemberHistoryModal('${member}')" class="flex items-center justify-between job-card-unknown px-2.5 py-1.5 rounded-lg border text-xs font-bold shadow-2xs cursor-pointer select-none" title="名冊查無此暱稱（可能已改名或尚未綁定，左鍵雙擊查看歷程）">
-                        <div class="flex flex-col min-w-0 pr-1 gap-0.5">
-                            <div class="flex items-center gap-1 min-w-0">
-                                <span class="text-amber-600 text-[11px]"><i class="fa-solid fa-triangle-exclamation"></i></span>
-                                <span class="truncate">${member}</span>
-                            </div>
-                            ${gearScoreHtml}
+                    <div ondblclick="openMemberHistoryModal('${member}')" class="flex items-center justify-between job-card-unknown px-2.5 py-2 rounded-lg border text-xs font-bold shadow-2xs cursor-pointer select-none" title="名冊查無此暱稱（可能已改名或尚未綁定，左鍵雙擊查看歷程）">
+                        <div class="flex items-center gap-1.5 min-w-0">
+                            <span class="text-amber-600 text-[11px]"><i class="fa-solid fa-triangle-exclamation"></i></span>
+                            <span class="truncate text-[13px] font-black">${member}</span>
                         </div>
                         <button onclick="removeMemberFromSquad(${squad.id}, ${i})" class="opacity-70 hover:opacity-100 p-0.5 text-gray-500 hover:text-red-600 shrink-0 sort-hidden"><i class="fa-solid fa-xmark"></i></button>
                     </div>
                 `;
             } else {
-                // 4. 正常出戰名單
+                // 4. 正常出戰名單（暱稱放大至 13px font-black，不顯示裝評）
                 slotsHtml += `
-                    <div ondblclick="openMemberHistoryModal('${member}')" class="flex items-center justify-between job-card-${info.job} px-2.5 py-1.5 rounded-lg border text-xs font-bold shadow-2xs cursor-pointer select-none" title="左鍵點兩下查看歷程明細">
-                        <div class="flex flex-col min-w-0 pr-1 gap-0.5">
-                            <span class="truncate pr-1">${member}</span>
-                            ${gearScoreHtml}
-                        </div>
+                    <div ondblclick="openMemberHistoryModal('${member}')" class="flex items-center justify-between job-card-${info.job} px-2.5 py-2 rounded-lg border shadow-2xs cursor-pointer select-none" title="左鍵點兩下查看歷程明細">
+                        <span class="truncate pr-1 text-[13px] font-black tracking-wide">${member}</span>
                         <button onclick="removeMemberFromSquad(${squad.id}, ${i})" class="opacity-70 hover:opacity-100 p-0.5 shrink-0 sort-hidden"><i class="fa-solid fa-xmark"></i></button>
                     </div>
                 `;
@@ -1410,7 +1384,7 @@ function createSquadCardHtml(squad) {
         } else {
             // 空位
             slotsHtml += `
-                <div class="slot-card flex items-center justify-center bg-gray-50 hover:bg-indigo-50/50 hover:border-indigo-400 border border-dashed border-gray-300 rounded-lg text-[11px] text-gray-400 hover:text-indigo-600 py-1 cursor-pointer transition sort-hidden"
+                <div class="slot-card flex items-center justify-center bg-gray-50 hover:bg-indigo-50/50 hover:border-indigo-400 border border-dashed border-gray-300 rounded-lg text-[11px] text-gray-400 hover:text-indigo-600 py-1.5 cursor-pointer transition sort-hidden"
                      title="點擊可手動直接輸入成員名稱，或從左側拖曳"
                      onclick="promptManualAssignToSquad(${squad.id})"
                      ondragover="allowDrop(event)" ondragleave="removeDropStyle(event)" ondrop="dropToSquad(event, ${squad.id})">
