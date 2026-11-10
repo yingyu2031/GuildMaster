@@ -561,28 +561,26 @@
 
         // 啟動背景版本檢查（每 5 秒檢查一次）
         function startSquadSyncPolling() {
-            if (squadSyncTimer) clearInterval(squadSyncTimer);
-            currentClientVersion = Date.now();
-        
-            // 進入時先立刻抓一次
-            refreshOnlineStatus();
-        
-            squadSyncTimer = setInterval(async () => {
-                try {
-                    // 1. 每 5 秒同步更新左下角在線人數與 IP
-                    await refreshOnlineStatus();
-        
-                    // 2. 檢查排兵名單版本
-                    const res = await fetch('/api/squads/version');
-                    if (!res.ok) return;
-                    const data = await res.json();
-                    
-                    if (data.updatedAt && Number(data.updatedAt) > currentClientVersion + 1500) {
-                        showSyncNotification(data.updatedBy);
-                    }
-                } catch (e) {}
-            }, 5000);
-        }
+                if (squadSyncTimer) clearInterval(squadSyncTimer);
+                currentClientVersion = Date.now();
+            
+                // 進入時立刻觸發第一次
+                refreshOnlineStatus();
+            
+                // 每 5 秒自動發送心跳與同步在線人數
+                squadSyncTimer = setInterval(async () => {
+                    try {
+                        await refreshOnlineStatus();
+            
+                        const res = await fetch('/api/squads/version');
+                        if (!res.ok) return;
+                        const data = await res.json();
+                        if (data.updatedAt && Number(data.updatedAt) > currentClientVersion + 1500) {
+                            showSyncNotification(data.updatedBy);
+                        }
+                    } catch (e) {}
+                }, 5000);
+            }
 
         // 頂部浮動同步提示條
         function showSyncNotification(operator) {
@@ -613,48 +611,85 @@
             currentClientVersion = Date.now();
         }
 
-            // ==========================================
-            // 🛡️ 在線人數與 IP 抓取更新
-            // ==========================================
-            async function refreshOnlineStatus() {
-                try {
-                    const res = await fetch(`${BACKEND_API_URL}/api/admin/online-status`);
-                    if (!res.ok) return;
-                    const data = await res.json();
-            
-                    if (data.status === 'success') {
-                        const countEl = document.getElementById('widgetOnlineCount');
-                        const ipEl = document.getElementById('widgetCurrentIp');
-                        if (countEl) countEl.textContent = data.onlineCount || 1;
-            
-                        // 優先顯示自己的 IP，若無則顯示最後一位在線者的 IP
-                        const myIp = sessionStorage.getItem('client_ip') || (data.users && data.users[0]?.ip) || '-';
-                        if (ipEl) ipEl.textContent = myIp;
-            
-                        // 渲染彈窗詳細清單
-                        const listContainer = document.getElementById('onlineUsersList');
-                        if (listContainer && Array.isArray(data.users)) {
-                            listContainer.innerHTML = data.users.map((u, i) => `
-                                <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between text-xs">
-                                    <div class="flex items-center gap-2">
-                                        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-                                        <div>
-                                            <div class="font-black text-slate-800">${u.operator || '管理員'}</div>
-                                            <div class="text-[10px] text-slate-400 font-mono">${u.loginTime}</div>
-                                        </div>
-                                    </div>
-                                    <div class="text-right">
-                                        <span class="text-[10px] bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded font-mono font-bold">${u.ip}</span>
-                                        <div class="text-[9px] text-emerald-600 font-bold mt-0.5">${u.idleSeconds < 10 ? '活躍中' : `${u.idleSeconds}秒前`}</div>
-                                    </div>
-                                </div>
-                            `).join('');
-                        }
+                // ==========================================
+                // 🛡️ 在線幹部管理：自動心跳維持與名冊更新
+                // ==========================================
+                let lockedMyIp = '';
+                
+                // 為每個分頁/設備生成獨立 Session ID
+                function getTabSessionId() {
+                    let sId = sessionStorage.getItem('admin_session_id');
+                    if (!sId) {
+                        sId = 'sess_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
+                        sessionStorage.setItem('admin_session_id', sId);
                     }
-                } catch (e) {
-                    // 靜默處理
+                    return sId;
                 }
-            }
+                
+                async function refreshOnlineStatus() {
+                    try {
+                        const sId = getTabSessionId();
+                
+                        // 1. 每輪詢一次就向後端發送心跳，維持自己分頁在線
+                        await fetch(`${BACKEND_API_URL}/api/squads/heartbeat`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ 
+                                sessionId: sId, 
+                                operatorName: '管理員' 
+                            })
+                        });
+                
+                        // 2. 獲取伺服器當前所有在線清單
+                        const res = await fetch(`${BACKEND_API_URL}/api/admin/online-status`);
+                        if (!res.ok) return;
+                        const data = await res.json();
+                
+                        if (data.status === 'success') {
+                            const countEl = document.getElementById('widgetOnlineCount');
+                            const ipEl = document.getElementById('widgetCurrentIp');
+                
+                            // 更新總在線人數 (例如顯示 2 人)
+                            if (countEl) countEl.textContent = data.onlineCount || 1;
+                
+                            // 鎖定當前發起者的自身 IP
+                            if (data.clientIp && data.clientIp !== '未知 IP') {
+                                lockedMyIp = data.clientIp;
+                            }
+                            if (ipEl && lockedMyIp) {
+                                ipEl.textContent = lockedMyIp;
+                            }
+                
+                            // 渲染點開後的在線幹部詳細清單
+                            const listContainer = document.getElementById('onlineUsersList');
+                            if (listContainer && Array.isArray(data.users)) {
+                                listContainer.innerHTML = data.users.map((u, i) => {
+                                    const isSelf = (u.sessionId === sId || u.ip === lockedMyIp);
+                                    return `
+                                        <div class="p-2.5 rounded-xl border flex items-center justify-between text-xs ${isSelf ? 'bg-indigo-50/60 border-indigo-200' : 'bg-slate-50 border-slate-200'}">
+                                            <div class="flex items-center gap-2">
+                                                <span class="w-2 h-2 rounded-full ${isSelf ? 'bg-indigo-600' : 'bg-emerald-500'}"></span>
+                                                <div>
+                                                    <div class="font-black text-slate-800 flex items-center gap-1">
+                                                        <span>${u.operator || '管理員'} (設備 #${i + 1})</span>
+                                                        ${isSelf ? '<span class="text-[9px] bg-indigo-100 text-indigo-700 font-bold px-1 rounded">本裝置</span>' : ''}
+                                                    </div>
+                                                    <div class="text-[10px] text-slate-400 font-mono">${u.loginTime}</div>
+                                                </div>
+                                            </div>
+                                            <div class="text-right">
+                                                <span class="text-[10px] bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded font-mono font-bold">${u.ip}</span>
+                                                <div class="text-[9px] text-emerald-600 font-bold mt-0.5">${u.idleSeconds < 8 ? '活躍中' : `${u.idleSeconds}秒前`}</div>
+                                            </div>
+                                        </div>
+                                    `;
+                                }).join('');
+                            }
+                        }
+                    } catch (e) {
+                        // 靜默處理連線波動
+                    }
+                }
             
             // 開啟/關閉在線名單詳細視窗
             function toggleOnlineDetailModal() {
