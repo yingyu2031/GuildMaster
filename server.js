@@ -162,6 +162,13 @@ async function initDatabase() {
         color_theme VARCHAR(50) DEFAULT 'white',
         create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+
+      CREATE TABLE IF NOT EXISTS squad_configs (
+          mode VARCHAR(50) PRIMARY KEY,
+          squad_data JSONB NOT NULL,
+          updated_by VARCHAR(100) DEFAULT '管理員',
+          updated_at BIGINT NOT NULL
+        );
     `);
 
     // 自動初始化預設職業
@@ -2172,6 +2179,96 @@ async function checkAndSendBroadcasts() {
 
 checkAndSendBroadcasts();
 setInterval(checkAndSendBroadcasts, 60 * 1000);
+
+// ==========================================
+// ⚔️ 隊伍排兵與多幹部即時同步 API
+// ==========================================
+
+// 1. 取得當前排兵名單版本時間戳（供前端每 5 秒輪詢，判斷是否有其他幹部更新）
+app.get('/api/squads/version', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT mode, updated_by, updated_at FROM squad_configs');
+    let latestTime = 0;
+    let operator = '其他幹部';
+
+    result.rows.forEach(r => {
+      const t = Number(r.updated_at);
+      if (t > latestTime) {
+        latestTime = t;
+        operator = r.updated_by;
+      }
+    });
+
+    res.json({
+      status: "success",
+      updatedAt: latestTime,
+      updatedBy: operator
+    });
+  } catch (err) {
+    res.status(500).json({ status: "error", message: err.message });
+  }
+});
+
+// 2. 讀取排兵名單 (mode: 'main' 或 'sub')
+app.get('/api/squads/:mode', async (req, res) => {
+  const { mode } = req.params;
+  try {
+    const result = await pool.query('SELECT squad_data, updated_by, updated_at FROM squad_configs WHERE mode = $1', [mode]);
+    if (result.rows.length > 0) {
+      res.json({
+        status: "success",
+        data: result.rows[0].squad_data,
+        updatedBy: result.rows[0].updated_by,
+        updatedAt: Number(result.rows[0].updated_at)
+      });
+    } else {
+      res.json({ status: "success", data: null, updatedAt: 0 });
+    }
+  } catch (err) {
+    res.status(500).json({ status: "error", message: err.message });
+  }
+});
+
+// 3. 儲存 / 覆蓋排兵名單（包含更新版本時間戳記，防止覆蓋衝突）
+app.post('/api/squads/:mode/save', async (req, res) => {
+  const { mode } = req.params;
+  const { squadData, operator, clientVersion } = req.body;
+
+  if (!squadData) {
+    return res.status(400).json({ status: "error", message: "缺少隊伍排兵資料" });
+  }
+
+  try {
+    // 檢查防覆蓋：如果伺服器版本比送出者的版本還新，主動提示衝突
+    const checkRes = await pool.query('SELECT updated_at, updated_by FROM squad_configs WHERE mode = $1', [mode]);
+    if (checkRes.rows.length > 0 && clientVersion) {
+      const serverVersion = Number(checkRes.rows[0].updated_at);
+      if (serverVersion > Number(clientVersion) + 1500) {
+        return res.status(409).json({
+          status: "conflict",
+          message: `名單已被【${checkRes.rows[0].updated_by || '其他幹部'}】搶先更新！`,
+          serverVersion
+        });
+      }
+    }
+
+    const now = Date.now();
+    await pool.query(`
+      INSERT INTO squad_configs (mode, squad_data, updated_by, updated_at)
+      VALUES ($1, $2, $3, $4)
+      ON CONFLICT (mode)
+      DO UPDATE SET
+        squad_data = EXCLUDED.squad_data,
+        updated_by = EXCLUDED.updated_by,
+        updated_at = EXCLUDED.updated_at
+    `, [mode, JSON.stringify(squadData), operator || '管理員', now]);
+
+    res.json({ status: "success", message: "排兵名單已成功儲存！", updatedAt: now });
+  } catch (err) {
+    console.error('[Database] 儲存排兵失敗:', err);
+    res.status(500).json({ status: "error", message: err.message });
+  }
+});
 
 app.listen(PORT, () => {
   console.log(`[Server] 伺服器已在連接埠 ${PORT} 上運行`);
