@@ -2378,8 +2378,6 @@ app.listen(PORT, () => {
   console.log(`[Server] 伺服器已在連接埠 ${PORT} 上運行`);
 });
 
-const ADMIN_USER = process.env.ADMIN_USER || "admin";
-const ADMIN_PASS = process.env.ADMIN_PASS || "lv123";
 
 app.post('/api/auth/login', (req, res) => {
   const { username, password } = req.body;
