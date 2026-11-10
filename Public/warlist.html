@@ -378,7 +378,7 @@
             <!-- 第三列：小團隊 ＋ LINE/DC 入群狀態標籤 -->
             <div class="grid grid-cols-2 gap-1.5 items-end">
                 <div>
-                    <label class="block text-[10px] text-slate-400 mb-0.5">小團隊</label>
+                    <label class="block text-[10px] text-slate-400 mb-0.5">小團體</label>
                     <div id="histTeamGroup" class="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-slate-700 truncate">-</div>
                 </div>
                 <div class="flex items-center gap-1 h-[26px]">
@@ -1269,7 +1269,7 @@ async function openMemberHistoryModal(name) {
             document.getElementById('histGameClass').textContent = resolvedMember.gameClass || resolvedMember.job || '-';
             document.getElementById('histLineName').textContent = resolvedMember.lineDisplayName || resolvedMember.lineName || '-';
             document.getElementById('histRegion').textContent = (resolvedMember.tw === 'N' || resolvedMember.region === '大陸') ? '大陸 (DC)' : '台灣 (LINE)';
-            document.getElementById('histTeamGroup').textContent = (resolvedMember.teamGroup && resolvedMember.teamGroup.trim()) ? resolvedMember.teamGroup : '';
+            document.getElementById('histTeamGroup').textContent = (resolvedMember.teamGroup && resolvedMember.teamGroup.trim()) ? resolvedMember.teamGroup : '無';
 
             // LINE / DC 群徽章
             const lineBadge = document.getElementById('histLineGroupBadge');
