@@ -91,7 +91,10 @@ input[type="date"], input[type="time"], select {
  <!-- 區塊 1：會員名冊 -->
  <section id="sectionMembers" class="space-y-4">
  <div class="grid grid-cols-4 gap-1 p-1 bg-sky-50 rounded-xl border border-sky-100 text-xs font-bold">
-  <button id="subTabPending" onclick="switchMemberSubTab('pending')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800 cursor-pointer">待審核</button>
+<button id="subTabPending" onclick="switchMemberSubTab('pending')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800 flex items-center justify-center gap-1 cursor-pointer">
+  <span>待審核</span>
+  <span id="badgePendingMemberCount" class="bg-rose-500 text-white text-[10px] px-1.5 py-0.2 rounded-full hidden">0</span>
+</button>
   <button id="subTabActive" onclick="switchMemberSubTab('active')" class="py-1.5 rounded-lg bg-white text-sky-900 shadow-xs font-black cursor-pointer">現任成員</button>
   <button id="subTabGroups" onclick="switchMemberSubTab('groups')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800 cursor-pointer">團體速查</button>
   <button id="subTabRetired" onclick="switchMemberSubTab('retired')" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800 cursor-pointer">退會封存</button>
@@ -1053,25 +1056,60 @@ if (section === 'members') switchMemberSubTab('active');
  else renderMembersList();
  }
 
- // 更新待審核人數與今日請假通知數量標籤 (Badge)
- function updateMemberCounts() {
- const pendingCount = membersData.filter(m => m.accountStatus === "待審核" && m.guildRole !== "退會").length;
- const badge = document.getElementById('badgePendingCount');
- if (pendingCount > 0) { badge.textContent = pendingCount; badge.classList.remove('hidden'); } else { badge.classList.add('hidden'); }
- document.getElementById('activeMemberCountText').textContent = `共 ${membersData.filter(m => m.accountStatus === "已審核" && m.guildRole !== "退會").length} 名會員`;
- 
- const todayStr = new Date().toISOString().split('T')[0];
- const todayLeaves = leavesData.filter(l => l.date === todayStr).length;
- const leaveBadge = document.getElementById('badgeMainTodayLeave');
- const todayCountBadge = document.getElementById('badgeTodayLeaveCount');
- if (todayLeaves > 0) {
- leaveBadge.textContent = todayLeaves; leaveBadge.classList.remove('hidden');
- todayCountBadge.textContent = todayLeaves; todayCountBadge.classList.remove('hidden');
- } else {
- leaveBadge.classList.add('hidden');
- todayCountBadge.classList.add('hidden');
- }
- }
+function updateMemberCounts() {
+  // 1. 計算待審核人數（排除退會成員，以及機器人自動預建的「新進群待填表」）
+  const pendingCount = membersData.filter(m => 
+    (m.accountStatus === "待審核" || m.account_status === "待審核") && 
+    (m.guildRole !== "退會" && m.guild_role !== "退會") &&
+    m.gameNickname !== "新進群待填表" && m.game_nickname !== "新進群待填表"
+  ).length;
+
+  // 頂層主頁籤「會員名冊」的紅圈
+  const badge = document.getElementById('badgePendingCount');
+  if (badge) {
+    if (pendingCount > 0) { 
+      badge.textContent = pendingCount > 99 ? '99+' : pendingCount; 
+      badge.classList.remove('hidden'); 
+    } else { 
+      badge.classList.add('hidden'); 
+    }
+  }
+
+  // 🎯 內部子分頁「待審核」按鈕內的紅圈
+  const subPendingBadge = document.getElementById('badgePendingMemberCount');
+  if (subPendingBadge) {
+    if (pendingCount > 0) {
+      subPendingBadge.textContent = pendingCount > 99 ? '99+' : pendingCount;
+      subPendingBadge.classList.remove('hidden');
+    } else {
+      subPendingBadge.classList.add('hidden');
+    }
+  }
+
+  // 2. 更新現任成員總數文字
+  const activeCount = membersData.filter(m => 
+    (m.accountStatus === "已審核" || m.account_status === "已審核") && 
+    (m.guildRole !== "退會" && m.guild_role !== "退會")
+  ).length;
+  const activeTextEl = document.getElementById('activeMemberCountText');
+  if (activeTextEl) {
+    activeTextEl.textContent = `共 ${activeCount} 名會員`;
+  }
+  
+  // 3. 計算今日請假人數
+  const todayStr = new Date().toISOString().split('T')[0];
+  const todayLeaves = leavesData.filter(l => (l.date || l.leaveDate) === todayStr).length;
+  const leaveBadge = document.getElementById('badgeMainTodayLeave');
+  const todayCountBadge = document.getElementById('badgeTodayLeaveCount');
+  
+  if (todayLeaves > 0) {
+    if (leaveBadge) { leaveBadge.textContent = todayLeaves; leaveBadge.classList.remove('hidden'); }
+    if (todayCountBadge) { todayCountBadge.textContent = todayLeaves; todayCountBadge.classList.remove('hidden'); }
+  } else {
+    if (leaveBadge) leaveBadge.classList.add('hidden');
+    if (todayCountBadge) todayCountBadge.classList.add('hidden');
+  }
+}
 
 // ==========================================
 // 5. 會員名冊清單渲染 (依職業分組、同職業依裝評降冪排序、資訊分行顯示)
