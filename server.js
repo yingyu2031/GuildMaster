@@ -1120,7 +1120,7 @@ app.get('/api/auth/discord', (req, res) => {
 });
 
 app.get('/api/auth/discord/callback', async (req, res) => {
-  { code, state } = req.query;
+  const { code, state } = req.query;
   if (!code) return res.status(400).send("授權失敗：未取得驗證碼");
 
   try {
