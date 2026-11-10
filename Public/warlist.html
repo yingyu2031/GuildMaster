@@ -402,13 +402,7 @@
         </div>
 
         <!-- 底部關閉按鈕 -->
-        <div class="pt-2 border-t border-slate-100 mt-1">
-            <button type="button" onclick="closeMemberHistoryModal()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-1.5 rounded-xl text-xs transition cursor-pointer">
-                關閉
-            </button>
-        </div>
-    </div>
-</div>
+        
 
     <!-- 核心 JS 邏輯 -->
     <script>
@@ -569,20 +563,24 @@
         function startSquadSyncPolling() {
             if (squadSyncTimer) clearInterval(squadSyncTimer);
             currentClientVersion = Date.now();
-
+        
+            // 進入時先立刻抓一次
+            refreshOnlineStatus();
+        
             squadSyncTimer = setInterval(async () => {
                 try {
+                    // 1. 每 5 秒同步更新左下角在線人數與 IP
+                    await refreshOnlineStatus();
+        
+                    // 2. 檢查排兵名單版本
                     const res = await fetch('/api/squads/version');
                     if (!res.ok) return;
                     const data = await res.json();
                     
-                    // 若伺服器版本比本地載入時間新超過 1.5 秒，代表其他幹部剛送出更新
                     if (data.updatedAt && Number(data.updatedAt) > currentClientVersion + 1500) {
                         showSyncNotification(data.updatedBy);
                     }
-                } catch (e) {
-                    // 靜默處理網路微斷線
-                }
+                } catch (e) {}
             }, 5000);
         }
 
@@ -614,6 +612,56 @@
             }
             currentClientVersion = Date.now();
         }
+
+            // ==========================================
+            // 🛡️ 在線人數與 IP 抓取更新
+            // ==========================================
+            async function refreshOnlineStatus() {
+                try {
+                    const res = await fetch(`${BACKEND_API_URL}/api/admin/online-status`);
+                    if (!res.ok) return;
+                    const data = await res.json();
+            
+                    if (data.status === 'success') {
+                        const countEl = document.getElementById('widgetOnlineCount');
+                        const ipEl = document.getElementById('widgetCurrentIp');
+                        if (countEl) countEl.textContent = data.onlineCount || 1;
+            
+                        // 優先顯示自己的 IP，若無則顯示最後一位在線者的 IP
+                        const myIp = sessionStorage.getItem('client_ip') || (data.users && data.users[0]?.ip) || '-';
+                        if (ipEl) ipEl.textContent = myIp;
+            
+                        // 渲染彈窗詳細清單
+                        const listContainer = document.getElementById('onlineUsersList');
+                        if (listContainer && Array.isArray(data.users)) {
+                            listContainer.innerHTML = data.users.map((u, i) => `
+                                <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between text-xs">
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                        <div>
+                                            <div class="font-black text-slate-800">${u.operator || '管理員'}</div>
+                                            <div class="text-[10px] text-slate-400 font-mono">${u.loginTime}</div>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <span class="text-[10px] bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded font-mono font-bold">${u.ip}</span>
+                                        <div class="text-[9px] text-emerald-600 font-bold mt-0.5">${u.idleSeconds < 10 ? '活躍中' : `${u.idleSeconds}秒前`}</div>
+                                    </div>
+                                </div>
+                            `).join('');
+                        }
+                    }
+                } catch (e) {
+                    // 靜默處理
+                }
+            }
+            
+            // 開啟/關閉在線名單詳細視窗
+            function toggleOnlineDetailModal() {
+                const modal = document.getElementById('onlineDetailModal');
+                if (modal) modal.classList.toggle('hidden');
+            }
+        
         function setupHorizontalScroll() {
             const wrapper = document.getElementById('rosterWrapper');
             if (!wrapper) return;
@@ -1894,5 +1942,46 @@ function createSquadCardHtml(squad) {
             });
         }
     </script>
+
+<div class="pt-2 border-t border-slate-100 mt-1">
+            <button type="button" onclick="closeMemberHistoryModal()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-1.5 rounded-xl text-xs transition cursor-pointer">
+                關閉
+            </button>
+        </div>
+    </div>
+</div>
+
+    <!-- 🟢 左下角：當前在線幹部與 IP 懸浮標籤 -->
+<div id="onlineStatusWidget" class="fixed bottom-3 left-3 z-40 bg-slate-900/85 backdrop-blur-md text-white px-3 py-1.5 rounded-xl border border-slate-700/60 shadow-xl flex items-center gap-2 text-[11px] font-bold select-none cursor-pointer transition hover:bg-slate-900" 
+     onclick="toggleOnlineDetailModal()" title="點擊檢視詳細在線名冊與 IP">
+    <span class="relative flex h-2 w-2">
+        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+        <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+    </span>
+    <span class="text-slate-300">在線幹部:</span>
+    <span id="widgetOnlineCount" class="text-emerald-400 font-mono font-black">1</span> 人
+    <span class="text-slate-600">|</span>
+    <span id="widgetCurrentIp" class="text-slate-400 font-mono text-[10px]">49.216.129.241</span>
+</div>
+
+<!-- 彈窗：點擊小卡彈出「詳細在線人員與 IP 清單」 -->
+<div id="onlineDetailModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-sm rounded-2xl p-4 border border-slate-200 shadow-2xl flex flex-col max-h-[80vh] text-left">
+        <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+            <h3 class="text-xs font-black text-slate-800 flex items-center gap-1.5">
+                <i class="fa-solid fa-users-viewfinder text-indigo-600"></i> 當前在線幹部清單
+            </h3>
+            <button onclick="toggleOnlineDetailModal()" class="text-slate-400 hover:text-slate-600 text-xs font-black cursor-pointer">✕</button>
+        </div>
+        <div id="onlineUsersList" class="flex-1 overflow-y-auto space-y-2 py-2 pr-0.5">
+            <!-- 動態插入在線名單 -->
+        </div>
+        <div class="pt-2 border-t border-slate-100">
+            <button onclick="toggleOnlineDetailModal()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-1.5 rounded-xl text-xs transition">
+                關閉
+            </button>
+        </div>
+    </div>
+</div>
 </body>
 </html>
