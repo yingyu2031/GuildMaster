@@ -326,7 +326,7 @@
         </div>
     </div>
 
-<!-- 成員詳細資料與異動歷程 Modal (緊湊幹部專用版) -->
+<!-- 成員詳細資料與異動歷程 Modal (精簡幹部專用版) -->
 <div id="memberHistoryModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 fade-in">
     <div class="bg-white w-full max-w-sm rounded-2xl p-4 border border-indigo-200 shadow-2xl flex flex-col max-h-[92vh] text-left">
         
@@ -353,31 +353,19 @@
                 </div>
             </div>
 
-            <!-- 第二列：LINE 暱稱 ＋ 公會身分 -->
+            <!-- 第二列：LINE 暱稱 ＋ 地區通道 -->
             <div class="grid grid-cols-2 gap-1.5">
                 <div>
                     <label class="block text-[10px] text-slate-400 mb-0.5">LINE 暱稱</label>
                     <div id="histLineName" class="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-slate-800 truncate">-</div>
                 </div>
                 <div>
-                    <label class="block text-[10px] text-slate-400 mb-0.5">公會身分</label>
-                    <div id="histGuildRole" class="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-indigo-700 font-black truncate">-</div>
-                </div>
-            </div>
-
-            <!-- 第三列：地區通道 ＋ 審核狀態 -->
-            <div class="grid grid-cols-2 gap-1.5">
-                <div>
                     <label class="block text-[10px] text-slate-400 mb-0.5">地區通道</label>
                     <div id="histRegion" class="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-slate-700 truncate">-</div>
                 </div>
-                <div>
-                    <label class="block text-[10px] text-slate-400 mb-0.5">審核狀態</label>
-                    <div id="histAccountStatus" class="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-emerald-600 font-black truncate">-</div>
-                </div>
             </div>
 
-            <!-- 第四列：小團隊 ＋ 群組狀態標籤 (緊湊橫排) -->
+            <!-- 第三列：小團隊 ＋ LINE/DC 入群狀態標籤 -->
             <div class="grid grid-cols-2 gap-1.5 items-end">
                 <div>
                     <label class="block text-[10px] text-slate-400 mb-0.5">小團隊</label>
@@ -389,7 +377,7 @@
                 </div>
             </div>
 
-            <!-- 資料異動歷程明細標題 -->
+            <!-- 異動歷程明細標題 -->
             <div class="pt-2 border-t border-slate-100 flex items-center justify-between">
                 <span class="text-xs font-black text-slate-900 flex items-center gap-1">
                     <span>異動歷程明細</span>
@@ -398,14 +386,14 @@
                 <span class="text-[9px] text-indigo-500 font-medium">記錄改名、裝評、職業變更</span>
             </div>
 
-            <!-- 歷程容器（垂直空間加大，排版完全比照第二張圖） -->
-            <div id="histLogsContainer" class="space-y-1.5 max-h-56 overflow-y-auto pr-0.5">
+            <!-- 歷程容器（垂直高度放大到 max-h-64，查看更舒適） -->
+            <div id="histLogsContainer" class="space-y-1.5 max-h-64 overflow-y-auto pr-0.5">
                 <div class="text-center py-4 text-slate-400 text-[10px]">載入歷程明細中...</div>
             </div>
 
         </div>
 
-        <!-- 底部關閉按鈕 (緊湊高度) -->
+        <!-- 底部關閉按鈕 -->
         <div class="pt-2 border-t border-slate-100 mt-1">
             <button type="button" onclick="closeMemberHistoryModal()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-1.5 rounded-xl text-xs transition cursor-pointer">
                 關閉
@@ -1037,12 +1025,12 @@ function renderMemberList() {
         }
 
 // ==========================================
-// 打開成員歷程彈窗（支援改名自動對焦、退會與改名即時提示）
+// 打開成員歷程彈窗（已精簡欄位、支援改名自動對焦）
 // ==========================================
 async function openMemberHistoryModal(name) {
     if (!name || name.trim() === '') return;
 
-    // 1. 初始化彈窗欄位
+    // 1. 本地基本資料對齊
     const memberPool = (typeof masterMembers !== 'undefined' && masterMembers.length > 0)
         ? masterMembers
         : (typeof membersData !== 'undefined' ? membersData : []);
@@ -1052,9 +1040,7 @@ async function openMemberHistoryModal(name) {
     document.getElementById('histGameNickname').textContent = name;
     document.getElementById('histGameClass').textContent = localMember ? (localMember.job || localMember.gameClass || '-') : '查詢中...';
     document.getElementById('histLineName').textContent = '查詢中...';
-    document.getElementById('histGuildRole').textContent = '現任';
     document.getElementById('histRegion').textContent = '台灣 (LINE)';
-    document.getElementById('histAccountStatus').textContent = '已審核';
     document.getElementById('histTeamGroup').textContent = (localMember && localMember.teamGroup) || '未分配';
     document.getElementById('histLogCount').textContent = '(載入中...)';
     document.getElementById('histLogsContainer').innerHTML = '<div class="text-[10px] text-slate-400 py-3 text-center">⏳ 正在同步歷史異動紀錄...</div>';
@@ -1063,7 +1049,7 @@ async function openMemberHistoryModal(name) {
     const existingAlert = document.getElementById('histStatusAlertBox');
     if (existingAlert) existingAlert.remove();
 
-    // 顯示彈窗
+    // 打開彈窗
     document.getElementById('memberHistoryModal').classList.remove('hidden');
 
     let resolvedMember = null;
@@ -1072,7 +1058,7 @@ async function openMemberHistoryModal(name) {
     let isRetired = false;
     let latestNickname = name;
 
-    // 2. 獲取公會全部最新成員名單比對 (優先從 admin 端點以取得包含退會的完整資料)
+    // 2. 獲取公會最新成員名單比對 (包含改名檢索)
     try {
         let allMembers = [];
         const adminRes = await fetch('/api/admin/members');
@@ -1086,9 +1072,8 @@ async function openMemberHistoryModal(name) {
         // 先精準比對現有名稱
         resolvedMember = allMembers.find(m => m.gameNickname === name || m.name === name);
 
-        // 3. 關鍵對焦：如果現有名稱找不到，代表可能「已改名」！查詢全部異動日誌或單獨查詢
+        // 若現有名稱查無，嘗試搜尋端點
         if (!resolvedMember) {
-            // 嘗試呼叫搜尋 API (放寬搜尋)
             const claimRes = await fetch(`/api/members/search-for-claim?q=${encodeURIComponent(name)}`);
             if (claimRes.ok) {
                 const claimData = await claimRes.json();
@@ -1098,7 +1083,7 @@ async function openMemberHistoryModal(name) {
             }
         }
 
-        // 4. 若依然查不到此人，向全體成員日誌檢索是否有此舊名
+        // 若依然查不到，檢索全體成員日誌是否有此舊名（判斷改名）
         if (!resolvedMember && allMembers.length > 0) {
             for (const m of allMembers) {
                 if (!m.lineUserId) continue;
@@ -1107,7 +1092,6 @@ async function openMemberHistoryModal(name) {
                     if (logRes.ok) {
                         const logData = await logRes.json();
                         if (logData.status === 'success' && Array.isArray(logData.logs)) {
-                            // 檢查日誌是否有改名紀錄，且 oldValue 為當前點擊的名字
                             const renameLog = logData.logs.find(l => 
                                 (l.field?.includes('暱稱') || l.action?.includes('暱稱')) && 
                                 (l.oldValue === name || String(l.old_value) === name)
@@ -1125,7 +1109,7 @@ async function openMemberHistoryModal(name) {
             }
         }
 
-        // 5. 欄位填入與狀態解析
+        // 3. 填入精簡後的基本資料
         if (resolvedMember) {
             resolvedLineUserId = resolvedMember.lineUserId || resolvedLineUserId;
             isRetired = (resolvedMember.guildRole === '退會' || resolvedMember.guild_role === '退會');
@@ -1134,27 +1118,14 @@ async function openMemberHistoryModal(name) {
             document.getElementById('histGameClass').textContent = resolvedMember.gameClass || resolvedMember.job || '-';
             document.getElementById('histLineName').textContent = resolvedMember.lineDisplayName || resolvedMember.lineName || '-';
             document.getElementById('histRegion').textContent = (resolvedMember.tw === 'N' || resolvedMember.region === '大陸') ? '大陸 (DC)' : '台灣 (LINE)';
-            document.getElementById('histAccountStatus').textContent = resolvedMember.accountStatus || '已審核';
-            document.getElementById('histTeamGroup').textContent = resolvedMember.teamGroup || '未分配';
-
-            // 身分與退會標示
-            const roleEl = document.getElementById('histGuildRole');
-            if (isRetired) {
-                roleEl.textContent = '已退會';
-                roleEl.className = "bg-rose-50 border border-rose-200 rounded-lg px-2 py-1 text-rose-700 font-black truncate";
-            } else {
-                const roleText = resolvedMember.guildRole || '現任';
-                roleEl.textContent = roleText;
-                roleEl.className = roleText.includes('幹部') 
-                    ? "bg-amber-50 border border-amber-200 rounded-lg px-2 py-1 text-amber-700 font-black truncate"
-                    : "bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-indigo-700 font-black truncate";
-            }
+            document.getElementById('histTeamGroup').textContent = (resolvedMember.teamGroup && resolvedMember.teamGroup.trim()) ? resolvedMember.teamGroup : '未分配';
 
             // LINE / DC 群徽章
             const lineBadge = document.getElementById('histLineGroupBadge');
             const dcBadge = document.getElementById('histDcGroupBadge');
             const isLine = (resolvedMember.joinedLineGroup === 'Y' || resolvedMember.joined_line_group === 'Y');
             const isDc = (resolvedMember.joinedDc === 'Y' || resolvedMember.joined_dc === 'Y');
+            
             if (lineBadge) {
                 lineBadge.className = isLine ? "flex-1 text-center py-1 rounded-md text-[10px] font-black border bg-emerald-50 text-emerald-700 border-emerald-200" : "flex-1 text-center py-1 rounded-md text-[10px] font-bold border bg-slate-50 text-slate-400 border-slate-200";
                 lineBadge.textContent = isLine ? "LINE 群 ✓" : "LINE 群 ✕";
@@ -1164,11 +1135,9 @@ async function openMemberHistoryModal(name) {
                 dcBadge.textContent = isDc ? "DC 群 ✓" : "DC 群 ✕";
             }
 
-            // ⚠️ 頂部警示條：改名 or 退會醒目提示
+            // 頂部改名 / 退會警示條
             renderTopStatusAlert(isRenamed, isRetired, name, latestNickname);
-
         } else {
-            // 完全查無此人
             renderTopStatusAlert(false, false, name, null, true);
         }
 
@@ -1176,7 +1145,7 @@ async function openMemberHistoryModal(name) {
         console.warn('會員詳細資料查詢警告:', err);
     }
 
-    // 6. 讀取真實異動歷程明細
+    // 4. 讀取異動歷程明細
     try {
         let logs = [];
         if (resolvedLineUserId) {
