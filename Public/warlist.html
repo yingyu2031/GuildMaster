@@ -326,93 +326,92 @@
         </div>
     </div>
 
-    <!-- 成員詳細資料與異動歷程 Modal (比照第二張圖) -->
-<div id="memberHistoryModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in">
-  <div class="bg-white w-full max-w-sm rounded-[32px] p-5 border-2 border-indigo-200 shadow-2xl flex flex-col max-h-[90vh] text-left">
-    
-    <!-- 頂部標題與關閉按鈕 -->
-    <div class="flex items-center justify-between pb-2 border-b border-slate-100">
-      <h3 class="text-sm font-black text-slate-900">成員歷程詳細資訊</h3>
-      <button type="button" onclick="closeMemberHistoryModal()" class="text-slate-400 hover:text-slate-600 text-xs font-bold p-1 cursor-pointer">✕ 關閉</button>
+<!-- 成員詳細資料與異動歷程 Modal (緊湊幹部專用版) -->
+<div id="memberHistoryModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 fade-in">
+    <div class="bg-white w-full max-w-sm rounded-2xl p-4 border border-indigo-200 shadow-2xl flex flex-col max-h-[92vh] text-left">
+        
+        <!-- 頂部標題與關閉按鈕 -->
+        <div class="flex items-center justify-between pb-1.5 border-b border-slate-100">
+            <h3 class="text-xs font-black text-slate-900 flex items-center gap-1.5">
+                <i class="fa-solid fa-clock-rotate-left text-indigo-600"></i> 成員歷程與詳細資訊
+            </h3>
+            <button type="button" onclick="closeMemberHistoryModal()" class="text-slate-400 hover:text-slate-600 text-xs font-black p-0.5 cursor-pointer">✕</button>
+        </div>
+
+        <!-- 緊湊資訊欄位區 -->
+        <div class="flex-1 overflow-y-auto space-y-1.5 pr-1 pt-2 text-[11px] font-bold text-slate-700">
+            
+            <!-- 第一列：遊戲暱稱 ＋ 遊戲職業 -->
+            <div class="grid grid-cols-2 gap-1.5">
+                <div>
+                    <label class="block text-[10px] text-slate-400 mb-0.5">遊戲暱稱</label>
+                    <div id="histGameNickname" class="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-slate-900 font-black truncate">-</div>
+                </div>
+                <div>
+                    <label class="block text-[10px] text-slate-400 mb-0.5">遊戲職業</label>
+                    <div id="histGameClass" class="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-slate-800 truncate">-</div>
+                </div>
+            </div>
+
+            <!-- 第二列：LINE 暱稱 ＋ 公會身分 -->
+            <div class="grid grid-cols-2 gap-1.5">
+                <div>
+                    <label class="block text-[10px] text-slate-400 mb-0.5">LINE 暱稱</label>
+                    <div id="histLineName" class="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-slate-800 truncate">-</div>
+                </div>
+                <div>
+                    <label class="block text-[10px] text-slate-400 mb-0.5">公會身分</label>
+                    <div id="histGuildRole" class="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-indigo-700 font-black truncate">-</div>
+                </div>
+            </div>
+
+            <!-- 第三列：地區通道 ＋ 審核狀態 -->
+            <div class="grid grid-cols-2 gap-1.5">
+                <div>
+                    <label class="block text-[10px] text-slate-400 mb-0.5">地區通道</label>
+                    <div id="histRegion" class="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-slate-700 truncate">-</div>
+                </div>
+                <div>
+                    <label class="block text-[10px] text-slate-400 mb-0.5">審核狀態</label>
+                    <div id="histAccountStatus" class="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-emerald-600 font-black truncate">-</div>
+                </div>
+            </div>
+
+            <!-- 第四列：小團隊 ＋ 群組狀態標籤 (緊湊橫排) -->
+            <div class="grid grid-cols-2 gap-1.5 items-end">
+                <div>
+                    <label class="block text-[10px] text-slate-400 mb-0.5">小團隊</label>
+                    <div id="histTeamGroup" class="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-slate-700 truncate">-</div>
+                </div>
+                <div class="flex items-center gap-1 h-[26px]">
+                    <span id="histLineGroupBadge" class="flex-1 text-center py-1 rounded-md text-[10px] font-black border bg-emerald-50 text-emerald-700 border-emerald-200">LINE 群 ✓</span>
+                    <span id="histDcGroupBadge" class="flex-1 text-center py-1 rounded-md text-[10px] font-black border bg-indigo-50 text-indigo-700 border-indigo-200">DC 群 ✓</span>
+                </div>
+            </div>
+
+            <!-- 資料異動歷程明細標題 -->
+            <div class="pt-2 border-t border-slate-100 flex items-center justify-between">
+                <span class="text-xs font-black text-slate-900 flex items-center gap-1">
+                    <span>異動歷程明細</span>
+                    <span id="histLogCount" class="text-[10px] font-normal text-slate-400 font-mono">(0)</span>
+                </span>
+                <span class="text-[9px] text-indigo-500 font-medium">記錄改名、裝評、職業變更</span>
+            </div>
+
+            <!-- 歷程容器（垂直空間加大，排版完全比照第二張圖） -->
+            <div id="histLogsContainer" class="space-y-1.5 max-h-56 overflow-y-auto pr-0.5">
+                <div class="text-center py-4 text-slate-400 text-[10px]">載入歷程明細中...</div>
+            </div>
+
+        </div>
+
+        <!-- 底部關閉按鈕 (緊湊高度) -->
+        <div class="pt-2 border-t border-slate-100 mt-1">
+            <button type="button" onclick="closeMemberHistoryModal()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-1.5 rounded-xl text-xs transition cursor-pointer">
+                關閉
+            </button>
+        </div>
     </div>
-
-    <!-- 內容滾動區 -->
-    <div class="flex-1 overflow-y-auto space-y-3.5 pr-1 pt-2 text-xs font-bold text-slate-700">
-      
-      <!-- 遊戲角色暱稱 -->
-      <div>
-        <label class="block text-[11px] text-slate-500 mb-1">遊戲角色暱稱</label>
-        <div id="histGameNickname" class="bg-[#F8FAFC] border border-indigo-100 rounded-2xl px-3.5 py-2 text-slate-900 font-black text-sm">-</div>
-      </div>
-
-      <!-- 遊戲職業 -->
-      <div>
-        <label class="block text-[11px] text-slate-500 mb-1">遊戲職業</label>
-        <div id="histGameClass" class="bg-[#F8FAFC] border border-indigo-100 rounded-2xl px-3.5 py-2 text-slate-800 font-bold">-</div>
-      </div>
-
-      <!-- LINE 暱稱 & 公會身分 -->
-      <div class="grid grid-cols-2 gap-2">
-        <div>
-          <label class="block text-[11px] text-slate-500 mb-1">LINE 暱稱</label>
-          <div id="histLineName" class="bg-[#F8FAFC] border border-indigo-100 rounded-2xl px-3 py-2 text-slate-800 truncate">-</div>
-        </div>
-        <div>
-          <label class="block text-[11px] text-slate-500 mb-1">公會身分</label>
-          <div id="histGuildRole" class="bg-[#F8FAFC] border border-indigo-100 rounded-2xl px-3 py-2 text-slate-800 font-black">-</div>
-        </div>
-      </div>
-
-      <!-- 地區通道 & 審核狀態 -->
-      <div class="grid grid-cols-2 gap-2">
-        <div>
-          <label class="block text-[11px] text-slate-500 mb-1">地區通道</label>
-          <div id="histRegion" class="bg-[#F8FAFC] border border-indigo-100 rounded-2xl px-3 py-2 text-slate-800">台灣 (LINE)</div>
-        </div>
-        <div>
-          <label class="block text-[11px] text-slate-500 mb-1">審核狀態</label>
-          <div id="histAccountStatus" class="bg-[#F8FAFC] border border-indigo-100 rounded-2xl px-3 py-2 text-emerald-600 font-black">已審核</div>
-        </div>
-      </div>
-
-      <!-- 小團隊 / 組別 -->
-      <div>
-        <label class="block text-[11px] text-slate-500 mb-1">小團隊</label>
-        <div id="histTeamGroup" class="bg-[#F8FAFC] border border-indigo-100 rounded-2xl px-3.5 py-2 text-slate-800 font-bold">-</div>
-      </div>
-
-      <!-- 群組加入勾選狀態 -->
-      <div class="grid grid-cols-2 gap-2 pt-1">
-        <div class="bg-indigo-50/50 border border-indigo-100 rounded-2xl p-2.5 flex items-center justify-between">
-          <span class="text-[11px] font-black text-slate-800">已加入 LINE 群</span>
-          <span id="histLineGroupCheck" class="w-5 h-5 rounded-md bg-indigo-600 text-white flex items-center justify-center text-xs">✓</span>
-        </div>
-        <div class="bg-indigo-50/50 border border-indigo-100 rounded-2xl p-2.5 flex items-center justify-between">
-          <span class="text-[11px] font-black text-slate-800">已加入 DC 語音群</span>
-          <span id="histDcGroupCheck" class="w-5 h-5 rounded-md bg-indigo-600 text-white flex items-center justify-center text-xs">✓</span>
-        </div>
-      </div>
-
-      <!-- 資料異動歷程明細 -->
-      <div class="pt-2">
-        <div class="flex items-center justify-between mb-1.5">
-          <span class="text-xs font-black text-slate-900">資料異動歷程明細</span>
-          <span id="histLogCount" class="text-[10px] text-slate-400 font-normal">共 0 筆紀錄</span>
-        </div>
-        <div id="histLogsContainer" class="space-y-2 max-h-44 overflow-y-auto pr-1">
-          <!-- 歷程卡片動態渲染 -->
-        </div>
-      </div>
-
-    </div>
-
-    <!-- 底部關閉按鈕 -->
-    <div class="pt-3 border-t border-slate-100 mt-2">
-      <button type="button" onclick="closeMemberHistoryModal()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 rounded-2xl transition cursor-pointer">
-        關閉視窗
-      </button>
-    </div>
-  </div>
 </div>
 
     <!-- 核心 JS 邏輯 -->
@@ -1038,107 +1037,156 @@ function renderMemberList() {
         }
 
 // ==========================================
-// 打開成員歷程彈窗（已修復找不到成員與 API 對接）
+// 打開成員歷程彈窗（已對接 /api/admin/members/logs API 與精準解析）
 // ==========================================
 async function openMemberHistoryModal(name) {
     if (!name || name.trim() === '') return;
 
-    // 1. 本地資料尋找：同時支援 m.name (名冊端) 與 m.gameNickname
+    // 1. 本地基本資料尋找
     const memberPool = (typeof masterMembers !== 'undefined' && masterMembers.length > 0)
         ? masterMembers
         : (typeof membersData !== 'undefined' ? membersData : []);
 
     const localMember = memberPool.find(m => (m.name === name || m.gameNickname === name));
 
-    // 2. 先帶入已知基本資料（避免空窗等待）
+    // 先帶入畫面預設值
     document.getElementById('histGameNickname').textContent = name;
     document.getElementById('histGameClass').textContent = localMember ? (localMember.job || localMember.gameClass || '-') : '查詢中...';
     document.getElementById('histLineName').textContent = '查詢中...';
-    document.getElementById('histGuildRole').textContent = '查詢中...';
+    document.getElementById('histGuildRole').textContent = '現任';
     document.getElementById('histRegion').textContent = '台灣 (LINE)';
     document.getElementById('histAccountStatus').textContent = '已審核';
-    document.getElementById('histTeamGroup').textContent = '載入中...';
-    document.getElementById('histLogCount').textContent = '讀取中...';
-    document.getElementById('histLogsContainer').innerHTML = '<div class="text-xs text-slate-400 py-4 text-center">正在向資料庫取得歷程明細...</div>';
+    document.getElementById('histTeamGroup').textContent = (localMember && localMember.teamGroup) || '未分配';
+    document.getElementById('histLogCount').textContent = '(載入中...)';
+    document.getElementById('histLogsContainer').innerHTML = '<div class="text-[10px] text-slate-400 py-3 text-center">⏳ 正在同步歷史異動紀錄...</div>';
 
-    // 先打開彈窗
+    // 打開彈窗
     document.getElementById('memberHistoryModal').classList.remove('hidden');
 
-    // 3. 向後端 API 查詢該成員的真實 profile 與異動日誌 (依遊戲暱稱精準查詢)
+    let resolvedLineUserId = (localMember && localMember.lineUserId) || (localMember && localMember.uid) || '';
+
+    // 2. 向後端查詢該成員 Profile（確認 lineUserId 與小團隊等資料）
     try {
         const res = await fetch(`/api/members/search-for-claim?q=${encodeURIComponent(name)}`);
         const data = await res.json();
 
-        let memberDetail = null;
         if (data && data.status === 'success' && Array.isArray(data.members)) {
-            memberDetail = data.members.find(m => m.gameNickname === name) || data.members[0];
-        }
+            const m = data.members.find(x => x.gameNickname === name) || data.members[0];
+            if (m) {
+                resolvedLineUserId = m.lineUserId || resolvedLineUserId;
+                document.getElementById('histGameClass').textContent = m.gameClass || localMember?.job || '-';
+                document.getElementById('histLineName').textContent = m.lineDisplayName || '-';
+                document.getElementById('histGuildRole').textContent = m.guildRole || '現任';
+                document.getElementById('histRegion').textContent = (m.tw === 'N' || m.region === '大陸') ? '大陸 (DC)' : '台灣 (LINE)';
+                document.getElementById('histAccountStatus').textContent = m.accountStatus || '已審核';
+                document.getElementById('histTeamGroup').textContent = m.teamGroup || '媽咪團';
 
-        if (memberDetail) {
-            document.getElementById('histGameClass').textContent = memberDetail.gameClass || localMember?.job || '-';
-            document.getElementById('histLineName').textContent = memberDetail.lineDisplayName || '-';
-            document.getElementById('histGuildRole').textContent = memberDetail.guildRole || '現任';
-            document.getElementById('histRegion').textContent = (memberDetail.tw === 'N' || memberDetail.region === '大陸') ? '大陸 (DC)' : '台灣 (LINE)';
-            document.getElementById('histAccountStatus').textContent = memberDetail.accountStatus || '已審核';
-            document.getElementById('histTeamGroup').textContent = memberDetail.teamGroup || '媽咪團';
+                // 群組狀態徽章
+                const lineBadge = document.getElementById('histLineGroupBadge');
+                const dcBadge = document.getElementById('histDcGroupBadge');
+                if (m.joinedLineGroup === 'N') {
+                    lineBadge.className = "flex-1 text-center py-1 rounded-md text-[10px] font-bold border bg-slate-50 text-slate-400 border-slate-200";
+                    lineBadge.textContent = "LINE 群 ✕";
+                } else {
+                    lineBadge.className = "flex-1 text-center py-1 rounded-md text-[10px] font-black border bg-emerald-50 text-emerald-700 border-emerald-200";
+                    lineBadge.textContent = "LINE 群 ✓";
+                }
 
-            // 勾選狀態 (LINE 群 / DC 群)
-            const lineCheck = document.getElementById('histLineGroupCheck');
-            const dcCheck = document.getElementById('histDcGroupCheck');
-            if (lineCheck) lineCheck.textContent = (memberDetail.joinedLineGroup === 'N' || memberDetail.joinedLine === '未入群') ? '✕' : '✓';
-            if (dcCheck) dcCheck.textContent = (memberDetail.joinedDc === 'N' || memberDetail.joinedDc === '未入DC') ? '✕' : '✓';
-
-            // 渲染異動明細
-            renderHistoryLogs(memberDetail.historyLogs || memberDetail.auditLogs || [], name, memberDetail.gameClass || localMember?.job);
-        } else {
-            // 後端若未查到特別明細，以本地資料展示
-            document.getElementById('histLineName').textContent = '未綁定/未填寫';
-            document.getElementById('histGuildRole').textContent = '現任成員';
-            document.getElementById('histTeamGroup').textContent = '媽咪團';
-            renderHistoryLogs([], name, localMember?.job);
+                if (m.joinedDc === 'N') {
+                    dcBadge.className = "flex-1 text-center py-1 rounded-md text-[10px] font-bold border bg-slate-50 text-slate-400 border-slate-200";
+                    dcBadge.textContent = "DC 群 ✕";
+                } else {
+                    dcBadge.className = "flex-1 text-center py-1 rounded-md text-[10px] font-black border bg-indigo-50 text-indigo-700 border-indigo-200";
+                    dcBadge.textContent = "DC 群 ✓";
+                }
+            }
         }
     } catch (err) {
-        console.warn('查詢成員歷程 API 失敗，使用預設值渲染:', err);
-        renderHistoryLogs([], name, localMember?.job);
+        console.warn('查詢成員資料警告:', err);
+    }
+
+    // 3. 向後端 Logs API 查詢「改名、裝評、職業」歷史明細
+    try {
+        let logs = [];
+        if (resolvedLineUserId) {
+            const logRes = await fetch(`/api/admin/members/logs/${encodeURIComponent(resolvedLineUserId)}`);
+            if (logRes.ok) {
+                const logData = await logRes.json();
+                if (logData.status === "success" && Array.isArray(logData.logs)) {
+                    logs = logData.logs;
+                }
+            }
+        }
+
+        renderDetailedHistoryLogs(logs, name, localMember ? localMember.job : '');
+    } catch (err) {
+        console.error('查詢歷程 API 失敗:', err);
+        renderDetailedHistoryLogs([], name, localMember ? localMember.job : '');
     }
 }
 
-// 輔助函式：渲染日誌列表
-function renderHistoryLogs(logs, name, job) {
+// 輔助函式：比照第二張圖渲染出包含「刪除線舊值 ➔ 新值」的專業卡片
+function renderDetailedHistoryLogs(logs, name, job) {
     const container = document.getElementById('histLogsContainer');
     const logCount = document.getElementById('histLogCount');
     container.innerHTML = '';
 
     if (!logs || logs.length === 0) {
-        logCount.textContent = '共 1 筆紀錄';
+        logCount.textContent = `共 1 筆紀錄`;
         container.innerHTML = `
-            <div class="p-2.5 rounded-2xl bg-[#F8FAFC] border border-indigo-50 space-y-1 text-left">
+            <div class="p-2 rounded-xl bg-slate-50 border border-slate-200 space-y-1 text-left">
                 <div class="flex items-center justify-between text-[10px]">
-                    <span class="font-black text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md">公會成員</span>
-                    <span class="text-slate-400">目前狀態</span>
+                    <span class="font-black text-sky-700 bg-sky-50 border border-sky-100 px-1.5 py-0.5 rounded">新會員註冊</span>
+                    <span class="text-slate-400 font-mono">初次登記</span>
                 </div>
-                <div class="text-[11px] text-slate-800 font-bold pl-0.5">
-                    ➜ ${name} (${job || '已配置出戰'})
+                <div class="text-[11px] text-slate-800 font-bold flex items-center gap-1.5">
+                    <span class="text-slate-400">-</span>
+                    <span class="text-sky-500 font-black">➜</span>
+                    <span>${name} ${job ? `(${job})` : ''}</span>
                 </div>
             </div>
         `;
-    } else {
-        logCount.textContent = `共 ${logs.length} 筆紀錄`;
-        logs.forEach(log => {
-            const div = document.createElement('div');
-            div.className = 'p-2.5 rounded-2xl bg-[#F8FAFC] border border-indigo-50 space-y-1 text-left';
-            div.innerHTML = `
-                <div class="flex items-center justify-between text-[10px]">
-                    <span class="font-black text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md">${log.action || '資料異動'}</span>
-                    <span class="text-slate-400">${log.timestamp || ''}</span>
-                </div>
-                <div class="text-[11px] text-slate-800 font-bold pl-0.5">
-                    ${log.detail || `${log.oldValue || ''} ➜ ${log.newValue || ''}`}
-                </div>
-            `;
-            container.appendChild(div);
-        });
+        return;
     }
+
+    logCount.textContent = `共 ${logs.length} 筆紀錄`;
+
+    logs.forEach(log => {
+        // 判斷日誌類型（裝備評分、改名、轉職、註冊）
+        const fieldName = log.field || log.action || '資料變更';
+        let badgeColor = 'text-sky-700 bg-sky-50 border-sky-100';
+        if (fieldName.includes('裝評') || fieldName.includes('裝備')) {
+            badgeColor = 'text-amber-800 bg-amber-50 border-amber-200';
+        } else if (fieldName.includes('暱稱') || fieldName.includes('名')) {
+            badgeColor = 'text-emerald-800 bg-emerald-50 border-emerald-200';
+        }
+
+        // 格式化數值（若為純數字則加上千分位）
+        const formatVal = (val) => {
+            if (!val && val !== 0) return '-';
+            const num = Number(val);
+            return (!isNaN(num) && num > 1000) ? num.toLocaleString() : val;
+        };
+
+        const oldText = formatVal(log.oldValue);
+        const newText = formatVal(log.newValue);
+        const timeText = log.updateTime || log.timestamp || '';
+
+        const card = document.createElement('div');
+        card.className = 'p-2 rounded-xl bg-[#F8FAFC] border border-indigo-50/80 space-y-1 text-left shadow-2xs';
+        card.innerHTML = `
+            <div class="flex items-center justify-between text-[10px]">
+                <span class="font-black ${badgeColor} border px-1.5 py-0.5 rounded">${fieldName}</span>
+                <span class="text-slate-400 font-mono text-[9px]">${timeText}</span>
+            </div>
+            <div class="text-[11px] text-slate-800 font-bold flex items-center gap-1.5 pl-0.5">
+                <span class="line-through text-slate-400 font-mono">${oldText}</span>
+                <span class="text-indigo-600 font-black text-xs">➔</span>
+                <span class="font-black text-slate-900 font-mono">${newText}</span>
+            </div>
+        `;
+        container.appendChild(card);
+    });
 }
 
 function closeMemberHistoryModal() {
