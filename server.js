@@ -2271,13 +2271,13 @@ app.post('/api/squads/:mode/save', async (req, res) => {
 });
 
 // ==========================================
-// 🛡️ 在線幹部管理與 IP 記錄模組
+// 🛡️ 在線幹部管理與 IP 記錄模組 (同 IP 精準去重版)
 // ==========================================
 
-// 儲存當前在線幹部分頁（以 IP + Session 識別）
+// 儲存當前在線幹部名單 (以 clientIp 作為唯一 key，徹底杜絕重複分身)
 const activeSessions = new Map();
 
-// 輔助函式：提取客戶端真實 IP
+// 輔助函式：提取客戶端真實 IP (自動處理 Proxy 與反向代理)
 function getClientIp(req) {
   const forwarded = req.headers['x-forwarded-for'];
   if (forwarded) {
@@ -2286,21 +2286,17 @@ function getClientIp(req) {
   return req.socket?.remoteAddress || req.ip || '未知 IP';
 }
 
-// 1. 幹部登入驗證：登入成功時寫入日誌與記錄 IP
-const ADMIN_USER = process.env.ADMIN_USER || "admin";
-const ADMIN_PASS = process.env.ADMIN_PASS || "lv123";
-
+// 1. 幹部登入驗證端點
 app.post('/api/auth/login', (req, res) => {
   const { username, password, operatorName } = req.body;
   const clientIp = getClientIp(req);
   const nowStr = new Date().toLocaleString("zh-TW", { timeZone: "Asia/Taipei" });
 
   if (username === ADMIN_USER && password === ADMIN_PASS) {
-    const sessionId = `${clientIp}_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
     const operator = operatorName || '管理員';
 
-    // 登記在線狀態
-    activeSessions.set(sessionId, {
+    // 🎯 核心修復：直接用 clientIp 當 Key，登入時更新/覆蓋時間
+    activeSessions.set(clientIp, {
       ip: clientIp,
       operator: operator,
       loginTime: nowStr,
@@ -2312,7 +2308,6 @@ app.post('/api/auth/login', (req, res) => {
     return res.json({ 
       status: "success", 
       message: "身分驗證通過",
-      sessionId: sessionId,
       ip: clientIp
     });
   }
@@ -2321,25 +2316,26 @@ app.post('/api/auth/login', (req, res) => {
   return res.status(401).json({ status: "error", message: "帳號或密碼錯誤！" });
 });
 
-// 2. 心跳回報與版本檢查：每次輪詢自動刷新在線時間
+// 2. 心跳回報端點：同一台設備發送心跳時，僅刷新該 IP 的活動時間
 app.post('/api/squads/heartbeat', (req, res) => {
-  const { sessionId, operatorName } = req.body;
+  const { operatorName } = req.body;
   const clientIp = getClientIp(req);
   const now = Date.now();
+  const nowStr = new Date().toLocaleString("zh-TW", { timeZone: "Asia/Taipei" });
 
-  if (sessionId) {
-    activeSessions.set(sessionId, {
-      ip: clientIp,
-      operator: operatorName || '幹部',
-      loginTime: activeSessions.get(sessionId)?.loginTime || new Date().toLocaleString("zh-TW", { timeZone: "Asia/Taipei" }),
-      lastSeen: now
-    });
-  }
+  // 更新此 IP 的最後活動時間（若原先有登入時間則保留）
+  const existing = activeSessions.get(clientIp);
+  activeSessions.set(clientIp, {
+    ip: clientIp,
+    operator: operatorName || existing?.operator || '管理員',
+    loginTime: existing?.loginTime || nowStr,
+    lastSeen: now
+  });
 
-  // 清除超過 30 秒無回應的離線連線
-  for (const [sId, sess] of activeSessions.entries()) {
-    if (now - sess.lastSeen > 30 * 1000) {
-      activeSessions.delete(sId);
+  // 清除超過 35 秒無回應的離線設備
+  for (const [ipKey, sess] of activeSessions.entries()) {
+    if (now - sess.lastSeen > 35 * 1000) {
+      activeSessions.delete(ipKey);
     }
   }
 
@@ -2349,13 +2345,15 @@ app.post('/api/squads/heartbeat', (req, res) => {
   });
 });
 
-// 3. 查詢當前在線人數與 IP 名單 API
+// 3. 查詢當前在線名單 API (嚴格按照真實 IP 輸出，一人一筆)
 app.get('/api/admin/online-status', (req, res) => {
   const now = Date.now();
   const onlineList = [];
+  const currentIp = getClientIp(req);
 
-  for (const [sId, sess] of activeSessions.entries()) {
-    if (now - sess.lastSeen <= 30 * 1000) {
+  // 清理過期連線並組合在線清單
+  for (const [ipKey, sess] of activeSessions.entries()) {
+    if (now - sess.lastSeen <= 35 * 1000) {
       onlineList.push({
         ip: sess.ip,
         operator: sess.operator,
@@ -2363,12 +2361,29 @@ app.get('/api/admin/online-status', (req, res) => {
         idleSeconds: Math.floor((now - sess.lastSeen) / 1000)
       });
     } else {
-      activeSessions.delete(sId);
+      activeSessions.delete(ipKey);
     }
+  }
+
+  // 若當前發起請求的 IP 不在名單中（例如剛按 F5 重整），自動登記此 IP 一次
+  if (!activeSessions.has(currentIp)) {
+    const nowStr = new Date().toLocaleString("zh-TW", { timeZone: "Asia/Taipei" });
+    const newEntry = {
+      ip: currentIp,
+      operator: '管理員',
+      loginTime: nowStr,
+      lastSeen: now
+    };
+    activeSessions.set(currentIp, newEntry);
+    onlineList.push({
+      ...newEntry,
+      idleSeconds: 0
+    });
   }
 
   res.json({
     status: "success",
+    clientIp: currentIp,
     onlineCount: onlineList.length,
     users: onlineList
   });
