@@ -692,6 +692,7 @@ app.post('/api/members/bind', async (req, res) => {
       oldMember.game_nickname === '未填表' ||
       oldMember.game_class === '未設定'
     );
+    const isNewRegistration = !oldMember || isRetired || isPlaceholder;
 
     const finalRole = isNewRegistration ? '現任' : (oldMember.guild_role || '現任');
     const finalAccountStatus = isNewRegistration ? '待審核' : (oldMember.account_status || '已審核');
