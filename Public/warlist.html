@@ -912,7 +912,7 @@
             return leaveList.some(l => l.name === name && l.date === todayStr);
         }
 
-        // 🎯 核心渲染：左側名冊（先按職業順序，同職業再依裝評由高到低，裝評獨立第二行灰字，支援左鍵點兩下彈出歷程）
+// 🎯 核心渲染：左側名冊（先按職業順序，同職業再依裝評由高到低，裝評獨立第二行灰字，支援左鍵點兩下彈出歷程）
 function renderMemberList() {
     const container = document.getElementById('member-list-container');
     const search = document.getElementById('search-input').value.trim();
@@ -1497,7 +1497,7 @@ function closeMemberHistoryModal() {
     document.getElementById('memberHistoryModal').classList.add('hidden');
 }
 
-// 🎯 隊伍卡片生成（移除裝評、字體放大為 text-[13px]、隊內按職業排序、支援雙擊查看歷程）
+// 🎯 隊伍卡片生成（移除裝評、字體放大為 text-[13px]、隊內按職業排序、支援雙擊查看歷程、修復刪除錯位 Bug）
 function createSquadCardHtml(squad) {
     let slotsHtml = '';
 
@@ -1540,45 +1540,48 @@ function createSquadCardHtml(squad) {
             const memberIsOnLeave = isLeave(member);
             const isConflictInMain = (currentMode === 'sub') && isAssignedInMain(member);
 
+            // ⚠️ 轉義單引號，防止暱稱帶有符號時引發語法錯誤
+            const safeMemberName = member.replace(/'/g, "\\'");
+
             if (memberIsOnLeave) {
                 // 1. 今日請假
                 slotsHtml += `
-                    <div ondblclick="openMemberHistoryModal('${member}')" class="flex items-center justify-between job-card-leave-today px-2.5 py-2 rounded-lg border text-xs font-black shadow-xs cursor-pointer select-none" title="⚠️ 此成員今日已登記請假！(左鍵雙擊查看歷程)">
+                    <div ondblclick="openMemberHistoryModal('${safeMemberName}')" class="flex items-center justify-between job-card-leave-today px-2.5 py-2 rounded-lg border text-xs font-black shadow-xs cursor-pointer select-none" title="⚠️ 此成員今日已登記請假！(左鍵雙擊查看歷程)">
                         <div class="flex items-center gap-1.5 min-w-0">
                             <span class="bg-red-600 text-white text-[9px] px-1.5 py-0.5 rounded font-black shrink-0">請假</span>
                             <span class="truncate text-[13px] font-black">${member}</span>
                         </div>
-                        <button onclick="removeMemberFromSquad(${squad.id}, ${i})" class="opacity-80 hover:opacity-100 p-0.5 text-red-700 hover:text-red-900 shrink-0 sort-hidden" title="從隊伍移除"><i class="fa-solid fa-xmark"></i></button>
+                        <button onclick="removeMemberFromSquadByName(${squad.id}, '${safeMemberName}')" class="opacity-80 hover:opacity-100 p-0.5 text-red-700 hover:text-red-900 shrink-0 sort-hidden" title="從隊伍移除"><i class="fa-solid fa-xmark"></i></button>
                     </div>
                 `;
             } else if (isConflictInMain) {
                 // 2. 副戰中發現已被主戰排定
                 slotsHtml += `
-                    <div ondblclick="openMemberHistoryModal('${member}')" class="flex items-center justify-between job-card-leave-today px-2.5 py-2 rounded-lg border text-xs font-black shadow-xs cursor-pointer select-none" title="🚨 異常警告：此成員已被排在主戰場名單中！(左鍵雙擊查看歷程)">
+                    <div ondblclick="openMemberHistoryModal('${safeMemberName}')" class="flex items-center justify-between job-card-leave-today px-2.5 py-2 rounded-lg border text-xs font-black shadow-xs cursor-pointer select-none" title="🚨 異常警告：此成員已被排在主戰場名單中！(左鍵雙擊查看歷程)">
                         <div class="flex items-center gap-1.5 min-w-0">
                             <span class="bg-rose-700 text-white text-[9px] px-1.5 py-0.5 rounded font-black shrink-0">主戰已排</span>
                             <span class="truncate text-[13px] font-black text-rose-950">${member}</span>
                         </div>
-                        <button onclick="removeMemberFromSquad(${squad.id}, ${i})" class="opacity-80 hover:opacity-100 p-0.5 text-red-700 hover:text-red-900 shrink-0 sort-hidden" title="從副戰移除"><i class="fa-solid fa-xmark"></i></button>
+                        <button onclick="removeMemberFromSquadByName(${squad.id}, '${safeMemberName}')" class="opacity-80 hover:opacity-100 p-0.5 text-red-700 hover:text-red-900 shrink-0 sort-hidden" title="從副戰移除"><i class="fa-solid fa-xmark"></i></button>
                     </div>
                 `;
             } else if (info.isUnknown) {
                 // 3. 改名或查無資料庫綁定
                 slotsHtml += `
-                    <div ondblclick="openMemberHistoryModal('${member}')" class="flex items-center justify-between job-card-unknown px-2.5 py-2 rounded-lg border text-xs font-bold shadow-2xs cursor-pointer select-none" title="名冊查無此暱稱（可能已改名或尚未綁定，左鍵雙擊查看歷程）">
+                    <div ondblclick="openMemberHistoryModal('${safeMemberName}')" class="flex items-center justify-between job-card-unknown px-2.5 py-2 rounded-lg border text-xs font-bold shadow-2xs cursor-pointer select-none" title="名冊查無此暱稱（可能已改名或尚未綁定，左鍵雙擊查看歷程）">
                         <div class="flex items-center gap-1.5 min-w-0">
                             <span class="text-amber-600 text-[11px]"><i class="fa-solid fa-triangle-exclamation"></i></span>
                             <span class="truncate text-[13px] font-black">${member}</span>
                         </div>
-                        <button onclick="removeMemberFromSquad(${squad.id}, ${i})" class="opacity-70 hover:opacity-100 p-0.5 text-gray-500 hover:text-red-600 shrink-0 sort-hidden"><i class="fa-solid fa-xmark"></i></button>
+                        <button onclick="removeMemberFromSquadByName(${squad.id}, '${safeMemberName}')" class="opacity-70 hover:opacity-100 p-0.5 text-gray-500 hover:text-red-600 shrink-0 sort-hidden"><i class="fa-solid fa-xmark"></i></button>
                     </div>
                 `;
             } else {
                 // 4. 正常出戰名單（暱稱放大至 13px font-black，不顯示裝評）
                 slotsHtml += `
-                    <div ondblclick="openMemberHistoryModal('${member}')" class="flex items-center justify-between job-card-${info.job} px-2.5 py-2 rounded-lg border shadow-2xs cursor-pointer select-none" title="左鍵點兩下查看歷程明細">
+                    <div ondblclick="openMemberHistoryModal('${safeMemberName}')" class="flex items-center justify-between job-card-${info.job} px-2.5 py-2 rounded-lg border shadow-2xs cursor-pointer select-none" title="左鍵點兩下查看歷程明細">
                         <span class="truncate pr-1 text-[13px] font-black tracking-wide">${member}</span>
-                        <button onclick="removeMemberFromSquad(${squad.id}, ${i})" class="opacity-70 hover:opacity-100 p-0.5 shrink-0 sort-hidden"><i class="fa-solid fa-xmark"></i></button>
+                        <button onclick="removeMemberFromSquadByName(${squad.id}, '${safeMemberName}')" class="opacity-70 hover:opacity-100 p-0.5 shrink-0 sort-hidden"><i class="fa-solid fa-xmark"></i></button>
                     </div>
                 `;
             }
@@ -1630,6 +1633,28 @@ function createSquadCardHtml(squad) {
         </div>
     `;
 }
+
+        // 🎯 依據成員「真實名稱」精確移除，徹底解決因排序導致的索引錯位誤刪問題！
+    function removeMemberFromSquadByName(squadId, memberName) {
+            if (!memberName) return;
+        
+            const squads = (currentMode === 'main') ? mainSquads : subSquads;
+            const squad = squads.find(s => s.id === squadId);
+            if (!squad || !Array.isArray(squad.members)) return;
+        
+            // 精準找到該成員在隊伍陣列中的真實索引
+            const realIndex = squad.members.findIndex(m => {
+                if (typeof m === 'string') return m.trim() === memberName.trim();
+                if (m && typeof m === 'object') return (m.name === memberName || m.gameNickname === memberName);
+                return false;
+            });
+        
+            if (realIndex !== -1) {
+                squad.members.splice(realIndex, 1);
+                renderSquads();
+                renderMemberList();
+            }
+        }
 
         // 🎯 底部：動態依已安排人員之「職業分類統計表」
         function renderClassStatsTable() {
