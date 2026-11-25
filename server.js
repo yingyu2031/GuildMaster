@@ -1358,26 +1358,43 @@ app.post('/api/leaves', async (req, res) => {
 
     const leaveId = 'L' + Date.now() + Math.random().toString(36).substring(2, 7);
     const finalReason = note ? `${leaveReason} (備註: ${note})` : leaveReason;
-    const nowTaipei = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Taipei" }));
+    
+    // 1. 取得真實當下時間物件 (UTC 基準)
+    const now = new Date();
 
+    // 2. 產生台灣時間的資料庫寫入字串 ("YYYY-MM-DD HH:mm:ss") 與推播顯示字串 ("MM/DD HH:mm")
+    const taipeiParts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Taipei',
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit',
+      hour12: false
+    }).formatToParts(now);
+
+    const getPart = (type) => taipeiParts.find(p => p.type === type).value;
+    const dbSubmitTime = `${getPart('year')}-${getPart('month')}-${getPart('day')} ${getPart('hour')}:${getPart('minute')}:${getPart('second')}`;
+    const lineTimeStr = `${getPart('month')}/${getPart('day')} ${getPart('hour')}:${getPart('minute')}`;
+
+    // 3. 檢查是否超過最晚請假時間 (強制綁定 +08:00 台灣時區比對，避免主機 UTC 時差)
     let finalUrgent = isUrgent || 'N';
     const ruleRes = await pool.query('SELECT latest_time, enabled FROM leave_rules WHERE event = $1', [leaveEvent]);
 
     if (ruleRes.rows.length > 0 && ruleRes.rows[0].enabled === 1) {
       const latestTimeStr = ruleRes.rows[0].latest_time;
       if (latestTimeStr) {
-        let deadline;
-        if (latestTimeStr.includes(" ")) {
-          deadline = new Date(latestTimeStr);
-        } else {
-          deadline = new Date(`${leaveDate}T${latestTimeStr}:00`);
-        }
-        if (nowTaipei > deadline) {
+        let cleanDeadline = latestTimeStr.includes(" ") 
+          ? latestTimeStr.trim().replace(' ', 'T') 
+          : `${leaveDate}T${latestTimeStr}`;
+        if (cleanDeadline.length === 16) cleanDeadline += ':00';
+        if (!cleanDeadline.includes('+') && !cleanDeadline.endsWith('Z')) cleanDeadline += '+08:00';
+
+        const deadline = new Date(cleanDeadline);
+        if (now > deadline) {
           finalUrgent = 'Y';
         }
       }
     }
 
+    // 4. 寫入資料庫 (使用校正後的台灣時間字串 dbSubmitTime)
     await pool.query(`
       INSERT INTO leaves (
         leave_id, leave_date, leave_event, target_uid, 
@@ -1395,24 +1412,20 @@ app.post('/api/leaves', async (req, res) => {
       finalUrgent, 
       operatorUid || targetUid, 
       operatorName || '本人', 
-      nowTaipei 
+      dbSubmitTime 
     ]);
 
+    // 5. LINE 推播通知 (直接使用 lineTimeStr，不再重複轉換時區)
     if (finalUrgent === 'Y') {
       try {
         const configRes = await pool.query("SELECT config_value FROM system_configs WHERE config_key = 'admin_group_id'");
         const adminGroupId = configRes.rows.length > 0 ? configRes.rows[0].config_value : null;
 
         if (adminGroupId && typeof LINE_ACCESS_TOKEN !== 'undefined' && LINE_ACCESS_TOKEN) {
-          const timeStr = nowTaipei.toLocaleString("zh-TW", { 
-            timeZone: "Asia/Taipei", 
-            month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false 
-          });
-
           const urgentMessage = 
             `🚨${gameNickname} (${gameClass || ''}) ${leaveDate} 臨時請假!\n` +
             `請假原因：${finalReason}\n` +
-            `填單時間：${timeStr}`;
+            `填單時間：${lineTimeStr}`;
 
           await fetch('https://api.line.me/v2/bot/message/push', {
             method: 'POST',
